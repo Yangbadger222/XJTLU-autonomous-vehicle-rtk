@@ -1,6 +1,9 @@
-# 注意事项
+# RM C Board VS Code Configuration
 
-更新时间：2023/12/10 @TangLongbin
+This directory contains editor configuration files for the RM C Board firmware snapshot.
 
-- 内部  `json` 文件均为 `VSCode` 自动补全使用，请勿删除或修改
-- `HAL_Code` 作为 `STM32` 函数备忘录
+## Notes
+
+- The JSON files support local VS Code completion and editor behavior for the firmware tree.
+- They are not ROS 2 launch or runtime configuration files.
+- Do not delete or rewrite them during Jetson-side documentation cleanup unless the firmware toolchain is being updated deliberately.

@@ -1,5 +1,9 @@
 # Livox ROS Driver 2
 
+## XJTLU Repository Note
+
+This directory vendors Livox ROS Driver 2 for the XJTLU autonomous vehicle workspace. Keep the upstream driver documentation, source attribution, and license semantics intact. Project-specific launch integration is handled from `src/bringup/`, and normal workspace builds should be run from `~/XJTLU-autonomous-vehicle` with `colcon build --symlink-install --parallel-workers 1`.
+
 Livox ROS Driver 2 is the 2nd-generation driver package used to connect LiDAR products produced by Livox, applicable for ROS (noetic recommended) and ROS2 (foxy or humble recommended).
 
   **Note :**

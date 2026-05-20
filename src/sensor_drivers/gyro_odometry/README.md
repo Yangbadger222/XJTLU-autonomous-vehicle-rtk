@@ -1,31 +1,27 @@
 # gyro_odometry
 
-`gyro_odometry` 是一个实验性的串口速度反馈节点，目标是从底盘串口读取速度数据并发布 `geometry_msgs/msg/TwistWithCovarianceStamped`。
+`gyro_odometry` is an experimental serial velocity-feedback package. Its intended output is `geometry_msgs/msg/TwistWithCovarianceStamped`, but the current implementation is not an active production feedback source.
 
-## 当前实现状态
+## Current Behavior
 
-- 可执行文件名: `gyro_odometry`
-- 发布话题: `twist_with_covariance`
-- 默认串口: `/dev/serial_twistctl`
-- 发送周期: `20 ms`
+- Executable: `gyro_odometry`
+- Node output topic: `twist_with_covariance`
+- Default serial port in code: `/dev/serial_twistctl`
+- Nominal send/read period: `20 ms`
 
-## 当前代码的真实行为
+The source currently has `serialopen` set to `0`, so the default path publishes zero-valued `twist_with_covariance` messages instead of reading live serial feedback.
 
-- 源码里全局开关 `serialopen` 目前写死为 `0`。
-- 因此默认启动后不会进入串口读取分支，而是持续发布全零的 `twist_with_covariance`。
-- 这说明它现在不是主工作流里启用的有效反馈源，更接近保留中的实验包。
-
-## 构建与运行
-
-从工作区根目录执行:
+## Build And Run
 
 ```bash
+cd ~/XJTLU-autonomous-vehicle
 colcon build --packages-select gyro_odometry --symlink-install --parallel-workers 1
 source install/setup.bash
 ros2 run gyro_odometry gyro_odometry
 ```
 
-## 备注
+## Current Limitations
 
-- 该包依赖仓库内的 `serial` 库。
-- 如果未来要重新启用真实串口反馈，首先要处理 `serialopen` 的硬编码状态和串口数据格式校验。
+- Not used as the main odometry feedback source in the active vehicle stack.
+- Depends on the repository-local `serial` package.
+- Before enabling it for closed-loop use, verify the serial protocol, remove or refactor the hard-coded `serialopen` behavior, and validate covariance values.

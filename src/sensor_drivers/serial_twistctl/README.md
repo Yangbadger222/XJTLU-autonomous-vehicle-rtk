@@ -1,58 +1,59 @@
 # serial_twistctl
 
-`serial_twistctl` 是底盘控制串口桥接节点。它订阅 Nav2 或上层控制器发布的 `/cmd_vel`，把速度指令格式化后发给下位 C 板。这个节点在当前主模式里是生产链路的一部分。
+`serial_twistctl` is the ROS 2 bridge from Nav2 velocity commands to the STM32 lower controller. It subscribes to `/cmd_vel`, formats the command expected by the lower controller, and writes it to the configured serial port.
 
-## 当前接口
+## Role In The Vehicle
 
-### 输入
+This package is part of the production runtime chain. In normal navigation modes, Nav2 publishes `/cmd_vel`, this node forwards the command over serial, and the STM32 board drives the chassis.
 
-- `/cmd_vel` (`geometry_msgs/msg/Twist`)
+## Interfaces
 
-### 输出
+Subscribed topics:
 
-- 无 ROS 话题输出，数据直接写入串口
-- 可选日志:
-  - session 模式下写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/latest/...`
-  - 非 session 模式下回退到 `~/XJTLU-autonomous-vehicle/runtime-data/logs/twist_log/`
+| Topic | Type | Purpose |
+|------|------|---------|
+| `/cmd_vel` | `geometry_msgs/msg/Twist` | Linear and angular velocity command from Nav2 or an upper controller |
 
-## 当前串口协议
+ROS topics published:
 
-收到 `/cmd_vel` 后，节点会生成如下格式的命令:
+- None. The node writes directly to the serial port.
+
+Serial command format:
 
 ```text
 vcx=<linear.x>,wc=<angular.z>
 ```
 
-实际发送字符串末尾会附带换行。
+The actual transmitted command ends with a newline.
 
-## 当前参数
+## Parameters
 
-- `port`
-  - 默认 `/dev/serial_twistctl`
-- `baudrate`
-  - 默认 `115200`
-- `send_attempts`
-  - 默认 `1`
-- `delay_between_attempts_ms`
-  - 默认 `0`
+| Parameter | Default | Purpose |
+|----------|---------|---------|
+| `port` | `/dev/serial_twistctl` | udev-managed serial device for the lower controller |
+| `baudrate` | `115200` | Serial baud rate |
+| `send_attempts` | `1` | Number of send attempts per command |
+| `delay_between_attempts_ms` | `0` | Delay between repeated sends |
 
-这些参数由 `master_params.yaml` 和各模式 launch 文件统一下发。
+Parameters are normally supplied through `src/bringup/config/master_params.yaml` and the active launch file.
 
-## 构建与单独调试
-
-从工作区根目录执行:
+## Build And Run
 
 ```bash
+cd ~/XJTLU-autonomous-vehicle
 colcon build --packages-select serial_twistctl --symlink-install --parallel-workers 1
 source install/setup.bash
 ros2 run serial_twistctl serial_twistctl_node
 ```
 
-## 运维注意事项
+## Runtime Logs
 
-- 当前整车默认依赖 udev 命名的 `/dev/serial_twistctl`，不是临时 `chmod 666 /dev/ttyACM0` 工作流。
-- 如果串口打不开，优先检查:
-  - 设备节点是否存在
-  - udev 规则是否生效
-  - 下位机是否上电
-  - `master_params.yaml` 中端口参数是否被改坏
+- In a managed launch session, logs are written under `runtime-data/logs/latest/`.
+- Outside a managed session, the node falls back to `runtime-data/logs/twist_log/`.
+
+## Troubleshooting
+
+- Confirm `/dev/serial_twistctl` exists.
+- Confirm the lower controller is powered.
+- Confirm udev rules are active instead of temporarily relying on `chmod`.
+- Confirm `master_params.yaml` has not changed the serial port or baud rate unexpectedly.

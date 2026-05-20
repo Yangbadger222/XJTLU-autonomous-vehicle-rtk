@@ -1,9 +1,23 @@
-# RM_C_Board_2025
+# RM C Board Firmware Snapshot
 
-Code of Robomaster C_Board for 2025
+This directory is a repository-local snapshot of the STM32 RM C Board lower-controller firmware used by the XJTLU autonomous vehicle platform.
 
-更新时间：2025/4/28
+## Scope
 
-## 介绍
+- It is firmware source and project material for the lower controller.
+- It is not a ROS 2 package and is not built by `colcon`.
+- It is kept in the monorepo so the Jetson-side serial protocol and lower-controller code can be inspected together.
 
-更新了并完善之前的C板代码，使其实现自主导航系统的下位机的多项功能
+## Contents
+
+The snapshot preserves the source tree, STM32/Keil project files, editor configuration, and companion artifacts that were present when the firmware was imported.
+
+## Maintenance Boundary
+
+- Do not treat generated firmware artifacts as ROS build outputs.
+- Do not mechanically reformat or reorganize this tree during Jetson-side documentation work.
+- If firmware behavior changes, record the expected serial command contract in both this README and the relevant ROS bridge documentation.
+
+## Historical Note
+
+The original snapshot was imported from the RM C Board 2025 codebase and updated around 2025-04-28 for autonomous-navigation lower-controller functions.

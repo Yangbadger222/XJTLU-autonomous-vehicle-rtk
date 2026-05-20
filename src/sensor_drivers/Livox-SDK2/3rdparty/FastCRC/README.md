@@ -1,6 +1,11 @@
 FastCRC
 =======
 
+XJTLU Repository Note
+---------------------
+
+This directory is a third-party dependency inside the vendored Livox SDK2 tree. It is not project-original vehicle code. Preserve the upstream description and license semantics when editing this file.
+
 Fast CRC Arduino library 
 Up to 30 times faster than crc16.h (_avr_libc)
 

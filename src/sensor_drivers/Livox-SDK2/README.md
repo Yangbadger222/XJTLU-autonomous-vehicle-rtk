@@ -1,5 +1,9 @@
 # 1. Introduction
 
+## XJTLU Repository Note
+
+This directory vendors Livox SDK2 for the XJTLU autonomous vehicle workspace. It is an upstream SDK dependency used by the Livox ROS driver path, not project-original application code. Preserve upstream documentation, source attribution, protocol references, and license semantics when editing this tree.
+
 Livox SDK2 is a software development kit designed for all Livox lidars such as HAP and Mid-360. It is developed based on C/C++ following Livox SDK2 Communication Protocol, and provides easy-to-use C style APIs. With the Livox SDK2, users can quickly connect to the Livox Lidars and receive point cloud data.
 
 Livox SDK2 consists of [Livox SDK2 core code](sdk_core/), [Livox SDK2 APIs](include/livox_lidar_api.h) and three [samples](samples/).

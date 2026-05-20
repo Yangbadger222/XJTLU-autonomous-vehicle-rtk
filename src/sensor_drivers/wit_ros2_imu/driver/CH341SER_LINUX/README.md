@@ -1,4 +1,9 @@
 # ch341 linux serial driver
+
+## XJTLU Repository Note
+
+This directory contains an upstream WCH CH341 USB-serial driver package kept with the WIT IMU driver materials. The active Jetson stack normally relies on the system's available serial devices and udev naming; do not rebuild or install this kernel module unless a hardware bringup task explicitly requires it. Preserve upstream instructions and attribution.
+
 ## Description
 
 USB serial driver for USB to UART chip ch340, ch341, etc. ch341 supports multiple working modes, this driver only supports its serial port mode.

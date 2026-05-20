@@ -1,39 +1,47 @@
 # wit_ros2_imu
 
-`wit_ros2_imu` 是 WIT IMU 的 ROS 2 驱动包，当前主要发布 `/imu/data_raw`，供实验性 GNSS 规划链路和独立调试使用。
+`wit_ros2_imu` is the ROS 2 driver package for the WIT IMU used in the XJTLU vehicle workspace. It currently publishes raw IMU data for experiments and standalone debugging.
 
-## 当前行为
+## Current Role
 
-- 节点名: `imu_driver_node`
-- 发布话题: `/imu/data_raw`
-- 消息类型: `sensor_msgs/msg/Imu`
-- 默认串口设备: `/dev/imu_usb`
-- 默认波特率: `9600`
+- Main output: `/imu/data_raw`
+- Message type: `sensor_msgs/msg/Imu`
+- Default device used by the implementation: `/dev/imu_usb`
+- Default baud rate in launch configuration: `9600`
 
-## 当前实现细节
+This package is not currently the primary IMU source for FAST-LIO2. The main localization chain still relies on the Livox-side IMU data used by the active FAST-LIO2 integration.
 
-- 节点会解析 WIT 串口帧中的加速度、角速度、姿态角和磁力计原始值。
-- 发布给 ROS 的主输出只有 `Imu` 消息，没有单独发布磁力计话题。
-- 日志开关由 `~/XJTLU-autonomous-vehicle/runtime-data/config/log_switch.yaml` 控制。
-- 通过 `scripts/launch_with_logs.sh` 启动时，日志会落入当前 session 目录；否则回退到 `~/XJTLU-autonomous-vehicle/runtime-data/logs/wit_imu_log/`。
+## Interfaces
 
-## 当前限制
+Published topics:
 
-- `rviz_and_imu.launch.py` 里虽然声明了 `port` 参数，但主实现 `wit_ros2_imu.py` 仍在 `driver_loop()` 中硬编码打开 `/dev/imu_usb`。也就是说，现阶段修改 launch 参数并不能真正切换串口设备。
-- 该包目前不是 FAST-LIO2 的主 IMU 来源；FAST-LIO2 仍主要使用 Livox 链路内的 IMU 数据。
+| Topic | Type | Purpose |
+|------|------|---------|
+| `/imu/data_raw` | `sensor_msgs/msg/Imu` | Parsed acceleration, angular velocity, and orientation fields |
 
-## 构建与运行
-
-从工作区根目录执行:
+## Build And Run
 
 ```bash
+cd ~/XJTLU-autonomous-vehicle
 colcon build --packages-select wit_ros2_imu --symlink-install --parallel-workers 1
 source install/setup.bash
 ros2 run wit_ros2_imu wit_ros2_imu
 ```
 
-或:
+Launch with RViz helper:
 
 ```bash
 ros2 launch wit_ros2_imu rviz_and_imu.launch.py
 ```
+
+## Runtime Logs
+
+- Managed launch sessions use the active `runtime-data/logs/latest/` session.
+- Standalone runs fall back to `runtime-data/logs/wit_imu_log/`.
+- Log switches are controlled through `runtime-data/config/log_switch.yaml`.
+
+## Current Limitations
+
+- `rviz_and_imu.launch.py` declares a `port` parameter, but the main implementation still opens the device path inside the driver loop. Treat launch-level port switching as not fully wired until this is refactored.
+- Magnetometer data is parsed internally but not published as a separate ROS topic.
+- Use this package as an experimental/debug driver unless the active localization plan explicitly assigns it to the production chain.

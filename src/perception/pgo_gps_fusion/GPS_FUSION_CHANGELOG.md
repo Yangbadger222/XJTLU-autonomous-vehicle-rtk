@@ -3,7 +3,7 @@
 > 2026-03-19 说明:
 > 本文件保留的是 2025 年 GPS 融合开发阶段的历史实现记录。
 > 文中大量 `/home/jetson/2025_FYP/car_ws/...` 路径属于旧工作空间时代的历史路径，不代表当前主线运行路径。
-> 当前活跃代码位于 `~/XJTLU-autonomous-vehicle/src/perception/pgo_gps_fusion/`，对应 colcon 包名为 `pgo`，运行时日志与数据位于 `~/fyp_runtime_data/`。
+> 当前活跃代码位于 `~/XJTLU-autonomous-vehicle/src/perception/pgo_gps_fusion/`，对应 colcon 包名为 `pgo`，当前运行时日志与数据位于 `~/XJTLU-autonomous-vehicle/runtime-data/`。
 
 ```
 ┌───────────────────────────────────────────────────────────────┐

@@ -1,6 +1,6 @@
-# FYP Autonomous Navigation Vehicle Documentation Index
+# XJTLU Autonomous Vehicle Documentation Index
 
-> Last updated: 2026-05-08
+> Last updated: 2026-05-20
 
 ## Current System Summary
 

@@ -432,7 +432,7 @@ git push origin main
 
 1. `make launch-*` 会自动创建 session 日志目录。
 2. `console/` 存 ROS 2 控制台日志。
-3. `data/` 存节点自定义日志，由 `FYP_LOG_SESSION_DIR` 驱动。
+3. `data/` 存节点自定义日志，由 legacy 运行接口变量 `FYP_LOG_SESSION_DIR` 驱动。
 4. `system/` 存 `tegrastats.log` 和 `session_info.yaml`。
 5. 直接 `ros2 launch` 时，部分旧日志 fallback 路径仍会存在，例如 `logs/twist_log/`。
 

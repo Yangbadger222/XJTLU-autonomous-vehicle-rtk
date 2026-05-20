@@ -75,6 +75,8 @@ ros2 launch bringup system_travel.launch.py
 
 室内无 GPS 点击点导航的一整行命令：
 
+> 兼容性说明：`FYP_*` 是当前脚本仍在读取的 legacy 运行接口变量名，本轮只更新公开项目称呼，不重命名运行接口。
+
 ```bash
 cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
 ```

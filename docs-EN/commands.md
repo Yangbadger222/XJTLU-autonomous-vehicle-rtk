@@ -75,6 +75,8 @@ ros2 launch bringup system_travel.launch.py
 
 One-line command for indoor click-to-go navigation without GPS:
 
+> Compatibility note: `FYP_*` names are legacy runtime interface variables still read by the current scripts. This documentation pass updates public project wording, not runtime interface names.
+
 ```bash
 cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
 ```

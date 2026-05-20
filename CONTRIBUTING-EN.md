@@ -432,7 +432,7 @@ Additional rules:
 
 1. `make launch-*` automatically creates session log directories.
 2. `console/` stores ROS 2 console logs.
-3. `data/` stores per-node custom logs, driven by `FYP_LOG_SESSION_DIR`.
+3. `data/` stores per-node custom logs, driven by the legacy runtime interface variable `FYP_LOG_SESSION_DIR`.
 4. `system/` stores `tegrastats.log` and `session_info.yaml`.
 5. When using `ros2 launch` directly, some legacy log fallback paths may still exist, such as `logs/twist_log/`.
 

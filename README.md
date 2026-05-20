@@ -1,4 +1,4 @@
-# FYP Autonomous Vehicle
+# XJTLU Autonomous Vehicle
 
 > ROS 2 Humble monorepo for the Jetson Orin NX autonomous vehicle project.
 

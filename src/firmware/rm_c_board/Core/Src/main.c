@@ -282,20 +282,34 @@ void Serial_Output(){
   //             (int)(FusionDegreesToRadians(gyroscope.axis.y) * 10000), 
   //             (int)(FusionDegreesToRadians(gyroscope.axis.z) * 10000));
 
-    usart_printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",	
+    // P3（FRC）：在原 16 字段 CSV 末尾追加 2 个状态字段（只增不改前 16 字段）。
+    // 第 17 位 ctrl_mode：0=上位机串口控制 1=手柄控制 2=电机禁用（X 键/失能）
+    // 第 18 位 ps2_key：PS2 按键码（0 表示无按键）
+    // 上位机 serial_reader 按 ">=16 字段接受，17/18 缺省补 0" 解析，旧固件兼容。
+    int frc_ctrl_mode;
+    if (motor_shutdown == 1)
+        frc_ctrl_mode = 2;
+    else if (control_mode == 0)
+        frc_ctrl_mode = 1;
+    else
+        frc_ctrl_mode = 0;
+
+    usart_printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d,%d\n",
                       x, y, z, // Position coordinates
                       Q.element.x,
                       Q.element.y,
                       Q.element.z,
                       Q.element.w, // Attitude (quaternion)
                       0.0f, real_vc, 0.0f, // Linear velocity
-                      FusionDegreesToRadians(gyroscope.axis.x), 
-                      FusionDegreesToRadians(gyroscope.axis.y), 
+                      FusionDegreesToRadians(gyroscope.axis.x),
+                      FusionDegreesToRadians(gyroscope.axis.y),
                       FusionDegreesToRadians(gyroscope.axis.z), // Angular velocity
 
                       magnetometer.axis.x,
-                      magnetometer.axis.y, 
-                      magnetometer.axis.z); // Magnetometer data
+                      magnetometer.axis.y,
+                      magnetometer.axis.z, // Magnetometer data
+                      frc_ctrl_mode,
+                      PS2_KEY); // FRC: control mode + PS2 key
 
   //  LongLat2XY(Convert_to_degrees(Save_Data.longitude),Convert_to_degrees(Save_Data.latitude),&gps_X,&gps_Y);
 //  LongLat2XY(120.742925,31.268221,&gps_X0,&gps_Y0);

@@ -134,6 +134,12 @@
       "gps.origin_lon": 120.737548
       # 固定 GPS ENU 原点海拔；当前先以 0.0 作为平面导航基线。
       "gps.origin_alt": 0.0
+      # FRC 发布 PGO keyframe 数组的频率；调大可让锚更快跟随回环，但会增加小量 DDS 负载。
+      "frc.keyframes_pub_rate": 1.0
+      # PGO offset 平移跳变超过该值时进入 FRC 修正窗口；调小更敏感，调大更保守。
+      "frc.correction_jump_thresh": 0.05
+      # FRC 修正窗口保持时间；调大可覆盖更长回环收敛期，但会过滤更多训练样本。
+      "frc.correction_window_s": 3.0
 
 /gps_waypoint_dispatcher:
   ros__parameters:
@@ -276,3 +282,92 @@
     "qos_overrides./scan.publisher.history": keep_last
     # /scan 发布深度；调大可减少抖动时丢包，但缓存增加。
     "qos_overrides./scan.publisher.depth": 10
+
+/frc_health_aggregator:
+  ros__parameters:
+    # FRC 健康状态发布频率；调大响应更快但会增加小量 Python 调度负载。
+    publish_rate_hz: 10.0
+    # 输入超过该时长未更新则按 stale 处理；调大更宽容，调小更快暴露上游断流。
+    stale_timeout_s: 1.0
+    # FAST-LIO2 IESKF 退化判定阈值；与正则化阈值一致，调小会减少退化告警。
+    lio_min_eig_degenerate: 75.0
+
+/frc_event_marker:
+  ros__parameters:
+    # 当前实验路线 ID；空值表示未绑定路线，trial_runner/离线流程可覆盖。
+    route_id: ""
+    # 当前场景摆放 ID；空值表示未绑定 layout，trial_runner/离线流程可覆盖。
+    layout_id: ""
+    # stuck 判定的底盘回读速度上限；调大更容易认为车辆卡住。
+    stuck_odom_speed: 0.05
+    # stuck 判定的指令速度下限；调小更容易在低速命令下触发。
+    stuck_cmd_speed: 0.2
+    # stuck 持续时间阈值；调小更敏感，调大更少误报。
+    stuck_duration_s: 3.0
+    # near-collision 判定的致命格最近距离；调大更保守。
+    nearcol_clearance_m: 0.35
+    # near-collision 持续时间阈值；调小更敏感。
+    nearcol_duration_s: 0.5
+    # jerk 滚动基线所需最小样本数；调小更早触发但更易误报。
+    jerk_min_samples: 200
+    # plan instability 比较的前向路径长度；调大看得更远但更受全局路径变化影响。
+    plan_lookahead_m: 5.0
+    # plan instability 滑窗长度；调大更平滑，调小更灵敏。
+    plan_window: 10
+    # 同类型事件冷却时间；调大可减少重复标记。
+    cooldown_s: 8.0
+
+/frc_risk_pipeline:
+  ros__parameters:
+    # 风险场主循环频率；10Hz 对齐 costmap/控制需求，调大更耗 CPU/GPU。
+    tick_rate_hz: 10.0
+    # 单帧预算毫秒数；超过后计 overrun，连续超时会停发 risk_grid 触发旁路。
+    tick_budget_ms: 80.0
+    # 连续超时多少帧后停发 risk_grid；调小更快旁路，调大更抗瞬时抖动。
+    overrun_disable_count: 5
+    # shadow 模式标记；risk_grid 仍发布，是否注入由 frc_layer enabled 决定。
+    shadow_mode: true
+    # 是否发布 /frc/bev_debug；打开便于 RViz 调试但会增加小量负载。
+    debug_tap: false
+    # 地图锚高斯风险半径；调大覆盖更宽，调小更精确。
+    anchor_sigma_m: 0.75
+    # 特征锚高斯风险半径；调大覆盖更宽，调小更精确。
+    feature_sigma_m: 1.0
+    # 特征检索最低分数；调大更保守，调小更容易注入。
+    feature_min_score: 0.15
+    # 特征锚原型文件；路径不同时用 FRC_EXTRA_PARAMS 覆盖。
+    prototypes_path: /home/jetson/XJTLU-autonomous-vehicle/runtime-data/frc/models/prototypes.npz
+    # TensorRT engine 路径；空值表示禁用 v2 模型，仅跑地图锚/特征锚。
+    model_engine_path: ""
+
+/frc_memory_manager:
+  ros__parameters:
+    # 当前 scene ID；跨 session 重挂只在同 scene 内生效。
+    scene_id: S0
+    # SQLite 锚库路径；路径不同时用 FRC_EXTRA_PARAMS 覆盖。
+    anchor_db_path: /home/jetson/XJTLU-autonomous-vehicle/runtime-data/frc/anchors.db
+    # 平稳通过后的 P_usable 衰减系数；调小更快退役旧锚。
+    beta: 0.8
+    # P_usable 低于该值进入 stale；stale 仍注入但权重减半。
+    stale_thresh: 0.3
+    # P_usable 低于该值进入 retired；retired 不再注入。
+    retired_thresh: 0.1
+    # 判定车辆通过某锚的半径；调大更容易记录 smooth pass。
+    smooth_pass_radius_m: 2.0
+    # 新事件与既有锚合并的半径；调大更容易强化旧锚。
+    anchor_merge_radius_m: 1.5
+    # 认为车辆正在移动的最低底盘速度；调小更容易记录 smooth pass。
+    min_moving_speed: 0.1
+    # 跨 session 重挂前要求的最少当前 keyframe 数；调大更稳但启动更慢。
+    remount_min_keyframes: 5
+
+/frc_trial_runner:
+  ros__parameters:
+    # 路线文件；留空会拒绝启动，正式实验用 ros2 param 或 FRC_EXTRA_PARAMS 显式指定。
+    route_file: ""
+    # A/B 交替条件；A=基线旁路，B/B'=调用 /frc/enable。
+    ab_schedule: A,B,A,B
+    # 两趟之间人工复位窗口；调大更从容但实验更慢。
+    inter_trial_pause_s: 10.0
+    # 等待 FollowWaypoints action server 的最长时间。
+    server_wait_s: 30.0

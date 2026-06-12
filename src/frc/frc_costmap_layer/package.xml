@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>frc_costmap_layer</name>
+  <version>0.1.0</version>
+  <description>FRC 残差风险 Nav2 costmap 插件：只增不减 max-gate、置信度门、watchdog 旁路、enable/disable 服务</description>
+  <maintainer email="Kevinlasnh@outlook.com">FYP Team</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>nav2_costmap_2d</depend>
+  <depend>pluginlib</depend>
+  <depend>nav_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>frc_msgs</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <costmap_2d plugin="${prefix}/plugins.xml"/>
+  </export>
+</package>

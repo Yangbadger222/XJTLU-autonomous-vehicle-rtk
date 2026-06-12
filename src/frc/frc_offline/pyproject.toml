@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frc-offline"
+version = "0.1.0"
+description = "FRC 双锚风险记忆离线管线（工作站用，无 ROS 依赖，rosbags 纯 Python 读包）"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pyyaml",
+    "rosbags>=0.9.20",
+]
+
+[project.optional-dependencies]
+train = ["torch>=2.0", "onnx"]
+viz = ["matplotlib"]
+eval = ["scipy"]
+
+[tool.setuptools.packages.find]
+include = ["frc_offline*"]

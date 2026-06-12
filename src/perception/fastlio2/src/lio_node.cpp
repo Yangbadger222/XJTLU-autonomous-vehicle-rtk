@@ -14,6 +14,7 @@
 #include <ctime>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
 #include <livox_ros_driver2/msg/custom_msg.hpp>
 
 #include "utils.h"
@@ -152,6 +153,10 @@ public:
         m_world_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("world_cloud", 500);
         m_path_pub = this->create_publisher<nav_msgs::msg::Path>("lio_path", 10000);
         m_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("lio_odom", 10000);
+        // P1（FRC）：退化度量 [min_eig, cond, regularized]，与 odom 同节奏发布。
+        // 刻意保持 Float32MultiArray 而非 frc_msgs/Health，避免 fastlio2 依赖 frc_msgs；
+        // 语义翻译由 frc_health_aggregator 负责。
+        m_degeneracy_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("degeneracy", 10);
         m_tf_broadcaster = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 
         m_state_data.path.poses.clear();
@@ -600,6 +605,23 @@ public:
         path_pub->publish(m_state_data.path);
     }
 
+    // P1（FRC）：发布 IESKF 量测块退化度量，供 health_aggregator/事件归因消费。
+    void publishDegeneracy()
+    {
+        if (m_degeneracy_pub->get_subscription_count() <= 0)
+            return;
+        const DegeneracyMetrics &metrics = m_kf->degeneracy();
+        if (!metrics.valid)
+            return;
+        std_msgs::msg::Float32MultiArray msg;
+        msg.data = {
+            static_cast<float>(metrics.min_eig),
+            static_cast<float>(metrics.cond),
+            metrics.regularized ? 1.0f : 0.0f,
+        };
+        m_degeneracy_pub->publish(msg);
+    }
+
     void broadCastTF(std::shared_ptr<tf2_ros::TransformBroadcaster> broad_caster, std::string frame_id, std::string child_frame, const double &time)
     {
         geometry_msgs::msg::TransformStamped transformStamped;
@@ -673,6 +695,8 @@ public:
 
         publishOdometry(m_odom_pub, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
 
+        publishDegeneracy();
+
         CloudType::Ptr body_cloud =
             m_builder->lidar_processor()->transformCloud(m_package.cloud, m_kf->x().r_il, m_kf->x().t_il);
         CloudType::Ptr world_cloud =
@@ -695,6 +719,7 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_world_cloud_pub;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr m_path_pub;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr m_odom_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr m_degeneracy_pub;
 
     rclcpp::TimerBase::SharedPtr m_timer;
     StateData m_state_data;

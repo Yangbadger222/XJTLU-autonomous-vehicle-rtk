@@ -28,6 +28,7 @@
   
   <!-- 自定义接口 -->
   <depend>interface</depend>
+  <depend>frc_msgs</depend>
 
   <!-- 系统库依赖（通过 CMake 查找） -->
   <build_depend>libpcl-all-dev</build_depend>

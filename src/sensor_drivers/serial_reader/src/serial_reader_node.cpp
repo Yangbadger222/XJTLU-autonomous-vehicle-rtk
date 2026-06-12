@@ -6,6 +6,8 @@
 #include <nav_msgs/msg/odometry.hpp>
 // 包含IMU消息头文件，用于惯性测量单元数据
 #include <sensor_msgs/msg/imu.hpp>
+// P3（FRC）：底盘控制模式/手柄按键上行消息
+#include <frc_msgs/msg/chassis_status.hpp>
 // 包含文件控制头文件，用于文件描述符操作
 #include <fcntl.h>
 // 包含终端控制头文件，用于串口配置
@@ -136,6 +138,8 @@ public:
         odom_pub_ = this->create_publisher<nav_msgs::msg::Odometry>("odom_CBoar", 10);
         // 创建IMU发布者
         imu_pub_  = this->create_publisher<sensor_msgs::msg::Imu>("imu/data_raw", 10);
+        // P3（FRC）：创建底盘状态发布者（ctrl_mode + ps2_key）
+        chassis_status_pub_ = this->create_publisher<frc_msgs::msg::ChassisStatus>("/chassis/status", 10);
 
         // 声明串口设备参数
         this->declare_parameter<std::string>("port", "/dev/serial_twistctl");
@@ -308,18 +312,18 @@ private:
     // 解析并发布数据函数
     void parseAndPublish(const std::string &line)
     {
-        // 初始化值向量，期望16个浮点数
+        // P3（FRC）：CSV 解析改为 "前 16 字段必须齐全，第 17/18 字段可选"。
+        // 旧固件 16 字段照常解析（回归不变）；新固件追加 ctrl_mode + ps2_key。
         std::vector<double> vals;
-        vals.reserve(16);
+        vals.reserve(18);
         // 创建字符串流
         std::stringstream ss(line);
         // 解析逗号分隔的值
-        for (int i = 0; i < 16; i++) {
+        for (int i = 0; i < 18; i++) {
             // 获取令牌
             std::string token;
-            // 如果无法获取令牌，返回
             if (!std::getline(ss, token, ',')) {
-                return;  // 数据不完整则丢弃
+                break;  // 流耗尽：由下方字段数检查决定是否丢弃
             }
             // 尝试转换为double
             try {
@@ -330,11 +334,15 @@ private:
             }
         }
 
-        // 检查值数量是否足够
+        // 检查值数量是否足够（前 16 字段必须齐全）
         if (vals.size() < 16) {
             // 返回
             return;
         }
+
+        // 第 17/18 字段缺省补 0（旧固件兼容）
+        const double ctrl_mode_raw = vals.size() >= 17 ? vals[16] : 0.0;
+        const double ps2_key_raw = vals.size() >= 18 ? vals[17] : 0.0;
 
         // 获取当前时间
         auto now = this->now();
@@ -438,6 +446,14 @@ private:
         imu_msg.linear_acceleration.z   = 0.0;
         // 发布IMU消息
         imu_pub_->publish(imu_msg);
+
+        // P3（FRC）：发布底盘控制模式与手柄按键
+        frc_msgs::msg::ChassisStatus chassis_msg;
+        chassis_msg.header.stamp = now;
+        chassis_msg.header.frame_id = "base_link";
+        chassis_msg.ctrl_mode = static_cast<uint8_t>(std::lround(ctrl_mode_raw));
+        chassis_msg.ps2_key = static_cast<uint8_t>(std::lround(ps2_key_raw));
+        chassis_status_pub_->publish(chassis_msg);
     }
 
     // 串口设备路径
@@ -464,6 +480,8 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr       odom_pub_;
     // IMU发布者
     rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr         imu_pub_;
+    // P3（FRC）：底盘状态发布者
+    rclcpp::Publisher<frc_msgs::msg::ChassisStatus>::SharedPtr  chassis_status_pub_;
 };
 
 // 主函数，程序入口

@@ -5,8 +5,9 @@ import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.substitutions import FindPackageShare
 from nav2_common.launch import RewrittenYaml
 
@@ -18,6 +19,7 @@ def generate_launch_description():
     启动顺序：
     1. 同时启动：Livox MID360 激光雷达、PGO(FASTLIO2+SLAM)+RViz、串口控制节点
     2. 启动 Nav2 导航系统（延时 5 秒）
+    3. frc_mode != off 时附加 FRC 双锚风险记忆栈（shadow 只发布 / full 注入）
     """
 
     bringup_share = get_package_share_directory("bringup")
@@ -54,6 +56,16 @@ def generate_launch_description():
         "rviz_config",
         default_value=default_rviz_config,
         description="RViz layout used by the Explore/Corridor stack",
+    )
+    frc_mode_arg = DeclareLaunchArgument(
+        "frc_mode",
+        default_value="off",
+        description="FRC 双锚风险记忆栈：off | shadow（只发布）| full（注入 costmap）",
+    )
+    frc_extra_params_arg = DeclareLaunchArgument(
+        "frc_extra_params_file",
+        default_value="",
+        description="Optional ROS2 parameter file appended only to the FRC nodes",
     )
 
     livox_launch = IncludeLaunchDescription(
@@ -118,16 +130,42 @@ def generate_launch_description():
 
     delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
 
+    # P5（FRC）：frc_mode != off 时附加 FRC 栈（延时 8 秒，等 LIO/PGO 起稳）
+    frc_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("frc_bringup"), "launch",
+                     "frc_stack.launch.py"]
+                )
+            ]
+        ),
+        launch_arguments={
+            "mode": LaunchConfiguration("frc_mode"),
+            "master_params_file": LaunchConfiguration("master_params_file"),
+            "frc_extra_params": LaunchConfiguration("frc_extra_params_file"),
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(
+                ["'", LaunchConfiguration("frc_mode"), "' != 'off'"]
+            )
+        ),
+    )
+    delayed_frc = TimerAction(period=8.0, actions=[frc_launch])
+
     return LaunchDescription(
         [
             use_rviz_arg,
             master_params_arg,
             pgo_extra_params_arg,
             rviz_config_arg,
+            frc_mode_arg,
+            frc_extra_params_arg,
             livox_launch,
             pgo_launch,
             serial_node,
             serial_reader_node,
             delayed_nav2,
+            delayed_frc,
         ]
     )

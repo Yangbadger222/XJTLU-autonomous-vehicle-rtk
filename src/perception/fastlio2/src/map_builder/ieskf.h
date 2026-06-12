@@ -57,6 +57,19 @@ struct State
 using loss_func = std::function<void(State &, SharedState &)>;
 using stop_func = std::function<bool(const V21D &)>;
 
+// P1（FRC）：IESKF 量测块退化度量快照。
+// 在每次 update() 迭代的正则化检查中刷新，由 lio_node 以 /fastlio2/degeneracy 发布。
+struct DegeneracyMetrics
+{
+    // 正则化前 12x12 量测块最小特征值；贴墙/走廊退化时显著下降
+    double min_eig = 0.0;
+    // 条件数 max_eig / min_eig（min_eig <= 0 时置为 +inf 语义的大值）
+    double cond = 0.0;
+    // 本次 update 内是否触发过特征值正则化（阈值 75.0）
+    bool regularized = false;
+    bool valid = false;
+};
+
 class IESKF
 {
     public:
@@ -73,6 +86,8 @@ class IESKF
 
         M21D &P() { return m_P; }
 
+        const DegeneracyMetrics &degeneracy() const { return m_degeneracy; }
+
     private:
         size_t m_max_iter = 10;
         State m_x;
@@ -81,4 +96,5 @@ class IESKF
         stop_func m_stop_func;
         M21D m_F;
         M21X12D m_G;
+        DegeneracyMetrics m_degeneracy;
 };

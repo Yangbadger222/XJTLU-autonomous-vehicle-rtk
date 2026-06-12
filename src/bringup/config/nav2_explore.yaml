@@ -425,12 +425,29 @@ local_costmap:
       robot_radius: 0.38625
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
-      plugins: ["stvl_layer", "denoise_layer", "inflation_layer"]
+      # P4（FRC）：frc_layer 放 denoise 之后（风险不被去噪层抹掉）、
+      # inflation 之前（风险场本身已是高斯衰减，不再二次膨胀过度保守）。
+      plugins: ["stvl_layer", "denoise_layer", "frc_layer", "inflation_layer"]
       denoise_layer:
         plugin: "nav2_costmap_2d::DenoiseLayer"
         enabled: true
         minimal_group_size: 4
         group_connectivity_type: 8
+      # FRC 残差风险注入层；默认 enabled=false（装载但旁路，行为与未装插件一致）。
+      # 闭环实验经 /frc/enable 服务或动态参数开启；改动须在 devlog 记录理由。
+      frc_layer:
+        # 插件类名；frc_costmap_layer 包提供。
+        plugin: "frc_costmap_layer/FrcLayer"
+        # 默认旁路：单一 YAML 不分叉，shadow 期与基线行为逐字节一致。
+        enabled: false
+        # 置信度门；低于该值的风险像素不注入。调大更保守（注入更少）。
+        tau: 0.6
+        # 注入 cost 上限（<=253）；200 保证风险区仍可通行不被堵死。
+        max_cost: 200
+        # 风险栅格话题；odom 系，由 frc_risk_pipeline 发布。
+        risk_topic: /frc/risk_grid
+        # RiskGrid 超时旁路秒数；risk_pipeline 停发后本层自动等价于没装。
+        watchdog_timeout_s: 0.5
       # 膨胀层参数块；负责给障碍物外围增加安全缓冲。
       # 改错结构或参数：障碍安全边界会偏大或偏小。
       inflation_layer:

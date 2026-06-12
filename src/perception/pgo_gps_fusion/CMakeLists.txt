@@ -30,6 +30,7 @@ find_package(GTSAM REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
 find_package(interface REQUIRED)
+find_package(frc_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
 list(APPEND CMAKE_MODULE_PATH "/usr/share/cmake/geographiclib")
 # ✅ GPS 融合修改开始 - 2025/12/01 - 添加 GeographicLib 依赖
@@ -47,7 +48,7 @@ set(SRC_LIST src/pgos/commons.cpp
              src/pgos/simple_pgo.cpp)
 
 add_executable(pgo_node src/pgo_node.cpp ${SRC_LIST})
-ament_target_dependencies(pgo_node rclcpp std_msgs sensor_msgs nav_msgs message_filters pcl_conversions tf2_ros geometry_msgs visualization_msgs interface GTSAM)
+ament_target_dependencies(pgo_node rclcpp std_msgs sensor_msgs nav_msgs message_filters pcl_conversions tf2_ros geometry_msgs visualization_msgs interface frc_msgs GTSAM)
 # ✅ GPS 融合修改开始 - 2025/12/01 - 链接 GeographicLib 库
 target_link_libraries(pgo_node ${PCL_LIBRARIES} gtsam yaml-cpp ${GeographicLib_LIBRARIES})
 # ✅ GPS 融合修改结束 - GeographicLib 库链接完成

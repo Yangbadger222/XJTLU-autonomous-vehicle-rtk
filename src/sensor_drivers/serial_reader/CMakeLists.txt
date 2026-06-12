@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(frc_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 add_executable(serial_reader_node src/serial_reader_node.cpp)
@@ -18,6 +19,7 @@ ament_target_dependencies(serial_reader_node
   rclcpp
   nav_msgs
   sensor_msgs
+  frc_msgs
 )
 
 # 链接 yaml-cpp 库

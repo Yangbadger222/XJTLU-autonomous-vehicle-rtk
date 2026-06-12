@@ -4,8 +4,9 @@ import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -16,6 +17,8 @@ def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
     pgo_config = LaunchConfiguration("pgo_config")
     use_rviz = LaunchConfiguration("use_rviz")
+    frc_mode = LaunchConfiguration("frc_mode")
+    frc_extra_params = LaunchConfiguration("frc_extra_params_file")
 
     livox_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -93,6 +96,24 @@ def generate_launch_description():
 
     delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
 
+    frc_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [FindPackageShare("frc_bringup"), "launch",
+                     "frc_stack.launch.py"]
+                )
+            ]
+        ),
+        launch_arguments={
+            "mode": frc_mode,
+            "master_params_file": params_file,
+            "frc_extra_params": frc_extra_params,
+        }.items(),
+        condition=IfCondition(PythonExpression(["'", frc_mode, "' != 'off'"])),
+    )
+    delayed_frc = TimerAction(period=8.0, actions=[frc_launch])
+
     return LaunchDescription(
         [
             DeclareLaunchArgument(
@@ -110,11 +131,22 @@ def generate_launch_description():
                 default_value="true",
                 description="Whether to launch RViz together with PGO",
             ),
+            DeclareLaunchArgument(
+                "frc_mode",
+                default_value="off",
+                description="FRC 双锚风险记忆栈：off | shadow（只发布）| full（注入 costmap）",
+            ),
+            DeclareLaunchArgument(
+                "frc_extra_params_file",
+                default_value="",
+                description="Optional ROS2 parameter file appended only to the FRC nodes",
+            ),
             livox_launch,
             gnss_launch,
             pgo_launch,
             serial_node,
             serial_reader_node,
             delayed_nav2,
+            delayed_frc,
         ]
     )

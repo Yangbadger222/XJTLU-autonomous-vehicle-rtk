@@ -26,6 +26,9 @@
 #include <std_msgs/msg/float64_multi_array.hpp>
 #include <GeographicLib/LocalCartesian.hpp> // GPS 坐标转换库
 // ✅ GPS 融合修改结束 - 头文件添加完成
+// P2（FRC）：keyframe 导出与回环修正状态
+#include <std_msgs/msg/float32_multi_array.hpp>
+#include <frc_msgs/msg/keyframe_array.hpp>
 #include "pgos/commons.h"
 #include "pgos/simple_pgo.h"
 #include "interface/srv/save_maps.hpp"
@@ -109,6 +112,21 @@ std::string getSessionLogPath(const std::string& filename, const std::string& fa
        << ".txt";
     return ss.str();
 }
+
+// P2（FRC）：session_id = launch_with_logs.sh 会话时间戳。
+// FYP_LOG_SESSION_DIR 形如 .../runtime-data/logs/<timestamp>/data，取上一级目录名。
+std::string getSessionId() {
+    const char* session_dir = std::getenv("FYP_LOG_SESSION_DIR");
+    if (session_dir == nullptr || session_dir[0] == '\0') {
+        return "unknown";
+    }
+    std::filesystem::path p(session_dir);
+    if (p.filename() == "data") {
+        p = p.parent_path();
+    }
+    std::string name = p.filename().string();
+    return name.empty() ? "unknown" : name;
+}
 }
 
 using namespace std::chrono_literals;
@@ -143,6 +161,11 @@ struct NodeConfig
     double gps_alignment_warmup_sigma = 10.0;      // 热身 GPS 水平 sigma
     std::string gps_alignment_topic = "/gps_corridor/enu_to_map";
     // ✅ GPS 融合修改结束 - NodeConfig 扩展完成
+
+    // P2（FRC）：keyframe 导出与修正状态参数
+    double frc_keyframes_pub_rate = 1.0;           // /pgo/keyframes 发布频率（Hz）
+    double correction_jump_thresh = 0.05;          // offset 平移跳变阈值（米），超过视为进入修正窗口
+    double correction_window_s = 3.0;              // 修正窗口保持时长（秒）
 };
 
 struct AlignmentPair
@@ -171,6 +194,12 @@ struct NodeState
     double alignment_ty = 0.0;                     // ENU->map 2D 平移 y
     int gps_factors_added = 0;                     // 已加入的 GPS 因子数
     // ✅ GPS 融合修改结束 - NodeState 扩展完成
+
+    // P2（FRC）：修正窗口状态
+    bool correction_offset_init = false;           // 是否已记录初始 offset
+    Eigen::Vector3d last_offset_t = Eigen::Vector3d::Zero();  // 上一次 smoothAndUpdate 后的 offsetT
+    double last_jump_m = 0.0;                      // 最近一次超阈值跳变量（米）
+    double correction_until = 0.0;                 // 修正窗口截止时刻（节点时钟秒）
 };
 
 class PGONode : public rclcpp::Node
@@ -263,6 +292,18 @@ public:
             std::chrono::milliseconds(global_map_period_ms),
             std::bind(&PGONode::publishGlobalMap, this));
         m_save_map_srv = this->create_service<interface::srv::SaveMaps>("/pgo/save_maps", std::bind(&PGONode::saveMapsCB, this, std::placeholders::_1, std::placeholders::_2));
+
+        // P2（FRC）：keyframe 数组（1 Hz 定时器，复用 global_map_timer 模式）与修正状态发布
+        m_session_id = getSessionId();
+        m_keyframes_pub = this->create_publisher<frc_msgs::msg::KeyframeArray>("/pgo/keyframes", 10);
+        m_correction_status_pub = this->create_publisher<std_msgs::msg::Float32MultiArray>("/pgo/correction_status", 10);
+        int keyframes_period_ms = static_cast<int>(1000.0 / m_node_config.frc_keyframes_pub_rate);
+        if (keyframes_period_ms <= 0) {
+            keyframes_period_ms = 1000;
+        }
+        m_keyframes_timer = this->create_wall_timer(
+            std::chrono::milliseconds(keyframes_period_ms),
+            std::bind(&PGONode::publishKeyframes, this));
     }
 
     ~PGONode()
@@ -328,6 +369,13 @@ public:
             "gps.alignment_warmup_sigma", m_node_config.gps_alignment_warmup_sigma);
         m_node_config.gps_alignment_topic = this->declare_parameter<std::string>(
             "gps.alignment_topic", m_node_config.gps_alignment_topic);
+        // P2（FRC）参数
+        m_node_config.frc_keyframes_pub_rate = this->declare_parameter<double>(
+            "frc.keyframes_pub_rate", m_node_config.frc_keyframes_pub_rate);
+        m_node_config.correction_jump_thresh = this->declare_parameter<double>(
+            "frc.correction_jump_thresh", m_node_config.correction_jump_thresh);
+        m_node_config.correction_window_s = this->declare_parameter<double>(
+            "frc.correction_window_s", m_node_config.correction_window_s);
         m_node_config.gps_quality_hdop_max = this->declare_parameter<double>("gps.quality_hdop_max", m_node_config.gps_quality_hdop_max);
         m_node_config.gps_quality_sat_min = this->declare_parameter<int>("gps.quality_sat_min", m_node_config.gps_quality_sat_min);
         m_node_config.gps_drift_threshold = this->declare_parameter<double>("gps.drift_threshold", m_node_config.gps_drift_threshold);
@@ -929,6 +977,81 @@ public:
         m_alignment_pub->publish(msg);
     }
 
+    // P2（FRC）：以 1 Hz 导出位姿图全部 keyframe（id + map 系全局位姿）。
+    // 回环修正后历史位姿整体刷新，下游（memory_manager）据此让锚跟随位姿图移动。
+    void publishKeyframes()
+    {
+        if (!m_keyframes_pub || m_keyframes_pub->get_subscription_count() == 0)
+            return;
+        const std::vector<KeyPoseWithCloud> &poses = m_pgo->keyPoses();
+        if (poses.empty())
+            return;
+
+        frc_msgs::msg::KeyframeArray msg;
+        msg.header.stamp = this->now();
+        msg.header.frame_id = m_node_config.map_frame;
+        msg.session_id = m_session_id;
+        msg.ids.reserve(poses.size());
+        msg.poses.reserve(poses.size());
+        for (size_t i = 0; i < poses.size(); ++i)
+        {
+            msg.ids.push_back(static_cast<int64_t>(i));
+            geometry_msgs::msg::Pose pose;
+            pose.position.x = poses[i].t_global.x();
+            pose.position.y = poses[i].t_global.y();
+            pose.position.z = poses[i].t_global.z();
+            Eigen::Quaterniond q(poses[i].r_global);
+            q.normalize();
+            pose.orientation.x = q.x();
+            pose.orientation.y = q.y();
+            pose.orientation.z = q.z();
+            pose.orientation.w = q.w();
+            msg.poses.push_back(pose);
+        }
+        m_keyframes_pub->publish(msg);
+    }
+
+    // P2（FRC）：smoothAndUpdate 前后对比 offsetT，平移跳变超阈值则进入修正窗口。
+    // 修正窗口内 correcting=1，供 health_aggregator 与离线归因过滤消费。
+    void updateCorrectionStatus()
+    {
+        const Eigen::Vector3d offset_t = m_pgo->offsetT();
+        const double now_s = this->get_clock()->now().seconds();
+
+        if (!m_state.correction_offset_init)
+        {
+            m_state.last_offset_t = offset_t;
+            m_state.correction_offset_init = true;
+            return;
+        }
+
+        const double jump = (offset_t - m_state.last_offset_t).norm();
+        m_state.last_offset_t = offset_t;
+        if (jump > m_node_config.correction_jump_thresh)
+        {
+            m_state.last_jump_m = jump;
+            m_state.correction_until = now_s + m_node_config.correction_window_s;
+            RCLCPP_INFO(this->get_logger(),
+                        "PGO correction detected: jump=%.3fm window=%.1fs",
+                        jump, m_node_config.correction_window_s);
+        }
+    }
+
+    void publishCorrectionStatus()
+    {
+        if (!m_correction_status_pub)
+            return;
+        const double now_s = this->get_clock()->now().seconds();
+        const bool correcting = now_s < m_state.correction_until;
+        std_msgs::msg::Float32MultiArray msg;
+        msg.data = {
+            correcting ? 1.0f : 0.0f,
+            static_cast<float>(m_state.last_jump_m),
+            static_cast<float>(m_pgo->historyPairs().size()),
+        };
+        m_correction_status_pub->publish(msg);
+    }
+
     void timerCB()
     {
         CloudWithPose cp;
@@ -954,6 +1077,7 @@ public:
             sendBroadCastTF(cur_time);
             publishOptimizedOdom(cp, cur_time);
             publishAlignmentTransform();
+            publishCorrectionStatus();
             return;
         }
 
@@ -999,6 +1123,7 @@ public:
         fprintf(stderr, "[DIAG] calling smoothAndUpdate\n");
         m_pgo->smoothAndUpdate();
         fprintf(stderr, "[DIAG] smoothAndUpdate done\n");
+        updateCorrectionStatus();
         if (m_node_config.enable_gps) {
             recomputeAlignmentTransform();
         }
@@ -1008,6 +1133,7 @@ public:
         publishOptimizedOdom(cp, cur_time);
         publishLoopMarkers(cur_time);
         publishAlignmentTransform();
+        publishCorrectionStatus();
         fprintf(stderr, "[DIAG] timerCB complete for key pose\n");
     }
 
@@ -1197,6 +1323,11 @@ private:
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr m_optimized_odom_pub;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr m_alignment_pub;
     rclcpp::Service<interface::srv::SaveMaps>::SharedPtr m_save_map_srv;
+    // P2（FRC）成员
+    rclcpp::Publisher<frc_msgs::msg::KeyframeArray>::SharedPtr m_keyframes_pub;
+    rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr m_correction_status_pub;
+    rclcpp::TimerBase::SharedPtr m_keyframes_timer;
+    std::string m_session_id;
     message_filters::Subscriber<sensor_msgs::msg::PointCloud2> m_cloud_sub;
     message_filters::Subscriber<nav_msgs::msg::Odometry> m_odom_sub;
     std::shared_ptr<tf2_ros::TransformBroadcaster> m_tf_broadcaster;

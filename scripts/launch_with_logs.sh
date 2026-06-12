@@ -17,9 +17,9 @@ export ROS_LOG_DIR="$SESSION_DIR/console"
 export FYP_LOG_SESSION_DIR="$SESSION_DIR/data"
 
 cleanup_runtime_nodes() {
-  pkill -INT -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status' 2>/dev/null || true
+  pkill -INT -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   sleep 1
-  pkill -KILL -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status' 2>/dev/null || true
+  pkill -KILL -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   ros2 daemon stop 2>/dev/null || true
   for dev in /dev/serial_twistctl /dev/wheeltec_gps; do
     if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
@@ -61,6 +61,7 @@ start_time: $(date -Iseconds)
 session_dir: $SESSION_DIR
 git_branch: $(cd ~/XJTLU-autonomous-vehicle && git branch --show-current 2>/dev/null || echo unknown)
 git_commit: $(cd ~/XJTLU-autonomous-vehicle && git rev-parse --short HEAD 2>/dev/null || echo unknown)
+frc_mode: ${FRC_MODE:-off}
 ros_log_dir: $SESSION_DIR/console
 data_log_dir: $SESSION_DIR/data
 system_log_dir: $SESSION_DIR/system
@@ -91,6 +92,13 @@ case "$MODE" in
 esac
 
 LAUNCH_ARGS=()
+# FRC 双锚风险记忆栈：FRC_MODE=shadow|full 时透传（仅 explore 系模式支持）
+if [[ -n "${FRC_MODE:-}" && ( "$MODE" == "explore" || "$MODE" == "indoor-nav" || "$MODE" == "explore-gps" ) ]]; then
+  LAUNCH_ARGS+=("frc_mode:=${FRC_MODE}")
+  if [[ -n "${FRC_EXTRA_PARAMS:-}" ]]; then
+    LAUNCH_ARGS+=("frc_extra_params_file:=${FRC_EXTRA_PARAMS}")
+  fi
+fi
 if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")

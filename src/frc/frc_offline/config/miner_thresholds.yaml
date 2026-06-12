@@ -1,0 +1,38 @@
+# failure_miner 全部挖掘阈值（E1 实验扫描的就是这张表）。
+# 修改阈值后重跑 miner 即可，无需改代码；正式采集前用 git tag 冻结。
+
+# 事件去重：同类型事件在该窗口内合并为一条
+merge_window_s: 5.0
+
+takeover:            # gold
+  enabled: true
+
+manual:              # gold（SELECT / frc_mark.py，直接来自 /frc/event_marker）
+  enabled: true
+
+recovery:            # silver：Nav2 行为树 recovery 子树激活
+  enabled: true
+  nodes: [Spin, BackUp, Wait, DriveOnHeading]
+
+stuck:               # silver
+  enabled: true
+  odom_speed_max: 0.05      # ‖v_odom‖ 低于该值
+  cmd_speed_min: 0.2        # 且 |cmd_vel| 高于该值
+  duration_s: 3.0           # 持续超过该时长
+
+near_collision:      # silver
+  enabled: true
+  clearance_m: 0.35         # 距最近致命格距离
+  duration_s: 0.5
+
+jerk:                # bronze
+  enabled: true
+  sigma_k: 3.0              # 超滚动基线 k 个 sigma
+  min_samples: 200
+
+plan_instability:    # bronze（替代失效的"重规划风暴"指标，F6）
+  enabled: true
+  lookahead_m: 5.0          # 截断到前方距离
+  window: 10                # 滑窗长度（plan 帧数）
+  sigma_k: 3.0
+  min_samples: 30

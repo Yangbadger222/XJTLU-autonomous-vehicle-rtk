@@ -20,7 +20,8 @@ void clampCovarianceDiagonal(M21D &covariance)
     }
 }
 
-void regularizeMeasurementBlock(M21D &system_matrix)
+// P1（FRC）：正则化的同时回传退化度量（正则化前最小特征值/条件数/是否触发）。
+void regularizeMeasurementBlock(M21D &system_matrix, DegeneracyMetrics &metrics)
 {
     M12D measurement_block = system_matrix.block<12, 12>(0, 0);
     Eigen::SelfAdjointEigenSolver<M12D> solver(measurement_block);
@@ -28,6 +29,13 @@ void regularizeMeasurementBlock(M21D &system_matrix)
         return;
 
     Eigen::Matrix<double, 12, 1> eigenvalues = solver.eigenvalues();
+
+    const double min_eig = eigenvalues(0);
+    const double max_eig = eigenvalues(eigenvalues.size() - 1);
+    metrics.min_eig = min_eig;
+    metrics.cond = (min_eig > 1e-12) ? (max_eig / min_eig) : 1e12;
+    metrics.valid = true;
+
     bool regularized = false;
     for (int index = 0; index < eigenvalues.size(); ++index)
     {
@@ -37,6 +45,7 @@ void regularizeMeasurementBlock(M21D &system_matrix)
             regularized = true;
         }
     }
+    metrics.regularized = metrics.regularized || regularized;
 
     if (!regularized)
         return;
@@ -131,6 +140,7 @@ void IESKF::update()
     M21D H = M21D::Identity();
     V21D b;
     bool have_valid_measurement = false;
+    m_degeneracy = DegeneracyMetrics();
 
     for (size_t i = 0; i < m_max_iter; i++)
     {
@@ -149,7 +159,7 @@ void IESKF::update()
 
         H.block<12, 12>(0, 0) += shared_data.H;
         b.block<12, 1>(0, 0) += shared_data.b;
-        regularizeMeasurementBlock(H);
+        regularizeMeasurementBlock(H, m_degeneracy);
 
         delta = -H.inverse() * b;
 

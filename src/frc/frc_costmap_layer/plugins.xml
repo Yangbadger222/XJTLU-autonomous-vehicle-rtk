@@ -1,0 +1,12 @@
+<class_libraries>
+  <library path="frc_costmap_layer">
+    <class name="frc_costmap_layer/FrcLayer"
+           type="frc_costmap_layer::FrcLayer"
+           base_class_type="nav2_costmap_2d::Layer">
+      <description>
+        FRC 残差风险注入层：max-gate 只增不减、致命不触碰、置信度门、
+        watchdog 超时自动旁路。默认 enabled=false（装载但旁路）。
+      </description>
+    </class>
+  </library>
+</class_libraries>

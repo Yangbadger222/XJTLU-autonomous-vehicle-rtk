@@ -54,8 +54,9 @@ void Motor_Speed_Calc()
 {
     if (motor_shutdown == 1)
     {
-        led_white_start;
-        Set_free;
+        led_white_start();
+        Set_free();
+        return;
     }
     else if (motor_shutdown == 0 && motor_ready == 1) 
     {
@@ -75,7 +76,7 @@ void Motor_Speed_Calc()
     }
     else
     {
-        Set_free;
+        Set_free();
     }
 }
 
@@ -109,16 +110,16 @@ void Motor_Speed_pid_init()
     //                               0);       // Additional gain for fine-tuning
     // }
 
-        motor_pid[i].f_param_init(&motor_pid[i], PID_Speed, 
-            15000,     // Kp: Proportional gain
-            1000,     // Ki: Integral gain, moderate adjustment
-            0,        // Ki limit set to 0 or a small value
-            0,        // Derivative saturation limit
-            1000,     // Limit for the integral value
-            0,        // Set target to 0
-            10,       // Sampling time
-            100,        // Kd: Derivative gain, increased derivative gain
-            0);       // Additional gain for fine-tuning
+        motor_pid[i].f_param_init(&motor_pid[i], PID_Speed,
+            15000,     // max output current
+            1000,      // integral limit
+            0,         // deadband
+            0,         // control period
+            1000,      // max error
+            0,         // initial target
+            10,        // kp
+            100,       // ki
+            0);        // kd
     }
 
 }
@@ -126,18 +127,35 @@ void Motor_Speed_pid_init()
 
 void Set_free()
 {
-	CAN_cmd_chassis(0,0,0,0);
+    Emergency_Stop_Output();
+}
+
+void Emergency_Stop_Output(void)
+{
+    Vcx = 0;
+    Wc = 0;
+    set_spdL = 0;
+    set_spdR = 0;
 	for(int i=0; i<4; i++)
 	{
+        motor_pid[i].target = 0;
+        motor_pid[i].pout = 0;
 		motor_pid[i].iout = 0;
+        motor_pid[i].dout = 0;
 		motor_pid[i].output = 0;
 		motor_pid[i].calculate_output = 0;
 	}
-	
+	CAN_cmd_chassis(0,0,0,0);
 }
 
 void Speed_set()
 {
+    if(free_flag == 1 || motor_shutdown == 1)
+    {
+        Set_free();
+        return;
+    }
+
     if(free_flag == 0)
     {
         Motor_Speed_Calc();
@@ -155,13 +173,6 @@ void Speed_set()
                                 motor_pid[2].output,
                                 motor_pid[3].output);
     }
-
-    if(free_flag == 1)
-    {
-    Set_free;
-    }
-
-    
 
     // if((motor_ready == 1) || (control_mode == 1))
     // {

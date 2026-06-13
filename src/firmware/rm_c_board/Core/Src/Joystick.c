@@ -55,9 +55,10 @@ void Joystick_motor_start(void)
     if (PS2_KEY == 14) // B按钮按下急停
     {
         control_mode = 0;
-        motor_shutdown = 0; // 设置使能
-        motor_ready = 0;    // 电机不准备好输入，电机固定
-        free_flag = 0;      // 禁止自由滑行模式
+        motor_shutdown = 1; // 与 X 键一致：撤力失能
+        motor_ready = 0;    // 电机不准备好输入
+        free_flag = 1;      // 进入自由滑行模式
+        Set_free();
         
         led_pink_blink();   // 闪烁粉色LED
         led_pink_start();

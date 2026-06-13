@@ -176,7 +176,9 @@ int main(void)
 
     if(stop_flag)  // Stop Driving when stop_flag is true
     {
-      led_red_blink();
+      Emergency_Stop_Output();
+      led_red_start();
+      HAL_Delay(5);
     }
     else
     {

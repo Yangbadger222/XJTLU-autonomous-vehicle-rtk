@@ -14,6 +14,7 @@ extern int free_flag;
 void Motor_Speed_Calc(void);
 void Motor_Speed_pid_init(void);
 void Set_free(void);
+void Emergency_Stop_Output(void);
 void Speed_set(void);
 void speed_print(void);
 void MOTORrpm2vw(float left_motor_speed,float right_motor_speed,float *vcx,float*w);

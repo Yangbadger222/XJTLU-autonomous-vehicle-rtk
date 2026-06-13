@@ -43,7 +43,7 @@ build-navigation:
 build-frc:
 	source /opt/ros/humble/setup.bash && \
 	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		frc_msgs frc_bev frc_nodes frc_costmap_layer frc_bringup
+		frc_msgs frc_bev frc_nodes_cpp frc_nodes frc_costmap_layer frc_bringup
 
 # 工作站每日数据闭环（设计文档 §5.6）：miner -> contact_sheet -> 人工复核 ->
 # auto_label。用法: make frc-daily BAG=<rosbag2目录>

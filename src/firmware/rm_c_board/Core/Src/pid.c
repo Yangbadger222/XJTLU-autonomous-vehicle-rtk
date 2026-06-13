@@ -59,7 +59,14 @@ static float pid_calculate(PID_TypeDef* pid, float measure)//, int16_t target)
 	
 	pid->lasttime = pid->thistime;
 	pid->thistime = HAL_GetTick();
-	pid->dtime = pid->thistime-pid->lasttime;
+	uint32_t elapsed = pid->thistime - pid->lasttime;
+	if (elapsed == 0) {
+		elapsed = 1;
+	}
+	if (elapsed > 50) {
+		elapsed = 50;
+	}
+	pid->dtime = (uint8_t)elapsed;
 	pid->measure = measure;
   //	pid->target = target;
 		
@@ -76,10 +83,10 @@ static float pid_calculate(PID_TypeDef* pid, float measure)//, int16_t target)
 		pid->dout =  pid->kd * (pid->err - pid->last_err) / (pid->dtime / 1000.0f); 
 		
 		//积分是否超出限制
-//		if(pid->iout > pid->IntegralLimit)
-//			pid->iout = pid->IntegralLimit;
-//		if(pid->iout < - pid->IntegralLimit)
-//			pid->iout = - pid->IntegralLimit;
+		if(pid->iout > pid->IntegralLimit)
+			pid->iout = pid->IntegralLimit;
+		if(pid->iout < - pid->IntegralLimit)
+			pid->iout = - pid->IntegralLimit;
 		
 		//pid理论输出和
 		pid->calculate_output = pid->pout + pid->iout + pid->dout;
@@ -101,6 +108,7 @@ static float pid_calculate(PID_TypeDef* pid, float measure)//, int16_t target)
 	}
 
 
+	pid->last_err = pid->err;
 	return pid->output;
 }
 

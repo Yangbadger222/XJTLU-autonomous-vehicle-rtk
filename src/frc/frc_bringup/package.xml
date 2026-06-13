@@ -9,6 +9,7 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>frc_nodes_cpp</exec_depend>
   <exec_depend>frc_nodes</exec_depend>
   <exec_depend>frc_msgs</exec_depend>
   <exec_depend>frc_costmap_layer</exec_depend>

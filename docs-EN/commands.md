@@ -241,10 +241,12 @@ Notes:
 cd ~/XJTLU-autonomous-vehicle && make kill-runtime
 ```
 
-Hardware-level emergency stop priority:
+Stop and emergency-stop priority:
 
-1. PS2 gamepad `X` button to disable motors
-2. Red physical emergency stop button on the vehicle body
+1. PS2 gamepad `X` button disables motors as the highest-priority software stop
+2. Red physical emergency stop button on the vehicle body overrides all software commands
+
+The lower-controller `B` button path now uses a zero-current coast-stop fallback. Do not use `B` as a replacement for `X` or the red physical e-stop until bench and vehicle validation are complete.
 
 ## 10. Git and PR
 

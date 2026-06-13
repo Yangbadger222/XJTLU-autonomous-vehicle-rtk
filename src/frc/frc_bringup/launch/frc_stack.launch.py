@@ -27,9 +27,9 @@ def _launch_setup(context, *args, **kwargs):
     if extra_params:
         params.append(extra_params)
 
-    def frc_node(executable, name):
+    def frc_node(package, executable, name):
         return Node(
-            package="frc_nodes",
+            package=package,
             executable=executable,
             name=name,
             output="screen",
@@ -37,10 +37,11 @@ def _launch_setup(context, *args, **kwargs):
         )
 
     nodes = [
-        frc_node("frc_health_aggregator", "frc_health_aggregator"),
-        frc_node("frc_event_marker", "frc_event_marker"),
-        frc_node("frc_risk_pipeline", "frc_risk_pipeline"),
-        frc_node("frc_memory_manager", "frc_memory_manager"),
+        frc_node("frc_nodes_cpp", "frc_health_aggregator",
+                 "frc_health_aggregator"),
+        frc_node("frc_nodes_cpp", "frc_event_marker", "frc_event_marker"),
+        frc_node("frc_nodes", "frc_risk_pipeline", "frc_risk_pipeline"),
+        frc_node("frc_nodes", "frc_memory_manager", "frc_memory_manager"),
     ]
 
     # full 模式：等 Nav2 costmap 与插件就绪后调用 /frc/enable。

@@ -85,8 +85,8 @@
 | Type | 2.4 GHz wireless gamepad (PS2 compatible) |
 | Left stick | Linear velocity |
 | Right stick | Angular velocity |
-| Buttons | Y=enable, X=disable, B=emergency stop |
-| Priority | **Highest** (emergency stop unconditionally halts vehicle) |
+| Buttons | Y=enable, X=disable/coast stop, B=backup coast stop |
+| Priority | **Highest software disable is X**; the red physical e-stop overrides all software commands |
 | Disconnect protection | Automatic disable on signal loss |
 
 ## 3. Computing Platform

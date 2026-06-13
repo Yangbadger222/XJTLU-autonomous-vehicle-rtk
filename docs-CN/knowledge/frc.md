@@ -10,6 +10,8 @@ FRC（Failure/Risk Context）栈用于在 Explore/Nav2 主线旁边记录、回�
 - `shadow`：启动 `frc_health_aggregator`、`frc_event_marker`、`frc_risk_pipeline`、`frc_memory_manager`，发布 `/frc/risk_grid`，但 `frc_layer.enabled=false`，Nav2 costmap 行为应与基线一致。
 - `full`：节点集与 `shadow` 完全相同，延时调用 `/frc/enable`，让 `frc_costmap_layer` 读取 `/frc/risk_grid` 并只增不减地提高局部 costmap cost。
 
+实现说明：`frc_health_aggregator` 与 `frc_event_marker` 已迁到 `frc_nodes_cpp` C++ 包，节点名、话题和参数保持不变；`frc_risk_pipeline` 与 `frc_memory_manager` 仍由 Python `frc_nodes` 包提供。
+
 启动示例：
 
 ```bash

@@ -241,10 +241,12 @@ pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
 cd ~/XJTLU-autonomous-vehicle && make kill-runtime
 ```
 
-硬件层面的急停优先级：
+停止与急停优先级：
 
-1. PS2 手柄 `X` 键失能电机
-2. 车身红色物理急停按钮
+1. PS2 手柄 `X` 键失能电机，作为最高优先级软件停车手段
+2. 车身红色物理急停按钮，覆盖所有软件命令
+
+PS2 `B` 键的下位机逻辑已改为零电流撤力滑停备用路径；台架和车测确认前，不要用 `B` 替代 `X` 或车身红色物理急停。
 
 ## 10. Git 与 PR
 
@@ -469,4 +471,3 @@ ros2 topic echo /gps_corridor/enu_to_map
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
-

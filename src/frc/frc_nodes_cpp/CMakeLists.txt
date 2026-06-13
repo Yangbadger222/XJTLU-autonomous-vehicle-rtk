@@ -47,7 +47,23 @@ ament_target_dependencies(frc_event_marker
   tf2_ros
 )
 
-install(TARGETS frc_health_aggregator frc_event_marker
+add_executable(frc_risk_pipeline src/risk_pipeline_node.cpp)
+target_include_directories(frc_risk_pipeline PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(frc_risk_pipeline
+  frc_msgs
+  geometry_msgs
+  nav2_msgs
+  nav_msgs
+  rclcpp
+  sensor_msgs
+  tf2
+  tf2_ros
+)
+
+install(TARGETS frc_health_aggregator frc_event_marker frc_risk_pipeline
   DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/
@@ -61,6 +77,9 @@ if(BUILD_TESTING)
   )
   ament_add_pytest_test(test_event_marker_core
     test/test_event_marker_core.py
+  )
+  ament_add_pytest_test(test_risk_pipeline_core
+    test/test_risk_pipeline_core.py
   )
 endif()
 

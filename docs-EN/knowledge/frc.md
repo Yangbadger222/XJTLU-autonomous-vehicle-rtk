@@ -10,7 +10,7 @@ The FRC (Failure/Risk Context) stack records, replays, and optionally injects re
 - `shadow`: start `frc_health_aggregator`, `frc_event_marker`, `frc_risk_pipeline`, and `frc_memory_manager`; publish `/frc/risk_grid`; keep `frc_layer.enabled=false` so Nav2 costmap behavior should match the baseline.
 - `full`: start the same nodes as `shadow`, then call `/frc/enable` after a delay so `frc_costmap_layer` reads `/frc/risk_grid` and only increases local costmap costs.
 
-Implementation note: `frc_health_aggregator` and `frc_event_marker` now run from the C++ `frc_nodes_cpp` package while keeping the same node names, topics, and parameters. `frc_risk_pipeline` and `frc_memory_manager` still come from the Python `frc_nodes` package.
+Implementation note: `frc_health_aggregator`, `frc_event_marker`, and `frc_risk_pipeline` now run from the C++ `frc_nodes_cpp` package while keeping the same node names, topics, and parameters. `frc_memory_manager` still comes from the Python `frc_nodes` package. The C++ `frc_risk_pipeline` currently covers the default online path: map-anchor risk rendering, `/frc/risk_grid` publishing, watchdog degradation, and debug BEV output. Prototype feature retrieval and TensorRT model inference are not wired yet; if those files are configured, the node warns and continues with map-anchor risk.
 
 Examples:
 

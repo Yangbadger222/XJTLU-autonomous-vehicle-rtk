@@ -40,7 +40,7 @@ def _launch_setup(context, *args, **kwargs):
         frc_node("frc_nodes_cpp", "frc_health_aggregator",
                  "frc_health_aggregator"),
         frc_node("frc_nodes_cpp", "frc_event_marker", "frc_event_marker"),
-        frc_node("frc_nodes", "frc_risk_pipeline", "frc_risk_pipeline"),
+        frc_node("frc_nodes_cpp", "frc_risk_pipeline", "frc_risk_pipeline"),
         frc_node("frc_nodes", "frc_memory_manager", "frc_memory_manager"),
     ]
 

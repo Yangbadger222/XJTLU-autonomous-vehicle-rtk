@@ -430,6 +430,20 @@ Interactive workflow:
 cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && bash scripts/launch_with_logs.sh corridor
 ```
 
+One-line launch with RTK/CORS parameters for field testing:
+
+> Do not commit the real CORS password. `<CORS_PASSWORD>` is only a runtime placeholder to replace manually.
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml NTRIP_PASSWORD='<CORS_PASSWORD>' FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+```
+
+Confirm the route that will be used before launching:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && sed -n '1,120p' runtime-data/gnss/current_route.yaml
+```
+
 Clean up residual processes after completion:
 
 ```bash
@@ -451,6 +465,12 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
+Check whether the automatic corridor bag contains RTK diagnostic topics:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+```
+
 Notes:
 - This mode assumes the vehicle is already placed at the fixed Launch Pose with the heading aligned
 - `collect_gps_route.py` collects `start_ref + multiple key waypoints` and generates `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`
@@ -459,6 +479,7 @@ Notes:
 - Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
+- The corridor bag records `/heading`, `/rtk/status`, and `/rtk/nmea_sentence` for reviewing dual-antenna heading and RTK quality
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`
 

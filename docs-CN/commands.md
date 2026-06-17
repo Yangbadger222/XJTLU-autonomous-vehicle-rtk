@@ -430,6 +430,20 @@ cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source ins
 cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && bash scripts/launch_with_logs.sh corridor
 ```
 
+带 RTK/CORS 参数的一行启动（现场测试用）：
+
+> 不要把真实 CORS 密码写进仓库；`<CORS_PASSWORD>` 只表示运行时手动替换的占位符。
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml NTRIP_PASSWORD='<CORS_PASSWORD>' FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+```
+
+启动前确认当前要跑的路线：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && sed -n '1,120p' runtime-data/gnss/current_route.yaml
+```
+
 结束后清理残留进程：
 
 ```bash
@@ -451,6 +465,12 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
+检查 corridor 自动录包里是否包含 RTK 诊断话题：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+```
+
 说明：
 - 该模式假定车辆已经摆在固定 Launch Pose，并且车头朝向摆正
 - `collect_gps_route.py` 会采 `start_ref + 多个关键 waypoint`，并生成 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`
@@ -459,6 +479,7 @@ ros2 topic echo /gps_corridor/enu_to_map
 - 子目标间距默认 30m（基于 global costmap 半径 35m - 5m buffer），采集时自动写入路线文件
 - 运行时不会再弹出 menu，也不会等待额外命令
 - wrapper 会把日志和 bag 写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
+- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`，用于复盘双天线航向和 RTK 质量
 - 启动阶段若当前 `/fix` 与 `start_ref` 偏差超限，`gps_route_runner` 会直接 abort，不动车
 - **Ctrl+C 会自动清理全部节点、ros2 daemon、串口占用**，无需手动 `make kill-runtime`
 

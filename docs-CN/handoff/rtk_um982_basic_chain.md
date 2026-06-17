@@ -95,6 +95,16 @@ export NTRIP_PASSWORD='不要提交到git'
 ros2 launch um982_rtk_driver um982_rtk.launch.py params_file:=/tmp/um982_cors.yaml
 ```
 
+使用仓库入口启动时，可复用同一个临时文件：
+
+```bash
+export NTRIP_PASSWORD='不要提交到git'
+export FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml
+make launch-rtk-basic
+```
+
+`FYP_RTK_PARAMS_FILE` 也会透传给 `explore-gps`、`nav-gps` 和 `corridor` 的 UM982 driver；导航、PGO、场景等其他节点仍使用各自原来的参数文件。
+
 当前 C++ NTRIP 客户端支持普通 TCP NTRIP，不支持 TLS caster。如果学校/CORS caster 强制 TLS，需要后续再加 TLS 库，或者由接收机/4G 模块自己处理 NTRIP。
 
 ## 下楼测试顺序

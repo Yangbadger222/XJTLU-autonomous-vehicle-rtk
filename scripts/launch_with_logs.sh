@@ -100,6 +100,16 @@ if [[ -n "${FRC_MODE:-}" && ( "$MODE" == "explore" || "$MODE" == "indoor-nav" ||
     LAUNCH_ARGS+=("frc_extra_params_file:=${FRC_EXTRA_PARAMS}")
   fi
 fi
+if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
+  case "$MODE" in
+    rtk-basic)
+      LAUNCH_ARGS+=("params_file:=${FYP_RTK_PARAMS_FILE}")
+      ;;
+    explore-gps|nav-gps|corridor)
+      LAUNCH_ARGS+=("rtk_params_file:=${FYP_RTK_PARAMS_FILE}")
+      ;;
+  esac
+fi
 if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")

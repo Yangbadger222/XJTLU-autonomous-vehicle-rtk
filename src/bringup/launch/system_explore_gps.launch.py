@@ -15,6 +15,7 @@ def generate_launch_description():
     default_master_params = os.path.join(bringup_share, "config", "master_params.yaml")
 
     params_file = LaunchConfiguration("params_file")
+    rtk_params_file = LaunchConfiguration("rtk_params_file")
     pgo_config = LaunchConfiguration("pgo_config")
     use_rviz = LaunchConfiguration("use_rviz")
     frc_mode = LaunchConfiguration("frc_mode")
@@ -46,7 +47,7 @@ def generate_launch_description():
                 )
             ]
         ),
-        launch_arguments={"params_file": params_file}.items(),
+        launch_arguments={"params_file": rtk_params_file}.items(),
     )
 
     pgo_launch = IncludeLaunchDescription(
@@ -120,6 +121,11 @@ def generate_launch_description():
                 "params_file",
                 default_value=default_master_params,
                 description="Unified ROS2 parameter file for explore-gps mode",
+            ),
+            DeclareLaunchArgument(
+                "rtk_params_file",
+                default_value=default_master_params,
+                description="Parameter file used only by um982_rtk_driver",
             ),
             DeclareLaunchArgument(
                 "pgo_config",

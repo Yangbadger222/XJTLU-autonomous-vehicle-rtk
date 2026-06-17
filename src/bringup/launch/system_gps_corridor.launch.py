@@ -22,6 +22,11 @@ def generate_launch_description():
         default_value=os.path.expanduser('~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml'),
         description='Runtime YAML for the GPS route corridor',
     )
+    rtk_params_file_arg = DeclareLaunchArgument(
+        'rtk_params_file',
+        default_value=master_params_file,
+        description='Parameter file used only by um982_rtk_driver',
+    )
     startup_wait_timeout_arg = DeclareLaunchArgument(
         'startup_wait_timeout_s',
         default_value='90.0',
@@ -52,7 +57,7 @@ def generate_launch_description():
                 )
             ]
         ),
-        launch_arguments={'params_file': master_params_file}.items(),
+        launch_arguments={'params_file': LaunchConfiguration('rtk_params_file')}.items(),
     )
 
     global_aligner = Node(
@@ -138,6 +143,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         route_file_arg,
+        rtk_params_file_arg,
         startup_wait_timeout_arg,
         use_rviz_arg,
         explore_launch,

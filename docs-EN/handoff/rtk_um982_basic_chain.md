@@ -95,6 +95,16 @@ export NTRIP_PASSWORD='do-not-commit'
 ros2 launch um982_rtk_driver um982_rtk.launch.py params_file:=/tmp/um982_cors.yaml
 ```
 
+When launching through repository entrypoints, reuse the same temporary file:
+
+```bash
+export NTRIP_PASSWORD='do-not-commit'
+export FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml
+make launch-rtk-basic
+```
+
+`FYP_RTK_PARAMS_FILE` is also passed to the UM982 driver in `explore-gps`, `nav-gps`, and `corridor`; navigation, PGO, scene, and other nodes continue using their original parameter files.
+
 The current C++ NTRIP client supports plain TCP NTRIP, not TLS casters. If the CORS caster requires TLS, add a TLS dependency later or let the receiver/vendor 4G module own NTRIP.
 
 ## Field Test Order

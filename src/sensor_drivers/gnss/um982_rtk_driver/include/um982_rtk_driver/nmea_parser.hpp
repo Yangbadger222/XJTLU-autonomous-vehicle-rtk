@@ -74,5 +74,7 @@ bool hasValidChecksum(const std::string & sentence);
 std::optional<ParsedSentence> parseSentence(const std::string & sentence);
 std::string buildNmeaSentence(const std::string & body);
 std::string fixQualityText(int fix_quality);
+double normalizeHeadingDeg(double heading_deg);
+double applyHeadingOffsetDeg(double heading_deg, double offset_deg);
 
 }  // namespace um982_rtk_driver

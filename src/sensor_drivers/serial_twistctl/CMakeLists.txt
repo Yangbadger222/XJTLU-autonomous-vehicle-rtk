@@ -13,12 +13,18 @@ find_package(serial REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
 add_executable(serial_twistctl_node src/serial_twistctl_node.cpp)
+target_include_directories(serial_twistctl_node PRIVATE include)
 
 # 链接依赖项
 ament_target_dependencies(serial_twistctl_node rclcpp geometry_msgs serial)
 
-# 链接 yaml-cpp 库
+# 链接 yaml-cpp 与串口库
 target_link_libraries(serial_twistctl_node yaml-cpp)
+if(TARGET serial)
+  target_link_libraries(serial_twistctl_node serial)
+else()
+  target_link_libraries(serial_twistctl_node ${serial_LIBRARIES})
+endif()
 
 # 安装目标
 install(TARGETS
@@ -27,7 +33,10 @@ install(TARGETS
 )
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
   find_package(ament_lint_auto REQUIRED)
+  ament_add_gtest(test_twist_command test/test_twist_command.cpp)
+  target_include_directories(test_twist_command PRIVATE include)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files
   set(ament_cmake_copyright_FOUND TRUE)

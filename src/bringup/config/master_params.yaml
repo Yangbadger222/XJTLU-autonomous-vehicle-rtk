@@ -224,6 +224,9 @@
     send_attempts: 1
     # 两次发送尝试之间的延迟毫秒数；调大更稳但控制更慢。
     delay_between_attempts_ms: 0
+    # 当前 STM32 底盘固件正 wc 表现为左转，和 ROS REP-103 的正 angular.z 左转一致。
+    # 若后续固件或接线导致转向相反，可现场改为 -1.0，不需要改代码。
+    angular_z_scale: 1.0
 
 /serial_reader_node:
   ros__parameters:
@@ -253,6 +256,10 @@
     baud: 115200
     # Antenna reference frame used by /fix and /heading.
     frame_id: gps
+    # Convert UM982 dual-antenna baseline heading to vehicle heading.
+    # On the current vehicle the right antenna is master and the left antenna is secondary,
+    # so the receiver reports the leftward baseline direction; base_link +X is vehicle front.
+    heading_offset_deg: 90.0
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

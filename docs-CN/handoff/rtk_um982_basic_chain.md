@@ -21,6 +21,12 @@
 | `rtk/nmea_sentence` | `nmea_msgs/msg/Sentence` | 校验通过的 raw NMEA |
 | `rtk/status` | `std_msgs/msg/String` | 人可读 RTK 状态 |
 
+## Heading 校准
+
+当前双天线安装为右侧天线接 master、左侧天线接 secondary。UM982 原始 heading 表示横向基线方向，不是车辆 `base_link +X` 车头方向；因此驱动通过 `heading_offset_deg: 90.0` 把 raw heading 转成车辆 heading 后发布到 `/heading`。
+
+`rtk/status` 中 `heading=` 为校准后的车辆朝向，`raw=` 为接收机原始横向基线 heading。若后续调换主从天线或改成前后安装，只修改 `heading_offset_deg`，不要在导航代码里硬编码补偿。
+
 ## Jetson 构建
 
 ```bash

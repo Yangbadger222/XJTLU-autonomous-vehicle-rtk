@@ -3,9 +3,6 @@ project(serial)
 
 find_package(ament_cmake REQUIRED)
 
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
-
 ## Sources
 ## Add serial library
 add_library(${PROJECT_NAME} SHARED
@@ -39,7 +36,10 @@ endif()
 
 
 ## Include headers
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
 
 ## Uncomment for example
 # add_executable(serial_example examples/serial_example.cc)
@@ -48,14 +48,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 ## Install executable
 install(TARGETS ${PROJECT_NAME}
+    EXPORT export_${PROJECT_NAME}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
 )
 
 ## Install headers
-install(FILES include/serial/serial.h include/serial/v8stdint.h
-    DESTINATION include/serial
+install(DIRECTORY include/
+    DESTINATION include
 )
+
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
 
 ## Tests
 #if(BUILD_TESTING)

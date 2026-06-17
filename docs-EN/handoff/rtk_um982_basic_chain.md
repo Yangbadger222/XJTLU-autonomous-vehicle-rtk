@@ -21,6 +21,12 @@ Published topics:
 | `rtk/nmea_sentence` | `nmea_msgs/msg/Sentence` | checksum-valid raw NMEA |
 | `rtk/status` | `std_msgs/msg/String` | human-readable RTK state |
 
+## Heading Calibration
+
+The current dual-antenna installation uses the right antenna as master and the left antenna as secondary. The UM982 raw heading therefore describes the lateral antenna baseline, not the vehicle `base_link +X` forward direction. The driver applies `heading_offset_deg: 90.0` before publishing `/heading`.
+
+In `rtk/status`, `heading=` is the calibrated vehicle heading and `raw=` is the receiver's raw lateral-baseline heading. If the antenna master/secondary wiring or physical mounting changes later, adjust `heading_offset_deg` rather than hard-coding compensation in navigation code.
+
 ## Jetson Build
 
 ```bash

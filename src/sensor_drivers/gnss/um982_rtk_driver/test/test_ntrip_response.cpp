@@ -10,6 +10,11 @@ TEST(NtripResponse, AcceptsIcy200HeaderWithoutBlankLine)
   EXPECT_EQ(evaluateNtripResponse("ICY 200 OK\r\n"), NtripResponseState::Accepted);
 }
 
+TEST(NtripResponse, WaitsForIcyLineTerminator)
+{
+  EXPECT_EQ(evaluateNtripResponse("ICY 200"), NtripResponseState::NeedMore);
+}
+
 TEST(NtripResponse, AcceptsHttp200Header)
 {
   EXPECT_EQ(

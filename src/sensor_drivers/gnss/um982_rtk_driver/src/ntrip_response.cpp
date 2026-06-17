@@ -1,7 +1,5 @@
 #include "um982_rtk_driver/ntrip_response.hpp"
 
-#include <sstream>
-
 namespace um982_rtk_driver
 {
 namespace
@@ -22,6 +20,11 @@ bool startsWith(const std::string & value, const std::string & prefix)
   return value.rfind(prefix, 0) == 0;
 }
 
+bool hasLineTerminator(const std::string & response)
+{
+  return response.find('\n') != std::string::npos;
+}
+
 }  // namespace
 
 NtripResponseState evaluateNtripResponse(const std::string & response)
@@ -31,7 +34,7 @@ NtripResponseState evaluateNtripResponse(const std::string & response)
     return NtripResponseState::NeedMore;
   }
 
-  if (startsWith(line, "ICY 200")) {
+  if (startsWith(line, "ICY 200") && hasLineTerminator(response)) {
     return NtripResponseState::Accepted;
   }
   if (startsWith(line, "HTTP/")) {
@@ -39,7 +42,9 @@ NtripResponseState evaluateNtripResponse(const std::string & response)
       line.find(" 200 ") != std::string::npos ||
       (line.size() >= 12 && line.substr(9, 3) == "200");
     if (has_success_code) {
-      if (response.find("\r\n\r\n") == std::string::npos && response.find("\n\n") == std::string::npos) {
+      if (response.find("\r\n\r\n") == std::string::npos &&
+        response.find("\n\n") == std::string::npos)
+      {
         return NtripResponseState::NeedMore;
       }
       return NtripResponseState::Accepted;

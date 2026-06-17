@@ -101,6 +101,7 @@ public:
     frame_id_ = declare_parameter<std::string>("frame_id", "gps");
     publish_raw_ = declare_parameter<bool>("publish_raw", true);
     status_period_s_ = declare_parameter<double>("status_period_s", 1.0);
+    heading_offset_deg_ = declare_parameter<double>("heading_offset_deg", 0.0);
     epe_quality_0_ = declare_parameter<double>("epe_quality0", 1000000.0);
     epe_quality_1_ = declare_parameter<double>("epe_quality1", 4.0);
     epe_quality_2_ = declare_parameter<double>("epe_quality2", 0.1);
@@ -327,14 +328,16 @@ private:
 
   void publishHeading(double heading_deg, const rclcpp::Time & stamp)
   {
-    if (!std::isfinite(heading_deg)) {
+    const double calibrated_heading_deg =
+      applyHeadingOffsetDeg(heading_deg, heading_offset_deg_);
+    if (!std::isfinite(calibrated_heading_deg)) {
       return;
     }
     geometry_msgs::msg::QuaternionStamped msg;
     msg.header.stamp = toRosTimeMsg(stamp);
     msg.header.frame_id = frame_id_;
     tf2::Quaternion quaternion;
-    quaternion.setRPY(0.0, 0.0, heading_deg * kPi / 180.0);
+    quaternion.setRPY(0.0, 0.0, calibrated_heading_deg * kPi / 180.0);
     msg.quaternion.x = quaternion.x();
     msg.quaternion.y = quaternion.y();
     msg.quaternion.z = quaternion.z();
@@ -374,7 +377,11 @@ private:
            << " alt=" << std::setprecision(3) << last_altitude_
            << " heading=";
     if (last_heading_valid_) {
-      status << std::setprecision(3) << last_heading_deg_ << " " << last_heading_source_;
+      status << std::setprecision(3)
+             << applyHeadingOffsetDeg(last_heading_deg_, heading_offset_deg_)
+             << " " << last_heading_source_
+             << " raw=" << last_heading_deg_
+             << " offset=" << heading_offset_deg_;
     } else {
       status << "-";
     }
@@ -581,6 +588,7 @@ private:
   std::string frame_id_;
   bool publish_raw_ = true;
   double status_period_s_ = 1.0;
+  double heading_offset_deg_ = 0.0;
   double epe_quality_0_ = 1000000.0;
   double epe_quality_1_ = 4.0;
   double epe_quality_2_ = 0.1;

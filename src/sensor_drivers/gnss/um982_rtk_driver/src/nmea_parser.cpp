@@ -350,4 +350,27 @@ std::string fixQualityText(int fix_quality)
   }
 }
 
+double normalizeHeadingDeg(double heading_deg)
+{
+  if (!std::isfinite(heading_deg)) {
+    return nan();
+  }
+  double normalized = std::fmod(heading_deg, 360.0);
+  if (normalized < 0.0) {
+    normalized += 360.0;
+  }
+  if (normalized >= 360.0) {
+    normalized -= 360.0;
+  }
+  return normalized;
+}
+
+double applyHeadingOffsetDeg(double heading_deg, double offset_deg)
+{
+  if (!std::isfinite(heading_deg) || !std::isfinite(offset_deg)) {
+    return nan();
+  }
+  return normalizeHeadingDeg(heading_deg + offset_deg);
+}
+
 }  // namespace um982_rtk_driver

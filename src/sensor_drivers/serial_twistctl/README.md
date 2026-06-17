@@ -21,7 +21,7 @@ ROS topics published:
 Serial command format:
 
 ```text
-vcx=<linear.x>,wc=<angular.z>
+vcx=<linear.x>,wc=<angular.z * angular_z_scale>
 ```
 
 The actual transmitted command ends with a newline.
@@ -34,6 +34,7 @@ The actual transmitted command ends with a newline.
 | `baudrate` | `115200` | Serial baud rate |
 | `send_attempts` | `1` | Number of send attempts per command |
 | `delay_between_attempts_ms` | `0` | Delay between repeated sends |
+| `angular_z_scale` | `1.0` | Scale/sign applied when mapping ROS `angular.z` to chassis `wc`; set to `-1.0` when the STM32 firmware treats positive `wc` as a right turn |
 
 Parameters are normally supplied through `src/bringup/config/master_params.yaml` and the active launch file.
 

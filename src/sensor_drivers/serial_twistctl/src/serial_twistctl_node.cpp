@@ -27,6 +27,7 @@
 #include <cerrno>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "serial_twistctl/twist_command.hpp"
 
 namespace {
 std::string getRuntimeRoot() {
@@ -146,6 +147,8 @@ public:
         this->declare_parameter<int>("send_attempts", 1);
         // 声明发送尝试间隔参数
         this->declare_parameter<int>("delay_between_attempts_ms", 0);
+        // ROS angular.z 到底盘 wc 的比例/符号映射。
+        this->declare_parameter<double>("angular_z_scale", 1.0);
 
         // 获取端口参数值
         port_ = this->get_parameter("port").as_string();
@@ -155,6 +158,8 @@ public:
         send_attempts_ = this->get_parameter("send_attempts").as_int();
         // 获取发送尝试间隔参数值
         delay_between_attempts_ms_ = this->get_parameter("delay_between_attempts_ms").as_int();
+        // 获取底盘角速度映射参数值
+        angular_z_scale_ = this->get_parameter("angular_z_scale").as_double();
 
         // 设置串口端口
         try {
@@ -240,16 +245,23 @@ private:
 
         // 提取线速度x分量
         float linear_x = msg->linear.x;
-        // 提取角速度z分量
+        // 提取角速度z分量；按底盘约定映射后再发给 STM32。
         float angular_z = msg->angular.z;
+        float scaled_angular_z = static_cast<float>(angular_z * angular_z_scale_);
 
         // 将Twist消息转换为串口命令字符串
-        char command[50];
-        snprintf(command, sizeof(command), "vcx=%.3f,wc=%.3f\n", linear_x, angular_z);
+        std::string command = serial_twistctl::formatTwistCommand(
+            linear_x,
+            angular_z,
+            angular_z_scale_);
 
         // 记录接收到的Twist消息内容
-        RCLCPP_INFO(this->get_logger(), "[TWIST_RX] Received Twist message - linear.x=%.3f, angular.z=%.3f", 
-                    linear_x, angular_z);
+        RCLCPP_INFO(
+            this->get_logger(),
+            "[TWIST_RX] Received Twist message - linear.x=%.3f, angular.z=%.3f, scaled_angular.z=%.3f",
+            linear_x,
+            angular_z,
+            scaled_angular_z);
 
         // 循环发送命令多次以确保接收
         for (int i = 0; i < send_attempts_; ++i) {
@@ -271,7 +283,7 @@ private:
 
             // 记录字节计数（包含时间戳）
             RCLCPP_INFO(this->get_logger(), "[SERIAL_TX] Timestamp: %ld, Sending command (%d/%d): %s [%zu bytes written]", 
-                        ros_timestamp, i+1, send_attempts_, command, bytes_written);
+                        ros_timestamp, i+1, send_attempts_, command.c_str(), bytes_written);
 
             // 如果日志文件打开，则写入日志（包含ROS时间戳）
             if (log_file_.is_open()) {
@@ -307,6 +319,8 @@ private:
     int send_attempts_;
     // 发送尝试间隔参数
     int delay_between_attempts_ms_;
+    // ROS angular.z 到底盘 wc 的比例/符号映射
+    double angular_z_scale_;
 };
 
 // 主函数

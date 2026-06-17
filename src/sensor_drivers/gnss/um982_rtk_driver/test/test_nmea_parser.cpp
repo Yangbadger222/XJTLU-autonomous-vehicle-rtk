@@ -5,6 +5,8 @@
 using um982_rtk_driver::buildNmeaSentence;
 using um982_rtk_driver::fixQualityText;
 using um982_rtk_driver::hasValidChecksum;
+using um982_rtk_driver::applyHeadingOffsetDeg;
+using um982_rtk_driver::normalizeHeadingDeg;
 using um982_rtk_driver::parseSentence;
 
 TEST(NmeaParser, ValidatesChecksum)
@@ -83,4 +85,12 @@ TEST(NmeaParser, ParsesUnicoreUniheading)
 TEST(NmeaParser, RejectsBadChecksum)
 {
   EXPECT_FALSE(parseSentence("$GNHPR,081212.00,341.48,-00.64,000.00,4,46,0.00,0999*00").has_value());
+}
+
+TEST(NmeaParser, AppliesHeadingOffsetAndWrapsToCompassRange)
+{
+  EXPECT_DOUBLE_EQ(applyHeadingOffsetDeg(89.9, 90.0), 179.9);
+  EXPECT_DOUBLE_EQ(applyHeadingOffsetDeg(350.0, 20.0), 10.0);
+  EXPECT_DOUBLE_EQ(applyHeadingOffsetDeg(5.0, -20.0), 345.0);
+  EXPECT_DOUBLE_EQ(normalizeHeadingDeg(720.0), 0.0);
 }

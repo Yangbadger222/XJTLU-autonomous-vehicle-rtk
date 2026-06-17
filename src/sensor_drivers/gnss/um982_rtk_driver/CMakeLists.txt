@@ -19,6 +19,7 @@ find_package(tf2 REQUIRED)
 
 add_library(um982_rtk_parser
   src/nmea_parser.cpp
+  src/ntrip_response.cpp
 )
 target_include_directories(um982_rtk_parser PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -57,6 +58,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_nmea_parser test/test_nmea_parser.cpp)
   target_include_directories(test_nmea_parser PRIVATE include)
   target_link_libraries(test_nmea_parser um982_rtk_parser)
+
+  ament_add_gtest(test_ntrip_response test/test_ntrip_response.cpp)
+  target_include_directories(test_ntrip_response PRIVATE include)
+  target_link_libraries(test_ntrip_response um982_rtk_parser)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

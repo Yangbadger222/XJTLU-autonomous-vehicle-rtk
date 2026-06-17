@@ -121,7 +121,7 @@
 
 18. **[Low] Lower-level controller PID emergency stop causes wheel reversal**
     - Description: The old KEY/B/X stop paths could stop CAN output or use PID zero-speed braking, causing noticeable wheel reversal.
-    - Status: Patched on 2026-06-13 to use sustained zero-current coast-stop output and restored PID integral limiting; bench and vehicle validation are still required.
+    - Status: Updated further on 2026-06-14 to separate stop semantics: KEY/X/gamepad-loss keep sustained zero-current coast-stop output, while `B` now performs damped active braking with a high-speed current limit, low-speed current tapering, current-rate limiting, and zero-current release near stop; the `B` latch initializes only on the first trigger, holding `B` no longer resets the current ramp, and the indicator is now non-blocking solid pink; bench and vehicle validation are still required.
 
 19. **[Low] USB 2.0 interface limitation**
     - Description: Unfriendly for certain high-bandwidth peripheral expansion.

@@ -64,6 +64,7 @@ uint16_t buffer_index = 0;
 extern int stop_flag; // KEY Button
 extern FusionAhrs ahrs;
 extern int control_mode;
+extern int brake_flag;
 
 int control_mode = 1;  // 0: 手柄控制, 1: 串口控制
 
@@ -285,11 +286,11 @@ void Serial_Output(){
   //             (int)(FusionDegreesToRadians(gyroscope.axis.z) * 10000));
 
     // P3（FRC）：在原 16 字段 CSV 末尾追加 2 个状态字段（只增不改前 16 字段）。
-    // 第 17 位 ctrl_mode：0=上位机串口控制 1=手柄控制 2=电机禁用（X 键/失能）
+    // 第 17 位 ctrl_mode：0=上位机串口控制 1=手柄控制 2=电机禁用/安全接管
     // 第 18 位 ps2_key：PS2 按键码（0 表示无按键）
     // 上位机 serial_reader 按 ">=16 字段接受，17/18 缺省补 0" 解析，旧固件兼容。
     int frc_ctrl_mode;
-    if (motor_shutdown == 1)
+    if (motor_shutdown == 1 || brake_flag == 1)
         frc_ctrl_mode = 2;
     else if (control_mode == 0)
         frc_ctrl_mode = 1;

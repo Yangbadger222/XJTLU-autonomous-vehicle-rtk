@@ -21,8 +21,9 @@ The snapshot preserves the source tree, STM32/Keil project files, editor configu
 ## Safety Stop Behavior
 
 - The host command contract remains `vcx=<linear.x>,wc=<angular.z>\n` at 115200 baud.
-- KEY, PS2 `X`, PS2 `B`, and gamepad-loss stop paths are expected to keep sending zero-current CAN frames instead of stopping CAN transmission.
-- PS2 `B` is a backup coast-stop path, not a replacement for the `X` software disable or the red physical e-stop until bench and vehicle validation are complete.
+- KEY, PS2 `X`, and gamepad-loss stop paths are expected to keep sending zero-current CAN frames instead of stopping CAN transmission.
+- PS2 `B` is a damped active-brake path: it applies current opposite to wheel speed, keeps the high-speed current limit for short stopping distance, tapers current at low speed, rate-limits current changes, and releases to zero-current output near stop. The brake latch is initialized only on the first `B` frame, so holding `B` does not reset the current ramp; the `B` LED indication is solid pink and non-blocking.
+- PS2 `B` is not a replacement for the `X` software disable or the red physical e-stop until bench and vehicle validation are complete.
 
 ## Historical Note
 

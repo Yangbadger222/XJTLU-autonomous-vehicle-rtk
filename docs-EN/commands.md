@@ -246,7 +246,7 @@ Stop and emergency-stop priority:
 1. PS2 gamepad `X` button disables motors as the highest-priority software stop
 2. Red physical emergency stop button on the vehicle body overrides all software commands
 
-The lower-controller `B` button path now uses a zero-current coast-stop fallback. Do not use `B` as a replacement for `X` or the red physical e-stop until bench and vehicle validation are complete.
+The lower-controller `B` button path now performs damped active braking: it keeps motor control enabled, applies current opposite to wheel speed, preserves a high current limit at higher speed for short stopping distance, tapers current at low speed, rate-limits current changes, then clears state and keeps sending zero-current frames near stop. The `B` brake latch initializes only on the first trigger, so holding `B` does not repeatedly clear the current ramp; the `B` indication is solid pink and no longer uses a blocking blink. Do not use `B` as a replacement for `X` or the red physical e-stop until bench and vehicle validation are complete.
 
 ## 10. Git and PR
 

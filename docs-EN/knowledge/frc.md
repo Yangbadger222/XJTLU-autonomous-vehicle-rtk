@@ -27,7 +27,7 @@ FRC_MODE=shadow FRC_EXTRA_PARAMS=/tmp/frc_overrides.yaml make launch-explore
 - `/fastlio2/degeneracy`: FAST-LIO2 `Float32MultiArray[min_eig, cond, regularized]` for health aggregation and offline attribution.
 - `/pgo/keyframes`: PGO keyframe array for anchor attachment and map-pose refresh after loop correction.
 - `/pgo/correction_status`: PGO correction window for training filters and health aggregation.
-- `/chassis/status`: STM32 control mode and PS2 key state; old 16-field firmware falls back to zeros.
+- `/chassis/status`: STM32 control mode and PS2 key state; old 16-field firmware falls back to zeros. `ctrl_mode=2` means motor disabled or safety takeover, such as while `B` active braking is latched.
 - `/frc/health`: aggregated FRC health state.
 - `/frc/event_marker`: online or manual failure/risk events.
 - `/frc/risk_grid`: risk grid in `odom`, consumed by `frc_layer`.

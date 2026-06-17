@@ -27,7 +27,7 @@ FRC_MODE=shadow FRC_EXTRA_PARAMS=/tmp/frc_overrides.yaml make launch-explore
 - `/fastlio2/degeneracy`：FAST-LIO2 发布的 `Float32MultiArray[min_eig, cond, regularized]`，供健康状态和离线归因使用。
 - `/pgo/keyframes`：PGO 关键帧数组，供锚挂载与回环后重算 map 位姿。
 - `/pgo/correction_status`：PGO 修正窗口，供训练过滤和健康状态使用。
-- `/chassis/status`：STM32 上行控制模式和 PS2 按键，旧 16 字段固件下字段默认为 0。
+- `/chassis/status`：STM32 上行控制模式和 PS2 按键，旧 16 字段固件下字段默认为 0；`ctrl_mode=2` 表示电机失能或安全接管（例如 B 键主动刹车期间）。
 - `/frc/health`：FRC 健康状态聚合。
 - `/frc/event_marker`：在线自动或人工产生的失败/风险事件。
 - `/frc/risk_grid`：`odom` 系风险场，供 `frc_layer` 消费。

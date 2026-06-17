@@ -11,6 +11,7 @@ extern float Wc;
 extern int motor_ready;
 extern int motor_shutdown;
 extern int free_flag;
+extern int brake_flag;
 
 float MAX_Speed = 0;
 int flagg = 0;
@@ -38,6 +39,7 @@ void Joystick_motor_start(void)
         led_green_start();
         motor_ready = 1;
         free_flag = 0;
+        brake_flag = 0;
 	}
 
     // 处理X按钮关闭
@@ -46,21 +48,28 @@ void Joystick_motor_start(void)
         ((PS2_LY == 128) && (PS2_LX == 128) && (PS2_RX == 128) && (PS2_RY == 128))) // X按钮关闭
     {
         control_mode = 0;
+        brake_flag = 0;
         motor_shutdown = 1; //设置电机不使能
         motor_ready = 0;   // 电机不准备好输入
         free_flag = 1;     // 进入自由滑行模式
+        Set_free();
         led_red_start();
     }
 
     if (PS2_KEY == 14) // B按钮按下急停
     {
         control_mode = 0;
-        motor_shutdown = 1; // 与 X 键一致：撤力失能
-        motor_ready = 0;    // 电机不准备好输入
-        free_flag = 1;      // 进入自由滑行模式
-        Set_free();
-        
-        led_pink_blink();   // 闪烁粉色LED
+        motor_shutdown = 0; // Keep motors enabled for active braking
+        motor_ready = 0;    // Lock out stick speed updates
+        free_flag = 0;      // Do not coast until braking reaches near zero speed
+        Vcx = 0;
+        Wc = 0;
+        if (brake_flag == 0)
+        {
+            brake_flag = 1;
+            Clear_Brake_State();
+        }
+        Active_Brake_Output();
         led_pink_start();
     }
 }

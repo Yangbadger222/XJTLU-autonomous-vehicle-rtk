@@ -5,7 +5,7 @@ std_msgs/Header header
 
 uint8 CTRL_MODE_HOST=0
 uint8 CTRL_MODE_GAMEPAD=1
-uint8 CTRL_MODE_DISABLED=2
+uint8 CTRL_MODE_DISABLED=2  # disabled or safety takeover
 
 uint8 ctrl_mode
 # PS2 按键码（ps2.c PS2_DataKey 编码；0 表示无按键）

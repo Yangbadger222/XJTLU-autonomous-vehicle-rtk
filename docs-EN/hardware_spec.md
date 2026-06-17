@@ -85,7 +85,7 @@
 | Type | 2.4 GHz wireless gamepad (PS2 compatible) |
 | Left stick | Linear velocity |
 | Right stick | Angular velocity |
-| Buttons | Y=enable, X=disable/coast stop, B=backup coast stop |
+| Buttons | Y=enable, X=disable/coast stop, B=damped active brake then zero-current release |
 | Priority | **Highest software disable is X**; the red physical e-stop overrides all software commands |
 | Disconnect protection | Automatic disable on signal loss |
 

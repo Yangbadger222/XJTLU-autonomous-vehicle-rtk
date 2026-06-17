@@ -1,6 +1,12 @@
 #include "Motor_Speed_pid.h"
 
 #define MAX_SPEED_RPM 20000  // 最大转速
+#define BRAKE_STOP_RPM 120
+#define BRAKE_LOW_SPEED_RPM 300
+#define BRAKE_CURRENT_LIMIT 8000
+#define BRAKE_LOW_SPEED_CURRENT_LIMIT 4500
+#define BRAKE_DAMPING_KP 12.0f
+#define BRAKE_CURRENT_STEP 1200
 
 PID_TypeDef motor_pid[4];
 float set_spdL;// rpm  ���ֽ��ٶȣ�ת�٣�        1 rpm = pi/30 = 0.1047 ��rad/s��    1(rad/s) = 9.55(rpm)            //Pi rad = 180��    1 rad = 180/Pi ��    1 �� = Pi/180 rad
@@ -18,8 +24,86 @@ int flaggg = 0;
 int motor_ready = 0; //电机被控制
 int motor_shutdown = 0; //电机使能
 int free_flag = 0; // 0不允许自由滑动
+int brake_flag = 0; // B button active brake latch
+static int16_t brake_last_current[4] = {0, 0, 0, 0};
 
 extern int control_mode;  // 0: 手柄控制, 1: 串口控制
+
+static void Clear_Motor_PID_State(void)
+{
+	for(int i=0; i<4; i++)
+	{
+        motor_pid[i].target = 0;
+        motor_pid[i].err = 0;
+        motor_pid[i].last_err = 0;
+        motor_pid[i].pout = 0;
+		motor_pid[i].iout = 0;
+        motor_pid[i].dout = 0;
+		motor_pid[i].output = 0;
+        motor_pid[i].last_output = 0;
+		motor_pid[i].calculate_output = 0;
+	}
+}
+
+void Clear_Brake_State(void)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        brake_last_current[i] = 0;
+    }
+    Clear_Motor_PID_State();
+}
+
+static int16_t Damping_Brake_Current(int16_t speed_rpm)
+{
+    int32_t output = (int32_t)(-BRAKE_DAMPING_KP * speed_rpm);
+    int16_t limit = BRAKE_CURRENT_LIMIT;
+
+    if (speed_rpm < BRAKE_LOW_SPEED_RPM && speed_rpm > -BRAKE_LOW_SPEED_RPM)
+    {
+        limit = BRAKE_LOW_SPEED_CURRENT_LIMIT;
+    }
+
+    if (output > limit)
+    {
+        return limit;
+    }
+    if (output < -limit)
+    {
+        return -limit;
+    }
+    return output;
+}
+
+static int16_t Ramp_Brake_Current(uint8_t index, int16_t target_current)
+{
+    int32_t delta = target_current - brake_last_current[index];
+
+    if (delta > BRAKE_CURRENT_STEP)
+    {
+        target_current = brake_last_current[index] + BRAKE_CURRENT_STEP;
+    }
+    else if (delta < -BRAKE_CURRENT_STEP)
+    {
+        target_current = brake_last_current[index] - BRAKE_CURRENT_STEP;
+    }
+
+    brake_last_current[index] = target_current;
+    return target_current;
+}
+
+static uint8_t Brake_Wheels_Stopped(void)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        if (motor_chassis[i].speed_rpm > BRAKE_STOP_RPM ||
+            motor_chassis[i].speed_rpm < -BRAKE_STOP_RPM)
+        {
+            return 0;
+        }
+    }
+    return 1;
+}
 
 
 
@@ -136,20 +220,42 @@ void Emergency_Stop_Output(void)
     Wc = 0;
     set_spdL = 0;
     set_spdR = 0;
-	for(int i=0; i<4; i++)
-	{
-        motor_pid[i].target = 0;
-        motor_pid[i].pout = 0;
-		motor_pid[i].iout = 0;
-        motor_pid[i].dout = 0;
-		motor_pid[i].output = 0;
-		motor_pid[i].calculate_output = 0;
-	}
+    brake_flag = 0;
+    Clear_Motor_PID_State();
 	CAN_cmd_chassis(0,0,0,0);
+}
+
+void Active_Brake_Output(void)
+{
+    Vcx = 0;
+    Wc = 0;
+    set_spdL = 0;
+    set_spdR = 0;
+
+    if (Brake_Wheels_Stopped())
+    {
+        brake_flag = 0;
+        free_flag = 1;
+        motor_ready = 0;
+        Clear_Brake_State();
+        CAN_cmd_chassis(0,0,0,0);
+        return;
+    }
+
+    CAN_cmd_chassis(Ramp_Brake_Current(0, Damping_Brake_Current(motor_chassis[0].speed_rpm)),
+                    Ramp_Brake_Current(1, Damping_Brake_Current(motor_chassis[1].speed_rpm)),
+                    Ramp_Brake_Current(2, Damping_Brake_Current(motor_chassis[2].speed_rpm)),
+                    Ramp_Brake_Current(3, Damping_Brake_Current(motor_chassis[3].speed_rpm)));
 }
 
 void Speed_set()
 {
+    if(brake_flag == 1)
+    {
+        Active_Brake_Output();
+        return;
+    }
+
     if(free_flag == 1 || motor_shutdown == 1)
     {
         Set_free();

@@ -1,4 +1,5 @@
 #include "um982_rtk_driver/nmea_parser.hpp"
+#include "um982_rtk_driver/ntrip_response.hpp"
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -433,21 +434,23 @@ private:
     ::send(ntrip_socket_, request_text.data(), request_text.size(), 0);
 
     std::string header;
+    auto response_state = NtripResponseState::NeedMore;
     char c = 0;
-    while (running_ && header.find("\r\n\r\n") == std::string::npos) {
+    while (running_ && response_state == NtripResponseState::NeedMore) {
       const auto n = ::recv(ntrip_socket_, &c, 1, 0);
       if (n <= 0) {
         closeNtrip();
         return;
       }
       header.push_back(c);
+      response_state = evaluateNtripResponse(header);
       if (header.size() > 4096) {
         closeNtrip();
         return;
       }
     }
 
-    if (header.find("200") == std::string::npos && header.find("ICY 200") == std::string::npos) {
+    if (response_state != NtripResponseState::Accepted) {
       RCLCPP_WARN(get_logger(), "NTRIP rejected connection: %.120s", header.c_str());
       closeNtrip();
       std::this_thread::sleep_for(std::chrono::seconds(2));

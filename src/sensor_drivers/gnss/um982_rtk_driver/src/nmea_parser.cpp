@@ -15,12 +15,14 @@ namespace
 
 std::string trim(const std::string & input)
 {
-  const auto begin = std::find_if_not(input.begin(), input.end(), [](unsigned char c) {
-    return std::isspace(c) != 0;
-  });
-  const auto end = std::find_if_not(input.rbegin(), input.rend(), [](unsigned char c) {
-    return std::isspace(c) != 0;
-  }).base();
+  const auto begin = std::find_if_not(
+    input.begin(), input.end(), [](unsigned char c) {
+      return std::isspace(c) != 0;
+    });
+  const auto end = std::find_if_not(
+    input.rbegin(), input.rend(), [](unsigned char c) {
+      return std::isspace(c) != 0;
+    }).base();
   if (begin >= end) {
     return "";
   }

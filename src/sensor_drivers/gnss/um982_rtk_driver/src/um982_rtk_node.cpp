@@ -457,7 +457,9 @@ private:
     ntrip_connected_ = true;
     sendGgaToNtrip(initial_gga);
     last_gga_sent_ = std::chrono::steady_clock::now();
-    RCLCPP_INFO(get_logger(), "NTRIP connected to %s:%d%s", ntrip_host_.c_str(), ntrip_port_, mountpoint.c_str());
+    RCLCPP_INFO(
+      get_logger(), "NTRIP connected to %s:%d%s",
+      ntrip_host_.c_str(), ntrip_port_, mountpoint.c_str());
   }
 
   int openSocket()
@@ -469,7 +471,9 @@ private:
     const std::string port_text = std::to_string(ntrip_port_);
     const int rc = ::getaddrinfo(ntrip_host_.c_str(), port_text.c_str(), &hints, &result);
     if (rc != 0) {
-      RCLCPP_WARN(get_logger(), "NTRIP DNS failed for %s: %s", ntrip_host_.c_str(), gai_strerror(rc));
+      RCLCPP_WARN(
+        get_logger(), "NTRIP DNS failed for %s: %s", ntrip_host_.c_str(),
+        gai_strerror(rc));
       return -1;
     }
 

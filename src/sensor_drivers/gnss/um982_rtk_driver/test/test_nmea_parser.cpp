@@ -15,9 +15,10 @@ TEST(NmeaParser, ValidatesChecksum)
 
 TEST(NmeaParser, ParsesUm982GpggaRtkFixed)
 {
-  const auto parsed = parseSentence(buildNmeaSentence(
-    "GPGGA,081212.00,3127.49270000,N,12044.25280000,E,4,28,0.6,"
-    "66.2344,M,8.4923,M,0.00,0999"));
+  const auto parsed = parseSentence(
+    buildNmeaSentence(
+      "GPGGA,081212.00,3127.49270000,N,12044.25280000,E,4,28,0.6,"
+      "66.2344,M,8.4923,M,0.00,0999"));
 
   ASSERT_TRUE(parsed.has_value());
   ASSERT_TRUE(parsed->gga.has_value());

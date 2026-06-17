@@ -22,6 +22,7 @@
 #include <thread>
 #include <vector>
 
+#include <builtin_interfaces/msg/time.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <nmea_msgs/msg/sentence.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -75,6 +76,15 @@ std::string readPasswordFromEnv(const std::string & parameter_value, const std::
     return "";
   }
   return std::string(value);
+}
+
+builtin_interfaces::msg::Time toRosTimeMsg(const rclcpp::Time & stamp)
+{
+  builtin_interfaces::msg::Time msg;
+  const int64_t nanoseconds = stamp.nanoseconds();
+  msg.sec = static_cast<int32_t>(nanoseconds / 1000000000LL);
+  msg.nanosec = static_cast<uint32_t>(nanoseconds % 1000000000LL);
+  return msg;
 }
 
 }  // namespace
@@ -205,7 +215,7 @@ private:
     const auto stamp = now();
     if (publish_raw_) {
       nmea_msgs::msg::Sentence raw;
-      raw.header.stamp = stamp.to_msg();
+      raw.header.stamp = toRosTimeMsg(stamp);
       raw.header.frame_id = frame_id_;
       raw.sentence = line;
       raw_pub_->publish(raw);
@@ -264,7 +274,7 @@ private:
   void publishFix(const GgaData & data, const rclcpp::Time & stamp)
   {
     sensor_msgs::msg::NavSatFix fix;
-    fix.header.stamp = stamp.to_msg();
+    fix.header.stamp = toRosTimeMsg(stamp);
     fix.header.frame_id = frame_id_;
     fix.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
 
@@ -320,7 +330,7 @@ private:
       return;
     }
     geometry_msgs::msg::QuaternionStamped msg;
-    msg.header.stamp = stamp.to_msg();
+    msg.header.stamp = toRosTimeMsg(stamp);
     msg.header.frame_id = frame_id_;
     tf2::Quaternion quaternion;
     quaternion.setRPY(0.0, 0.0, heading_deg * kPi / 180.0);

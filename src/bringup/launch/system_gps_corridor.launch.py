@@ -44,11 +44,11 @@ def generate_launch_description():
         }.items(),
     )
 
-    nmea_launch = IncludeLaunchDescription(
+    rtk_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
                 PathJoinSubstitution(
-                    [FindPackageShare('nmea_navsat_driver'), 'launch', 'nmea_serial_driver.launch.py']
+                    [FindPackageShare('um982_rtk_driver'), 'launch', 'um982_rtk.launch.py']
                 )
             ]
         ),
@@ -141,7 +141,7 @@ def generate_launch_description():
         startup_wait_timeout_arg,
         use_rviz_arg,
         explore_launch,
-        nmea_launch,
+        rtk_launch,
         bag_record,
         delayed_aligner,
         delayed_runner,

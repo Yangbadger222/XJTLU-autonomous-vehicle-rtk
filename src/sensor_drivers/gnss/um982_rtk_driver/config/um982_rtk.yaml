@@ -1,0 +1,17 @@
+um982_rtk_driver:
+  ros__parameters:
+    port: /dev/rtk_um982
+    baud: 115200
+    frame_id: gps
+    publish_raw: true
+    status_period_s: 1.0
+    ntrip:
+      enabled: false
+      host: ""
+      port: 2101
+      mountpoint: ""
+      username: ""
+      password: ""
+      password_env: NTRIP_PASSWORD
+      send_gga_interval_s: 5.0
+      connect_requires_valid_gga: true

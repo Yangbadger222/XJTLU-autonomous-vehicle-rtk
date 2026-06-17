@@ -234,16 +234,40 @@
 
 /nmea_navsat_driver:
   ros__parameters:
-    # GPS 串口设备文件；改错会导致 GNSS 驱动无法连接硬件。
-    port: /dev/wheeltec_gps
-    # GPS 串口波特率；当前硬件默认 9600。
-    baud: 9600
+    # Legacy Python GNSS driver fallback; new GPS launch paths use /um982_rtk_driver below.
+    port: /dev/rtk_um982
+    # UM982 RTK rover serial baud.
+    baud: 115200
     # GPS 数据坐标系 ID；影响 TF 和下游传感器语义。
     frame_id: gps
     # 时间参考来源标识；用于 time reference 语义说明。
     time_ref_source: gps
     # 是否优先使用 RMC 语句；关闭表示沿用当前驱动配置。
     useRMC: false
+
+/um982_rtk_driver:
+  ros__parameters:
+    # UM982 RTK rover serial device. Jetson udev should provide /dev/rtk_um982.
+    port: /dev/rtk_um982
+    # Current rover output baud verified on Jetson raw serial.
+    baud: 115200
+    # Antenna reference frame used by /fix and /heading.
+    frame_id: gps
+    # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
+    publish_raw: true
+    # Human-readable rtk/status publishing interval.
+    status_period_s: 1.0
+    # NTRIP is disabled by default. Pass credentials through a local param file or env var only.
+    ntrip:
+      enabled: false
+      host: ""
+      port: 2101
+      mountpoint: ""
+      username: ""
+      password: ""
+      password_env: NTRIP_PASSWORD
+      send_gga_interval_s: 5.0
+      connect_requires_valid_gga: true
 
 /pointcloud_to_laserscan:
   ros__parameters:

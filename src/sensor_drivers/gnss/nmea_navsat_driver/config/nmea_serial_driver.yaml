@@ -1,7 +1,7 @@
 nmea_navsat_driver:
   ros__parameters:
-    port: "/dev/wheeltec_gps"
-    baud: 9600
+    port: "/dev/rtk_um982"
+    baud: 115200
     frame_id: "gps"
     time_ref_source: "gps"
     useRMC: False

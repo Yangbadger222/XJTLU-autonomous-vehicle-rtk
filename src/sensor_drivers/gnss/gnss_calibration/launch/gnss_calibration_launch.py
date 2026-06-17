@@ -9,15 +9,15 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    default_nmea_params = os.path.join(
-        get_package_share_directory("nmea_navsat_driver"),
+    default_rtk_params = os.path.join(
+        get_package_share_directory("um982_rtk_driver"),
         "config",
-        "nmea_serial_driver.yaml",
+        "um982_rtk.yaml",
     )
-    nmea_launch_path = os.path.join(
-        get_package_share_directory("nmea_navsat_driver"),
+    rtk_launch_path = os.path.join(
+        get_package_share_directory("um982_rtk_driver"),
         "launch",
-        "nmea_serial_driver.launch.py",
+        "um982_rtk.launch.py",
     )
     default_calibration_points = os.path.join(
         get_package_share_directory("gnss_calibration"),
@@ -28,8 +28,8 @@ def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
     calibration_points_file = LaunchConfiguration("calibration_points_file")
 
-    nmea_driver = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(nmea_launch_path),
+    rtk_driver = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(rtk_launch_path),
         launch_arguments={"params_file": params_file}.items(),
     )
 
@@ -45,15 +45,15 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "params_file",
-                default_value=default_nmea_params,
-                description="ROS2 parameter file used by nmea_navsat_driver",
+                default_value=default_rtk_params,
+                description="ROS2 parameter file used by um982_rtk_driver",
             ),
             DeclareLaunchArgument(
                 "calibration_points_file",
                 default_value=default_calibration_points,
                 description="Calibration point YAML used by gnss_calibration",
             ),
-            nmea_driver,
+            rtk_driver,
             gnss_calibration,
         ]
     )

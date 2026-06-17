@@ -26,9 +26,11 @@
 ```bash
 cd ~/XJTLU-autonomous-vehicle
 source /opt/ros/humble/setup.bash
-colcon build --packages-select serial nmea_msgs um982_rtk_driver bringup gnss_calibration --symlink-install --parallel-workers 1
+make build-rtk-basic
 source install/setup.bash
 ```
+
+`make launch-rtk-basic` 直接启动 `um982_rtk_driver`，不依赖 `bringup` 包安装完成。进入 `explore-gps`、`nav-gps` 或 `corridor` 前仍需要按仓库正常流程构建完整整车栈。
 
 ## 基础烟测
 

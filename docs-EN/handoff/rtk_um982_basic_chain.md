@@ -26,9 +26,11 @@ Published topics:
 ```bash
 cd ~/XJTLU-autonomous-vehicle
 source /opt/ros/humble/setup.bash
-colcon build --packages-select serial nmea_msgs um982_rtk_driver bringup gnss_calibration --symlink-install --parallel-workers 1
+make build-rtk-basic
 source install/setup.bash
 ```
+
+`make launch-rtk-basic` launches `um982_rtk_driver` directly, so it does not require the `bringup` package to be installed. Before running `explore-gps`, `nav-gps`, or `corridor`, still build the full vehicle stack through the normal repository workflow.
 
 ## Basic Smoke Test
 

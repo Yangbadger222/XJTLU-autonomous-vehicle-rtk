@@ -320,13 +320,15 @@ Corridor v2 addresses the core issues of v1:
 
 **Bootstrap startup alignment**:
 - After power-on, read the yaw0 of `map->base_link` from TF
-- Compute the initial ENU->map rotation using `launch_yaw_deg` from the route YAML (the vehicle's geographic heading)
-- Formula: `θ_bootstrap = yaw0 - radians(launch_yaw_deg)`
+- When UM982 RTK is available, first collect a stable `/heading`, convert the dual-antenna vehicle heading into ENU yaw, and use it for the initial ENU->map rotation
+- Formula: `θ_bootstrap = yaw0 - rtk_heading_enu_yaw`
+- If no stable `/heading` is available during startup, fall back to the route YAML's `launch_yaw_deg`: `θ_bootstrap = yaw0 - radians(launch_yaw_deg_enu)`
+- If `/heading` differs from `launch_yaw_deg` by more than `startup_heading_route_mismatch_warn_deg`, log a warning but still prefer RTK heading
 - Start navigation immediately without waiting for any condition beyond a stable GPS fix
 
 **Independent Global Aligner**:
 - `gps_global_aligner_node` continuously collects GPS->ENU and map->base_link pairs
-- Online estimates a smooth `ENU->map` rigid transform (rotation + translation)
+- Online estimates a smooth `ENU->map` rigid transform; at runtime it keeps the bootstrap rotation fixed and only smooths translation, avoiding sudden rotation jumps in active Nav2 goals
 - Outputs to `/gps_corridor/enu_to_map`
 - Applies **rate limiting and smoothing** to the estimates to prevent jumps
 - Does not depend on PGO's live graph optimization results

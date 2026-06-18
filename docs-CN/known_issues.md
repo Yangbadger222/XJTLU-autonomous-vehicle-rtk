@@ -217,6 +217,7 @@
    - 状态: 2026-03-27 再次确认为当前主瓶颈，需回 Step 8 重新复审锚定方案
    - 候选方向: 多点刚体配准 / map 物理点位路线 / 连续轨迹采集
    - 2026-04-01 GPS corridor 回归测试再次确认：startup offset 未吸收（~4.11m）、calibration theta 翻转（176.95deg）、live alignment 被 guard 拒绝（4.96m > 3.0m）。用户决定当前轮次按通过收口，问题转入下一轮
+   - 2026-06-18 缓解: UM982 双天线 `/heading` 已接入 `gps_global_aligner_node` 的 bootstrap，对齐旋转优先由实时 RTK heading 计算；`launch_yaw_deg` 保留为 fallback 和一致性告警。剩余更强方案仍是多点刚体配准或 map 物理点位路线。
 
 26. **[已知] Translation-only aligner 未能纠回启动锚定误差**
    - 描述: commit `94862d7` �� global aligner 改为固定 bootstrap 旋转、只估计平移的模式，意图在运行中逐步修正启动锚定偏差

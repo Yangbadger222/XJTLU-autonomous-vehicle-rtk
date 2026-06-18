@@ -320,13 +320,15 @@ Corridor v2 解决 v1 的核心问题：
 
 **Bootstrap 启动对齐**:
 - 车辆上电后从 TF 读取 `map->base_link` 的 yaw0
-- 用 route YAML 的 `launch_yaw_deg`（车的地理朝向）计算初始 ENU→map 旋转
-- 公式: `θ_bootstrap = yaw0 - radians(launch_yaw_deg)`
+- UM982 RTK 可用时，先采稳定 `/heading`，将双天线车辆 heading 转成 ENU yaw 后计算初始 ENU→map 旋转
+- 公式: `θ_bootstrap = yaw0 - rtk_heading_enu_yaw`
+- 若启动阶段没有稳定 `/heading`，回退到 route YAML 的 `launch_yaw_deg`：`θ_bootstrap = yaw0 - radians(launch_yaw_deg_enu)`
+- 若 `/heading` 与 `launch_yaw_deg` 差异超过 `startup_heading_route_mismatch_warn_deg`，记录告警但仍优先使用 RTK heading
 - 立即开始导航，不等 GPS stable fix 之外的任何额外条件
 
 **独立 Global Aligner**:
 - `gps_global_aligner_node` 持续采集 GPS→ENU 与 map→base_link 配对
-- 在线估计平滑 `ENU→map` 刚体变换（旋转+平移）
+- 在线估计平滑 `ENU→map` 刚体变换；当前运行期保持 bootstrap 旋转，只平滑修正平移，避免 Nav2 目标在行驶中突然旋转跳变
 - 输出到 `/gps_corridor/enu_to_map`
 - 对估算结果做**限速与平滑**，防止跳变
 - 不依赖 PGO 的 live 图优化结果

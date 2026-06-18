@@ -217,6 +217,7 @@
     - Status: 2026-03-27, re-confirmed as the current primary bottleneck; needs to return to Step 8 for anchoring approach re-review
     - Candidate directions: multi-point rigid-body registration / map physical waypoint route / continuous trajectory collection
     - 2026-04-01 GPS corridor regression test confirmed again: startup offset not absorbed (~4.11m), calibration theta flip (176.95deg), live alignment rejected by guard (4.96m > 3.0m). User decided to close current round as pass; issues deferred to next round
+    - 2026-06-18 mitigation: UM982 dual-antenna `/heading` is now used by `gps_global_aligner_node` bootstrap, so the initial rotation prefers live RTK heading; `launch_yaw_deg` remains as fallback and consistency warning. The stronger remaining direction is still multi-point rigid-body registration or map-physical waypoint routes.
 
 26. **[Known] Translation-only aligner failed to correct startup anchoring error**
     - Description: Commit `94862d7` changed the global aligner to fix the bootstrap rotation and only estimate translation, intending to progressively correct startup anchoring deviation during operation

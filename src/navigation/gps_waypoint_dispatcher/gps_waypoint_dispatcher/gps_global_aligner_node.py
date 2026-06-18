@@ -9,6 +9,7 @@ from pathlib import Path as FSPath
 
 import rclpy
 import yaml
+from geometry_msgs.msg import QuaternionStamped
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
@@ -16,9 +17,13 @@ from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float64MultiArray, String
 from tf2_ros import Buffer, TransformException, TransformListener
 
+from gps_waypoint_dispatcher.alignment_math import (
+    choose_bootstrap_yaw,
+    compute_bootstrap_alignment,
+    heading_quaternion_yaw_to_enu_yaw,
+)
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
-    compass_heading_to_enu_yaw_deg,
     default_route_file,
     haversine_m,
     normalize_angle,
@@ -70,6 +75,13 @@ class GPSGlobalAligner(Node):
         self.declare_parameter("route_frame", "map")
         self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("fix_topic", "/fix")
+        self.declare_parameter("heading_topic", "/heading")
+        self.declare_parameter("use_rtk_heading_for_bootstrap", True)
+        self.declare_parameter("heading_quaternion_yaw_is_compass", True)
+        self.declare_parameter("startup_heading_timeout_s", 8.0)
+        self.declare_parameter("startup_heading_sample_count", 5)
+        self.declare_parameter("startup_heading_spread_max_deg", 3.0)
+        self.declare_parameter("startup_heading_route_mismatch_warn_deg", 10.0)
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
         self.declare_parameter("status_topic", "/gps_corridor/alignment_status")
         self.declare_parameter("debug_topic", "/gps_corridor/alignment_debug")
@@ -97,6 +109,25 @@ class GPSGlobalAligner(Node):
         self._route_frame = str(self.get_parameter("route_frame").value)
         self._base_frame = str(self.get_parameter("base_frame").value)
         self._fix_topic = str(self.get_parameter("fix_topic").value)
+        self._heading_topic = str(self.get_parameter("heading_topic").value)
+        self._use_rtk_heading_for_bootstrap = bool(
+            self.get_parameter("use_rtk_heading_for_bootstrap").value
+        )
+        self._heading_quaternion_yaw_is_compass = bool(
+            self.get_parameter("heading_quaternion_yaw_is_compass").value
+        )
+        self._startup_heading_timeout_s = float(
+            self.get_parameter("startup_heading_timeout_s").value
+        )
+        self._startup_heading_sample_count = int(
+            self.get_parameter("startup_heading_sample_count").value
+        )
+        self._startup_heading_spread_max_deg = float(
+            self.get_parameter("startup_heading_spread_max_deg").value
+        )
+        self._startup_heading_route_mismatch_warn_deg = float(
+            self.get_parameter("startup_heading_route_mismatch_warn_deg").value
+        )
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
         self._status_topic = str(self.get_parameter("status_topic").value)
         self._debug_topic = str(self.get_parameter("debug_topic").value)
@@ -145,6 +176,9 @@ class GPSGlobalAligner(Node):
             String, self._calibration_status_topic, 10
         )
         self._fix_sub = self.create_subscription(NavSatFix, self._fix_topic, self._fix_callback, 10)
+        self._heading_sub = self.create_subscription(
+            QuaternionStamped, self._heading_topic, self._heading_callback, 10
+        )
         self._calibration_request_sub = self.create_subscription(
             String, self._calibration_request_topic, self._calibration_request_callback, 10
         )
@@ -152,7 +186,11 @@ class GPSGlobalAligner(Node):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._latest_fix: NavSatFix | None = None
+        self._latest_heading_enu_yaw: float | None = None
+        self._latest_heading_sample_key: tuple | None = None
+        self._heading_sequence = 0
         self._last_fix_key: tuple | None = None
+        self._last_heading_key: tuple | None = None
         self._alignment_revision = 0
         self._bootstrap_alignment: Alignment2D | None = None
         self._current_alignment: Alignment2D | None = None
@@ -224,6 +262,25 @@ class GPSGlobalAligner(Node):
 
     def _fix_callback(self, msg: NavSatFix) -> None:
         self._latest_fix = msg
+
+    def _heading_callback(self, msg: QuaternionStamped) -> None:
+        yaw = quaternion_to_yaw(
+            msg.quaternion.x,
+            msg.quaternion.y,
+            msg.quaternion.z,
+            msg.quaternion.w,
+        )
+        self._latest_heading_enu_yaw = heading_quaternion_yaw_to_enu_yaw(
+            yaw,
+            quaternion_yaw_is_compass=self._heading_quaternion_yaw_is_compass,
+        )
+        self._heading_sequence += 1
+        self._latest_heading_sample_key = (
+            self._heading_sequence,
+            msg.header.stamp.sec,
+            msg.header.stamp.nanosec,
+            round(self._latest_heading_enu_yaw, 6),
+        )
 
     def _calibration_request_callback(self, msg: String) -> None:
         parts = msg.data.split("|")
@@ -340,6 +397,57 @@ class GPSGlobalAligner(Node):
 
         raise RuntimeError("timed out waiting for stable /fix samples")
 
+    def _heading_spread_deg(self, samples: list[float]) -> float:
+        max_spread = 0.0
+        for i in range(len(samples)):
+            for j in range(i + 1, len(samples)):
+                spread = abs(math.degrees(normalize_angle(samples[i] - samples[j])))
+                max_spread = max(max_spread, spread)
+        return max_spread
+
+    def _mean_heading_rad(self, samples: list[float]) -> float:
+        sin_sum = sum(math.sin(sample) for sample in samples)
+        cos_sum = sum(math.cos(sample) for sample in samples)
+        return normalize_angle(math.atan2(sin_sum, cos_sum))
+
+    def _wait_for_stable_heading(self) -> float | None:
+        if not self._use_rtk_heading_for_bootstrap:
+            return None
+
+        sample_count = max(1, self._startup_heading_sample_count)
+        deadline = time.time() + max(0.0, self._startup_heading_timeout_s)
+        samples: deque[float] = deque(maxlen=sample_count)
+        self._publish_status("ALIGNER_WAITING_FOR_STABLE_HEADING")
+
+        while rclpy.ok() and time.time() < deadline:
+            rclpy.spin_once(self, timeout_sec=0.2)
+            heading = self._latest_heading_enu_yaw
+            if heading is None or not math.isfinite(heading):
+                continue
+            key = self._latest_heading_sample_key or (round(heading, 6),)
+            if key == self._last_heading_key:
+                continue
+            self._last_heading_key = key
+            samples.append(heading)
+            if len(samples) < sample_count:
+                continue
+            sample_list = list(samples)
+            spread_deg = self._heading_spread_deg(sample_list)
+            if spread_deg > self._startup_heading_spread_max_deg:
+                continue
+            mean_heading = self._mean_heading_rad(sample_list)
+            self.get_logger().info(
+                "Aligner startup RTK heading mean=%.2fdeg spread=%.2fdeg samples=%d"
+                % (math.degrees(mean_heading), spread_deg, len(sample_list))
+            )
+            return mean_heading
+
+        self.get_logger().warn(
+            "No stable RTK heading within %.1fs; falling back to route launch_yaw_deg"
+            % self._startup_heading_timeout_s
+        )
+        return None
+
     def _validate_startup(self, startup_fix: dict) -> float:
         start_ref = self._route["start_ref"]
         distance_m = haversine_m(
@@ -401,12 +509,15 @@ class GPSGlobalAligner(Node):
         x0: float,
         y0: float,
         yaw0: float,
+        rtk_heading_enu_yaw: float | None,
         startup_fix: dict | None = None,
     ) -> Alignment2D:
-        launch_yaw_rad = math.radians(
-            compass_heading_to_enu_yaw_deg(float(self._route["launch_yaw_deg"]))
+        yaw_choice = choose_bootstrap_yaw(
+            route_launch_heading_deg=float(self._route["launch_yaw_deg"]),
+            rtk_heading_yaw_rad=rtk_heading_enu_yaw,
+            use_rtk_heading=self._use_rtk_heading_for_bootstrap,
+            mismatch_warn_deg=self._startup_heading_route_mismatch_warn_deg,
         )
-        theta = normalize_angle(yaw0 - launch_yaw_rad)
         if startup_fix is not None:
             anchor_enu_x, anchor_enu_y = self._projector.forward(
                 startup_fix["lat"], startup_fix["lon"]
@@ -415,16 +526,31 @@ class GPSGlobalAligner(Node):
             start_ref = self._route["start_ref"]
             anchor_enu_x = start_ref["enu_x"]
             anchor_enu_y = start_ref["enu_y"]
-        cos_theta = math.cos(theta)
-        sin_theta = math.sin(theta)
         self.get_logger().info(
             "Bootstrap anchor: %s enu=(%.2f, %.2f)"
             % ("startup_fix" if startup_fix else "start_ref", anchor_enu_x, anchor_enu_y)
         )
-        tx = x0 - (cos_theta * anchor_enu_x - sin_theta * anchor_enu_y)
-        ty = y0 - (sin_theta * anchor_enu_x + cos_theta * anchor_enu_y)
+        if yaw_choice.warn_route_mismatch and yaw_choice.route_mismatch_deg is not None:
+            self.get_logger().warn(
+                "RTK heading differs from route launch_yaw by %.2fdeg; using RTK heading for bootstrap"
+                % yaw_choice.route_mismatch_deg
+            )
+        alignment = compute_bootstrap_alignment(
+            map_x=x0,
+            map_y=y0,
+            map_yaw_rad=yaw0,
+            anchor_enu_x=anchor_enu_x,
+            anchor_enu_y=anchor_enu_y,
+            selected_enu_yaw_rad=yaw_choice.enu_yaw_rad,
+        )
         self._alignment_revision += 1
-        return Alignment2D(theta=theta, tx=tx, ty=ty, source="bootstrap", revision=self._alignment_revision)
+        return Alignment2D(
+            theta=alignment.theta,
+            tx=alignment.tx,
+            ty=alignment.ty,
+            source=f"bootstrap_{yaw_choice.source}",
+            revision=self._alignment_revision,
+        )
 
     def _enu_to_map(
         self, enu_x: float, enu_y: float, alignment: Alignment2D
@@ -760,8 +886,11 @@ class GPSGlobalAligner(Node):
 
         startup_fix = self._wait_for_stable_fix()
         self._validate_startup(startup_fix)
+        startup_heading = self._wait_for_stable_heading()
         x0, y0, yaw0 = self._lookup_current_pose("ALIGNER_WAITING_FOR_MAP_TF")
-        self._bootstrap_alignment = self._build_bootstrap_alignment(x0, y0, yaw0, startup_fix)
+        self._bootstrap_alignment = self._build_bootstrap_alignment(
+            x0, y0, yaw0, startup_heading, startup_fix
+        )
         self._current_alignment = self._bootstrap_alignment
         self._raw_alignment = self._bootstrap_alignment
         startup_enu_x, startup_enu_y = self._projector.forward(
@@ -770,13 +899,17 @@ class GPSGlobalAligner(Node):
         self._upsert_calibration_pair("start_ref", startup_enu_x, startup_enu_y, x0, y0)
 
         self.get_logger().info(
-            "Bootstrap ENU->map ready: yaw0=%.2fdeg launch_yaw=%.2fdeg theta=%.2fdeg tx=%.2f ty=%.2f"
+            "Bootstrap ENU->map ready: yaw0=%.2fdeg launch_yaw=%.2fdeg rtk_heading=%s theta=%.2fdeg tx=%.2f ty=%.2f source=%s"
             % (
                 math.degrees(yaw0),
                 float(self._route["launch_yaw_deg"]),
+                "%.2fdeg" % math.degrees(startup_heading)
+                if startup_heading is not None
+                else "unavailable",
                 math.degrees(self._bootstrap_alignment.theta),
                 self._bootstrap_alignment.tx,
                 self._bootstrap_alignment.ty,
+                self._bootstrap_alignment.source,
             )
         )
         self._publish_status("ALIGNER_BOOTSTRAP_READY")

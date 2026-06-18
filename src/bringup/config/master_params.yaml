@@ -160,6 +160,17 @@
     enu_origin_lon: 120.737548
     # 独立 global aligner 使用的固定 ENU 原点海拔。
     enu_origin_alt: 0.0
+    # corridor bootstrap 优先用 UM982 双天线 /heading 计算 ENU->map 旋转；无 heading 时回退到 route launch_yaw_deg。
+    use_rtk_heading_for_bootstrap: true
+    # 当前 UM982 /heading 的 quaternion yaw 编码的是指南针 heading（北 0 顺时针），aligner 需转成 ENU yaw。
+    heading_quaternion_yaw_is_compass: true
+    # 启动时等待稳定双天线 heading 的最长时间；超时不会阻塞导航，会回退到 route launch_yaw_deg。
+    startup_heading_timeout_s: 8.0
+    # 启动 heading 采样数与允许离散度。
+    startup_heading_sample_count: 5
+    startup_heading_spread_max_deg: 3.0
+    # RTK heading 与 route launch_yaw_deg 差异超过该值时告警，但仍优先使用 RTK heading。
+    startup_heading_route_mismatch_warn_deg: 10.0
     # 在线保留 GPS/map 配对的时间窗口；增大窗口，保留更多历史对齐证据。
     pair_window_s: 90.0
     # 采纳新配对前要求的最小位移；增大间距，减少高噪声冗余点对。

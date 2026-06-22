@@ -2,7 +2,7 @@
 
 ## 1. Status and Scope
 
-This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, and a matching gtest. The ROS node, FGO graph core, launch file, Make target, and Nav2 remap have not been implemented yet.
+This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, and matching gtests. The ROS node, FGO graph core, launch file, Make target, and Nav2 remap have not been implemented yet.
 
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
@@ -18,6 +18,8 @@ Current implemented scope only covers:
 
 - `rtk_quality.hpp/.cpp`: parses raw GGA quality, satellite count, and HDOP, then performs first-stage gate decisions from RTK Fixed/Float status, innovation, and heading residual.
 - `test_rtk_quality.cpp`: covers Fixed as a strong candidate, Float as a weak candidate, and rejection of a large Fixed-position innovation.
+- `state_machine.hpp/.cpp`: implements the base transition rules for `LOCAL_ONLY`, `RTK_CANDIDATE`, `RTK_RECOVERY`, `RTK_LOCKED`, `RTK_DEGRADED`, and `FAULT_HOLD`.
+- `correction_smoother.hpp/.cpp`: limits per-step translation and yaw correction so trusted RTK recovery cannot create a single output jump.
 - This implementation does not subscribe to ROS topics, publish `/rtk_fgo/*`, broadcast TF, or change any existing navigation mode.
 
 ## 2. Existing System Boundary

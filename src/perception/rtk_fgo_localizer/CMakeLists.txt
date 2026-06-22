@@ -11,7 +11,9 @@ endif()
 find_package(ament_cmake REQUIRED)
 
 add_library(rtk_fgo_core
+  src/correction_smoother.cpp
   src/rtk_quality.cpp
+  src/state_machine.cpp
 )
 target_include_directories(rtk_fgo_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -34,6 +36,14 @@ if(BUILD_TESTING)
   ament_add_gtest(test_rtk_quality test/test_rtk_quality.cpp)
   target_include_directories(test_rtk_quality PRIVATE include)
   target_link_libraries(test_rtk_quality rtk_fgo_core)
+
+  ament_add_gtest(test_state_machine test/test_state_machine.cpp)
+  target_include_directories(test_state_machine PRIVATE include)
+  target_link_libraries(test_state_machine rtk_fgo_core)
+
+  ament_add_gtest(test_correction_smoother test/test_correction_smoother.cpp)
+  target_include_directories(test_correction_smoother PRIVATE include)
+  target_link_libraries(test_correction_smoother rtk_fgo_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

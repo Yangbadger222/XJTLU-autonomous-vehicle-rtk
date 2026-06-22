@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -165,9 +166,11 @@ private:
     nav2_use_fgo_ = get_parameter("nav2_use_fgo").as_bool();
     window_duration_s_ = get_parameter("window.duration_s").as_double();
     keyframe_rate_hz_ = get_parameter("window.keyframe_rate_hz").as_double();
-    max_states_ = static_cast<std::size_t>(std::max(2, get_parameter("window.max_states").as_int()));
+    max_states_ = static_cast<std::size_t>(
+      std::max<std::int64_t>(2, get_parameter("window.max_states").as_int()));
     recovery_min_samples_ =
-      static_cast<std::size_t>(std::max(1, get_parameter("rtk_gating.recovery_min_samples").as_int()));
+      static_cast<std::size_t>(
+      std::max<std::int64_t>(1, get_parameter("rtk_gating.recovery_min_samples").as_int()));
     max_position_jump_m_ = get_parameter("rtk_gating.max_position_jump_m").as_double();
     heading_sigma_rad_ = get_parameter("rtk_gating.heading_sigma_rad").as_double();
     max_translation_step_m_ =

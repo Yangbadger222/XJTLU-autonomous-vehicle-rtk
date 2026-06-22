@@ -18,7 +18,7 @@ Current implemented scope only covers:
 
 - `rtk_quality.hpp/.cpp`: parses raw GGA quality, satellite count, and HDOP, then performs first-stage gate decisions from RTK Fixed/Float status, innovation, and heading residual.
 - `test_rtk_quality.cpp`: covers Fixed as a strong candidate, Float as a weak candidate, and rejection of a large Fixed-position innovation.
-- `state_machine.hpp/.cpp`: implements the base transition rules for `LOCAL_ONLY`, `RTK_CANDIDATE`, `RTK_RECOVERY`, `RTK_LOCKED`, `RTK_DEGRADED`, and `FAULT_HOLD`.
+- `state_machine.hpp/.cpp`: implements the base transition rules for `LOCAL_ONLY`, `RTK_CANDIDATE`, `RTK_RECOVERY`, `RTK_LOCKED`, `RTK_DEGRADED`, and `FAULT_HOLD`; rejected shadow commits degrade recoverably, while true graph-residual failures enter `FAULT_HOLD`.
 - `correction_smoother.hpp/.cpp`: limits per-step translation and yaw correction so trusted RTK recovery cannot create a single output jump.
 - `fgo_graph.hpp/.cpp`: implements the minimal GTSAM graph API for initial states, FAST-LIO relative pose, wheel planar relative pose, RTK position shadow commit/reject, and the RTK heading yaw factor.
 - `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
@@ -147,6 +147,8 @@ Recommended commit strategy:
 
 This allows the system to pull the trajectory back when RTK recovers, while avoiding sudden jumps from multipath or receiver state glitches.
 
+In the current implementation, one rejected RTK Fixed shadow candidate does not permanently hold the system in `FAULT_HOLD`. A rejection during `RTK_RECOVERY` returns to `LOCAL_ONLY` and requires a new run of consecutive stable samples; a rejection during `RTK_LOCKED` degrades to `RTK_DEGRADED`. `FAULT_HOLD` is reserved for explicit graph-residual failure under a strong candidate.
+
 ## 6. Indoor/Outdoor Transition State Machine
 
 Planned states:
@@ -168,6 +170,7 @@ Indoor to outdoor:
 4. Enter `RTK_RECOVERY`, add trusted RTK factors to the recent window, and optimize.
 5. Release correction through a smoother instead of instantly changing the output pose.
 6. Enter `RTK_LOCKED` after residuals remain stable.
+7. If the shadow graph rejects the candidate correction, return to `LOCAL_ONLY` and require consecutive stable samples again instead of permanently faulting.
 
 Outdoor to indoor:
 
@@ -175,6 +178,7 @@ Outdoor to indoor:
 2. Move through `RTK_DEGRADED` to `LOCAL_ONLY`.
 3. Keep the last trusted global anchor, but report lower global confidence.
 4. Continue with FAST-LIO2, IMU, and wheel constraints.
+5. If a new Fixed candidate is rejected while already `RTK_LOCKED`, degrade to `RTK_DEGRADED` first so later stable RTK can recover again.
 
 Correction smoothing should cap per-cycle output changes, for example:
 

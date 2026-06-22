@@ -120,7 +120,7 @@ public:
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
     timer_ = create_wall_timer(
       std::chrono::duration<double>(1.0 / std::max(1.0, keyframe_rate_hz_)),
-      [this]() { onTimer(); });
+      [this]() {onTimer();});
   }
 
 private:
@@ -271,7 +271,9 @@ private:
       commit_result = tryCommitLatestRtk();
       if (commit_result.committed) {
         state_machine_.markRecoveryCommitted();
-      } else if (state == LocalizationState::RtkRecovery) {
+      } else if (state == LocalizationState::RtkRecovery ||
+        state == LocalizationState::RtkLocked)
+      {
         state_machine_.markRecoveryRejected();
       }
       addLatestHeadingFactor();
@@ -304,7 +306,9 @@ private:
     double heading_innovation = 0.0;
     if (auto heading = heading_buffer_.closest(estimate->stamp_s, 0.5); heading.has_value()) {
       heading_innovation =
-        normalizeYaw(estimate->pose.rotation().yaw() - yawFromQuaternion(heading->value.quaternion));
+        normalizeYaw(
+        estimate->pose.rotation().yaw() -
+        yawFromQuaternion(heading->value.quaternion));
       quality->heading_stable = true;
     }
     return evaluateRtkGate(*quality, position_innovation, heading_innovation);
@@ -348,7 +352,9 @@ private:
     if (!heading.has_value()) {
       return;
     }
-    graph_->addRtkHeading(estimate->stamp_s, yawFromQuaternion(heading->value.quaternion), heading_sigma_rad_);
+    graph_->addRtkHeading(
+      estimate->stamp_s, yawFromQuaternion(
+        heading->value.quaternion), heading_sigma_rad_);
   }
 
   void publishEstimate(const ShadowCommitResult & commit_result)
@@ -419,11 +425,12 @@ private:
     const auto target_translation = target_pose.translation();
     const double current_yaw = output_pose_.rotation().yaw();
     const double target_yaw = target_pose.rotation().yaw();
-    const auto step = smoother_->step({
-      target_translation.x() - current_translation.x(),
-      target_translation.y() - current_translation.y(),
-      normalizeYaw(target_yaw - current_yaw),
-    });
+    const auto step = smoother_->step(
+      {
+        target_translation.x() - current_translation.x(),
+        target_translation.y() - current_translation.y(),
+        normalizeYaw(target_yaw - current_yaw),
+      });
 
     output_pose_ = gtsam::Pose3(
       gtsam::Rot3::Yaw(normalizeYaw(current_yaw + step.dyaw)),

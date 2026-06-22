@@ -51,7 +51,8 @@ LocalizationState LocalizationStateMachine::update(RtkGateMode gate_mode, bool g
     return state_;
   }
   if (!graph_residual_ok && gate_mode == RtkGateMode::StrongCandidate) {
-    markRecoveryRejected();
+    state_ = LocalizationState::FaultHold;
+    strong_sample_count_ = 0;
     return state_;
   }
 
@@ -81,8 +82,15 @@ void LocalizationStateMachine::markRecoveryCommitted()
 
 void LocalizationStateMachine::markRecoveryRejected()
 {
-  state_ = LocalizationState::FaultHold;
+  if (state_ == LocalizationState::RtkLocked) {
+    state_ = LocalizationState::RtkDegraded;
+  } else if (state_ == LocalizationState::RtkCandidate ||
+    state_ == LocalizationState::RtkRecovery)
+  {
+    state_ = LocalizationState::LocalOnly;
+  }
   strong_sample_count_ = 0;
+  invalid_sample_count_ = 0;
 }
 
 void LocalizationStateMachine::resetFault()

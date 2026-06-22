@@ -87,8 +87,9 @@ void FgoGraph::addInitialState(
 
   graph_.add(gtsam::PriorFactor<gtsam::Pose3>(X(0), pose, posePriorNoise()));
   graph_.add(gtsam::PriorFactor<gtsam::Vector3>(V(0), velocity, velocityPriorNoise()));
-  graph_.add(gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(
-    B(0), gtsam::imuBias::ConstantBias(), biasPriorNoise()));
+  graph_.add(
+    gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(
+      B(0), gtsam::imuBias::ConstantBias(), biasPriorNoise()));
 
   estimate_ = initial_;
 }
@@ -116,8 +117,15 @@ void FgoGraph::addFastLioBetween(double stamp_s, const gtsam::Pose3 & relative_p
   estimate_.insert(V(next_index), velocity);
   estimate_.insert(B(next_index), estimate_.at<gtsam::imuBias::ConstantBias>(B(previous.index)));
 
-  graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(
-    X(previous.index), X(next_index), relative_pose, fastLioBetweenNoise()));
+  graph_.add(
+    gtsam::BetweenFactor<gtsam::Pose3>(
+      X(previous.index), X(next_index), relative_pose, fastLioBetweenNoise()));
+  graph_.add(gtsam::PriorFactor<gtsam::Vector3>(V(next_index), velocity, velocityPriorNoise()));
+  graph_.add(
+    gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(
+      B(next_index),
+      estimate_.at<gtsam::imuBias::ConstantBias>(B(previous.index)),
+      biasPriorNoise()));
   optimizeActiveGraph();
   pruneIfNeeded();
 }
@@ -132,8 +140,9 @@ void FgoGraph::addWheelPlanarBetween(double stamp_s, const gtsam::Pose3 & relati
   addFastLioBetween(stamp_s, relative_pose);
   const auto current = states_.back();
   if (current.index != previous.index) {
-    graph_.add(gtsam::BetweenFactor<gtsam::Pose3>(
-      X(previous.index), X(current.index), relative_pose, wheelPlanarNoise()));
+    graph_.add(
+      gtsam::BetweenFactor<gtsam::Pose3>(
+        X(previous.index), X(current.index), relative_pose, wheelPlanarNoise()));
     optimizeActiveGraph();
   }
 }
@@ -182,7 +191,10 @@ ShadowCommitResult FgoGraph::tryShadowRtkCommit(
 
   auto shadow_graph = graph_;
   auto shadow_initial = estimate_;
-  shadow_graph.add(gtsam::GPSFactor(X(latest.index), position_map, rtkPositionNoise(position_sigma_m)));
+  shadow_graph.add(
+    gtsam::GPSFactor(
+      X(latest.index), position_map,
+      rtkPositionNoise(position_sigma_m)));
 
   try {
     const auto shadow_result =

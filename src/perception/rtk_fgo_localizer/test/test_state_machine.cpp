@@ -45,5 +45,39 @@ TEST(StateMachine, FaultsWhenStrongCandidateFailsGraphResidual)
   EXPECT_EQ(sm.state(), LocalizationState::FaultHold);
 }
 
+TEST(StateMachine, RecoveryRejectReturnsToLocalAndCanRetry)
+{
+  LocalizationStateMachine sm;
+  for (int i = 0; i < 8; ++i) {
+    sm.update(RtkGateMode::StrongCandidate, true);
+  }
+  EXPECT_EQ(sm.state(), LocalizationState::RtkRecovery);
+
+  sm.markRecoveryRejected();
+
+  EXPECT_EQ(sm.state(), LocalizationState::LocalOnly);
+  EXPECT_EQ(sm.strong_sample_count(), 0u);
+
+  for (int i = 0; i < 8; ++i) {
+    sm.update(RtkGateMode::StrongCandidate, true);
+  }
+  EXPECT_EQ(sm.state(), LocalizationState::RtkRecovery);
+}
+
+TEST(StateMachine, LockedRejectDegradesInsteadOfFaulting)
+{
+  LocalizationStateMachine sm;
+  for (int i = 0; i < 8; ++i) {
+    sm.update(RtkGateMode::StrongCandidate, true);
+  }
+  sm.markRecoveryCommitted();
+  EXPECT_EQ(sm.state(), LocalizationState::RtkLocked);
+
+  sm.markRecoveryRejected();
+
+  EXPECT_EQ(sm.state(), LocalizationState::RtkDegraded);
+  EXPECT_EQ(sm.strong_sample_count(), 0u);
+}
+
 }  // namespace
 }  // namespace rtk_fgo_localizer

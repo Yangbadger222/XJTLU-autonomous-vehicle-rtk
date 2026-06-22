@@ -18,7 +18,7 @@
 
 - `rtk_quality.hpp/.cpp`: 解析 raw GGA 中的 quality、satellite count、HDOP，并按 RTK Fixed/Float、innovation 和 heading residual 做第一层 gate。
 - `test_rtk_quality.cpp`: 覆盖 Fixed strong candidate、Float weak candidate 和 Fixed 大 innovation 拒绝。
-- `state_machine.hpp/.cpp`: 实现 `LOCAL_ONLY`、`RTK_CANDIDATE`、`RTK_RECOVERY`、`RTK_LOCKED`、`RTK_DEGRADED`、`FAULT_HOLD` 的基础转换规则。
+- `state_machine.hpp/.cpp`: 实现 `LOCAL_ONLY`、`RTK_CANDIDATE`、`RTK_RECOVERY`、`RTK_LOCKED`、`RTK_DEGRADED`、`FAULT_HOLD` 的基础转换规则；shadow commit 被拒绝时保持可恢复降级，真正图残差异常才进入 `FAULT_HOLD`。
 - `correction_smoother.hpp/.cpp`: 对平移与 yaw 校正做单步限幅，避免可信 RTK 恢复时一次性跳变输出。
 - `fgo_graph.hpp/.cpp`: 实现最小 GTSAM graph API，支持初始状态、FAST-LIO relative pose、wheel planar relative pose、RTK position shadow commit/reject 和 RTK heading yaw factor。
 - `yaw_factor.hpp/.cpp`: 实现 yaw-only Pose3 因子，供双天线 RTK heading 作为绝对 yaw 候选约束。
@@ -147,6 +147,8 @@ Invalid heading    -> 不进入图
 
 这样能在 RTK 恢复可信时把轨迹拉回，同时避免多路径或接收机状态抖动导致突然跳变。
 
+当前实现中，shadow graph 拒绝一次 RTK Fixed 候选不会把系统永久锁进 `FAULT_HOLD`。`RTK_RECOVERY` 阶段的拒绝会回到 `LOCAL_ONLY` 并等待下一轮连续稳定样本；`RTK_LOCKED` 阶段的拒绝会降级到 `RTK_DEGRADED`。`FAULT_HOLD` 只保留给强候选下图残差明确异常的情况。
+
 ## 6. 室内外切换状态机
 
 计划状态：
@@ -168,6 +170,7 @@ FAULT_HOLD
 4. 进入 `RTK_RECOVERY`，把可信 RTK 因子加入最近窗口并优化。
 5. 通过 smoother 释放校正，而不是瞬间改变输出位姿。
 6. 残差持续稳定后进入 `RTK_LOCKED`。
+7. 如果 shadow graph 拒绝候选校正，回到 `LOCAL_ONLY`，重新要求连续稳定样本，而不是永久 fault。
 
 室外到室内：
 
@@ -175,6 +178,7 @@ FAULT_HOLD
 2. 经过 `RTK_DEGRADED` 回到 `LOCAL_ONLY`。
 3. 保留最后可信 global anchor，但降低 global confidence。
 4. 继续依靠 FAST-LIO2、IMU 和 wheel 约束运行。
+5. 如果 `RTK_LOCKED` 状态下的新 Fixed 候选被 shadow graph 拒绝，先降级到 `RTK_DEGRADED`，保留后续重新拉回的机会。
 
 校正平滑建议限制单周期输出变化，例如：
 

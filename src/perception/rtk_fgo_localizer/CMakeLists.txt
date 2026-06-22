@@ -9,16 +9,22 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(GTSAM REQUIRED)
 
 add_library(rtk_fgo_core
   src/correction_smoother.cpp
+  src/fgo_graph.cpp
   src/rtk_quality.cpp
   src/state_machine.cpp
+  src/yaw_factor.cpp
 )
 target_include_directories(rtk_fgo_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+  ${EIGEN3_INCLUDE_DIR}
 )
+target_link_libraries(rtk_fgo_core gtsam)
 
 install(TARGETS rtk_fgo_core
   EXPORT export_rtk_fgo_core
@@ -44,6 +50,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_correction_smoother test/test_correction_smoother.cpp)
   target_include_directories(test_correction_smoother PRIVATE include)
   target_link_libraries(test_correction_smoother rtk_fgo_core)
+
+  ament_add_gtest(test_fgo_graph test/test_fgo_graph.cpp)
+  target_include_directories(test_fgo_graph PRIVATE include)
+  target_link_libraries(test_fgo_graph rtk_fgo_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

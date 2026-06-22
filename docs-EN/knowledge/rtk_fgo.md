@@ -2,7 +2,7 @@
 
 ## 1. Status and Scope
 
-This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, and matching gtests. The ROS node, FGO graph core, launch file, Make target, and Nav2 remap have not been implemented yet.
+This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, and matching gtests. The ROS node, launch file, Make target, and Nav2 remap have not been implemented yet.
 
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
@@ -20,6 +20,9 @@ Current implemented scope only covers:
 - `test_rtk_quality.cpp`: covers Fixed as a strong candidate, Float as a weak candidate, and rejection of a large Fixed-position innovation.
 - `state_machine.hpp/.cpp`: implements the base transition rules for `LOCAL_ONLY`, `RTK_CANDIDATE`, `RTK_RECOVERY`, `RTK_LOCKED`, `RTK_DEGRADED`, and `FAULT_HOLD`.
 - `correction_smoother.hpp/.cpp`: limits per-step translation and yaw correction so trusted RTK recovery cannot create a single output jump.
+- `fgo_graph.hpp/.cpp`: implements the minimal GTSAM graph API for initial states, FAST-LIO relative pose, wheel planar relative pose, RTK position shadow commit/reject, and the RTK heading yaw factor.
+- `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
+- The IMU preintegration API exists, but the first version does not add actual IMU factors yet; that should continue after confirming the Jetson GTSAM API version.
 - This implementation does not subscribe to ROS topics, publish `/rtk_fgo/*`, broadcast TF, or change any existing navigation mode.
 
 ## 2. Existing System Boundary

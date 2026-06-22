@@ -2,7 +2,7 @@
 
 ## 1. Status and Scope
 
-This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, a ROS shadow node, and matching gtests. The launch file, Make target, and Nav2 remap have not been implemented yet.
+This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, a ROS shadow node, an experimental launch/Make target, and matching gtests. The Nav2 remap has not been implemented yet.
 
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
@@ -26,7 +26,8 @@ Current implemented scope only covers:
 - `topic_buffers.hpp/.cpp`: provides a ROS-free timestamped sample buffer for time-based sensor lookup.
 - `rtk_fgo_node.cpp`: implements the ROS shadow node. It subscribes to FAST-LIO odometry, IMU, wheel odometry, `/fix`, `/heading`, `/rtk/status`, and `/rtk/nmea_sentence`; it publishes `/rtk_fgo/odom`, `/rtk_fgo/path`, `/rtk_fgo/status`, `/rtk_fgo/rtk_gate`, `/rtk_fgo/correction_status`, and `/rtk_fgo/factor_diagnostics`.
 - `publish_tf` must stay `false` by default. Even when manually enabled, the node may only broadcast the experimental `map -> odom_fgo`, never the production `map -> odom`.
-- The current implementation still has no launch file or Make target and changes no existing navigation mode.
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: starts the Explore baseline, UM982 RTK, and `rtk_fgo_node`, then records source sensor topics and `/rtk_fgo/*`.
+- The current implementation does not remap Nav2 and does not change any existing production navigation mode.
 
 ## 2. Existing System Boundary
 

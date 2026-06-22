@@ -2,7 +2,7 @@
 
 ## 1. 状态与范围
 
-本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库、室内外/RTK 恢复状态机、校正平滑器、最小 GTSAM graph core、ROS shadow node，以及对应 gtest；但还没有 launch 文件、Make target 或 Nav2 remap。
+本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库、室内外/RTK 恢复状态机、校正平滑器、最小 GTSAM graph core、ROS shadow node、实验 launch/Make target，以及对应 gtest；但还没有 Nav2 remap。
 
 计划中的系统必须作为新的实验模式引入，不能替换或暗中改变现有 `corridor`、`explore-gps`、`nav-gps` 链路。
 
@@ -26,7 +26,8 @@
 - `topic_buffers.hpp/.cpp`: 提供 ROS-free timestamped sample buffer，用于按时间查找传感器样本。
 - `rtk_fgo_node.cpp`: 实现 ROS shadow node，订阅 FAST-LIO odom、IMU、wheel odom、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`，发布 `/rtk_fgo/odom`、`/rtk_fgo/path`、`/rtk_fgo/status`、`/rtk_fgo/rtk_gate`、`/rtk_fgo/correction_status`、`/rtk_fgo/factor_diagnostics`。
 - `publish_tf` 默认必须保持 `false`。即使手动开启，节点也只能广播实验 `map -> odom_fgo`，不能广播生产 `map -> odom`。
-- 当前实现仍没有 launch/Make target，不改变任何现有导航模式。
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: 启动 Explore 基线、UM982 RTK 和 `rtk_fgo_node`，并录制源传感器 topic 与 `/rtk_fgo/*`。
+- 当前实现不 remap Nav2，不改变任何现有生产导航模式。
 
 ## 2. 现有系统边界
 

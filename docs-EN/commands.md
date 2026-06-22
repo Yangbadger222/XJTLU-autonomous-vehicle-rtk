@@ -36,7 +36,7 @@ bash scripts/init_runtime_data.sh
 ls ~/XJTLU-autonomous-vehicle/runtime-data
 ```
 
-## 3. Launch Seven Operating Modes
+## 3. Launch Operating Modes
 
 ```bash
 cd ~/XJTLU-autonomous-vehicle
@@ -47,6 +47,7 @@ make launch-indoor-nav
 make launch-corridor
 make launch-explore-gps
 make launch-nav-gps
+make launch-tightly-coupled
 make launch-travel
 ```
 
@@ -59,6 +60,7 @@ bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh tightly-coupled
 bash scripts/launch_with_logs.sh travel
 ```
 
@@ -68,6 +70,7 @@ Equivalent `ros2 launch` invocation:
 ros2 launch bringup system_slam.launch.py
 ros2 launch bringup system_explore.launch.py
 ros2 launch bringup system_gps_corridor.launch.py
+ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
 ros2 launch bringup system_travel.launch.py
@@ -492,6 +495,43 @@ Notes:
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+## RTK FGO Tight-Coupled Shadow Mode
+
+Build:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make build-perception
+source install/setup.bash
+```
+
+Launch the experimental shadow mode:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make launch-tightly-coupled
+```
+
+Launch with field RTK/CORS parameters:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+```
+
+Observe shadow outputs:
+
+```bash
+ros2 topic echo /rtk_fgo/status
+ros2 topic echo /rtk_fgo/rtk_gate
+ros2 topic echo /rtk_fgo/correction_status
+ros2 topic echo /rtk_fgo/factor_diagnostics
+```
+
+Notes:
+- This mode defaults to `publish_tf=false` and does not broadcast production `map -> odom`
+- Nav2 is not remapped, and `corridor`, `explore-gps`, and `nav-gps` are not replaced
+- The automatic bag includes `/rtk_fgo/*`, `/fix`, `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, FAST-LIO odometry, IMU, and `/tf`
 
 ***
 

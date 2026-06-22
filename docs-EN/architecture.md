@@ -16,7 +16,7 @@
 - Serial connection to STM32 lower-level controller
 - PS2 gamepad as the highest-priority manual override
 
-## 3. Seven Operating Modes
+## 3. Eight Operating Modes
 
 | Mode | Command | Current Purpose |
 |------|---------|-----------------|
@@ -26,6 +26,7 @@
 | Corridor | `make launch-corridor` | GPS Corridor v2 main runtime on the MPPI controller |
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
+| Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 | Travel | `make launch-travel` | Static map navigation framework, currently paused |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
@@ -95,6 +96,21 @@ The core of `nav-gps` is:
 - `scene_gps_bundle.yaml` is the single source of truth
 - At runtime, only compiled artifacts under `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` are read
 - `goto_name` is the main entry point; users input only English destination names
+
+### 5.3 RTK FGO Tight-Coupled Experimental Mode (Shadow)
+
+```text
+Explore stack + UM982 RTK
+  -> rtk_fgo_localizer
+       inputs: /fastlio2/lio_odom, /livox/imu, /odom_CBoar, /fix, /heading, /rtk/*
+       outputs: /rtk_fgo/odom, /rtk_fgo/path, /rtk_fgo/status, /rtk_fgo/rtk_gate
+                /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
+```
+
+This mode is launched with `make launch-tightly-coupled`. The first version is shadow mode:
+- `publish_tf=false` by default; it does not broadcast production `map -> odom`
+- Nav2 is not remapped to FGO output, and existing `corridor`, `explore-gps`, and `nav-gps` modes are not replaced
+- Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation
 
 ## 6. TF Chain
 
@@ -169,7 +185,7 @@ src/
 
 Notes:
 - `sensor_drivers/`: Livox, IMU, GNSS, serial
-- `perception/`: FAST-LIO2, PGO GPS fusion, point cloud to grid related; `rtk_fgo_localizer` is currently an experimental tight-coupled RTK FGO package skeleton and is not wired into any runtime chain yet
+- `perception/`: FAST-LIO2, PGO GPS fusion, point cloud to grid related; `rtk_fgo_localizer` is the experimental tight-coupled RTK FGO package and is currently wired only into shadow mode
 - `planning/`: Historical GPS global planning and coordinate transformation experiments
 - `navigation/`: `waypoint_collector` and scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: System launch files, parameters, maps, RViz configurations

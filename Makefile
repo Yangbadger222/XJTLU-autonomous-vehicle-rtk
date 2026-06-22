@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup build build-rtk-basic build-sensor build-perception build-planning build-navigation build-frc frc-daily test launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-travel kill kill-runtime clean
+.PHONY: setup build build-rtk-basic build-sensor build-perception build-planning build-navigation build-frc frc-daily test launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel kill kill-runtime clean
 
 setup:
 	@echo ">>> 拉取第三方依赖..."
@@ -33,7 +33,7 @@ build-perception:
 	colcon build --symlink-install --parallel-workers 1 --packages-select \
 		frc_msgs \
 		fastlio2 hba localizer interface pgo pgo_original \
-		pointcloud_to_laserscan pointcloud_to_grid
+		pointcloud_to_laserscan pointcloud_to_grid rtk_fgo_localizer
 
 build-planning:
 	source /opt/ros/humble/setup.bash && \
@@ -84,6 +84,9 @@ launch-nav-gps:
 launch-rtk-basic:
 	bash scripts/launch_with_logs.sh rtk-basic
 
+launch-tightly-coupled:
+	bash scripts/launch_with_logs.sh tightly-coupled
+
 launch-travel:
 	bash scripts/launch_with_logs.sh travel
 
@@ -91,9 +94,9 @@ kill:
 	@$(MAKE) kill-runtime
 
 kill-runtime:
-	pkill -INT -f '[l]aunch_with_logs.sh|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
+	pkill -INT -f '[l]aunch_with_logs.sh|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
 	sleep 2
-	pkill -KILL -f '[l]aunch_with_logs.sh|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
+	pkill -KILL -f '[l]aunch_with_logs.sh|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
 	ros2 daemon stop >/dev/null 2>&1 || true
 	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do \
 		if [ -e "$$dev" ] && fuser "$$dev" >/dev/null 2>&1; then \

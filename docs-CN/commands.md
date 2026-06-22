@@ -36,7 +36,7 @@ bash scripts/init_runtime_data.sh
 ls ~/XJTLU-autonomous-vehicle/runtime-data
 ```
 
-## 3. 启动七种运行模式
+## 3. 启动运行模式
 
 ```bash
 cd ~/XJTLU-autonomous-vehicle
@@ -47,6 +47,7 @@ make launch-indoor-nav
 make launch-corridor
 make launch-explore-gps
 make launch-nav-gps
+make launch-tightly-coupled
 make launch-travel
 ```
 
@@ -59,6 +60,7 @@ bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh tightly-coupled
 bash scripts/launch_with_logs.sh travel
 ```
 
@@ -68,6 +70,7 @@ bash scripts/launch_with_logs.sh travel
 ros2 launch bringup system_slam.launch.py
 ros2 launch bringup system_explore.launch.py
 ros2 launch bringup system_gps_corridor.launch.py
+ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
 ros2 launch bringup system_travel.launch.py
@@ -492,6 +495,43 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+## RTK FGO 紧耦合 shadow mode
+
+构建：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make build-perception
+source install/setup.bash
+```
+
+启动实验旁路模式：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make launch-tightly-coupled
+```
+
+带现场 RTK/CORS 参数启动：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+```
+
+观察 shadow 输出：
+
+```bash
+ros2 topic echo /rtk_fgo/status
+ros2 topic echo /rtk_fgo/rtk_gate
+ros2 topic echo /rtk_fgo/correction_status
+ros2 topic echo /rtk_fgo/factor_diagnostics
+```
+
+说明：
+- 该模式默认 `publish_tf=false`，不广播生产 `map -> odom`
+- 不 remap Nav2，不替代 `corridor`、`explore-gps`、`nav-gps`
+- 自动录包包含 `/rtk_fgo/*`、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`、FAST-LIO odom、IMU 和 `/tf`
 
 ***
 

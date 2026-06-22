@@ -16,7 +16,7 @@
 - 串口连接到 STM32 下位机
 - PS2 手柄作为最高优先级人工接管
 
-## 3. 七种运行模式
+## 3. 八种运行模式
 
 | 模式 | 命令 | 当前用途 |
 |------|------|----------|
@@ -26,6 +26,7 @@
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
+| Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 | Travel | `make launch-travel` | 静态地图导航框架，当前暂停 |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
@@ -95,6 +96,21 @@ goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
 - `scene_gps_bundle.yaml` 是唯一 source of truth
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
 - `goto_name` 是主入口；用户只输入英文目标名
+
+### 5.3 RTK FGO 紧耦合实验模式（shadow）
+
+```text
+Explore stack + UM982 RTK
+  -> rtk_fgo_localizer
+       inputs: /fastlio2/lio_odom, /livox/imu, /odom_CBoar, /fix, /heading, /rtk/*
+       outputs: /rtk_fgo/odom, /rtk_fgo/path, /rtk_fgo/status, /rtk_fgo/rtk_gate
+                /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
+```
+
+该模式通过 `make launch-tightly-coupled` 启动，第一版是 shadow mode：
+- 默认 `publish_tf=false`，不广播生产 `map -> odom`
+- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
+- 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
 
 ## 6. TF 链
 
@@ -169,7 +185,7 @@ src/
 
 说明：
 - `sensor_drivers/`: Livox、IMU、GNSS、串口
-- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 当前是紧耦合 RTK FGO 实验包骨架，尚未接入运行链
+- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 是紧耦合 RTK FGO 实验包，当前只接入 shadow mode
 - `planning/`: 历史 GPS 全局规划与坐标转换试验区
 - `navigation/`: `waypoint_collector` 与 scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: 系统 launch、参数、地图、RViz 配置

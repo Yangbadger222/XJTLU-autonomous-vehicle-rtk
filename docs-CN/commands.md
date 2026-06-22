@@ -492,3 +492,30 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+***
+
+## Huggingface
+
+把rosbags上转到Huggingface:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+hf upload frogcar/rtk-data-2026-surf ./runtime-data/bags /bags --repo-type dataset
+```
+
+从自己的电脑clone:
+
+1. 初次安装
+```bash
+pip install -U "huggingface_hub[cli]"
+export HF_ENDPOINT=https://hf-mirror.com
+hf auth login
+```
+
+登录时，用我们organization的access token.
+
+2. 从自己的电脑clone:
+```bash
+hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-data-2026-surf
+```

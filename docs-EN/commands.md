@@ -492,3 +492,30 @@ Notes:
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+***
+
+## Huggingface
+
+To upload rosbags into Huggingface:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+hf upload frogcar/rtk-data-2026-surf ./runtime-data/bags /bags --repo-type dataset
+```
+
+To clone into your own computer:
+
+1. First-time setup
+```bash
+pip install -U "huggingface_hub[cli]"
+export HF_ENDPOINT=https://hf-mirror.com
+hf auth login
+```
+
+When logging in, use our organization's access token.
+
+2. Clone the repo:
+```bash
+hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-data-2026-surf
+```

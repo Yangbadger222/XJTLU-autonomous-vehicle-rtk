@@ -169,7 +169,7 @@ src/
 
 说明：
 - `sensor_drivers/`: Livox、IMU、GNSS、串口
-- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关
+- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 当前是紧耦合 RTK FGO 实验包骨架，尚未接入运行链
 - `planning/`: 历史 GPS 全局规划与坐标转换试验区
 - `navigation/`: `waypoint_collector` 与 scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: 系统 launch、参数、地图、RViz 配置
@@ -187,6 +187,7 @@ src/
   - `pointcloud_to_laserscan`
   - `pgo`
   - `pgo_original`
+  - `rtk_fgo_localizer`（实验包骨架）
   - `hba`
   - `localizer`
   - `interface`
@@ -255,4 +256,3 @@ current_route.yaml
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）
 - `start_ref` + 多个 `waypoints[]` 的 GPS 坐标
 - `launch_yaw_deg` 为必填字段
-

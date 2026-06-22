@@ -2,17 +2,23 @@
 
 ## 1. 状态与范围
 
-本文只是设计说明。当前还没有实现可执行的 `rtk_fgo_localizer` 包、launch 文件、Make target 或 Nav2 remap。
+本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库，以及对应 gtest；但还没有 ROS 节点、FGO 图核心、launch 文件、Make target 或 Nav2 remap。
 
 计划中的系统必须作为新的实验模式引入，不能替换或暗中改变现有 `corridor`、`explore-gps`、`nav-gps` 链路。
 
 第一版目标边界：
 
-- 新包：`src/perception/rtk_fgo_localizer/`
+- 新包：`src/perception/rtk_fgo_localizer/`（已建立最小骨架）
 - 计划 launch 文件：`src/bringup/launch/system_tightly_coupled.launch.py`
 - 计划参数文件：`src/bringup/config/rtk_fgo.yaml`
 - 计划运行命令：`make launch-tightly-coupled`
 - 默认行为：先旁路输出定位和诊断；在实验模式显式开启前，不接管现有 `map -> odom` TF
+
+当前已实现范围只覆盖：
+
+- `rtk_quality.hpp/.cpp`: 解析 raw GGA 中的 quality、satellite count、HDOP，并按 RTK Fixed/Float、innovation 和 heading residual 做第一层 gate。
+- `test_rtk_quality.cpp`: 覆盖 Fixed strong candidate、Float weak candidate 和 Fixed 大 innovation 拒绝。
+- 该实现不订阅 ROS topic、不发布 `/rtk_fgo/*`、不广播 TF，也不改变任何现有导航模式。
 
 ## 2. 现有系统边界
 

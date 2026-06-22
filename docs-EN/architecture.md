@@ -169,7 +169,7 @@ src/
 
 Notes:
 - `sensor_drivers/`: Livox, IMU, GNSS, serial
-- `perception/`: FAST-LIO2, PGO GPS fusion, point cloud to grid related
+- `perception/`: FAST-LIO2, PGO GPS fusion, point cloud to grid related; `rtk_fgo_localizer` is currently an experimental tight-coupled RTK FGO package skeleton and is not wired into any runtime chain yet
 - `planning/`: Historical GPS global planning and coordinate transformation experiments
 - `navigation/`: `waypoint_collector` and scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: System launch files, parameters, maps, RViz configurations
@@ -187,6 +187,7 @@ Notes:
   - `pointcloud_to_laserscan`
   - `pgo`
   - `pgo_original`
+  - `rtk_fgo_localizer` (experimental package skeleton)
   - `hba`
   - `localizer`
   - `interface`

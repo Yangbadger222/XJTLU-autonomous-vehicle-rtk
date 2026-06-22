@@ -2,17 +2,23 @@
 
 ## 1. Status and Scope
 
-This page is a design note only. No executable `rtk_fgo_localizer` package, launch file, Make target, or Nav2 remap has been implemented yet.
+This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, and a matching gtest. The ROS node, FGO graph core, launch file, Make target, and Nav2 remap have not been implemented yet.
 
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
 Target first implementation boundary:
 
-- New package: `src/perception/rtk_fgo_localizer/`
+- New package: `src/perception/rtk_fgo_localizer/` (minimal skeleton exists)
 - Planned launch file: `src/bringup/launch/system_tightly_coupled.launch.py`
 - Planned parameter file: `src/bringup/config/rtk_fgo.yaml`
 - Planned runtime command: `make launch-tightly-coupled`
 - Default behavior: shadow/localization output first; no ownership of the existing `map -> odom` TF until explicitly enabled in the experimental mode
+
+Current implemented scope only covers:
+
+- `rtk_quality.hpp/.cpp`: parses raw GGA quality, satellite count, and HDOP, then performs first-stage gate decisions from RTK Fixed/Float status, innovation, and heading residual.
+- `test_rtk_quality.cpp`: covers Fixed as a strong candidate, Float as a weak candidate, and rejection of a large Fixed-position innovation.
+- This implementation does not subscribe to ROS topics, publish `/rtk_fgo/*`, broadcast TF, or change any existing navigation mode.
 
 ## 2. Existing System Boundary
 

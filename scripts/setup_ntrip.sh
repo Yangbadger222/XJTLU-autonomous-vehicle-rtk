@@ -13,10 +13,11 @@ fi
 python3 "$DIR/setup_ntrip.py"
 RET=$?
 
-if [ $RET -eq 0 ] && [ -f /tmp/ntrip_exports.sh ]; then
-    source /tmp/ntrip_exports.sh
-    rm /tmp/ntrip_exports.sh
+if [ $RET -eq 0 ] && [ -f /tmp/ntrip_env.sh ]; then
+    source /tmp/ntrip_env.sh
     echo "Done! The environment variables NTRIP_PASSWORD and FYP_RTK_PARAMS_FILE are set."
+    echo "Hint: If you open a new terminal, you don't need to paste the password again."
+    echo "      Just run: source /tmp/ntrip_env.sh"
 else
     echo "Setup aborted or failed."
 fi

@@ -131,7 +131,7 @@ def main():
     print(f"\nCreated parameter file at {out_file}")
     
     # Write exports to be sourced by the bash wrapper
-    with open("/tmp/ntrip_exports.sh", "w") as f:
+    with open("/tmp/ntrip_env.sh", "w") as f:
         f.write(f"export NTRIP_PASSWORD='{password}'\n")
         f.write(f"export FYP_RTK_PARAMS_FILE='{out_file}'\n")
 

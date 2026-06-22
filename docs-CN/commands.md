@@ -519,3 +519,22 @@ hf auth login
 ```bash
 hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-data-2026-surf
 ```
+
+***
+
+## NTRIP 账户设置
+
+要设置或更新 NTRIP 凭据，请运行：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+source scripts/setup_ntrip.sh # 使用 source，不要用 bash
+```
+
+然后，将淘宝卖家提供的文本原封不动地粘贴为一行。该脚本将创建临时文件 `/tmp/um982_cors.yaml`，并将环境变量 `FYP_RTK_PARAMS_FILE` 和 `NTRIP_PASSWORD` 添加到 `/tmp/ntrip_env.sh` 中。
+
+如果你稍后打开一个新终端，无需再次粘贴密码。只需运行以下命令加载当前环境：
+
+```bash
+source /tmp/ntrip_env.sh
+```

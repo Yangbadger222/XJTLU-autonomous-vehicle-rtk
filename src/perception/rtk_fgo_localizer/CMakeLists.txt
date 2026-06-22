@@ -9,14 +9,26 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(GTSAM REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(nmea_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "/usr/share/cmake/geographiclib")
+find_package(GeographicLib REQUIRED)
 
 add_library(rtk_fgo_core
   src/correction_smoother.cpp
   src/fgo_graph.cpp
   src/rtk_quality.cpp
   src/state_machine.cpp
+  src/topic_buffers.cpp
   src/yaw_factor.cpp
 )
 target_include_directories(rtk_fgo_core PUBLIC
@@ -26,11 +38,37 @@ target_include_directories(rtk_fgo_core PUBLIC
 )
 target_link_libraries(rtk_fgo_core gtsam)
 
+add_executable(rtk_fgo_node
+  src/rtk_fgo_node.cpp
+)
+target_include_directories(rtk_fgo_node PRIVATE
+  include
+  ${EIGEN3_INCLUDE_DIR}
+)
+target_link_libraries(rtk_fgo_node
+  rtk_fgo_core
+  ${GeographicLib_LIBRARIES}
+)
+ament_target_dependencies(rtk_fgo_node
+  diagnostic_msgs
+  geometry_msgs
+  nav_msgs
+  nmea_msgs
+  rclcpp
+  sensor_msgs
+  std_msgs
+  tf2
+  tf2_ros
+)
+
 install(TARGETS rtk_fgo_core
   EXPORT export_rtk_fgo_core
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+install(TARGETS rtk_fgo_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/
   DESTINATION include
@@ -54,6 +92,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_fgo_graph test/test_fgo_graph.cpp)
   target_include_directories(test_fgo_graph PRIVATE include)
   target_link_libraries(test_fgo_graph rtk_fgo_core)
+
+  ament_add_gtest(test_topic_buffers test/test_topic_buffers.cpp)
+  target_include_directories(test_topic_buffers PRIVATE include)
+  target_link_libraries(test_topic_buffers rtk_fgo_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

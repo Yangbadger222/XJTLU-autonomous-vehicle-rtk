@@ -2,7 +2,7 @@
 
 ## 1. 状态与范围
 
-本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库、室内外/RTK 恢复状态机、校正平滑器、最小 GTSAM graph core，以及对应 gtest；但还没有 ROS 节点、launch 文件、Make target 或 Nav2 remap。
+本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库、室内外/RTK 恢复状态机、校正平滑器、最小 GTSAM graph core、ROS shadow node，以及对应 gtest；但还没有 launch 文件、Make target 或 Nav2 remap。
 
 计划中的系统必须作为新的实验模式引入，不能替换或暗中改变现有 `corridor`、`explore-gps`、`nav-gps` 链路。
 
@@ -23,7 +23,10 @@
 - `fgo_graph.hpp/.cpp`: 实现最小 GTSAM graph API，支持初始状态、FAST-LIO relative pose、wheel planar relative pose、RTK position shadow commit/reject 和 RTK heading yaw factor。
 - `yaw_factor.hpp/.cpp`: 实现 yaw-only Pose3 因子，供双天线 RTK heading 作为绝对 yaw 候选约束。
 - IMU 预积分接口已经保留，但第一版暂未加入实际 IMU factor；需要在 Jetson GTSAM API 版本确认后继续实现。
-- 该实现不订阅 ROS topic、不发布 `/rtk_fgo/*`、不广播 TF，也不改变任何现有导航模式。
+- `topic_buffers.hpp/.cpp`: 提供 ROS-free timestamped sample buffer，用于按时间查找传感器样本。
+- `rtk_fgo_node.cpp`: 实现 ROS shadow node，订阅 FAST-LIO odom、IMU、wheel odom、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`，发布 `/rtk_fgo/odom`、`/rtk_fgo/path`、`/rtk_fgo/status`、`/rtk_fgo/rtk_gate`、`/rtk_fgo/correction_status`、`/rtk_fgo/factor_diagnostics`。
+- `publish_tf` 默认必须保持 `false`。即使手动开启，节点也只能广播实验 `map -> odom_fgo`，不能广播生产 `map -> odom`。
+- 当前实现仍没有 launch/Make target，不改变任何现有导航模式。
 
 ## 2. 现有系统边界
 

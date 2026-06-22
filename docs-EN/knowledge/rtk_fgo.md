@@ -2,7 +2,7 @@
 
 ## 1. Status and Scope
 
-This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, and matching gtests. The ROS node, launch file, Make target, and Nav2 remap have not been implemented yet.
+This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, a ROS shadow node, and matching gtests. The launch file, Make target, and Nav2 remap have not been implemented yet.
 
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
@@ -23,7 +23,10 @@ Current implemented scope only covers:
 - `fgo_graph.hpp/.cpp`: implements the minimal GTSAM graph API for initial states, FAST-LIO relative pose, wheel planar relative pose, RTK position shadow commit/reject, and the RTK heading yaw factor.
 - `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
 - The IMU preintegration API exists, but the first version does not add actual IMU factors yet; that should continue after confirming the Jetson GTSAM API version.
-- This implementation does not subscribe to ROS topics, publish `/rtk_fgo/*`, broadcast TF, or change any existing navigation mode.
+- `topic_buffers.hpp/.cpp`: provides a ROS-free timestamped sample buffer for time-based sensor lookup.
+- `rtk_fgo_node.cpp`: implements the ROS shadow node. It subscribes to FAST-LIO odometry, IMU, wheel odometry, `/fix`, `/heading`, `/rtk/status`, and `/rtk/nmea_sentence`; it publishes `/rtk_fgo/odom`, `/rtk_fgo/path`, `/rtk_fgo/status`, `/rtk_fgo/rtk_gate`, `/rtk_fgo/correction_status`, and `/rtk_fgo/factor_diagnostics`.
+- `publish_tf` must stay `false` by default. Even when manually enabled, the node may only broadcast the experimental `map -> odom_fgo`, never the production `map -> odom`.
+- The current implementation still has no launch file or Make target and changes no existing navigation mode.
 
 ## 2. Existing System Boundary
 

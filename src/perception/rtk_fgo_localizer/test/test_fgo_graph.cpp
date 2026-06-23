@@ -103,8 +103,10 @@ TEST(FgoGraph, KeepsStateCountAtMaxStatesAfterManyTransitions)
 
   EXPECT_LE(diagnostics.state_count, 3u);
   EXPECT_LE(diagnostics.value_count, 9u);
+  EXPECT_EQ(diagnostics.factor_count, 8u);
   EXPECT_GT(diagnostics.window_rebuild_count, 0u);
   EXPECT_EQ(diagnostics.latest_state_index - diagnostics.oldest_state_index, 2u);
+  EXPECT_TRUE(diagnostics.last_optimization_ok);
   EXPECT_TRUE(graph.latestEstimate().has_value());
 }
 

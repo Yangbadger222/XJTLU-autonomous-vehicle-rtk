@@ -456,13 +456,13 @@ void FgoGraph::rebuildActiveWindow()
 
     if (i == 0) {
       new_graph.add(gtsam::PriorFactor<gtsam::Pose3>(X(new_index), pose, posePriorNoise()));
-      new_graph.add(
-        gtsam::PriorFactor<gtsam::Vector3>(
-          V(new_index), velocity,
-          velocityPriorNoise()));
-      new_graph.add(
-        gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(B(new_index), bias, biasPriorNoise()));
     }
+    new_graph.add(
+      gtsam::PriorFactor<gtsam::Vector3>(
+        V(new_index), velocity,
+        velocityPriorNoise()));
+    new_graph.add(
+      gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(B(new_index), bias, biasPriorNoise()));
   }
 
   for (const auto & transition : old_transitions) {

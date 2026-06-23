@@ -110,6 +110,7 @@ Sensor roles:
 - RTK position provides the global absolute position candidate, but only after quality and residual gating.
 - Dual-antenna RTK heading provides an absolute yaw factor when heading is stable.
 - Marginal prior preserves historical information when old states leave the fixed window.
+- Bounded-window rebuild must restore velocity and IMU bias priors for every retained state; otherwise V/B variables remain underconstrained in GTSAM `Values`, which surfaces as `graph_last_optimization_ok=false`.
 
 ## 5. RTK Gating and Recovery
 

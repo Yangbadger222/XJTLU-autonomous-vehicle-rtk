@@ -110,6 +110,7 @@ X_k -- marginal prior from old window
 - RTK position 提供全局绝对位置候选，但必须先经过质量和残差门控。
 - 双天线 RTK heading 在稳定时提供绝对 yaw 因子。
 - marginal prior 在旧状态滑出固定窗口时保留历史信息。
+- 有界窗口重建必须为保留下来的每个状态恢复 velocity 与 IMU bias prior；否则 `Values` 中的 V/B 变量会在 GTSAM 中欠约束，诊断会出现 `graph_last_optimization_ok=false`。
 
 ## 5. RTK 门控与恢复
 

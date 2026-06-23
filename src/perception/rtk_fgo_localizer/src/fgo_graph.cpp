@@ -46,12 +46,12 @@ gtsam::noiseModel::Diagonal::shared_ptr biasBetweenNoise(
 {
   return gtsam::noiseModel::Diagonal::Sigmas(
     (gtsam::Vector(6) <<
-    config.accelerometer_bias_rw_sigma,
-    config.accelerometer_bias_rw_sigma,
-    config.accelerometer_bias_rw_sigma,
-    config.gyroscope_bias_rw_sigma,
-    config.gyroscope_bias_rw_sigma,
-    config.gyroscope_bias_rw_sigma).finished());
+      config.accelerometer_bias_rw_sigma,
+      config.accelerometer_bias_rw_sigma,
+      config.accelerometer_bias_rw_sigma,
+      config.gyroscope_bias_rw_sigma,
+      config.gyroscope_bias_rw_sigma,
+      config.gyroscope_bias_rw_sigma).finished());
 }
 
 gtsam::noiseModel::Diagonal::shared_ptr fastLioBetweenNoise()
@@ -456,7 +456,10 @@ void FgoGraph::rebuildActiveWindow()
 
     if (i == 0) {
       new_graph.add(gtsam::PriorFactor<gtsam::Pose3>(X(new_index), pose, posePriorNoise()));
-      new_graph.add(gtsam::PriorFactor<gtsam::Vector3>(V(new_index), velocity, velocityPriorNoise()));
+      new_graph.add(
+        gtsam::PriorFactor<gtsam::Vector3>(
+          V(new_index), velocity,
+          velocityPriorNoise()));
       new_graph.add(
         gtsam::PriorFactor<gtsam::imuBias::ConstantBias>(B(new_index), bias, biasPriorNoise()));
     }

@@ -812,7 +812,9 @@ private:
     addDiagnosticValue(status, "graph_state_count", graph_diagnostics.state_count);
     addDiagnosticValue(status, "graph_value_count", graph_diagnostics.value_count);
     addDiagnosticValue(status, "graph_factor_count", graph_diagnostics.factor_count);
-    addDiagnosticValue(status, "graph_window_rebuild_count", graph_diagnostics.window_rebuild_count);
+    addDiagnosticValue(
+      status, "graph_window_rebuild_count",
+      graph_diagnostics.window_rebuild_count);
     addDiagnosticValue(status, "graph_latest_state_index", graph_diagnostics.latest_state_index);
     addDiagnosticValue(status, "graph_oldest_state_index", graph_diagnostics.oldest_state_index);
     addDiagnosticValue(

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GeographicLib/LocalCartesian.hpp>
 #include <gtsam/geometry/Point3.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/geometry/Rot3.h>
@@ -7,11 +8,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-
-namespace GeographicLib
-{
-class LocalCartesian;
-}  // namespace GeographicLib
 
 namespace rtk_fgo_localizer
 {

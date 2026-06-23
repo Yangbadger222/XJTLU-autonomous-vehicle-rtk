@@ -10,6 +10,8 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/Values.h>
 
+#include <boost/shared_ptr.hpp>
+
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -128,7 +130,7 @@ private:
   bool last_optimization_ok_ = true;
   bool imu_configured_ = false;
   ImuPreintegrationConfig imu_config_;
-  gtsam::PreintegrationParams::shared_ptr imu_params_;
+  boost::shared_ptr<gtsam::PreintegrationParams> imu_params_;
   std::optional<gtsam::PreintegratedImuMeasurements> imu_preintegrator_;
   std::optional<double> last_imu_stamp_s_;
 };

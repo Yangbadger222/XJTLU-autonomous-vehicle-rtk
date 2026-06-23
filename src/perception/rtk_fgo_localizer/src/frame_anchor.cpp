@@ -19,6 +19,8 @@ bool finiteGeoPoint(const GeoPoint & point)
 
 }  // namespace
 
+FrameAnchor::~FrameAnchor() = default;
+
 bool FrameAnchor::initialize(
   const GeoPoint & origin_fix,
   const gtsam::Pose3 & reference_fgo_pose,

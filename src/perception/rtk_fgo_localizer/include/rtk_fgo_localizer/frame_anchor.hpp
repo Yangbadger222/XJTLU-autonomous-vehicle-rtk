@@ -26,6 +26,8 @@ struct GeoPoint
 class FrameAnchor
 {
 public:
+  ~FrameAnchor();
+
   bool initialize(
     const GeoPoint & origin_fix,
     const gtsam::Pose3 & reference_fgo_pose,

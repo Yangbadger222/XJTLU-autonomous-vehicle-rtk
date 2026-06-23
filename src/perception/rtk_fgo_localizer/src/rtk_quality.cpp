@@ -1,5 +1,7 @@
 #include "rtk_fgo_localizer/rtk_quality.hpp"
 
+#include "rtk_fgo_localizer/gate_params.hpp"
+
 #include <cmath>
 #include <sstream>
 #include <vector>
@@ -8,14 +10,6 @@ namespace rtk_fgo_localizer
 {
 namespace
 {
-
-constexpr int kRtkFixedQuality = 4;
-constexpr int kRtkFloatQuality = 5;
-constexpr int kMinSatellites = 10;
-constexpr double kMaxHdop = 2.0;
-constexpr double kMaxStrongInnovationM = 3.0;
-constexpr double kMaxWeakInnovationM = 5.0;
-constexpr double kMaxHeadingInnovationRad = 0.5;
 
 std::vector<std::string> splitCommaFields(const std::string & sentence)
 {
@@ -73,12 +67,12 @@ RtkGateDecision reject(const std::string & reason)
 
 bool RtkQuality::is_fixed() const
 {
-  return quality == kRtkFixedQuality;
+  return quality == RtkGateParams{}.fixed_quality_code;
 }
 
 bool RtkQuality::is_float() const
 {
-  return quality == kRtkFloatQuality;
+  return quality == RtkGateParams{}.float_quality_code;
 }
 
 std::optional<RtkQuality> parseGgaQuality(const std::string & sentence)
@@ -102,41 +96,61 @@ std::optional<RtkQuality> parseGgaQuality(const std::string & sentence)
   return out;
 }
 
+RtkGateDecision evaluateRtkGate(const RtkGateInput & input, const RtkGateParams & params)
+{
+  const auto & quality = input.quality;
+  if (!std::isfinite(input.position_innovation_m) ||
+    !std::isfinite(input.heading_innovation_rad))
+  {
+    return reject("non-finite innovation");
+  }
+  if (input.implied_speed_mps.has_value() && !std::isfinite(*input.implied_speed_mps)) {
+    return reject("non-finite implied speed");
+  }
+  const double position_innovation_abs_m = std::abs(input.position_innovation_m);
+  const double heading_innovation_abs_rad = std::abs(input.heading_innovation_rad);
+  if (quality.quality <= 0) {
+    return reject("invalid RTK quality");
+  }
+  if (quality.satellites < params.min_satellites) {
+    return reject("too few satellites");
+  }
+  if (!std::isfinite(quality.hdop) || quality.hdop > params.max_hdop) {
+    return reject("HDOP too high");
+  }
+  if (heading_innovation_abs_rad > params.max_heading_innovation_rad) {
+    return reject("heading innovation too large");
+  }
+  if (input.implied_speed_mps.has_value() &&
+    std::abs(*input.implied_speed_mps) > params.max_implied_speed_mps)
+  {
+    return reject("implied RTK speed too high");
+  }
+  if (position_innovation_abs_m > params.max_weak_position_innovation_m) {
+    return reject("position innovation too large");
+  }
+  if (quality.quality == params.fixed_quality_code) {
+    if (position_innovation_abs_m > params.max_strong_position_innovation_m) {
+      return reject("fixed RTK position innovation too large");
+    }
+    return {RtkGateMode::StrongCandidate, "RTK fixed quality accepted"};
+  }
+  if (quality.quality == params.float_quality_code) {
+    return {RtkGateMode::WeakCandidate, "RTK float quality accepted weakly"};
+  }
+  return {RtkGateMode::DiagnosticOnly, "non-RTK quality kept for diagnostics"};
+}
+
 RtkGateDecision evaluateRtkGate(
   const RtkQuality & quality,
   double position_innovation_m,
   double heading_innovation_rad)
 {
-  if (!std::isfinite(position_innovation_m) || !std::isfinite(heading_innovation_rad)) {
-    return reject("non-finite innovation");
-  }
-  const double position_innovation_abs_m = std::abs(position_innovation_m);
-  const double heading_innovation_abs_rad = std::abs(heading_innovation_rad);
-  if (quality.quality <= 0) {
-    return reject("invalid RTK quality");
-  }
-  if (quality.satellites < kMinSatellites) {
-    return reject("too few satellites");
-  }
-  if (!std::isfinite(quality.hdop) || quality.hdop > kMaxHdop) {
-    return reject("HDOP too high");
-  }
-  if (heading_innovation_abs_rad > kMaxHeadingInnovationRad) {
-    return reject("heading innovation too large");
-  }
-  if (position_innovation_abs_m > kMaxWeakInnovationM) {
-    return reject("position innovation too large");
-  }
-  if (quality.is_fixed()) {
-    if (position_innovation_abs_m > kMaxStrongInnovationM) {
-      return reject("fixed RTK position innovation too large");
-    }
-    return {RtkGateMode::StrongCandidate, "RTK fixed quality accepted"};
-  }
-  if (quality.is_float()) {
-    return {RtkGateMode::WeakCandidate, "RTK float quality accepted weakly"};
-  }
-  return {RtkGateMode::DiagnosticOnly, "non-RTK quality kept for diagnostics"};
+  RtkGateInput input;
+  input.quality = quality;
+  input.position_innovation_m = position_innovation_m;
+  input.heading_innovation_rad = heading_innovation_rad;
+  return evaluateRtkGate(input, RtkGateParams{});
 }
 
 }  // namespace rtk_fgo_localizer

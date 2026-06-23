@@ -60,5 +60,53 @@ TEST(FgoGraph, CommitsSmallRtkRecovery)
   EXPECT_TRUE(result.committed);
 }
 
+TEST(FgoGraph, AddsWheelFactorWithoutCreatingAnotherState)
+{
+  FgoGraph graph;
+  graph.addInitialState(0.0, gtsam::Pose3(), gtsam::Vector3::Zero());
+  graph.addFastLioBetween(
+    1.0,
+    gtsam::Pose3(gtsam::Rot3(), gtsam::Point3(1.0, 0.0, 0.0)));
+
+  ASSERT_EQ(graph.stateCount(), 2u);
+
+  const bool added = graph.addWheelPlanarFactorForLatestTransition(
+    gtsam::Pose3(gtsam::Rot3(), gtsam::Point3(1.0, 0.0, 0.0)));
+
+  EXPECT_TRUE(added);
+  EXPECT_EQ(graph.stateCount(), 2u);
+}
+
+TEST(FgoGraph, ReportsGraphDiagnostics)
+{
+  FgoGraph graph(3);
+  auto diagnostics = graph.diagnostics();
+
+  EXPECT_EQ(diagnostics.state_count, 0u);
+  EXPECT_EQ(diagnostics.value_count, 0u);
+  EXPECT_EQ(diagnostics.factor_count, 0u);
+  EXPECT_EQ(diagnostics.window_rebuild_count, 0u);
+}
+
+TEST(FgoGraph, KeepsStateCountAtMaxStatesAfterManyTransitions)
+{
+  FgoGraph graph(3);
+  graph.addInitialState(0.0, gtsam::Pose3(), gtsam::Vector3::Zero());
+
+  for (int i = 1; i <= 8; ++i) {
+    graph.addFastLioBetween(
+      static_cast<double>(i),
+      gtsam::Pose3(gtsam::Rot3(), gtsam::Point3(0.2, 0.0, 0.0)));
+  }
+
+  const auto diagnostics = graph.diagnostics();
+
+  EXPECT_LE(diagnostics.state_count, 3u);
+  EXPECT_LE(diagnostics.value_count, 9u);
+  EXPECT_GT(diagnostics.window_rebuild_count, 0u);
+  EXPECT_EQ(diagnostics.latest_state_index - diagnostics.oldest_state_index, 2u);
+  EXPECT_TRUE(graph.latestEstimate().has_value());
+}
+
 }  // namespace
 }  // namespace rtk_fgo_localizer

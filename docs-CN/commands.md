@@ -528,10 +528,25 @@ ros2 topic echo /rtk_fgo/correction_status
 ros2 topic echo /rtk_fgo/factor_diagnostics
 ```
 
+从最新 tightly-coupled bag 生成 replay 指标：
+
+```bash
+python3 scripts/evaluate_rtk_fgo_bag.py \
+  --bag runtime-data/logs/latest/bag \
+  --out runtime-data/logs/latest/system/rtk_fgo_metrics.json
+```
+
+实验 TF 必须显式开启，并且只用于受保护测试：
+
+```bash
+ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_use_fgo:=false
+```
+
 说明：
 - 该模式默认 `publish_tf=false`，不广播生产 `map -> odom`
 - 不 remap Nav2，不替代 `corridor`、`explore-gps`、`nav-gps`
 - 自动录包包含 `/rtk_fgo/*`、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`、FAST-LIO odom、IMU 和 `/tf`
+- `/rtk_fgo/factor_diagnostics` 包含 frame anchor、wheel factor 和 graph window 健康状态字段
 
 ***
 

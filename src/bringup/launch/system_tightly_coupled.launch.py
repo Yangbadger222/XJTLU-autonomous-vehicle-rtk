@@ -25,6 +25,16 @@ def generate_launch_description():
         default_value="false",
         description="Whether to launch RViz together with the tightly coupled shadow stack",
     )
+    publish_fgo_tf_arg = DeclareLaunchArgument(
+        "publish_fgo_tf",
+        default_value="false",
+        description="Explicitly enable experimental RTK FGO TF publication",
+    )
+    nav2_use_fgo_arg = DeclareLaunchArgument(
+        "nav2_use_fgo",
+        default_value="false",
+        description="Explicitly mark Nav2 as using the experimental RTK FGO output",
+    )
 
     explore_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -52,7 +62,13 @@ def generate_launch_description():
         executable="rtk_fgo_node",
         name="rtk_fgo_localizer",
         output="screen",
-        parameters=[rtk_fgo_params_file],
+        parameters=[
+            rtk_fgo_params_file,
+            {
+                "publish_tf": LaunchConfiguration("publish_fgo_tf"),
+                "nav2_use_fgo": LaunchConfiguration("nav2_use_fgo"),
+            },
+        ],
     )
 
     session_data_dir = os.environ.get("FYP_LOG_SESSION_DIR", "")
@@ -99,6 +115,8 @@ def generate_launch_description():
         [
             rtk_params_file_arg,
             use_rviz_arg,
+            publish_fgo_tf_arg,
+            nav2_use_fgo_arg,
             explore_launch,
             rtk_launch,
             bag_record,

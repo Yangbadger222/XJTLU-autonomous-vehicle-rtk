@@ -14,19 +14,21 @@ Target first implementation boundary:
 - Planned runtime command: `make launch-tightly-coupled`
 - Default behavior: shadow/localization output first; no ownership of the existing `map -> odom` TF until explicitly enabled in the experimental mode
 
-Current implemented scope only covers:
+Current implemented scope covers:
 
 - `rtk_quality.hpp/.cpp`: parses raw GGA quality, satellite count, and HDOP, then performs first-stage gate decisions from RTK Fixed/Float status, innovation, and heading residual.
 - `test_rtk_quality.cpp`: covers Fixed as a strong candidate, Float as a weak candidate, and rejection of a large Fixed-position innovation.
 - `state_machine.hpp/.cpp`: implements the base transition rules for `LOCAL_ONLY`, `RTK_CANDIDATE`, `RTK_RECOVERY`, `RTK_LOCKED`, `RTK_DEGRADED`, and `FAULT_HOLD`; rejected shadow commits degrade recoverably, while true graph-residual failures enter `FAULT_HOLD`.
 - `correction_smoother.hpp/.cpp`: limits per-step translation and yaw correction so trusted RTK recovery cannot create a single output jump.
-- `fgo_graph.hpp/.cpp`: implements the minimal GTSAM graph API for initial states, FAST-LIO relative pose, wheel planar relative pose, RTK position shadow commit/reject, and the RTK heading yaw factor.
+- `frame_anchor.hpp/.cpp`: anchors raw RTK fixes into the FGO `map` frame through a two-stage bootstrap. The first accepted fixed-quality samples initialize a `GeographicLib::LocalCartesian` origin and an `ENU -> map` yaw/translation transform; normal RTK innovation gating starts only after this anchor exists.
+- `fgo_graph.hpp/.cpp`: implements the GTSAM graph API for initial states, FAST-LIO relative pose, latest-transition wheel planar factors, RTK position shadow commit/reject, RTK heading yaw factors, optional IMU preintegration, and bounded-window rebuild diagnostics.
 - `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
-- The IMU preintegration API exists, but the first version does not add actual IMU factors yet; that should continue after confirming the Jetson GTSAM API version.
+- IMU preintegration uses the conservative GTSAM `ImuFactor` plus bias `BetweenFactor` path when `factors.imu_enabled=true`. The YAML default remains `false` until Jetson replay/vehicle validation confirms the noise values.
 - `topic_buffers.hpp/.cpp`: provides a ROS-free timestamped sample buffer for time-based sensor lookup.
 - `rtk_fgo_node.cpp`: implements the ROS shadow node. It subscribes to FAST-LIO odometry, IMU, wheel odometry, `/fix`, `/heading`, `/rtk/status`, and `/rtk/nmea_sentence`; it publishes `/rtk_fgo/odom`, `/rtk_fgo/path`, `/rtk_fgo/status`, `/rtk_fgo/rtk_gate`, `/rtk_fgo/correction_status`, and `/rtk_fgo/factor_diagnostics`.
 - `publish_tf` must stay `false` by default. Even when manually enabled, the node may only broadcast the experimental `map -> odom_fgo`, never the production `map -> odom`.
-- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: starts the Explore baseline, UM982 RTK, and `rtk_fgo_node`, then records source sensor topics and `/rtk_fgo/*`.
+- `scripts/evaluate_rtk_fgo_bag.py`: summarizes recorded `/rtk_fgo/status` and `/rtk_fgo/correction_status` into JSON metrics for replay acceptance, correction size, and rejection reasons.
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: starts the Explore baseline, UM982 RTK, and `rtk_fgo_node`, then records source sensor topics and `/rtk_fgo/*`. Experimental TF/Nav2 flags can only be enabled by explicit launch arguments and log a runtime warning.
 - The current implementation does not remap Nav2 and does not change any existing production navigation mode.
 
 ## 2. Existing System Boundary
@@ -111,6 +113,22 @@ Sensor roles:
 
 ## 5. RTK Gating and Recovery
 
+The current gate is parameterized in `rtk_fgo.yaml`:
+
+```yaml
+rtk_gating:
+  fixed_quality_code: 4
+  float_quality_code: 5
+  min_satellites: 10
+  max_hdop: 2.0
+  max_strong_position_innovation_m: 3.0
+  max_weak_position_innovation_m: 5.0
+  max_heading_innovation_rad: 0.5
+  max_implied_speed_mps: 2.0
+```
+
+This matters under tree shade: a receiver may keep producing fixes while quality, HDOP, and implied motion become inconsistent. The node now rejects those samples before they enter the shadow graph, keeps the previous local FAST-LIO/wheel/IMU solution, and reports the exact rejection reason in `/rtk_fgo/status` and `/rtk_fgo/factor_diagnostics`.
+
 RTK Fixed is not blindly treated as truth. It is the highest-priority absolute-position candidate, but it must pass consistency checks before becoming a strong factor.
 
 RTK Fixed/Float classification must not rely on `NavSatStatus` alone. Both GGA quality `4` and `5` map to `STATUS_GBAS_FIX`, so the FGO gate must read raw GGA from `/rtk/nmea_sentence` or a future structured RTK quality topic with parser tests.
@@ -150,6 +168,10 @@ This allows the system to pull the trajectory back when RTK recovers, while avoi
 In the current implementation, one rejected RTK Fixed shadow candidate does not permanently hold the system in `FAULT_HOLD`. A rejection during `RTK_RECOVERY` returns to `LOCAL_ONLY` and requires a new run of consecutive stable samples; a rejection during `RTK_LOCKED` degrades to `RTK_DEGRADED`. `FAULT_HOLD` is reserved for explicit graph-residual failure under a strong candidate.
 
 ## 6. Indoor/Outdoor Transition State Machine
+
+RTK position is not used until the frame anchor has bootstrapped. Anchor bootstrap is quality-only: finite `/fix`, configured GGA quality, satellite count, HDOP, and optional `/heading` must pass for consecutive samples. It deliberately avoids the normal position-innovation gate before initialization, because innovation can only be computed after the RTK fix is mapped into the FGO `map` frame.
+
+RTK heading yaw convention: heading yaw is the ENU yaw of `base_link +X`, where `0` points east and positive yaw rotates counter-clockwise toward north. When heading is available, the anchor uses `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`; otherwise it falls back to identity yaw and reports the lower-confidence bootstrap in diagnostics.
 
 Planned states:
 
@@ -210,7 +232,7 @@ Initial parameter groups:
       max_states: 120
 
     factors:
-      imu_enabled: true
+      imu_enabled: false
       fastlio_enabled: true
       wheel_enabled: true
       rtk_position_enabled: true
@@ -220,10 +242,31 @@ Initial parameter groups:
       require_fixed_for_strong_factor: true
       fixed_quality_code: 4
       float_quality_code: 5
+      min_satellites: 10
+      max_hdop: 2.0
+      max_strong_position_innovation_m: 3.0
+      max_weak_position_innovation_m: 5.0
+      max_heading_innovation_rad: 0.5
       recovery_min_samples: 8
       max_implied_speed_mps: 2.0
       max_position_jump_m: 3.0
       max_heading_spread_deg: 3.0
+
+    frame_anchor:
+      require_fixed_for_anchor: true
+      use_rtk_heading_for_yaw: true
+      max_anchor_position_innovation_m: 2.0
+      bootstrap_min_satellites: 10
+      bootstrap_max_hdop: 2.0
+      bootstrap_required_consecutive_samples: 5
+
+    imu:
+      accelerometer_noise_sigma: 0.1
+      gyroscope_noise_sigma: 0.01
+      accelerometer_bias_rw_sigma: 0.001
+      gyroscope_bias_rw_sigma: 0.0001
+      integration_error_sigma: 1.0e-8
+      gravity_mps2: 9.81
 
     correction_smoother:
       max_translation_step_m: 0.15
@@ -239,7 +282,7 @@ Stage 1: ROS-free core tests
 - RTK quality gate
 - residual gate
 - correction smoother
-- sliding-window bookkeeping
+- sliding-window graph diagnostics and bounded rebuild behavior
 - state-machine transitions
 
 Stage 2: rosbag replay shadow mode
@@ -247,6 +290,13 @@ Stage 2: rosbag replay shadow mode
 - Run the existing localization stack and `rtk_fgo_localizer` in parallel.
 - Record `/rtk_fgo/*`, source sensor topics, `/tf`, `/cmd_vel`, and RTK raw/status topics.
 - Confirm that no production TF is changed.
+- Generate replay metrics:
+
+```bash
+python3 scripts/evaluate_rtk_fgo_bag.py \
+  --bag runtime-data/logs/latest/bag \
+  --out runtime-data/logs/latest/system/rtk_fgo_metrics.json
+```
 
 Stage 3: vehicle shadow mode
 

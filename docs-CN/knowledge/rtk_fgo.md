@@ -14,19 +14,21 @@
 - 计划运行命令：`make launch-tightly-coupled`
 - 默认行为：先旁路输出定位和诊断；在实验模式显式开启前，不接管现有 `map -> odom` TF
 
-当前已实现范围只覆盖：
+当前已实现范围覆盖：
 
 - `rtk_quality.hpp/.cpp`: 解析 raw GGA 中的 quality、satellite count、HDOP，并按 RTK Fixed/Float、innovation 和 heading residual 做第一层 gate。
 - `test_rtk_quality.cpp`: 覆盖 Fixed strong candidate、Float weak candidate 和 Fixed 大 innovation 拒绝。
 - `state_machine.hpp/.cpp`: 实现 `LOCAL_ONLY`、`RTK_CANDIDATE`、`RTK_RECOVERY`、`RTK_LOCKED`、`RTK_DEGRADED`、`FAULT_HOLD` 的基础转换规则；shadow commit 被拒绝时保持可恢复降级，真正图残差异常才进入 `FAULT_HOLD`。
 - `correction_smoother.hpp/.cpp`: 对平移与 yaw 校正做单步限幅，避免可信 RTK 恢复时一次性跳变输出。
-- `fgo_graph.hpp/.cpp`: 实现最小 GTSAM graph API，支持初始状态、FAST-LIO relative pose、wheel planar relative pose、RTK position shadow commit/reject 和 RTK heading yaw factor。
+- `frame_anchor.hpp/.cpp`: 把原始 RTK fix 显式锚定到 FGO `map` 坐标系。连续通过质量检查的 Fixed 样本会初始化 `GeographicLib::LocalCartesian` 原点和 `ENU -> map` 的 yaw/translation 变换；普通 RTK innovation gate 只在 anchor 建立后才开始。
+- `fgo_graph.hpp/.cpp`: 实现 GTSAM graph API，支持初始状态、FAST-LIO relative pose、latest-transition wheel planar 因子、RTK position shadow commit/reject、RTK heading yaw factor、可选 IMU 预积分，以及有界窗口重建诊断。
 - `yaw_factor.hpp/.cpp`: 实现 yaw-only Pose3 因子，供双天线 RTK heading 作为绝对 yaw 候选约束。
-- IMU 预积分接口已经保留，但第一版暂未加入实际 IMU factor；需要在 Jetson GTSAM API 版本确认后继续实现。
+- IMU 预积分在 `factors.imu_enabled=true` 时使用保守的 GTSAM `ImuFactor` + bias `BetweenFactor` 路径。YAML 默认仍保持 `false`，直到 Jetson 回放和实车验证确认噪声参数。
 - `topic_buffers.hpp/.cpp`: 提供 ROS-free timestamped sample buffer，用于按时间查找传感器样本。
 - `rtk_fgo_node.cpp`: 实现 ROS shadow node，订阅 FAST-LIO odom、IMU、wheel odom、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`，发布 `/rtk_fgo/odom`、`/rtk_fgo/path`、`/rtk_fgo/status`、`/rtk_fgo/rtk_gate`、`/rtk_fgo/correction_status`、`/rtk_fgo/factor_diagnostics`。
 - `publish_tf` 默认必须保持 `false`。即使手动开启，节点也只能广播实验 `map -> odom_fgo`，不能广播生产 `map -> odom`。
-- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: 启动 Explore 基线、UM982 RTK 和 `rtk_fgo_node`，并录制源传感器 topic 与 `/rtk_fgo/*`。
+- `scripts/evaluate_rtk_fgo_bag.py`: 将录制的 `/rtk_fgo/status` 和 `/rtk_fgo/correction_status` 汇总成 JSON 指标，用于回放判断接受率、校正量和拒绝原因。
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: 启动 Explore 基线、UM982 RTK 和 `rtk_fgo_node`，并录制源传感器 topic 与 `/rtk_fgo/*`。实验 TF/Nav2 只能通过显式 launch 参数开启，开启时节点会打印运行时告警。
 - 当前实现不 remap Nav2，不改变任何现有生产导航模式。
 
 ## 2. 现有系统边界
@@ -111,6 +113,22 @@ X_k -- marginal prior from old window
 
 ## 5. RTK 门控与恢复
 
+当前 gate 已参数化在 `rtk_fgo.yaml` 中：
+
+```yaml
+rtk_gating:
+  fixed_quality_code: 4
+  float_quality_code: 5
+  min_satellites: 10
+  max_hdop: 2.0
+  max_strong_position_innovation_m: 3.0
+  max_weak_position_innovation_m: 5.0
+  max_heading_innovation_rad: 0.5
+  max_implied_speed_mps: 2.0
+```
+
+这对树荫遮挡很重要：接收机可能仍持续输出 fix，但 quality、HDOP 和 implied motion 已经不一致。节点现在会在样本进入 shadow graph 前拒绝这些异常点，保留上一轮 FAST-LIO/wheel/IMU 的局部解，并在 `/rtk_fgo/status` 和 `/rtk_fgo/factor_diagnostics` 中报告明确拒绝原因。
+
 RTK Fixed 不能被盲目当成真值。它是最高优先级的绝对位置候选，但只有通过一致性检查后才能成为强因子。
 
 RTK Fixed/Float 分类不能只依赖 `NavSatStatus`。GGA quality `4` 和 `5` 都会映射成 `STATUS_GBAS_FIX`，因此 FGO gate 必须读取 `/rtk/nmea_sentence` 中的 raw GGA，或读取未来带解析测试的结构化 RTK 质量 topic。
@@ -150,6 +168,10 @@ Invalid heading    -> 不进入图
 当前实现中，shadow graph 拒绝一次 RTK Fixed 候选不会把系统永久锁进 `FAULT_HOLD`。`RTK_RECOVERY` 阶段的拒绝会回到 `LOCAL_ONLY` 并等待下一轮连续稳定样本；`RTK_LOCKED` 阶段的拒绝会降级到 `RTK_DEGRADED`。`FAULT_HOLD` 只保留给强候选下图残差明确异常的情况。
 
 ## 6. 室内外切换状态机
+
+RTK position 在 frame anchor bootstrap 前不会被使用。anchor bootstrap 是 quality-only：有限的 `/fix`、配置的 GGA quality、卫星数、HDOP，以及可选 `/heading` 必须连续通过。这里刻意不使用普通 position-innovation gate，因为 innovation 只有在 RTK fix 已经映射到 FGO `map` 坐标系后才能计算。
+
+RTK heading yaw 约定：heading yaw 是 `base_link +X` 在 ENU 中的 yaw，`0` 指向东，正方向逆时针转向北。有 heading 时 anchor 使用 `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`；没有 heading 时回退到 identity yaw，并在诊断中报告低置信 bootstrap。
 
 计划状态：
 
@@ -210,7 +232,7 @@ yaw <= 0.2-0.5 deg per update
       max_states: 120
 
     factors:
-      imu_enabled: true
+      imu_enabled: false
       fastlio_enabled: true
       wheel_enabled: true
       rtk_position_enabled: true
@@ -220,10 +242,31 @@ yaw <= 0.2-0.5 deg per update
       require_fixed_for_strong_factor: true
       fixed_quality_code: 4
       float_quality_code: 5
+      min_satellites: 10
+      max_hdop: 2.0
+      max_strong_position_innovation_m: 3.0
+      max_weak_position_innovation_m: 5.0
+      max_heading_innovation_rad: 0.5
       recovery_min_samples: 8
       max_implied_speed_mps: 2.0
       max_position_jump_m: 3.0
       max_heading_spread_deg: 3.0
+
+    frame_anchor:
+      require_fixed_for_anchor: true
+      use_rtk_heading_for_yaw: true
+      max_anchor_position_innovation_m: 2.0
+      bootstrap_min_satellites: 10
+      bootstrap_max_hdop: 2.0
+      bootstrap_required_consecutive_samples: 5
+
+    imu:
+      accelerometer_noise_sigma: 0.1
+      gyroscope_noise_sigma: 0.01
+      accelerometer_bias_rw_sigma: 0.001
+      gyroscope_bias_rw_sigma: 0.0001
+      integration_error_sigma: 1.0e-8
+      gravity_mps2: 9.81
 
     correction_smoother:
       max_translation_step_m: 0.15
@@ -239,7 +282,7 @@ yaw <= 0.2-0.5 deg per update
 - RTK quality gate
 - residual gate
 - correction smoother
-- sliding-window bookkeeping
+- sliding-window graph diagnostics 和有界重建行为
 - state-machine transitions
 
 阶段 2：rosbag replay shadow mode
@@ -247,6 +290,13 @@ yaw <= 0.2-0.5 deg per update
 - 并行运行现有定位链和 `rtk_fgo_localizer`。
 - 记录 `/rtk_fgo/*`、源传感器 topic、`/tf`、`/cmd_vel`、RTK raw/status topic。
 - 确认生产 TF 没有被改变。
+- 生成 replay 指标：
+
+```bash
+python3 scripts/evaluate_rtk_fgo_bag.py \
+  --bag runtime-data/logs/latest/bag \
+  --out runtime-data/logs/latest/system/rtk_fgo_metrics.json
+```
 
 阶段 3：实车 shadow mode
 

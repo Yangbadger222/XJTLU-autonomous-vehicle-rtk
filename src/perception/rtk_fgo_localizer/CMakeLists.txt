@@ -25,6 +25,7 @@ find_package(GeographicLib REQUIRED)
 
 add_library(rtk_fgo_core
   src/correction_smoother.cpp
+  src/frame_anchor.cpp
   src/fgo_graph.cpp
   src/rtk_quality.cpp
   src/state_machine.cpp
@@ -36,7 +37,10 @@ target_include_directories(rtk_fgo_core PUBLIC
   $<INSTALL_INTERFACE:include>
   ${EIGEN3_INCLUDE_DIR}
 )
-target_link_libraries(rtk_fgo_core gtsam)
+target_link_libraries(rtk_fgo_core PUBLIC
+  gtsam
+  ${GeographicLib_LIBRARIES}
+)
 
 add_executable(rtk_fgo_node
   src/rtk_fgo_node.cpp
@@ -81,6 +85,10 @@ if(BUILD_TESTING)
   target_include_directories(test_rtk_quality PRIVATE include)
   target_link_libraries(test_rtk_quality rtk_fgo_core)
 
+  ament_add_gtest(test_gate_params test/test_gate_params.cpp)
+  target_include_directories(test_gate_params PRIVATE include)
+  target_link_libraries(test_gate_params rtk_fgo_core)
+
   ament_add_gtest(test_state_machine test/test_state_machine.cpp)
   target_include_directories(test_state_machine PRIVATE include)
   target_link_libraries(test_state_machine rtk_fgo_core)
@@ -89,9 +97,17 @@ if(BUILD_TESTING)
   target_include_directories(test_correction_smoother PRIVATE include)
   target_link_libraries(test_correction_smoother rtk_fgo_core)
 
+  ament_add_gtest(test_frame_anchor test/test_frame_anchor.cpp)
+  target_include_directories(test_frame_anchor PRIVATE include)
+  target_link_libraries(test_frame_anchor rtk_fgo_core)
+
   ament_add_gtest(test_fgo_graph test/test_fgo_graph.cpp)
   target_include_directories(test_fgo_graph PRIVATE include)
   target_link_libraries(test_fgo_graph rtk_fgo_core)
+
+  ament_add_gtest(test_imu_preintegration test/test_imu_preintegration.cpp)
+  target_include_directories(test_imu_preintegration PRIVATE include)
+  target_link_libraries(test_imu_preintegration rtk_fgo_core)
 
   ament_add_gtest(test_topic_buffers test/test_topic_buffers.cpp)
   target_include_directories(test_topic_buffers PRIVATE include)

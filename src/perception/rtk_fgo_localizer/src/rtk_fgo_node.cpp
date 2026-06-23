@@ -1,10 +1,12 @@
 #include "rtk_fgo_localizer/correction_smoother.hpp"
 #include "rtk_fgo_localizer/fgo_graph.hpp"
+#include "rtk_fgo_localizer/frame_anchor.hpp"
+#include "rtk_fgo_localizer/gate_params.hpp"
+#include "rtk_fgo_localizer/imu_preintegration_config.hpp"
 #include "rtk_fgo_localizer/rtk_quality.hpp"
 #include "rtk_fgo_localizer/state_machine.hpp"
 #include "rtk_fgo_localizer/topic_buffers.hpp"
 
-#include <GeographicLib/LocalCartesian.hpp>
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
@@ -99,6 +101,71 @@ double fixSigmaXY(const sensor_msgs::msg::NavSatFix & msg)
   return std::clamp(0.5 * (sx + sy), 0.02, 5.0);
 }
 
+double pointDistance(const gtsam::Point3 & a, const gtsam::Point3 & b)
+{
+  return (a - b).norm();
+}
+
+GeoPoint geoPointFromFix(const sensor_msgs::msg::NavSatFix & msg)
+{
+  return GeoPoint{msg.latitude, msg.longitude, msg.altitude};
+}
+
+struct FrameAnchorBootstrapParams
+{
+  bool require_fixed_for_anchor = true;
+  bool use_rtk_heading_for_yaw = true;
+  int bootstrap_min_satellites = 10;
+  double bootstrap_max_hdop = 2.0;
+  std::size_t bootstrap_required_consecutive_samples = 5;
+};
+
+bool anchorBootstrapCandidate(
+  const GeoPoint & fix,
+  const RtkQuality & quality,
+  const std::optional<double> & heading_yaw_rad,
+  const FrameAnchorBootstrapParams & params,
+  int fixed_quality_code,
+  std::string * reason)
+{
+  if (!std::isfinite(fix.latitude_deg) || !std::isfinite(fix.longitude_deg) ||
+    !std::isfinite(fix.altitude_m))
+  {
+    if (reason != nullptr) {
+      *reason = "anchor fix is non-finite";
+    }
+    return false;
+  }
+  if (params.require_fixed_for_anchor && quality.quality != fixed_quality_code) {
+    if (reason != nullptr) {
+      *reason = "anchor waiting for RTK fixed quality";
+    }
+    return false;
+  }
+  if (quality.satellites < params.bootstrap_min_satellites) {
+    if (reason != nullptr) {
+      *reason = "anchor waiting for enough satellites";
+    }
+    return false;
+  }
+  if (!std::isfinite(quality.hdop) || quality.hdop > params.bootstrap_max_hdop) {
+    if (reason != nullptr) {
+      *reason = "anchor waiting for HDOP threshold";
+    }
+    return false;
+  }
+  if (params.use_rtk_heading_for_yaw && !heading_yaw_rad.has_value()) {
+    if (reason != nullptr) {
+      *reason = "anchor waiting for RTK heading";
+    }
+    return false;
+  }
+  if (reason != nullptr) {
+    *reason = "anchor bootstrap candidate accepted";
+  }
+  return true;
+}
+
 }  // namespace
 
 class RtkFgoNode : public rclcpp::Node
@@ -110,7 +177,16 @@ public:
     declareParameters();
     readParameters();
     graph_ = std::make_unique<FgoGraph>(max_states_);
+    if (imu_enabled_) {
+      graph_->configureImu(imu_config_);
+    }
     graph_->setMaxShadowCorrection(max_position_jump_m_);
+    if (publish_tf_ || nav2_use_fgo_) {
+      RCLCPP_WARN(
+        get_logger(),
+        "RTK FGO experimental TF/Nav2 flag enabled; this must not be used as a production "
+        "map->odom source.");
+    }
     smoother_ = std::make_unique<CorrectionSmoother>(
       max_translation_step_m_, max_yaw_step_deg_ * kPi / 180.0);
 
@@ -143,9 +219,34 @@ private:
     declare_parameter<double>("window.duration_s", 15.0);
     declare_parameter<double>("window.keyframe_rate_hz", 10.0);
     declare_parameter<int>("window.max_states", 120);
+    declare_parameter<bool>("factors.imu_enabled", false);
+    declare_parameter<bool>("factors.fastlio_enabled", true);
+    declare_parameter<bool>("factors.wheel_enabled", true);
+    declare_parameter<bool>("factors.rtk_position_enabled", true);
+    declare_parameter<bool>("factors.rtk_heading_enabled", true);
+    declare_parameter<int>("rtk_gating.fixed_quality_code", 4);
+    declare_parameter<int>("rtk_gating.float_quality_code", 5);
+    declare_parameter<int>("rtk_gating.min_satellites", 10);
+    declare_parameter<double>("rtk_gating.max_hdop", 2.0);
+    declare_parameter<double>("rtk_gating.max_strong_position_innovation_m", 3.0);
+    declare_parameter<double>("rtk_gating.max_weak_position_innovation_m", 5.0);
+    declare_parameter<double>("rtk_gating.max_heading_innovation_rad", 0.5);
+    declare_parameter<double>("rtk_gating.max_implied_speed_mps", 2.0);
     declare_parameter<int>("rtk_gating.recovery_min_samples", 8);
     declare_parameter<double>("rtk_gating.max_position_jump_m", 3.0);
     declare_parameter<double>("rtk_gating.heading_sigma_rad", 0.05);
+    declare_parameter<bool>("frame_anchor.require_fixed_for_anchor", true);
+    declare_parameter<bool>("frame_anchor.use_rtk_heading_for_yaw", true);
+    declare_parameter<double>("frame_anchor.max_anchor_position_innovation_m", 2.0);
+    declare_parameter<int>("frame_anchor.bootstrap_min_satellites", 10);
+    declare_parameter<double>("frame_anchor.bootstrap_max_hdop", 2.0);
+    declare_parameter<int>("frame_anchor.bootstrap_required_consecutive_samples", 5);
+    declare_parameter<double>("imu.accelerometer_noise_sigma", 0.1);
+    declare_parameter<double>("imu.gyroscope_noise_sigma", 0.01);
+    declare_parameter<double>("imu.accelerometer_bias_rw_sigma", 0.001);
+    declare_parameter<double>("imu.gyroscope_bias_rw_sigma", 0.0001);
+    declare_parameter<double>("imu.integration_error_sigma", 1.0e-8);
+    declare_parameter<double>("imu.gravity_mps2", 9.81);
     declare_parameter<double>("correction_smoother.max_translation_step_m", 0.15);
     declare_parameter<double>("correction_smoother.max_yaw_step_deg", 0.3);
   }
@@ -168,11 +269,57 @@ private:
     keyframe_rate_hz_ = get_parameter("window.keyframe_rate_hz").as_double();
     max_states_ = static_cast<std::size_t>(
       std::max<std::int64_t>(2, get_parameter("window.max_states").as_int()));
+    imu_enabled_ = get_parameter("factors.imu_enabled").as_bool();
+    fastlio_enabled_ = get_parameter("factors.fastlio_enabled").as_bool();
+    wheel_enabled_ = get_parameter("factors.wheel_enabled").as_bool();
+    rtk_position_enabled_ = get_parameter("factors.rtk_position_enabled").as_bool();
+    rtk_heading_enabled_ = get_parameter("factors.rtk_heading_enabled").as_bool();
+    gate_params_.fixed_quality_code =
+      static_cast<int>(get_parameter("rtk_gating.fixed_quality_code").as_int());
+    gate_params_.float_quality_code =
+      static_cast<int>(get_parameter("rtk_gating.float_quality_code").as_int());
+    gate_params_.min_satellites =
+      static_cast<int>(get_parameter("rtk_gating.min_satellites").as_int());
+    gate_params_.max_hdop = get_parameter("rtk_gating.max_hdop").as_double();
+    gate_params_.max_strong_position_innovation_m =
+      get_parameter("rtk_gating.max_strong_position_innovation_m").as_double();
+    gate_params_.max_weak_position_innovation_m =
+      get_parameter("rtk_gating.max_weak_position_innovation_m").as_double();
+    gate_params_.max_heading_innovation_rad =
+      get_parameter("rtk_gating.max_heading_innovation_rad").as_double();
+    gate_params_.max_implied_speed_mps =
+      get_parameter("rtk_gating.max_implied_speed_mps").as_double();
     recovery_min_samples_ =
       static_cast<std::size_t>(
       std::max<std::int64_t>(1, get_parameter("rtk_gating.recovery_min_samples").as_int()));
     max_position_jump_m_ = get_parameter("rtk_gating.max_position_jump_m").as_double();
     heading_sigma_rad_ = get_parameter("rtk_gating.heading_sigma_rad").as_double();
+    anchor_params_.require_fixed_for_anchor =
+      get_parameter("frame_anchor.require_fixed_for_anchor").as_bool();
+    anchor_params_.use_rtk_heading_for_yaw =
+      get_parameter("frame_anchor.use_rtk_heading_for_yaw").as_bool();
+    anchor_max_position_innovation_m_ =
+      get_parameter("frame_anchor.max_anchor_position_innovation_m").as_double();
+    anchor_params_.bootstrap_min_satellites =
+      static_cast<int>(get_parameter("frame_anchor.bootstrap_min_satellites").as_int());
+    anchor_params_.bootstrap_max_hdop =
+      get_parameter("frame_anchor.bootstrap_max_hdop").as_double();
+    anchor_params_.bootstrap_required_consecutive_samples =
+      static_cast<std::size_t>(
+      std::max<std::int64_t>(
+        1, get_parameter("frame_anchor.bootstrap_required_consecutive_samples").as_int()));
+    imu_config_.accelerometer_noise_sigma =
+      get_parameter("imu.accelerometer_noise_sigma").as_double();
+    imu_config_.gyroscope_noise_sigma =
+      get_parameter("imu.gyroscope_noise_sigma").as_double();
+    imu_config_.accelerometer_bias_rw_sigma =
+      get_parameter("imu.accelerometer_bias_rw_sigma").as_double();
+    imu_config_.gyroscope_bias_rw_sigma =
+      get_parameter("imu.gyroscope_bias_rw_sigma").as_double();
+    imu_config_.integration_error_sigma =
+      get_parameter("imu.integration_error_sigma").as_double();
+    imu_config_.gravity_mps2 =
+      get_parameter("imu.gravity_mps2").as_double();
     max_translation_step_m_ =
       get_parameter("correction_smoother.max_translation_step_m").as_double();
     max_yaw_step_deg_ = get_parameter("correction_smoother.max_yaw_step_deg").as_double();
@@ -189,6 +336,9 @@ private:
     imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
       imu_topic_, 100,
       [this](sensor_msgs::msg::Imu::SharedPtr msg) {
+        if (!imu_enabled_) {
+          return;
+        }
         const double stamp_s = stampToSec(msg->header.stamp);
         graph_->addImuSample(
           stamp_s,
@@ -256,8 +406,9 @@ private:
       graph_->addInitialState(latest_lio->stamp_s, lio_pose, velocityFromOdom(latest_lio->value));
       last_lio_stamp_s_ = latest_lio->stamp_s;
       last_lio_pose_ = lio_pose;
-    } else if (latest_lio->stamp_s > last_lio_stamp_s_ + 1e-4) {
+    } else if (fastlio_enabled_ && latest_lio->stamp_s > last_lio_stamp_s_ + 1e-4) {
       graph_->addFastLioBetween(latest_lio->stamp_s, last_lio_pose_.between(lio_pose));
+      addWheelFactorForLatestTransition(latest_lio->stamp_s);
       last_lio_stamp_s_ = latest_lio->stamp_s;
       last_lio_pose_ = lio_pose;
     }
@@ -265,18 +416,20 @@ private:
     auto gate_decision = evaluateLatestRtkGate();
     auto state = state_machine_.update(gate_decision.mode, true);
     ShadowCommitResult commit_result;
-    if (gate_decision.mode == RtkGateMode::StrongCandidate &&
+    if (rtk_position_enabled_ && gate_decision.mode == RtkGateMode::StrongCandidate &&
       (state == LocalizationState::RtkRecovery || state == LocalizationState::RtkLocked))
     {
       commit_result = tryCommitLatestRtk();
       if (commit_result.committed) {
         state_machine_.markRecoveryCommitted();
+        if (rtk_heading_enabled_) {
+          addLatestHeadingFactor();
+        }
       } else if (state == LocalizationState::RtkRecovery ||
         state == LocalizationState::RtkLocked)
       {
         state_machine_.markRecoveryRejected();
       }
-      addLatestHeadingFactor();
     }
 
     publishEstimate(commit_result);
@@ -296,41 +449,180 @@ private:
     }
 
     const auto estimate = graph_->latestEstimate();
-    const auto fix_point = latestFixPoint();
-    if (!estimate.has_value() || !fix_point.has_value()) {
+    const auto latest_fix = latestValidFix();
+    if (!estimate.has_value() || !latest_fix.has_value()) {
       return {RtkGateMode::Rejected, "missing graph estimate or valid fix"};
     }
 
+    const auto heading_yaw = latestHeadingYaw(estimate->stamp_s);
+    if (!frame_anchor_.initialized()) {
+      updateFrameAnchorBootstrap(*latest_fix, *quality, heading_yaw, estimate->pose);
+      if (!frame_anchor_.initialized()) {
+        return {RtkGateMode::Rejected, "waiting for frame anchor bootstrap"};
+      }
+    }
+
+    const auto fix_point = frame_anchor_.geoToMap(geoPointFromFix(*latest_fix));
+    if (!fix_point.has_value()) {
+      return {RtkGateMode::Rejected, "frame anchor could not map fix"};
+    }
+    latest_fix_sigma_m_ = fixSigmaXY(*latest_fix);
     const double position_innovation =
       (estimate->pose.translation() - *fix_point).norm();
+    if (position_innovation > anchor_max_position_innovation_m_ &&
+      anchor_bootstrap_count_ < anchor_params_.bootstrap_required_consecutive_samples)
+    {
+      return {RtkGateMode::Rejected, "anchor bootstrap position innovation too large"};
+    }
+
+    std::string speed_reason = "speed history not ready";
+    const auto fix_stamp_s = stampToSec(latest_fix->header.stamp);
+    const auto implied_speed = computeMappedFixSpeed(*fix_point, fix_stamp_s, &speed_reason);
+
     double heading_innovation = 0.0;
-    if (auto heading = heading_buffer_.closest(estimate->stamp_s, 0.5); heading.has_value()) {
+    if (heading_yaw.has_value()) {
       heading_innovation =
         normalizeYaw(
         estimate->pose.rotation().yaw() -
-        yawFromQuaternion(heading->value.quaternion));
+        *heading_yaw);
       quality->heading_stable = true;
     }
-    return evaluateRtkGate(*quality, position_innovation, heading_innovation);
+
+    RtkGateInput input;
+    input.quality = *quality;
+    input.position_innovation_m = position_innovation;
+    input.heading_innovation_rad = heading_innovation;
+    input.implied_speed_mps = implied_speed;
+    auto decision = evaluateRtkGate(input, gate_params_);
+    if (!implied_speed.has_value() && decision.mode != RtkGateMode::Rejected) {
+      decision.reason += "; " + speed_reason;
+    }
+    if (decision.mode != RtkGateMode::Rejected) {
+      previous_mapped_fix_ = *fix_point;
+      previous_mapped_fix_stamp_s_ = fix_stamp_s;
+    }
+    return decision;
   }
 
-  std::optional<gtsam::Point3> latestFixPoint()
+  std::optional<sensor_msgs::msg::NavSatFix> latestValidFix()
   {
     auto latest_fix = fix_buffer_.latest();
     if (!latest_fix.has_value() || !validFix(latest_fix->value)) {
       return std::nullopt;
     }
-    const auto & fix = latest_fix->value;
-    if (!local_cartesian_) {
-      local_cartesian_ = std::make_unique<GeographicLib::LocalCartesian>(
-        fix.latitude, fix.longitude, fix.altitude);
+    return latest_fix->value;
+  }
+
+  std::optional<double> latestHeadingYaw(double stamp_s) const
+  {
+    auto heading = heading_buffer_.closest(stamp_s, 0.5);
+    if (!heading.has_value()) {
+      return std::nullopt;
     }
-    double x = 0.0;
-    double y = 0.0;
-    double z = 0.0;
-    local_cartesian_->Forward(fix.latitude, fix.longitude, fix.altitude, x, y, z);
+    const double yaw = yawFromQuaternion(heading->value.quaternion);
+    if (!std::isfinite(yaw)) {
+      return std::nullopt;
+    }
+    return yaw;
+  }
+
+  void addWheelFactorForLatestTransition(double stamp_s)
+  {
+    wheel_factor_last_added_ = false;
+    if (!wheel_enabled_) {
+      wheel_factor_reason_ = "wheel factor disabled";
+      return;
+    }
+    auto wheel_sample = wheel_buffer_.closest(stamp_s, 0.20);
+    if (!wheel_sample.has_value()) {
+      wheel_factor_reason_ = "no wheel odom sample near FAST-LIO keyframe";
+      return;
+    }
+    const auto wheel_pose = poseFromOdom(wheel_sample->value);
+    if (!previous_wheel_pose_.has_value()) {
+      previous_wheel_pose_ = wheel_pose;
+      previous_wheel_stamp_s_ = wheel_sample->stamp_s;
+      wheel_factor_reason_ = "wheel history initialized";
+      return;
+    }
+
+    const auto relative_wheel_pose = previous_wheel_pose_->between(wheel_pose);
+    wheel_factor_last_added_ =
+      graph_->addWheelPlanarFactorForLatestTransition(relative_wheel_pose);
+    previous_wheel_pose_ = wheel_pose;
+    previous_wheel_stamp_s_ = wheel_sample->stamp_s;
+    wheel_factor_reason_ = wheel_factor_last_added_ ?
+      "wheel factor added to latest transition" :
+      "graph has fewer than two states";
+  }
+
+  void updateFrameAnchorBootstrap(
+    const sensor_msgs::msg::NavSatFix & fix,
+    const RtkQuality & quality,
+    const std::optional<double> & heading_yaw,
+    const gtsam::Pose3 & reference_pose)
+  {
+    const auto geo = geoPointFromFix(fix);
+    std::string reason;
+    const bool candidate =
+      anchorBootstrapCandidate(
+      geo, quality, heading_yaw, anchor_params_, gate_params_.fixed_quality_code, &reason);
+    anchor_bootstrap_reason_ = reason;
+    if (!candidate) {
+      anchor_bootstrap_count_ = 0;
+      return;
+    }
+    ++anchor_bootstrap_count_;
+    if (anchor_bootstrap_count_ < anchor_params_.bootstrap_required_consecutive_samples) {
+      return;
+    }
+    const auto yaw_for_anchor =
+      anchor_params_.use_rtk_heading_for_yaw ? heading_yaw : std::nullopt;
+    if (!frame_anchor_.initialize(geo, reference_pose, yaw_for_anchor)) {
+      anchor_bootstrap_reason_ = "frame anchor initialization rejected";
+      anchor_bootstrap_count_ = 0;
+      return;
+    }
     latest_fix_sigma_m_ = fixSigmaXY(fix);
-    return gtsam::Point3(x, y, z);
+    anchor_bootstrap_reason_ = "frame anchor initialized";
+  }
+
+  std::optional<gtsam::Point3> latestFixPoint()
+  {
+    const auto latest_fix = latestValidFix();
+    if (!latest_fix.has_value() || !frame_anchor_.initialized()) {
+      return std::nullopt;
+    }
+    auto mapped = frame_anchor_.geoToMap(geoPointFromFix(*latest_fix));
+    if (mapped.has_value()) {
+      latest_fix_sigma_m_ = fixSigmaXY(*latest_fix);
+    }
+    return mapped;
+  }
+
+  std::optional<double> computeMappedFixSpeed(
+    const gtsam::Point3 & mapped_fix,
+    double stamp_s,
+    std::string * reason)
+  {
+    if (!previous_mapped_fix_.has_value() || !previous_mapped_fix_stamp_s_.has_value()) {
+      if (reason != nullptr) {
+        *reason = "speed history not ready";
+      }
+      return std::nullopt;
+    }
+    const double dt = stamp_s - *previous_mapped_fix_stamp_s_;
+    if (dt <= 1e-3) {
+      if (reason != nullptr) {
+        *reason = "speed history timestamp not advanced";
+      }
+      return std::nullopt;
+    }
+    const double speed_mps = pointDistance(mapped_fix, *previous_mapped_fix_) / dt;
+    if (reason != nullptr) {
+      *reason = "speed history ready";
+    }
+    return speed_mps;
   }
 
   ShadowCommitResult tryCommitLatestRtk()
@@ -488,8 +780,72 @@ private:
     correction.key = "last_correction_norm_m";
     correction.value = std::to_string(commit_result.correction_norm_m);
     status.values.push_back(correction);
+    diagnostic_msgs::msg::KeyValue anchor_initialized;
+    anchor_initialized.key = "frame_anchor_initialized";
+    anchor_initialized.value = frame_anchor_.initialized() ? "true" : "false";
+    status.values.push_back(anchor_initialized);
+    diagnostic_msgs::msg::KeyValue anchor_status;
+    anchor_status.key = "frame_anchor_status";
+    anchor_status.value = frame_anchor_.statusString();
+    status.values.push_back(anchor_status);
+    diagnostic_msgs::msg::KeyValue anchor_count;
+    anchor_count.key = "frame_anchor_bootstrap_count";
+    anchor_count.value = std::to_string(anchor_bootstrap_count_);
+    status.values.push_back(anchor_count);
+    diagnostic_msgs::msg::KeyValue anchor_reason;
+    anchor_reason.key = "frame_anchor_bootstrap_reason";
+    anchor_reason.value = anchor_bootstrap_reason_;
+    status.values.push_back(anchor_reason);
+    diagnostic_msgs::msg::KeyValue wheel_enabled;
+    wheel_enabled.key = "wheel_factor_enabled";
+    wheel_enabled.value = wheel_enabled_ ? "true" : "false";
+    status.values.push_back(wheel_enabled);
+    diagnostic_msgs::msg::KeyValue wheel_added;
+    wheel_added.key = "wheel_factor_last_added";
+    wheel_added.value = wheel_factor_last_added_ ? "true" : "false";
+    status.values.push_back(wheel_added);
+    diagnostic_msgs::msg::KeyValue wheel_reason;
+    wheel_reason.key = "wheel_factor_reason";
+    wheel_reason.value = wheel_factor_reason_;
+    status.values.push_back(wheel_reason);
+    const auto graph_diagnostics = graph_->diagnostics();
+    addDiagnosticValue(status, "graph_state_count", graph_diagnostics.state_count);
+    addDiagnosticValue(status, "graph_value_count", graph_diagnostics.value_count);
+    addDiagnosticValue(status, "graph_factor_count", graph_diagnostics.factor_count);
+    addDiagnosticValue(status, "graph_window_rebuild_count", graph_diagnostics.window_rebuild_count);
+    addDiagnosticValue(status, "graph_latest_state_index", graph_diagnostics.latest_state_index);
+    addDiagnosticValue(status, "graph_oldest_state_index", graph_diagnostics.oldest_state_index);
+    addDiagnosticValue(
+      status, "graph_last_optimization_ok",
+      std::string(graph_diagnostics.last_optimization_ok ? "true" : "false"));
+    addDiagnosticValue(
+      status, "graph_last_optimization_error",
+      graph_diagnostics.last_optimization_error);
     array.status.push_back(status);
     diagnostics_pub_->publish(array);
+  }
+
+  template<typename T>
+  void addDiagnosticValue(
+    diagnostic_msgs::msg::DiagnosticStatus & status,
+    const std::string & key,
+    const T & value)
+  {
+    diagnostic_msgs::msg::KeyValue entry;
+    entry.key = key;
+    entry.value = std::to_string(value);
+    status.values.push_back(entry);
+  }
+
+  void addDiagnosticValue(
+    diagnostic_msgs::msg::DiagnosticStatus & status,
+    const std::string & key,
+    const std::string & value)
+  {
+    diagnostic_msgs::msg::KeyValue entry;
+    entry.key = key;
+    entry.value = value;
+    status.values.push_back(entry);
   }
 
   std::string fastlio_topic_;
@@ -504,12 +860,23 @@ private:
   std::string odom_fgo_frame_;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
+  bool imu_enabled_ = false;
+  bool fastlio_enabled_ = true;
+  bool wheel_enabled_ = true;
+  bool rtk_position_enabled_ = true;
+  bool rtk_heading_enabled_ = true;
   double window_duration_s_ = 15.0;
   double keyframe_rate_hz_ = 10.0;
   std::size_t max_states_ = 120;
+  RtkGateParams gate_params_;
   std::size_t recovery_min_samples_ = 8;
   double max_position_jump_m_ = 3.0;
   double heading_sigma_rad_ = 0.05;
+  FrameAnchorBootstrapParams anchor_params_;
+  double anchor_max_position_innovation_m_ = 2.0;
+  std::size_t anchor_bootstrap_count_ = 0;
+  std::string anchor_bootstrap_reason_ = "not started";
+  ImuPreintegrationConfig imu_config_;
   double max_translation_step_m_ = 0.15;
   double max_yaw_step_deg_ = 0.3;
   double latest_fix_sigma_m_ = 1.0;
@@ -518,6 +885,12 @@ private:
   bool has_output_pose_ = false;
   gtsam::Pose3 output_pose_;
   std::string latest_rtk_status_ = "-";
+  std::optional<gtsam::Point3> previous_mapped_fix_;
+  std::optional<double> previous_mapped_fix_stamp_s_;
+  std::optional<gtsam::Pose3> previous_wheel_pose_;
+  std::optional<double> previous_wheel_stamp_s_;
+  bool wheel_factor_last_added_ = false;
+  std::string wheel_factor_reason_ = "not started";
 
   TimestampedBuffer<nav_msgs::msg::Odometry> fastlio_buffer_{2.0};
   TimestampedBuffer<nav_msgs::msg::Odometry> wheel_buffer_{2.0};
@@ -528,7 +901,7 @@ private:
   std::unique_ptr<FgoGraph> graph_;
   LocalizationStateMachine state_machine_;
   std::unique_ptr<CorrectionSmoother> smoother_;
-  std::unique_ptr<GeographicLib::LocalCartesian> local_cartesian_;
+  FrameAnchor frame_anchor_;
   nav_msgs::msg::Path path_msg_;
 
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr fastlio_sub_;

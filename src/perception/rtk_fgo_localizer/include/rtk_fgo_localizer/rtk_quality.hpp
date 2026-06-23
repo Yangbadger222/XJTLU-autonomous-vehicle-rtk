@@ -31,7 +31,14 @@ struct RtkGateDecision
   std::string reason;
 };
 
+struct RtkGateInput;
+struct RtkGateParams;
+
 std::optional<RtkQuality> parseGgaQuality(const std::string & sentence);
+
+RtkGateDecision evaluateRtkGate(
+  const RtkGateInput & input,
+  const RtkGateParams & params);
 
 RtkGateDecision evaluateRtkGate(
   const RtkQuality & quality,

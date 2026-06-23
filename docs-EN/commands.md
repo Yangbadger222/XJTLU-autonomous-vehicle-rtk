@@ -528,10 +528,25 @@ ros2 topic echo /rtk_fgo/correction_status
 ros2 topic echo /rtk_fgo/factor_diagnostics
 ```
 
+Generate replay metrics from the latest tightly-coupled bag:
+
+```bash
+python3 scripts/evaluate_rtk_fgo_bag.py \
+  --bag runtime-data/logs/latest/bag \
+  --out runtime-data/logs/latest/system/rtk_fgo_metrics.json
+```
+
+Experimental TF must be enabled explicitly and only for guarded tests:
+
+```bash
+ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_use_fgo:=false
+```
+
 Notes:
 - This mode defaults to `publish_tf=false` and does not broadcast production `map -> odom`
 - Nav2 is not remapped, and `corridor`, `explore-gps`, and `nav-gps` are not replaced
 - The automatic bag includes `/rtk_fgo/*`, `/fix`, `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, FAST-LIO odometry, IMU, and `/tf`
+- `/rtk_fgo/factor_diagnostics` includes frame-anchor, wheel-factor, and graph-window health keys
 
 ***
 

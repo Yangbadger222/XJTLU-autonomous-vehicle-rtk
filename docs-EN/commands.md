@@ -519,3 +519,21 @@ When logging in, use our organization's access token.
 ```bash
 hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-data-2026-surf
 ```
+
+***
+
+## NTRIP Account Setting
+
+To set up or update the NTRIP credentials, run:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+source scripts/setup_ntrip.sh # Use source, not bash
+```
+
+Then, paste the text from the Taobao vendor in one line, exactly as-is. The script creates the temporary file `/tmp/um982_cors.yaml` and adds the environment variables `FYP_RTK_PARAMS_FILE` and `NTRIP_PASSWORD` to `/tmp/ntrip_env.sh`.
+
+If you open a **new terminal** later, you do not need to paste the password again. Just load the active environment by running:
+```bash
+source /tmp/ntrip_env.sh
+```

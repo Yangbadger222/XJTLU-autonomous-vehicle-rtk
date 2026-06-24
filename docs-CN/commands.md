@@ -511,6 +511,7 @@ source install/setup.bash
 ```bash
 cd ~/XJTLU-autonomous-vehicle
 make launch-tightly-coupled
+cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 带现场 RTK/CORS 参数启动：
@@ -526,6 +527,16 @@ ros2 topic echo /rtk_fgo/status
 ros2 topic echo /rtk_fgo/rtk_gate
 ros2 topic echo /rtk_fgo/correction_status
 ros2 topic echo /rtk_fgo/factor_diagnostics
+```
+
+检查底盘反馈和录包是否正常：
+
+```bash
+ros2 topic hz /cmd_vel
+ros2 topic hz /odom_CBoar
+ros2 topic echo /odom_CBoar --once
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/odom_CBoar|/cmd_vel|/fix|/heading|/rtk_fgo|/pgo/optimized_odom|/pgo/loop_markers|/livox/lidar|/fastlio2/body_cloud'
+tail -f runtime-data/logs/latest/data/serial_reader.log
 ```
 
 从最新 tightly-coupled bag 生成 replay 指标：
@@ -545,7 +556,7 @@ ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_u
 说明：
 - 该模式默认 `publish_tf=false`，不广播生产 `map -> odom`
 - 不 remap Nav2，不替代 `corridor`、`explore-gps`、`nav-gps`
-- 自动录包包含 `/rtk_fgo/*`、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`、FAST-LIO odom、IMU 和 `/tf`
+- 自动录包包含 `/rtk_fgo/*`、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`、`/livox/lidar`、`/livox/imu`、`/fastlio2/lio_odom`、`/fastlio2/body_cloud`、`/pgo/optimized_odom`、`/pgo/loop_markers` 和 `/tf`
 - `/rtk_fgo/factor_diagnostics` 包含 frame anchor、wheel factor 和 graph window 健康状态字段
 
 ***

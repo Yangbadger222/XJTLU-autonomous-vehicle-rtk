@@ -28,7 +28,7 @@ Current implemented scope covers:
 - `rtk_fgo_node.cpp`: implements the ROS shadow node. It subscribes to FAST-LIO odometry, IMU, wheel odometry, `/fix`, `/heading`, `/rtk/status`, and `/rtk/nmea_sentence`; it publishes `/rtk_fgo/odom`, `/rtk_fgo/path`, `/rtk_fgo/status`, `/rtk_fgo/rtk_gate`, `/rtk_fgo/correction_status`, and `/rtk_fgo/factor_diagnostics`.
 - `publish_tf` must stay `false` by default. Even when manually enabled, the node may only broadcast the experimental `map -> odom_fgo`, never the production `map -> odom`.
 - `scripts/evaluate_rtk_fgo_bag.py`: summarizes recorded `/rtk_fgo/status` and `/rtk_fgo/correction_status` into JSON metrics for replay acceptance, correction size, and rejection reasons.
-- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: starts the Explore baseline, UM982 RTK, and `rtk_fgo_node`, then records source sensor topics and `/rtk_fgo/*`. Experimental TF/Nav2 flags can only be enabled by explicit launch arguments and log a runtime warning.
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: starts the Explore baseline, UM982 RTK, and `rtk_fgo_node`, then records source sensor topics, `/rtk_fgo/*`, and both Livox point clouds. Experimental TF/Nav2 flags can only be enabled by explicit launch arguments and log a runtime warning.
 - The current implementation does not remap Nav2 and does not change any existing production navigation mode.
 
 ## 2. Existing System Boundary
@@ -43,6 +43,7 @@ The current system splits localization responsibilities:
 The new tight-coupled design must run beside this stack first. It may publish `/rtk_fgo/odom` and diagnostics, but it must not publish the production `map -> odom` transform in the first stage.
 
 One current topic mismatch must be handled explicitly: documentation often says `odom_CBoard`, while `serial_reader_node.cpp` currently publishes `odom_CBoar`. The first implementation should parameterize the wheel/chassis odometry topic and use the real executable topic as the default until the topic name is corrected deliberately.
+If `/odom_CBoar` is zero in the bag, check `serial_reader.log` and `/cmd_vel` first; this is usually a chassis feedback-chain issue, not an FGO subscription-name issue.
 
 ## 3. Target Data Flow
 
@@ -289,7 +290,7 @@ Stage 1: ROS-free core tests
 Stage 2: rosbag replay shadow mode
 
 - Run the existing localization stack and `rtk_fgo_localizer` in parallel.
-- Record `/rtk_fgo/*`, source sensor topics, `/tf`, `/cmd_vel`, and RTK raw/status topics.
+- Record `/rtk_fgo/*`, source sensor topics, `/tf`, `/cmd_vel`, and RTK raw/status topics, plus `/pgo/optimized_odom` and `/pgo/loop_markers` for side-by-side comparison with the main PGO chain.
 - Confirm that no production TF is changed.
 - Generate replay metrics:
 

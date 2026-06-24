@@ -511,6 +511,7 @@ Launch the experimental shadow mode:
 ```bash
 cd ~/XJTLU-autonomous-vehicle
 make launch-tightly-coupled
+cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 Launch with field RTK/CORS parameters:
@@ -526,6 +527,16 @@ ros2 topic echo /rtk_fgo/status
 ros2 topic echo /rtk_fgo/rtk_gate
 ros2 topic echo /rtk_fgo/correction_status
 ros2 topic echo /rtk_fgo/factor_diagnostics
+```
+
+Check chassis feedback and bag capture:
+
+```bash
+ros2 topic hz /cmd_vel
+ros2 topic hz /odom_CBoar
+ros2 topic echo /odom_CBoar --once
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/odom_CBoar|/cmd_vel|/fix|/heading|/rtk_fgo|/pgo/optimized_odom|/pgo/loop_markers|/livox/lidar|/fastlio2/body_cloud'
+tail -f runtime-data/logs/latest/data/serial_reader.log
 ```
 
 Generate replay metrics from the latest tightly-coupled bag:
@@ -545,7 +556,7 @@ ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_u
 Notes:
 - This mode defaults to `publish_tf=false` and does not broadcast production `map -> odom`
 - Nav2 is not remapped, and `corridor`, `explore-gps`, and `nav-gps` are not replaced
-- The automatic bag includes `/rtk_fgo/*`, `/fix`, `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, FAST-LIO odometry, IMU, and `/tf`
+- The automatic bag includes `/rtk_fgo/*`, `/fix`, `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, `/fastlio2/lio_odom`, `/fastlio2/body_cloud`, `/pgo/optimized_odom`, `/pgo/loop_markers`, and `/tf`
 - `/rtk_fgo/factor_diagnostics` includes frame-anchor, wheel-factor, and graph-window health keys
 
 ***

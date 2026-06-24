@@ -28,7 +28,7 @@
 - `rtk_fgo_node.cpp`: 实现 ROS shadow node，订阅 FAST-LIO odom、IMU、wheel odom、`/fix`、`/heading`、`/rtk/status`、`/rtk/nmea_sentence`，发布 `/rtk_fgo/odom`、`/rtk_fgo/path`、`/rtk_fgo/status`、`/rtk_fgo/rtk_gate`、`/rtk_fgo/correction_status`、`/rtk_fgo/factor_diagnostics`。
 - `publish_tf` 默认必须保持 `false`。即使手动开启，节点也只能广播实验 `map -> odom_fgo`，不能广播生产 `map -> odom`。
 - `scripts/evaluate_rtk_fgo_bag.py`: 将录制的 `/rtk_fgo/status` 和 `/rtk_fgo/correction_status` 汇总成 JSON 指标，用于回放判断接受率、校正量和拒绝原因。
-- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: 启动 Explore 基线、UM982 RTK 和 `rtk_fgo_node`，并录制源传感器 topic 与 `/rtk_fgo/*`。实验 TF/Nav2 只能通过显式 launch 参数开启，开启时节点会打印运行时告警。
+- `system_tightly_coupled.launch.py` + `make launch-tightly-coupled`: 启动 Explore 基线、UM982 RTK 和 `rtk_fgo_node`，并录制源传感器 topic、`/rtk_fgo/*` 和两路 Livox 点云。实验 TF/Nav2 只能通过显式 launch 参数开启，开启时节点会打印运行时告警。
 - 当前实现不 remap Nav2，不改变任何现有生产导航模式。
 
 ## 2. 现有系统边界
@@ -43,6 +43,7 @@
 新的紧耦合设计第一阶段必须和这套链路并行运行。它可以发布 `/rtk_fgo/odom` 和诊断信息，但不能在第一阶段发布生产链使用的 `map -> odom`。
 
 一个现有 topic 不一致必须显式处理：文档常写 `odom_CBoard`，但当前 `serial_reader_node.cpp` 实际发布的是 `odom_CBoar`。第一版应参数化 wheel/chassis odom topic，并在未有意修正 topic 名之前，以真实可执行 topic 作为默认值。
+如果 `odom_CBoar` 在 bag 里为 0，优先检查 `serial_reader.log` 和 `/cmd_vel` 是否有数据；这通常是底盘反馈链路问题，不是 FGO 订阅名问题。
 
 ## 3. 目标数据流
 
@@ -289,7 +290,7 @@ yaw <= 0.2-0.5 deg per update
 阶段 2：rosbag replay shadow mode
 
 - 并行运行现有定位链和 `rtk_fgo_localizer`。
-- 记录 `/rtk_fgo/*`、源传感器 topic、`/tf`、`/cmd_vel`、RTK raw/status topic。
+- 记录 `/rtk_fgo/*`、源传感器 topic、`/tf`、`/cmd_vel`、RTK raw/status topic，以及 `/pgo/optimized_odom` 和 `/pgo/loop_markers`，方便和主 PGO 链对照。
 - 确认生产 TF 没有被改变。
 - 生成 replay 指标：
 

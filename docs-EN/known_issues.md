@@ -114,11 +114,21 @@
     - Description: The old KEY/B/X stop paths could stop CAN output or use PID zero-speed braking, causing noticeable wheel reversal.
     - Status: Updated further on 2026-06-14 to separate stop semantics: KEY/X/gamepad-loss keep sustained zero-current coast-stop output, while `B` now performs damped active braking with a high-speed current limit, low-speed current tapering, current-rate limiting, and zero-current release near stop; the `B` latch initializes only on the first trigger, holding `B` no longer resets the current ramp, and the indicator is now non-blocking solid pink; bench and vehicle validation are still required.
 
-19. **[Low] USB 2.0 interface limitation**
-    - Description: Unfriendly for certain high-bandwidth peripheral expansion.
-    - Status: Hardware limitation
-
 ## Recently Fixed
+
+19. **[Fixed] USB 2.0 interface limitation**
+    - Description: Unfriendly for certain high-bandwidth peripheral expansion.
+        - S350 V1.1 Hardware Profile:
+        - Compute Connector: Standard 260-pin SO-DIMM for NVIDIA Jetson modules.
+        - Power: 1x yellow XT30 connector (DCIN) for direct LiPo battery input.
+        - Networking & Display: 1x Gigabit Ethernet (RJ45) and 1x HDMI port.
+        - Camera Interface: 2x MIPI-CSI FPC connectors.
+        - USB: 2x USB Type-C ports (used for data and module flashing/recovery).
+    - Fix:
+        - Removed the previous `S350 V1.1 OEM Jetson Carrier Board`
+        - Changed previous board to a `Seeed reComputer 载板（4×USB 3.0 + GbE + HDMI）`, with 4 ports for USB 3.0
+        - Item link: https://e.tb.cn/h.RZusJWI?tk=QTX75qlJplP
+    - Status: Jetson is attached to the Seeed board, working correctly (2026-06-25)
 
 32. **[Fixed] runtime-data Hugging Face remote synchronization blocked**
    - Description: Attempts to archive and push on-vehicle test runtime-data to the Hugging Face dataset failed.

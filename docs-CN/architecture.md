@@ -130,6 +130,7 @@ map -> odom -> base_link
 
 ```text
 ~/XJTLU-autonomous-vehicle/runtime-data/
+├── bags/
 ├── config/
 │   └── log_switch.yaml
 ├── gnss/

@@ -1,6 +1,6 @@
 # Hardware Specifications
 
-> Last updated: 2026-03-20
+> Last updated: 2026-06-25
 >
 > This document records the models, parameters, and installation configurations of all hardware components on the current vehicle.
 > Data sources: senior theses (Jia He 2025, Li Tongfei 2025, Tang Longbin 2024) + on-vehicle measurements + configuration files.
@@ -93,14 +93,15 @@
 
 | Item | Value |
 |------|-------|
-| Model | NVIDIA Jetson Orin NX 16GB |
+| Core Module | NVIDIA Jetson Orin NX 16GB |
+| Carrier Board | Seeed reComputer Carrier Board (4x USB 3.0 Type-A, 1x GbE, 1x HDMI) |
 | GPU | Ampere, 1024 CUDA, 32 Tensor |
 | AI performance | 100 TOPS (INT8) |
 | CPU | 8-core ARM Cortex-A78AE |
 | Memory | 16GB LPDDR5, 102.4 GB/s |
 | OS | Ubuntu 22.04 + ROS2 Humble |
 | Ethernet | enP8p1s0, 192.168.1.50/24 |
-| Remote access | Tailscale VPN 100.97.227.24 |
+| Remote access | Tailscale VPN 100.79.128.21 |
 
 ## 4. LiDAR
 
@@ -178,19 +179,20 @@
 
 | Device | Device File | Connection | udev |
 |--------|-------------|------------|------|
-| Livox MID360 | Ethernet 192.168.1.x | Ethernet | N/A |
-| Chassis STM32 | /dev/serial_twistctl | USB (ttyACM0) | 2e3c:5740 |
-| GPS G60 | /dev/wheeltec_gps | USB (ttyUSB0) | 10c4:ea60 |
-| WIT IMU | /dev/imu_usb | USB (CH340) | 1a86:7523 |
+| Livox MID360 | Ethernet 192.168.1.x | Ethernet (RJ45 Port) | N/A |
+| Chassis STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
+| GPS G60 | /dev/wheeltec_gps | USB 3.0 (Type-A) | 10c4:ea60 |
+| WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
 | PS2 gamepad | N/A | 2.4 GHz->STM32 | N/A |
 
 ## 10. Historical Hardware Changes
 
 | Component | 2024 (Tang) | 2025 (Jia He/Li) | 2026 (Current) |
 |-----------|-------------|-------------------|-----------------|
+| Carrier Board | Generic OEM Board | S350 V1.1 OEM Board (USB 2.0 Only) | Seeed reComputer Carrier Board (4x USB 3.0) |
 | LiDAR | Unitree L1 | Livox MID-360 | Livox MID-360 |
 | mmWave radar | 2x HLK-LD2461 | Removed | None |
-| Depth camera | None | Realsense D455f | Not integrated |
+| Depth camera | None | Realsense D455f | Realsense D455f |
 | Navigation | Autoware.Universe | Custom ROS2 | FAST-LIO2+PGO+Nav2 |
 
 ## 11. Parameters Pending Measurement

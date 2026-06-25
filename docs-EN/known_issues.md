@@ -126,7 +126,7 @@
         - USB: 2x USB Type-C ports (used for data and module flashing/recovery).
     - Fix:
         - Removed the previous `S350 V1.1 OEM Jetson Carrier Board`
-        - Changed previous board to a `Seeed reComputer 载板（4×USB 3.0 + GbE + HDMI）`, with 4 ports for USB 3.0
+        - Changed previous board to a `Seeed reComputer carrier board (4×USB 3.0 + GbE + HDMI)`, with 4 ports for USB 3.0
         - Item link: https://e.tb.cn/h.RZusJWI?tk=QTX75qlJplP
     - Status: Jetson is attached to the Seeed board, working correctly (2026-06-25)
 

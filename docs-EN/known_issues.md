@@ -2,6 +2,12 @@
 
 ## Current Blockers
 
+36. **[Fatal] Jetson Board Out of storage**
+    - Description: During the LiDAR on-vehicle tests in 2026-06-25, the rosbag record failed and a "Low Disk Space" warning appeared, pointing there is only 733.9 MB of storage left.
+    - Direct evidence: `OSError: I/O error: I/O error: No space left on device (os error 28)`
+   - Status: Recorded on 2026-06-25. Memory sitting at 733.9 MB available.
+   - Impact: Cannot record rosbags, cannot upload to Huggingface, slow response time.
+
 34. **[Important] GPS Corridor v3 ordinary GNSS accuracy is insufficient; Nav2 targets do not match physical points**
    - Description: During the 2026-05-08 v3 on-vehicle tests, the system passed the startup guard and entered `RUNNING_ROUTE`, but the user observed that GPS-converted coordinates in Nav2 did not correspond to the intended physical points.
    - Direct evidence:

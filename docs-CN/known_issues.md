@@ -2,6 +2,12 @@
 
 ## 当前阻塞
 
+36. **[致命] Jetson 开发板存储空间不足**
+    - 描述: 在 2026-06-25 的激光雷达（LiDAR）车载测试期间，rosbag 录制失败，并弹出了“磁盘空间不足（Low Disk Space）”的警告，提示当前仅剩 733.9 MB 的存储空间。
+    - 直接证据: `OSError: I/O error: I/O error: No space left on device (os error 28)`
+    - 状态: 记录于 2026-06-25。当前可用空间仅剩 733.9 MB。
+    - 影响: 无法录制 rosbag，无法上传至 Huggingface，且系统响应速度变慢。
+
 34. **[重要] GPS Corridor v3 普通 GNSS 坐标精度不足，Nav2 目标物理点不准**
    - 描述: 2026-05-08 v3 路线实车测试中，系统能通过 startup guard 并进入 `RUNNING_ROUTE`，但用户实车观察到 GPS 转换后的坐标在 Nav2 中不对应正确物理点。
    - 直接证据:

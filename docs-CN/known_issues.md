@@ -67,6 +67,10 @@
 
 ## 中等问题
 
+35. **[中等] GPS 噪声参数已过时**
+    - 描述: `src/bringup/config/master_params.yaml` 中的 `gps.noise_xy`、`gps.noise_z` 以及其他 GPS 参数已过时。它们属于之前不够精确的旧 GPS 天线，尚未针对新的 RTK 进行适配。
+    - 状态: 等待调参
+
 10. **[中等] Travel 模式开发暂停**
    - 描述: `system_travel.launch.py` 与 `nav2_travel.yaml` 已在仓库内，但该模式当前不作为主开发方向。
    - 状态: 暂停

@@ -67,6 +67,10 @@
 
 ## Medium Issues
 
+35. **[Medium] GPS Noise parameters outdated**
+    - Description: The GPS parameters in `src/bringup/config/master_params.yaml` such as `gps.noise_xy` and `gps.noise_z` are outdated. They belong to the previous innaccurate GPS antenna, and have not been adapted for the new RTK.
+    - Status: Awaiting tuning
+
 10. **[Medium] Travel mode development paused**
     - Description: `system_travel.launch.py` and `nav2_travel.yaml` exist in the repository, but this mode is not a current development priority.
     - Status: Paused

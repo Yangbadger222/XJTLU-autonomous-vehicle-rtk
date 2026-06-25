@@ -179,7 +179,7 @@
 |------|---------|------|------|
 | Livox MID360 | 以太网 192.168.1.x | 以太网 (RJ45网口) | N/A |
 | 底盘STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
-| T-RTK UM982 模块 | /dev/rtk_um982 | USB 3.0 (Type-A 串口连线) | *待实测验证 udev* |
+| T-RTK UM982 模块 | /dev/rtk_um982 | USB 3.0 (Type-A 串口连线) | 10c4:ea60 |
 | WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
 | PS2手柄 | N/A | 2.4 GHz->STM32 | N/A |
 

@@ -180,7 +180,7 @@
 |--------|-------------|------------|------|
 | Livox MID360 | Ethernet 192.168.1.x | Ethernet (RJ45 Port) | N/A |
 | Chassis STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
-| T-RTK UM982 GNSS | /dev/rtk_um982 | USB 3.0 (Type-A via JST-GH) | *Pending Verification* |
+| T-RTK UM982 GNSS | /dev/rtk_um982 | USB 3.0 (Type-A via JST-GH) | 10c4:ea60 |
 | WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
 | PS2 gamepad | N/A | 2.4 GHz->STM32 | N/A |
 

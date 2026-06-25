@@ -501,7 +501,7 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 
 ```bash
 cd ~/XJTLU-autonomous-vehicle
-hf upload frogcar/rtk-data-2026-surf ./runtime-data/bags /bags --repo-type dataset
+hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ```
 
 从自己的电脑clone:

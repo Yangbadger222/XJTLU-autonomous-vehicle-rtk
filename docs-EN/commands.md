@@ -501,7 +501,7 @@ To upload rosbags into Huggingface:
 
 ```bash
 cd ~/XJTLU-autonomous-vehicle
-hf upload frogcar/rtk-data-2026-surf ./runtime-data/bags /bags --repo-type dataset
+hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ```
 
 To clone into your own computer:

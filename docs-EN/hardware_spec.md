@@ -146,16 +146,15 @@
 
 | Item | Value |
 |------|-------|
-| Module | WHEELTEC G60 (ATGM336H-5N) |
-| Systems | BeiDou 2/3, GPS, GLONASS, QZSS |
-| Accuracy | ~2.5 m (mushroom antenna measured 3-5 m) |
-| Update rate | 5 Hz (typical), 10 Hz (max) |
-| TTFF | 32 s (cold), 1 s (hot) |
-| Baud rate | 9600 |
-| Device | /dev/wheeltec_gps (CP2102) |
-| Antenna | Beitian BT-800D mushroom, TNC |
-| Feed cable | MCX->TNC, RG316 (**replaced 2026-03-20, device enumeration normal (RF quality pending outdoor verification)**) |
-| GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 |
+| Module | T-RTK UM982 Dual Antenna Mobile Kit + 4G Module (Rover End) |
+| Systems | GPS L1/L2/L5, BDS B1I/B2I/B3I/B1C/B2a, GLONASS, Galileo, QZSS (Multi-frequency RTK) |
+| Accuracy | Centimeter-level RTK (via 4G NTRIP / CORS network differential stream) |
+| Signal Hardware | GNSS Antenna + Carbon fiber mount, 2x 50 cm feeder cables, 4G module + antenna |
+| Wiring Interfaces | GH1.25 / JST-GH to USB communication lines |
+| Baud rate | 115200 |
+| Heading Strategy | Dual-antenna hardware heading disabled short-term to avoid structural risks of chassis drilling. **Static yaw continues to be fused via FAST-LIO2 / IMU / launch_yaw_deg**. |
+| Device File | /dev/rtk_gps |
+| GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 (not updated) |
 
 ## 7. Power
 
@@ -181,7 +180,7 @@
 |--------|-------------|------------|------|
 | Livox MID360 | Ethernet 192.168.1.x | Ethernet (RJ45 Port) | N/A |
 | Chassis STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
-| GPS G60 | /dev/wheeltec_gps | USB 3.0 (Type-A) | 10c4:ea60 |
+| T-RTK UM982 GNSS | /dev/rtk_um982 | USB 3.0 (Type-A via JST-GH) | *Pending Verification* |
 | WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
 | PS2 gamepad | N/A | 2.4 GHz->STM32 | N/A |
 
@@ -191,6 +190,7 @@
 |-----------|-------------|-------------------|-----------------|
 | Carrier Board | Generic OEM Board | S350 V1.1 OEM Board (USB 2.0 Only) | Seeed reComputer Carrier Board (4x USB 3.0) |
 | LiDAR | Unitree L1 | Livox MID-360 | Livox MID-360 |
+| GNSS / GPS | WHEELTEC G60 (Single-frequency) | WHEELTEC G60 (Single-frequency) | T-RTK UM982 + 4G Module (RTK Centimeter) |
 | mmWave radar | 2x HLK-LD2461 | Removed | None |
 | Depth camera | None | Realsense D455f | Realsense D455f |
 | Navigation | Autoware.Universe | Custom ROS2 | FAST-LIO2+PGO+Nav2 |
@@ -200,6 +200,6 @@
 | Parameter | Importance | Method |
 |-----------|------------|--------|
 | LiDAR mounting height (above ground) | **0.447 m (447 mm)** | 2026-03-20 measured |
-| GPS antenna position (relative to base_link) | **X=-0.105 m, Y=+0.045 m** | 2026-03-20 measured |
+| RTK Antenna position (relative to base_link) | High | *Pending remeasurement due to new installation* |
 | Actual vehicle weight | **~25 kg** (simulation value, used for now) | Jia He simulation |
 | NVMe SSD capacity | Low | lsblk |

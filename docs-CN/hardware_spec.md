@@ -146,16 +146,14 @@
 
 | 项目 | 值 |
 |------|-----|
-| 模块 | WHEELTEC G60 (ATGM336H-5N) |
-| 系统 | 北斗2/3, GPS, GLONASS, QZSS |
-| 精度 | ~2.5 m (蘑菇头实测3-5 m) |
-| 刷新率 | 5 Hz (typical), 10 Hz (max) |
-| TTFF | 32 s (冷), 1 s (热) |
-| 波特率 | 9600 |
-| 设备 | /dev/wheeltec_gps (CP2102) |
-| 天线 | Beitian BT-800D 蘑菇头, TNC |
-| 馈线 | MCX->TNC, RG316 (**2026-03-20 已更换, 设备枚举正常 (RF质量待室外验证)**) |
-| GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 |
+| 模块 | T-RTK UM982 双天线 Mobile 套装 + 4G 模块 (移动端) |
+| 系统 | GPS L1/L2/L5, BDS B1I/B2I/B3I/B1C/B2a, GLONASS, Galileo, QZSS (全系统多频 RTK) |
+| 精度 | RTK 厘米级定位 (自带有源 4G 模块，通过移动网络引入 NTRIP / CORS 差分数据) |
+| 信号硬件 | GNSS 天线 + 碳纤天线支架、50 cm 馈线 x2、4G 模块及配套天线 |
+| 配套线材 | GH1.25 / JST-GH 转 USB 通讯线 |
+| 航向策略 | 双天线定向硬件功能短期内暂不启用。静止 yaw 仍由 FAST-LIO2 / IMU / launch_yaw_deg 处理，避免底盘打孔或外贴双天线带来的结构风险。 |
+| 设备文件 | /dev/rtk_gps |
+| GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 (未更新) |
 
 ## 7. 电源
 
@@ -181,7 +179,7 @@
 |------|---------|------|------|
 | Livox MID360 | 以太网 192.168.1.x | 以太网 (RJ45网口) | N/A |
 | 底盘STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
-| GPS G60 | /dev/wheeltec_gps | USB 3.0 (Type-A) | 10c4:ea60 |
+| T-RTK UM982 模块 | /dev/rtk_um982 | USB 3.0 (Type-A 串口连线) | *待实测验证 udev* |
 | WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
 | PS2手柄 | N/A | 2.4 GHz->STM32 | N/A |
 
@@ -191,6 +189,7 @@
 |------|-------------|-------------------|-------------|
 | 载板 | 通用 OEM 载板 | S350 V1.1 OEM 载板 (仅 USB 2.0) | Seeed reComputer 载板 (4x USB 3.0) |
 | LiDAR | Unitree L1 | Livox MID-360 | Livox MID-360 |
+| GNSS / GPS | WHEELTEC G60 (单频) | WHEELTEC G60 (单频) | T-RTK UM982 + 4G 模块 (RTK 厘米级) |
 | 毫米波雷达 | 2x HLK-LD2461 | 已移除 | 无 |
 | 深度相机 | 无 | Realsense D455f | Realsense D455f |
 | 导航 | Autoware.Universe | 自研ROS2 | FAST-LIO2+PGO+Nav2 |
@@ -200,6 +199,6 @@
 | 参数 | 重要性 | 获取方式 |
 |------|--------|---------|
 | LiDAR安装高度 (相对地面) | **0.447 m (447 mm)** | 2026-03-20 实测 |
-| GPS天线位置 (相对base_link) | **X=-0.105 m, Y=+0.045 m** | 2026-03-20 实测 |
+| RTK 天线位置 (相对 base_link) | 高 | 由于更换新碳纤天线支架，待重新实测 |
 | 整车实际重量 | **~25 kg** (仿真值, 暂用) | Jia He 仿真 |
 | NVMe SSD容量 | 低 | lsblk |

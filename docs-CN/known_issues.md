@@ -12,15 +12,6 @@
    - 状态: 2026-05-08 记录。当前 runner、costmap、RViz 部署修复已收口；剩余问题归因到普通 `/fix` 绝对坐标与 ENU -> map 锚定/换算精度。
    - 影响: 不能把当前普通 GNSS corridor 宣称为物理路径精确可用；后续应进入 RTK / robot_localization / 多点配准 / map 物理点路线等定位精度方案阶段。
 
-32. **[重要] runtime-data Hugging Face 远端同步阻塞**
-   - 描述: 尝试将实车测试的 runtime-data 数据归档推送到 Hugging Face dataset 时失败。
-   - 现象:
-     - 尝试 Git/Xet push 时出现 `gnutls_handshake() failed`
-     - HF API fallback 由于无 token 且代理环境下抛出 `SSL EOF`
-     - SSH 方式回退因公钥未配置导致 `Permission denied (publickey)`
-   - 状态: 2026-04-05 记录。主代码部署与实测已通过，但数据归档闭环被阻塞。
-   - 影响: 无法在离线状态下继续归档和推送运行数据。
-
 1. **[致命] `feature/gps-route-ready-v2` 首轮实车 `nav-gps` 导航会在执行中失效**
    - 描述: 用户已采真实 `ls-building` scene，并完成 `current_scene/` 编译；`nav_gps_menu.py` 可正常进入 `GOAL_REQUESTED -> COMPUTING_ROUTE -> FOLLOWING_ROUTE`，但车辆只短暂动作后即停止。
    - 直接证据:
@@ -128,6 +119,21 @@
    - 状态: 硬件限制
 
 ## 最近已修复
+
+32. **[已修复] runtime-data Hugging Face 远程同步受阻**
+   - 描述：尝试归档并将车载测试的 runtime-data 推送到 Hugging Face 数据集时失败。
+   - 现象：
+     - Git/Xet push 报错 `gnutls_handshake() failed`
+     - 在代理环境下由于缺少 token，导致 HF API 备用方案因 `SSL EOF` 报错失败
+     - 由于未配置密钥，SSH 备用方案失败并报错 `Permission denied (publickey)`
+   - 根本原因：未配置访问密钥，且由于本地防火墙问题，Jetson 无法直接连接到 Hugging Face 服务器
+   - 修复方案：
+     - 使用 `pip install -U "huggingface_hub[cli]"` 安装了 Hugging Face CLI
+     - 使用 `export HF_ENDPOINT=https://hf-mirror.com` 将端点修改为镜像源
+     - 为团队创建了一个组织（Organization）并使用共享访问 Token，通过 `hf auth login` 重新进行了身份验证
+     - 使用 `hf repos create my-rtk-data --type dataset` 创建了一个组织仓库
+     - 现在可以使用 `hf upload frogcar/rtk-data-2026-surf ./runtime-data/ --repo-type dataset` 正常上传 rosbag，并可在共享数据库中访问数据：https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main （仅限团队成员）
+   - 状态：已修复并在 Jetson 上完成验证 (2026-06-25)
 
 33. **[已修复] 编译环境缺失 optional 目录导致 bringup 构建失败**
    - 现象: 在 Jetson 上执行全量构建时，`bringup` 包构建失败，报错提示找不到 `maps/` 或 `urdf/` 目录。

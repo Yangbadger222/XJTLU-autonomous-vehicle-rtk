@@ -12,15 +12,6 @@
    - Status: Recorded on 2026-05-08. Runner, costmap, and RViz deployment fixes are closed; the remaining issue is attributed to ordinary `/fix` absolute positioning and ENU -> map anchoring/conversion accuracy.
    - Impact: The current ordinary-GNSS corridor cannot be claimed as physically precise. The next phase should move to RTK, `robot_localization`, multi-point registration, or map-anchored physical waypoint routing.
 
-32. **[Important] runtime-data Hugging Face remote synchronization blocked**
-   - Description: Attempts to archive and push on-vehicle test runtime-data to the Hugging Face dataset failed.
-   - Symptom:
-     - Git/Xet push throws `gnutls_handshake() failed`
-     - HF API fallback fails with `SSL EOF` due to lack of token under proxy
-     - SSH fallback fails with `Permission denied (publickey)` due to unconfigured keys
-   - Status: Recorded on 2026-04-05. Main code deployment and on-vehicle tests passed, but data archiving loop is blocked.
-   - Impact: Unable to archive and push runtime data while offline.
-
 1. **[Fatal] First on-vehicle `nav-gps` navigation run on `feature/gps-route-ready-v2` fails during execution**
    - Description: User has collected a real `ls-building` scene and completed the `current_scene/` compilation; `nav_gps_menu.py` can successfully enter `GOAL_REQUESTED -> COMPUTING_ROUTE -> FOLLOWING_ROUTE`, but the vehicle only moves briefly before stopping.
    - Direct evidence:
@@ -128,6 +119,21 @@
     - Status: Hardware limitation
 
 ## Recently Fixed
+
+32. **[Fixed] runtime-data Hugging Face remote synchronization blocked**
+   - Description: Attempts to archive and push on-vehicle test runtime-data to the Hugging Face dataset failed.
+   - Symptom:
+     - Git/Xet push throws `gnutls_handshake() failed`
+     - HF API fallback fails with `SSL EOF` due to lack of token under proxy
+     - SSH fallback fails with `Permission denied (publickey)` due to unconfigured keys
+   - Root cause: Access keys were unconfigured, and the Jetson could not reach Huggingface servers due to local firewall issues
+   - Fix:
+     - Installed Huggingface CLI with `pip install -U "huggingface_hub[cli]"`
+     - Changed the endpoint to use a mirror with `export HF_ENDPOINT=https://hf-mirror.com`
+     - Re-authenticated with `hf auth login` by creating an organization for the team and using a shared access token
+     - Created an organization repo with `hf repos create my-rtk-data --type dataset`
+     - Can now properly upload rosbags with `hf upload frogcar/rtk-data-2026-surf ./runtime-data/ --repo-type dataset` and access the data in the shared database at https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main (only team members)
+   - Status: Fixed and verified on Jetson (2026-06-25)
 
 33. **[Fixed] Missing optional directories caused bringup build failure**
     - Symptom: During a full build on Jetson, the `bringup` package failed, reporting that `maps/` or `urdf/` directories were not found.

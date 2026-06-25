@@ -26,11 +26,6 @@
    - Status: Reproduced on 2026-03-20 and identified as the current highest-priority blocker
    - Impact: The new GPS route-graph navigation mode cannot pass on-vehicle acceptance
 
-2. **[Verified] Outdoor GNSS RF / fix quality**
-   - Description: GPS antenna feed cable has been replaced; device enumeration is normal.
-   - Status: 2026-03-22, across multiple corridor v2 outdoor on-vehicle runs, GPS fix worked reliably; startup positioning and PGO alignment both used `/fix` normally
-   - Impact: No longer a blocker
-
 3. **[Important] `nav-gps` software is deployed but outdoor on-vehicle verification is incomplete**
    - Description: `feature/gps-navigation-v4` has completed `gps_waypoint_dispatcher`, `nav2_gps.yaml`, fixed ENU origin, and `system_nav_gps.launch.py`; indoor smoke test passed; however, actual outdoor operation, route-graph expansion, and tuning are not yet done.
    - Status: Software complete, awaiting outdoor verification
@@ -115,6 +110,11 @@
     - Status: Updated further on 2026-06-14 to separate stop semantics: KEY/X/gamepad-loss keep sustained zero-current coast-stop output, while `B` now performs damped active braking with a high-speed current limit, low-speed current tapering, current-rate limiting, and zero-current release near stop; the `B` latch initializes only on the first trigger, holding `B` no longer resets the current ramp, and the indicator is now non-blocking solid pink; bench and vehicle validation are still required.
 
 ## Recently Fixed
+
+2. **[Fixed] Outdoor GNSS RF / fix quality**
+   - Description: GPS antenna feed cable has been replaced; device enumeration is normal.
+   - Status: 2026-03-22, across multiple corridor v2 outdoor on-vehicle runs, GPS fix worked reliably; startup positioning and PGO alignment both used `/fix` normally
+   - Impact: No longer a blocker
 
 19. **[Fixed] USB 2.0 interface limitation**
     - Description: Unfriendly for certain high-bandwidth peripheral expansion.

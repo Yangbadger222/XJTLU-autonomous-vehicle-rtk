@@ -200,6 +200,6 @@
 | Parameter | Importance | Method |
 |-----------|------------|--------|
 | LiDAR mounting height (above ground) | **0.447 m (447 mm)** | 2026-03-20 measured |
-| RTK Antenna position (relative to base_link) | High | *Pending remeasurement due to new installation* |
+| RTK Antenna position (relative to base_link) | High | Approx x: +140 mm, y: 0 mm  |
 | Actual vehicle weight | **~25 kg** (simulation value, used for now) | Jia He simulation |
 | NVMe SSD capacity | Low | lsblk |

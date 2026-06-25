@@ -1,6 +1,6 @@
 # 硬件规格参数
 
-> 最后更新: 2026-03-20
+> 最后更新: 2026-06-25
 >
 > 本文档记录当前车辆上所有硬件组件的型号、参数和安装配置。
 > 数据来源: 学长论文 (Jia He 2025, Li Tongfei 2025, Tang Longbin 2024) + 实车实测 + 配置文件。
@@ -75,8 +75,8 @@
 | 轨迹优化器限速 | 0.6 m/s | Jia He |
 | 最大加速度 (优化器) | 0.3 m/s^2 | Jia He |
 | Nav2 max_vel_x | 0.5 m/s | 当前配置 |
-| 直线跟踪精度 (0.7m/s) | 3cm | Jia He |
-| 90度弯道精度 | 4cm | Jia He |
+| 直线跟踪精度 (0.7 m/s) | 3 cm | Jia He |
+| 90度弯道精度 | 4 cm | Jia He |
 
 ### 2.5 遥控器
 
@@ -93,14 +93,15 @@
 
 | 项目 | 值 |
 |------|-----|
-| 型号 | NVIDIA Jetson Orin NX 16GB |
+| 核心模块 | NVIDIA Jetson Orin NX 16GB |
+| 载板 | Seeed reComputer 载板 (4x USB 3.0 Type-A, 1x GbE, 1x HDMI) |
 | GPU | Ampere, 1024 CUDA, 32 Tensor |
 | AI算力 | 100 TOPS (INT8) |
 | CPU | 8核 ARM Cortex-A78AE |
 | 内存 | 16GB LPDDR5, 102.4 GB/s |
 | OS | Ubuntu 22.04 + ROS2 Humble |
 | 以太网 | enP8p1s0, 192.168.1.50/24 |
-| 远程 | Tailscale VPN 100.97.227.24 |
+| 远程访问 | Tailscale VPN 100.79.128.21 |
 
 ## 4. LiDAR
 
@@ -109,9 +110,9 @@
 | 型号 | Livox MID-360 | Jia He |
 | FOV | 360x59 度 | 官方 |
 | 扫描方式 | 非重复扫描 | 官方 |
-| 量程 | 40m@10%, 70m@80% | 官方 |
+| 量程 | 40 m @10%, 70 m @80% | 官方 |
 | 点频 | ~200k pts/s | 官方 |
-| 内置IMU | ~200Hz | Jia He |
+| 内置IMU | ~200 Hz | Jia He |
 | 连接 | 以太网直连 | Jia He |
 | 安装X偏移 | **-0.07 m** | Jia He, Fig18 |
 | 安装Y偏移 | **+0.12 m** (学长论文写-0.12有误, 实测修正) | Jia He, Fig18 |
@@ -126,11 +127,11 @@
 
 | 项目 | 值 |
 |------|-----|
-| 加速度计 | BMI088, 0.09 mg 分辨率, 10MHz SPI |
+| 加速度计 | BMI088, 0.09 mg 分辨率, 10 MHz SPI |
 | 陀螺仪 | BMI088, 0.004 deg/s 分辨率 |
-| 磁力计 | IST8310, 0.3 uT/LSB, 400KHz I2C |
+| 磁力计 | IST8310, 0.3 uT/LSB, 400 KHz I2C |
 | 温控 | PID, 目标15-20C |
-| 融合 | Madgwick AHRS @500Hz |
+| 融合 | Madgwick AHRS @500 Hz |
 
 ### 5.2 外置IMU (WIT, GPS规划用)
 
@@ -145,24 +146,22 @@
 
 | 项目 | 值 |
 |------|-----|
-| 模块 | WHEELTEC G60 (ATGM336H-5N) |
-| 系统 | 北斗2/3, GPS, GLONASS, QZSS |
-| 精度 | ~2.5m (蘑菇头实测3-5m) |
-| 刷新率 | 5Hz(typ), 10Hz(max) |
-| TTFF | 32s(冷), 1s(热) |
-| 波特率 | 9600 |
-| 设备 | /dev/wheeltec_gps (CP2102) |
-| 天线 | Beitian BT-800D 蘑菇头, TNC |
-| 馈线 | MCX->TNC, RG316 (**2026-03-20 已更换, 设备枚举正常(RF质量待室外验证)**) |
-| GPS Factor | noise_xy=2.5m, interval=10, hdop_max=3.0 |
+| 模块 | T-RTK UM982 双天线 Mobile 套装 + 4G 模块 (移动端) |
+| 系统 | GPS L1/L2/L5, BDS B1I/B2I/B3I/B1C/B2a, GLONASS, Galileo, QZSS (全系统多频 RTK) |
+| 精度 | RTK 厘米级定位 (自带有源 4G 模块，通过移动网络引入 NTRIP / CORS 差分数据) |
+| 信号硬件 | GNSS 天线 + 碳纤天线支架、50 cm 馈线 x2、4G 模块及配套天线 |
+| 配套线材 | GH1.25 / JST-GH 转 USB 通讯线 |
+| 航向策略 | 双天线定向硬件功能短期内暂不启用。静止 yaw 仍由 FAST-LIO2 / IMU / launch_yaw_deg 处理，避免底盘打孔或外贴双天线带来的结构风险。 |
+| 设备文件 | /dev/rtk_gps |
+| GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 (未更新) |
 
 ## 7. 电源
 
 | 项目 | 值 |
 |------|-----|
-| 电池 | 7S锂电 (24V nom, 21-29.4V) |
-| 容量 | 20Ah, 2.2kg |
-| 工作电流 | 15A(typ), 30A(max) |
+| 电池 | 7S锂电 (24V nominal, 21-29.4V) |
+| 容量 | 20 Ah, 2.2 kg |
+| 工作电流 | 15A (typical), 30A (max) |
 | 温度 | -20~60C |
 | 分配 | DC-DC转换器, 各模块独立供电 |
 | 安全 | 四针开关 + 硬件急停按钮 |
@@ -171,33 +170,35 @@
 
 | 设备 | 型号 | 状态 |
 |------|------|------|
-| 深度相机 | Intel Realsense D455f (87x58 FOV, 90Hz, 720p) | 扩展模块 |
-| AI检测 | YOLOv8 @10Hz CUDA | 未集成 |
+| 深度相机 | Intel Realsense D455f (87x58 FOV, 90 Hz, 720p) | 扩展模块 |
+| AI检测 | YOLOv8 @10 Hz CUDA | 未集成 |
 
 ## 9. 设备接口总览
 
 | 设备 | 设备文件 | 连接 | udev |
 |------|---------|------|------|
-| Livox MID360 | 以太网 192.168.1.x | Ethernet | N/A |
-| 底盘STM32 | /dev/serial_twistctl | USB (ttyACM0) | 2e3c:5740 |
-| GPS G60 | /dev/wheeltec_gps | USB (ttyUSB0) | 10c4:ea60 |
-| WIT IMU | /dev/imu_usb | USB (CH340) | 1a86:7523 |
-| PS2手柄 | N/A | 2.4GHz->STM32 | N/A |
+| Livox MID360 | 以太网 192.168.1.x | 以太网 (RJ45网口) | N/A |
+| 底盘STM32 | /dev/serial_twistctl | USB 3.0 (Type-A) | 2e3c:5740 |
+| T-RTK UM982 模块 | /dev/rtk_um982 | USB 3.0 (Type-A 串口连线) | 10c4:ea60 |
+| WIT IMU | /dev/imu_usb | USB 3.0 (Type-A) | 1a86:7523 |
+| PS2手柄 | N/A | 2.4 GHz->STM32 | N/A |
 
 ## 10. 历史硬件变更
 
 | 组件 | 2024 (Tang) | 2025 (Jia He/Li) | 2026 (当前) |
 |------|-------------|-------------------|-------------|
+| 载板 | 通用 OEM 载板 | S350 V1.1 OEM 载板 (仅 USB 2.0) | Seeed reComputer 载板 (4x USB 3.0) |
 | LiDAR | Unitree L1 | Livox MID-360 | Livox MID-360 |
+| GNSS / GPS | WHEELTEC G60 (单频) | WHEELTEC G60 (单频) | T-RTK UM982 + 4G 模块 (RTK 厘米级) |
 | 毫米波雷达 | 2x HLK-LD2461 | 已移除 | 无 |
-| 深度相机 | 无 | Realsense D455f | 未集成 |
+| 深度相机 | 无 | Realsense D455f | Realsense D455f |
 | 导航 | Autoware.Universe | 自研ROS2 | FAST-LIO2+PGO+Nav2 |
 
 ## 11. 待实测参数
 
 | 参数 | 重要性 | 获取方式 |
 |------|--------|---------|
-| LiDAR安装高度 (相对地面) | **0.447 m (447mm)** | 2026-03-20 实测 |
-| GPS天线位置 (相对base_link) | **X=-0.105m, Y=+0.045m** | 2026-03-20 实测 |
+| LiDAR安装高度 (相对地面) | **0.447 m (447 mm)** | 2026-03-20 实测 |
+| RTK 天线位置 (相对 base_link) | 高 | 大概 x: +140 mm, y: 0 mm |
 | 整车实际重量 | **~25 kg** (仿真值, 暂用) | Jia He 仿真 |
 | NVMe SSD容量 | 低 | lsblk |

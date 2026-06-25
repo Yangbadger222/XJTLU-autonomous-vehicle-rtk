@@ -537,3 +537,48 @@ If you open a **new terminal** later, you do not need to paste the password agai
 ```bash
 source /tmp/ntrip_env.sh
 ```
+
+***
+
+## Foxglove
+
+### Initial Setup
+
+On your personal computer:
+1. Create an account at https://app.foxglove.dev/signin
+2. Download Foxglove https://foxglove.dev/download
+
+In the Jetson, download Foxglove:
+```bash
+cd XJTLU-autonomous-vehicle
+source install/setup.bash
+source /opt/ros/humble/setup.bash
+sudo apt update
+sudo apt install ros-$ROS_DISTRO-foxglove-bridge
+```
+
+### Live Connection
+
+To start a connection, SSH into the Jetson and run:
+```bash
+cd XJTLU-autonomous-vehicle
+source install/setup.bash
+source /opt/ros/humble/setup.bash
+ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+```
+
+Then from your computer, open Foxglove and click on "Open Connection" -> "Foxglove WebSocket (default)" and enter `ws://100.79.128.22:8765`
+
+After entering, click anywhere on the center view, and the left panel will load many options. This may take some time, up to a minute.
+
+**Note**: the Tailscale IP may be slightly different per account. If you are not sure about the correct IP:
+1. Open another terminal in the Jetson and run: `tailscale ip -4`
+2. Open Tailscale from your computer or the [browser](https://login.tailscale.com/admin/machines) and check the robot address "badger"
+3. Go back to Foxglove and type the correct IP address in here: `ws://<TAILSCALE_IP>:8765`
+
+### Debugging
+
+- Double-check the Tailscale address is correct, and you have Tailscale on
+- Ping the Jetson with the tailscale address from your computer with `ping <TAILSCALE_IP>`
+- If using a VPN, go to your proxy settings and add all Tailscale IPs to the exception list: `100.*.*.*` (or try turning your VPN off and connecting again)
+- Change the Jetson WiFi to your phone hotspot and ping it again

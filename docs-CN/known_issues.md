@@ -12,15 +12,6 @@
    - 状态: 2026-05-08 记录。当前 runner、costmap、RViz 部署修复已收口；剩余问题归因到普通 `/fix` 绝对坐标与 ENU -> map 锚定/换算精度。
    - 影响: 不能把当前普通 GNSS corridor 宣称为物理路径精确可用；后续应进入 RTK / robot_localization / 多点配准 / map 物理点路线等定位精度方案阶段。
 
-32. **[重要] runtime-data Hugging Face 远端同步阻塞**
-   - 描述: 尝试将实车测试的 runtime-data 数据归档推送到 Hugging Face dataset 时失败。
-   - 现象:
-     - 尝试 Git/Xet push 时出现 `gnutls_handshake() failed`
-     - HF API fallback 由于无 token 且代理环境下抛出 `SSL EOF`
-     - SSH 方式回退因公钥未配置导致 `Permission denied (publickey)`
-   - 状态: 2026-04-05 记录。主代码部署与实测已通过，但数据归档闭环被阻塞。
-   - 影响: 无法在离线状态下继续归档和推送运行数据。
-
 1. **[致命] `feature/gps-route-ready-v2` 首轮实车 `nav-gps` 导航会在执行中失效**
    - 描述: 用户已采真实 `ls-building` scene，并完成 `current_scene/` 编译；`nav_gps_menu.py` 可正常进入 `GOAL_REQUESTED -> COMPUTING_ROUTE -> FOLLOWING_ROUTE`，但车辆只短暂动作后即停止。
    - 直接证据:
@@ -34,11 +25,6 @@
      - Nav2 `follow_path` 被 abort
    - 状态: 2026-03-20 已复现并锁定为当前最高优先级 blocker
    - 影响: 新 GPS 路网导航模式当前不能通过实车验收
-
-2. **[已验证] 室外 GNSS RF / fix 质量**
-   - 描述: GPS 天线馈线已更换，设备枚举正常。
-   - 状态: 2026-03-22 多轮 corridor v2 室外实车中 GPS fix 稳定工作，启动定位和 PGO 对齐均正常使用 `/fix`
-   - 影响: 不再是 blocker
 
 3. **[重要] `nav-gps` 已软件落地，但室外实车验证未完成**
    - 描述: `feature/gps-navigation-v4` 已完成 `gps_waypoint_dispatcher`、`nav2_gps.yaml`、固定 ENU 原点和 `system_nav_gps.launch.py`，室内 smoke 已通过；但真正的室外运行、路网扩充和调优还没完成。
@@ -80,6 +66,10 @@
    - 影响: 已不再是问题
 
 ## 中等问题
+
+35. **[中等] GPS 噪声参数已过时**
+    - 描述: `src/bringup/config/master_params.yaml` 中的 `gps.noise_xy`、`gps.noise_z` 以及其他 GPS 参数已过时。它们属于之前不够精确的旧 GPS 天线，尚未针对新的 RTK 进行适配。
+    - 状态: 等待调参
 
 10. **[中等] Travel 模式开发暂停**
    - 描述: `system_travel.launch.py` 与 `nav2_travel.yaml` 已在仓库内，但该模式当前不作为主开发方向。
@@ -123,11 +113,41 @@
    - 描述: 旧固件的 KEY/B/X 停止路径可能停发 CAN 或走 PID 锁零，导致车轮明显反转。
    - 状态: 2026-06-14 已进一步区分停止语义：KEY/X/手柄断连保持持续零电流撤力，B 键改为阻尼主动刹车，高速段保持较高刹车上限，低速段降流并限制电流变化率，接近停止后零电流释放；B 键锁存只在首次触发时初始化，持续按住不会反复清空电流爬坡，且急停提示改为非阻塞粉色常亮；仍需抬轮台架和车测验证。
 
-19. **[低] USB 2.0 接口限制**
-   - 描述: 对部分高带宽外设扩展不友好。
-   - 状态: 硬件限制
-
 ## 最近已修复
+
+2. **[已修复] 室外 GNSS RF / fix 质量**
+   - 描述: GPS 天线馈线已更换，设备枚举正常。
+   - 状态: 2026-03-22 多轮 corridor v2 室外实车中 GPS fix 稳定工作，启动定位和 PGO 对齐均正常使用 `/fix`
+   - 影响: 不再是 blocker
+
+19. **[已修复] USB 2.0 接口限制**
+    - 描述：对某些高带宽外设扩展不友好。
+        - S350 V1.1 硬件配置：
+        - 计算连接器：用于 NVIDIA Jetson 模块的标准 260 针 SO-DIMM。
+        - 电源：1 个黄色 XT30 连接器 (DCIN)，用于锂聚合物 (LiPo) 电池直接输入。
+        - 网络与显示：1 个千兆以太网口 (RJ45) 和 1 个 HDMI 接口。
+        - 相机接口：2 个 MIPI-CSI FPC 连接器。
+        - USB：2 个 USB Type-C 接口（用于数据传输及模块刷机/恢复）。
+    - 修复方案：
+        - 移除了之前的 `S350 V1.1 OEM Jetson 载板`
+        - 将之前的板子更换为 `Seeed reComputer 载板（4×USB 3.0 + GbE + HDMI）`，提供 4 个 USB 3.0 接口
+        - 商品链接：https://e.tb.cn/h.RZusJWI?tk=QTX75qlJplP
+    - 状态：Jetson 已安装至 Seeed 载板，运行正常 (2026-06-25)
+
+32. **[已修复] runtime-data Hugging Face 远程同步受阻**
+   - 描述：尝试归档并将车载测试的 runtime-data 推送到 Hugging Face 数据集时失败。
+   - 现象：
+     - Git/Xet push 报错 `gnutls_handshake() failed`
+     - 在代理环境下由于缺少 token，导致 HF API 备用方案因 `SSL EOF` 报错失败
+     - 由于未配置密钥，SSH 备用方案失败并报错 `Permission denied (publickey)`
+   - 根本原因：未配置访问密钥，且由于本地防火墙问题，Jetson 无法直接连接到 Hugging Face 服务器
+   - 修复方案：
+     - 使用 `pip install -U "huggingface_hub[cli]"` 安装了 Hugging Face CLI
+     - 使用 `export HF_ENDPOINT=https://hf-mirror.com` 将端点修改为镜像源
+     - 为团队创建了一个组织（Organization）并使用共享访问 Token，通过 `hf auth login` 重新进行了身份验证
+     - 使用 `hf repos create my-rtk-data --type dataset` 创建了一个组织仓库
+     - 现在可以使用 `hf upload frogcar/rtk-data-2026-surf ./runtime-data/ --repo-type dataset` 正常上传 rosbag，并可在共享数据库中访问数据：https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main （仅限团队成员）
+   - 状态：已修复并在 Jetson 上完成验证 (2026-06-25)
 
 33. **[已修复] 编译环境缺失 optional 目录导致 bringup 构建失败**
    - 现象: 在 Jetson 上执行全量构建时，`bringup` 包构建失败，报错提示找不到 `maps/` 或 `urdf/` 目录。

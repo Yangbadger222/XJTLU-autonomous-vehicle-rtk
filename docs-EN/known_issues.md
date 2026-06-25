@@ -12,15 +12,6 @@
    - Status: Recorded on 2026-05-08. Runner, costmap, and RViz deployment fixes are closed; the remaining issue is attributed to ordinary `/fix` absolute positioning and ENU -> map anchoring/conversion accuracy.
    - Impact: The current ordinary-GNSS corridor cannot be claimed as physically precise. The next phase should move to RTK, `robot_localization`, multi-point registration, or map-anchored physical waypoint routing.
 
-32. **[Important] runtime-data Hugging Face remote synchronization blocked**
-   - Description: Attempts to archive and push on-vehicle test runtime-data to the Hugging Face dataset failed.
-   - Symptom:
-     - Git/Xet push throws `gnutls_handshake() failed`
-     - HF API fallback fails with `SSL EOF` due to lack of token under proxy
-     - SSH fallback fails with `Permission denied (publickey)` due to unconfigured keys
-   - Status: Recorded on 2026-04-05. Main code deployment and on-vehicle tests passed, but data archiving loop is blocked.
-   - Impact: Unable to archive and push runtime data while offline.
-
 1. **[Fatal] First on-vehicle `nav-gps` navigation run on `feature/gps-route-ready-v2` fails during execution**
    - Description: User has collected a real `ls-building` scene and completed the `current_scene/` compilation; `nav_gps_menu.py` can successfully enter `GOAL_REQUESTED -> COMPUTING_ROUTE -> FOLLOWING_ROUTE`, but the vehicle only moves briefly before stopping.
    - Direct evidence:
@@ -34,11 +25,6 @@
      - Nav2 `follow_path` is aborted
    - Status: Reproduced on 2026-03-20 and identified as the current highest-priority blocker
    - Impact: The new GPS route-graph navigation mode cannot pass on-vehicle acceptance
-
-2. **[Verified] Outdoor GNSS RF / fix quality**
-   - Description: GPS antenna feed cable has been replaced; device enumeration is normal.
-   - Status: 2026-03-22, across multiple corridor v2 outdoor on-vehicle runs, GPS fix worked reliably; startup positioning and PGO alignment both used `/fix` normally
-   - Impact: No longer a blocker
 
 3. **[Important] `nav-gps` software is deployed but outdoor on-vehicle verification is incomplete**
    - Description: `feature/gps-navigation-v4` has completed `gps_waypoint_dispatcher`, `nav2_gps.yaml`, fixed ENU origin, and `system_nav_gps.launch.py`; indoor smoke test passed; however, actual outdoor operation, route-graph expansion, and tuning are not yet done.
@@ -80,6 +66,10 @@
    - Impact: No longer an issue
 
 ## Medium Issues
+
+35. **[Medium] GPS Noise parameters outdated**
+    - Description: The GPS parameters in `src/bringup/config/master_params.yaml` such as `gps.noise_xy` and `gps.noise_z` are outdated. They belong to the previous innaccurate GPS antenna, and have not been adapted for the new RTK.
+    - Status: Awaiting tuning
 
 10. **[Medium] Travel mode development paused**
     - Description: `system_travel.launch.py` and `nav2_travel.yaml` exist in the repository, but this mode is not a current development priority.
@@ -123,11 +113,41 @@
     - Description: The old KEY/B/X stop paths could stop CAN output or use PID zero-speed braking, causing noticeable wheel reversal.
     - Status: Updated further on 2026-06-14 to separate stop semantics: KEY/X/gamepad-loss keep sustained zero-current coast-stop output, while `B` now performs damped active braking with a high-speed current limit, low-speed current tapering, current-rate limiting, and zero-current release near stop; the `B` latch initializes only on the first trigger, holding `B` no longer resets the current ramp, and the indicator is now non-blocking solid pink; bench and vehicle validation are still required.
 
-19. **[Low] USB 2.0 interface limitation**
-    - Description: Unfriendly for certain high-bandwidth peripheral expansion.
-    - Status: Hardware limitation
-
 ## Recently Fixed
+
+2. **[Fixed] Outdoor GNSS RF / fix quality**
+   - Description: GPS antenna feed cable has been replaced; device enumeration is normal.
+   - Status: 2026-03-22, across multiple corridor v2 outdoor on-vehicle runs, GPS fix worked reliably; startup positioning and PGO alignment both used `/fix` normally
+   - Impact: No longer a blocker
+
+19. **[Fixed] USB 2.0 interface limitation**
+    - Description: Unfriendly for certain high-bandwidth peripheral expansion.
+        - S350 V1.1 Hardware Profile:
+        - Compute Connector: Standard 260-pin SO-DIMM for NVIDIA Jetson modules.
+        - Power: 1x yellow XT30 connector (DCIN) for direct LiPo battery input.
+        - Networking & Display: 1x Gigabit Ethernet (RJ45) and 1x HDMI port.
+        - Camera Interface: 2x MIPI-CSI FPC connectors.
+        - USB: 2x USB Type-C ports (used for data and module flashing/recovery).
+    - Fix:
+        - Removed the previous `S350 V1.1 OEM Jetson Carrier Board`
+        - Changed previous board to a `Seeed reComputer carrier board (4×USB 3.0 + GbE + HDMI)`, with 4 ports for USB 3.0
+        - Item link: https://e.tb.cn/h.RZusJWI?tk=QTX75qlJplP
+    - Status: Jetson is attached to the Seeed board, working correctly (2026-06-25)
+
+32. **[Fixed] runtime-data Hugging Face remote synchronization blocked**
+   - Description: Attempts to archive and push on-vehicle test runtime-data to the Hugging Face dataset failed.
+   - Symptom:
+     - Git/Xet push throws `gnutls_handshake() failed`
+     - HF API fallback fails with `SSL EOF` due to lack of token under proxy
+     - SSH fallback fails with `Permission denied (publickey)` due to unconfigured keys
+   - Root cause: Access keys were unconfigured, and the Jetson could not reach Huggingface servers due to local firewall issues
+   - Fix:
+     - Installed Huggingface CLI with `pip install -U "huggingface_hub[cli]"`
+     - Changed the endpoint to use a mirror with `export HF_ENDPOINT=https://hf-mirror.com`
+     - Re-authenticated with `hf auth login` by creating an organization for the team and using a shared access token
+     - Created an organization repo with `hf repos create my-rtk-data --type dataset`
+     - Can now properly upload rosbags with `hf upload frogcar/rtk-data-2026-surf ./runtime-data/ --repo-type dataset` and access the data in the shared database at https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main (only team members)
+   - Status: Fixed and verified on Jetson (2026-06-25)
 
 33. **[Fixed] Missing optional directories caused bringup build failure**
     - Symptom: During a full build on Jetson, the `bringup` package failed, reporting that `maps/` or `urdf/` directories were not found.

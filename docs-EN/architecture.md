@@ -130,6 +130,7 @@ If `map -> odom` does not exist, RViz under the `map` fixed frame will appear as
 
 ```text
 ~/XJTLU-autonomous-vehicle/runtime-data/
+├── bags/
 ├── config/
 │   └── log_switch.yaml
 ├── gnss/

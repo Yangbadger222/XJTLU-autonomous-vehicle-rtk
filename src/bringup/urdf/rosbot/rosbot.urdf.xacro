@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="rosbot">
+    <!-- 基础部件base_link -->
+    <xacro:include filename="$(find bringup)/urdf/rosbot/base.urdf.xacro"/>
+    <!-- 传感器部件 -->
+    <!-- <xacro:include filename="$(find bringup)/urdf/rosbot/sensor/livox_mid360.xacro"/> -->
+    <xacro:include filename="$(find bringup)/urdf/rosbot/sensor/imu.urdf.xacro"/>
+    <xacro:include filename="$(find bringup)/urdf/rosbot/sensor/laser.urdf.xacro"/>
+    <xacro:include filename="$(find bringup)/urdf/rosbot/sensor/camera.urdf.xacro"/>
+    <!-- 执行器部件 -->
+    <xacro:include filename="$(find bringup)/urdf/rosbot/actuator/wheel.urdf.xacro"/>
+    <xacro:include filename="$(find bringup)/urdf/rosbot/actuator/caster.urdf.xacro"/>
+    <!-- 插件 -->
+    <xacro:include filename="$(find bringup)/urdf/rosbot/plugins/gazebo_control_plugin.xacro"/>
+
+
+    <xacro:base_xacro length="0.50" width="0.45" height="0.14"/>
+    <!-- 传感器部件 -->
+    <xacro:imu_xacro xyz="0.0 0.0 0.02" />
+    <xacro:laser_xacro xyz="0.10 -0.10 0.07" />
+    <xacro:camera_xacro xyz="0.15 0 0.07" />
+    <!-- <xacro:livox_mid360 xyz="0.0 0 0.10" /> -->
+    <!-- 执行器部件 -->   
+    <xacro:wheel_xacro wheel_name="left_front_wheel" xyz="0.24 0.25 -0.13" />
+    <xacro:wheel_xacro wheel_name="left_back_wheel" xyz="-0.24 0.25 -0.13" />
+    <xacro:wheel_xacro wheel_name="right_front_wheel" xyz="0.24 -0.25 -0.13" />
+    <xacro:wheel_xacro wheel_name="right_back_wheel" xyz="-0.24 -0.25 -0.13" />
+
+    <xacro:caster_xacro caster_name="left_caster" xyz="0.0 0.25 -0.14" />
+    <xacro:caster_xacro caster_name="right_caster" xyz="0.0 -0.25 -0.14" />
+
+    <xacro:gazebo_control_plugin />
+</robot>

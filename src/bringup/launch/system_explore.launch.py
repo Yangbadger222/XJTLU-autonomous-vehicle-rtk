@@ -153,6 +153,12 @@ def generate_launch_description():
     )
     delayed_frc = TimerAction(period=8.0, actions=[frc_launch])
 
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_dir, 'launch', 'robot_description.launch.py')
+        )
+    )
+
     return LaunchDescription(
         [
             use_rviz_arg,
@@ -167,5 +173,6 @@ def generate_launch_description():
             serial_reader_node,
             delayed_nav2,
             delayed_frc,
+            urdf_launch,
         ]
     )

@@ -155,7 +155,7 @@ def generate_launch_description():
 
     urdf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(bringup_dir, 'launch', 'robot_description.launch.py')
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
         )
     )
 

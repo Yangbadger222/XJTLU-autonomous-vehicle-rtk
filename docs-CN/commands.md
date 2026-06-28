@@ -76,6 +76,16 @@ ros2 launch bringup system_nav_gps.launch.py
 ros2 launch bringup system_travel.launch.py
 ```
 
+SLAM 纯建图可选 RTK 记录：
+
+```bash
+# 默认只建 2D/3D 地图，不启动 RTK
+cd ~/XJTLU-autonomous-vehicle && bash scripts/launch_with_logs.sh slam
+
+# 需要为后续室内外地理配准记录室外 Fixed RTK 样本时再打开
+cd ~/XJTLU-autonomous-vehicle && ros2 launch bringup system_slam.launch.py use_rtk:=true
+```
+
 室内无 GPS 点击点导航的一整行命令：
 
 > 兼容性说明：`FYP_*` 是当前脚本仍在读取的 legacy 运行接口变量名，本轮只更新公开项目称呼，不重命名运行接口。
@@ -224,18 +234,43 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 ## 8. 地图保存
 
 ```bash
-# 保存 3D 点云地图
-ros2 service call /pgo/save_maps interface/srv/SaveMaps   "{file_path: '/home/jetson/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<dir>', save_patches: true}"
+# 一次保存当前 slam session 的 2D + 3D 地图，并生成 manifest
+cd ~/XJTLU-autonomous-vehicle && scripts/save_mapping_session.sh <map_name>
+```
+
+输出：
+
+```text
+runtime-data/maps/<map_name>/manifest.yaml
+runtime-data/maps/2d/<map_name>/map.yaml
+runtime-data/maps/2d/<map_name>/map.pgm
+runtime-data/maps/3d/<map_name>/map.pcd
+runtime-data/maps/3d/<map_name>/poses.txt
+runtime-data/maps/3d/<map_name>/patches/*.pcd
+```
+
+说明：
+- `manifest.yaml` 会记录 `consistency_ok`，用于提示 2D/3D 地图是否疑似错位；它由 2D/3D 对齐诊断、patch/pose 完整性和 frame 检查共同决定，是保存时检查，不会替代后续重定位验证
+- `patch_pose_integrity.ok` 必须为 `true`，即 `patches/*.pcd` 与 `poses.txt` 关键帧一一对应
+- `frame_check.ok` 必须为 `true`，默认要求 `/scan.header.frame_id` 与 `/fastlio2/lio_odom.child_frame_id` 都是 `base_link`；如果现场 FAST-LIO2 使用别的子坐标系，先用 `view_frames`/`tf2_echo` 确认，再用 `--expected-base-frame <frame>` 保存
+- 后续室内外地理配准必须使用 RTK Fixed 样本和航向，室内 invalid/float RTK 只能记录，不能当强约束
+
+底层故障排查命令：
+
+```bash
+# 保存前确认 TF 与 frame；不要在没确认实际 TF 树时盲改 base_frame
+ros2 run tf2_tools view_frames
+ros2 run tf2_ros tf2_echo odom base_link
+
+# 保存 3D 点云地图；file_path 必须写绝对路径，ROS service 请求里不会展开 ~
+ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>', save_patches: true}"
 
 # 保存 2D 栅格地图
-ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<dir>/map
+ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map --ros-args -p map_subscribe_transient_local:=true
 
 # 查看 PCD
 pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
 ```
-
-说明：
-- `/pgo/save_maps` 的 `file_path` 必须写绝对路径，`~` 不会在 ROS service 请求里自动展开
 
 ## 9. 停止系统与紧急停车
 

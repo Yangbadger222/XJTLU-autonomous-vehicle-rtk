@@ -1,0 +1,34 @@
+cloud_topic: /fastlio2/body_cloud
+odom_topic: /fastlio2/lio_odom
+map_frame: map
+local_frame: odom
+
+# Pure mapping mode keeps SLAM Toolbox as the only map->odom publisher.
+# PGO still builds keyframes, publishes /pgo/global_map, and serves /pgo/save_maps.
+publish_tf: false
+
+key_pose_delta_deg: 5
+key_pose_delta_trans: 0.1
+loop_search_radius: 1.0
+loop_time_tresh: 60.0
+loop_score_tresh: 0.15
+loop_submap_half_range: 5
+submap_resolution: 0.1
+min_loop_detect_duration: 5.0
+
+global_map_pub_rate: 10.0
+global_map_resolution: 0.1
+
+# RTK is recorded during mapping for geo-registration, but indoor invalid fixes
+# must not become PGO constraints.
+gps:
+  enable: false
+  topic: /fix
+  noise_xy: 2.5
+  noise_z: 5.0
+  factor_interval: 10
+  quality_hdop_max: 3.0
+  quality_sat_min: 6
+  drift_threshold: 2.0
+  alert_interval: 3
+  emergency_interval: 1

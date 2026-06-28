@@ -20,7 +20,7 @@
 
 | Mode | Command | Current Purpose |
 |------|---------|-----------------|
-| SLAM | `make launch-slam` | Mapping and perception chain verification |
+| SLAM | `make launch-slam` | Pure mapping: produces 2D Nav2 maps, 3D PGO point-cloud maps, and a manifest |
 | Explore | `make launch-explore` | Current primary operating mode, local obstacle avoidance navigation |
 | Indoor Nav | `make launch-indoor-nav` | RViz click-to-go navigation without GNSS |
 | Corridor | `make launch-corridor` | GPS Corridor v2 main runtime on the MPPI controller |
@@ -31,7 +31,32 @@
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
 
-## 4. Explore Mode Data Flow
+## 4. SLAM Pure Mapping Data Flow
+
+```text
+Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
+                                  -> /fastlio2/lio_odom
+                                  -> TF: odom -> base_link
+
+/fastlio2/body_cloud -> pointcloud_to_laserscan -> /scan
+                                             |
+                                             v
+                                      SLAM Toolbox -> /map
+                                                   -> TF: map -> odom
+
+/fastlio2/body_cloud + /fastlio2/lio_odom -> PGO(publish_tf=false)
+                                             -> /pgo/global_map
+                                             -> /pgo/save_maps
+
+scripts/save_mapping_session.sh <map_name>
+  -> saves 2D map.yaml/map.pgm
+  -> saves 3D map.pcd/poses.txt/patches
+  -> writes manifest.yaml with 2D/3D consistency, patch/pose integrity, and frame checks
+```
+
+SLAM mode does not start Nav2 planners/controllers and does not execute navigation behavior. In this mode PGO uses `pgo_slam.yaml` with `publish_tf=false` by default, so it does not compete with SLAM Toolbox for `map -> odom`. The save script checks `base_link` by default, but the actual child frame must be confirmed with TF tools before changing `base_frame` on the vehicle. RTK can be enabled with `use_rtk:=true` to record outdoor Fixed samples during mapping, but indoor invalid/float RTK samples are records only, not strong constraints.
+
+## 5. Explore Mode Data Flow
 
 ```text
 Livox MID360 -> /livox/lidar ------+
@@ -48,7 +73,7 @@ Nav2 -> /cmd_vel -> serial_twistctl -> STM32 -> motors
 STM32 -> serial_reader -> chassis feedback / odom_CBoard
 ```
 
-## 5. GPS-Related Chains
+## 6. GPS-Related Chains
 
 ### 5.1 Explore GPS Mode
 
@@ -112,19 +137,20 @@ This mode is launched with `make launch-tightly-coupled`. The first version is s
 - Nav2 is not remapped to FGO output, and existing `corridor`, `explore-gps`, and `nav-gps` modes are not replaced
 - Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation
 
-## 6. TF Chain
+## 7. TF Chain
 
 ```text
 map -> odom -> base_link
 ```
 
-- `map -> odom` is published by PGO, representing global correction offset
+- In production navigation modes, `map -> odom` is published by PGO, representing global correction offset
+- In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
 - `odom -> base_link` is published by FAST-LIO2, representing high-frequency local odometry
 - The combination of both yields the global pose
 
 If `map -> odom` does not exist, RViz under the `map` fixed frame will appear as if point clouds or costmaps are blank, even if Livox and FAST-LIO2 are still running.
 
-## 7. Configuration Architecture
+## 8. Configuration Architecture
 
 - `src/bringup/config/master_params.yaml`
   - Repository template parameter entry point

@@ -134,7 +134,7 @@ bt_navigator:
     global_frame: map
     # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
     # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
     # 改错话题：上下游节点会直接断链。
     odom_topic: /odom
@@ -412,7 +412,7 @@ local_costmap:
       global_frame: odom
       # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
       # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
       # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
       use_sim_time: true
@@ -538,7 +538,7 @@ global_costmap:
       global_frame: map
       # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
       # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
       # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
       use_sim_time: true
@@ -763,7 +763,7 @@ behavior_server:
     global_frame: odom
     # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
     # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
     # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
     transform_tolerance: 0.1

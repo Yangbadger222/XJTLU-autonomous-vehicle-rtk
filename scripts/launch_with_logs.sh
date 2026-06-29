@@ -88,7 +88,7 @@ case "$MODE" in
   travel)       LAUNCH_FILE="system_travel.launch.py" ;;
   explore-gps)  LAUNCH_FILE="system_explore_gps.launch.py" ;;
   nav-gps)      LAUNCH_FILE="system_nav_gps.launch.py" ;;
-  rtk-basic)    LAUNCH_PACKAGE="um982_rtk_driver"; LAUNCH_FILE="um982_rtk.launch.py" ;;
+  rtk-basic)    LAUNCH_FILE="system_rtk_basic.launch.py" ;;
   *)            echo "Unknown mode: $MODE"; exit 1 ;;
 esac
 

@@ -133,6 +133,12 @@ def generate_launch_description():
     delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
     delayed_goal_manager = TimerAction(period=7.0, actions=[goal_manager_node])
 
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+        )
+    )
+
     return LaunchDescription(
         [
             DeclareLaunchArgument(
@@ -180,5 +186,6 @@ def generate_launch_description():
             route_lifecycle_manager,
             delayed_nav2,
             delayed_goal_manager,
+            urdf_launch,
         ]
     )

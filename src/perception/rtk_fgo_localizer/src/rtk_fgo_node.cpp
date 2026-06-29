@@ -2,6 +2,7 @@
 #include "rtk_fgo_localizer/fgo_graph.hpp"
 #include "rtk_fgo_localizer/frame_anchor.hpp"
 #include "rtk_fgo_localizer/gate_params.hpp"
+#include "rtk_fgo_localizer/heading_conventions.hpp"
 #include "rtk_fgo_localizer/imu_preintegration_config.hpp"
 #include "rtk_fgo_localizer/rtk_quality.hpp"
 #include "rtk_fgo_localizer/state_machine.hpp"
@@ -216,6 +217,7 @@ private:
     declare_parameter<std::string>("frames.odom_fgo", "odom_fgo");
     declare_parameter<bool>("publish_tf", false);
     declare_parameter<bool>("nav2_use_fgo", false);
+    declare_parameter<bool>("heading_quaternion_yaw_is_compass", true);
     declare_parameter<double>("window.duration_s", 15.0);
     declare_parameter<double>("window.keyframe_rate_hz", 10.0);
     declare_parameter<int>("window.max_states", 120);
@@ -265,6 +267,8 @@ private:
     odom_fgo_frame_ = get_parameter("frames.odom_fgo").as_string();
     publish_tf_ = get_parameter("publish_tf").as_bool();
     nav2_use_fgo_ = get_parameter("nav2_use_fgo").as_bool();
+    heading_quaternion_yaw_is_compass_ =
+      get_parameter("heading_quaternion_yaw_is_compass").as_bool();
     window_duration_s_ = get_parameter("window.duration_s").as_double();
     keyframe_rate_hz_ = get_parameter("window.keyframe_rate_hz").as_double();
     max_states_ = static_cast<std::size_t>(
@@ -523,7 +527,12 @@ private:
     if (!std::isfinite(yaw)) {
       return std::nullopt;
     }
-    return yaw;
+    const double enu_yaw =
+      headingQuaternionYawToEnuYaw(yaw, heading_quaternion_yaw_is_compass_);
+    if (!std::isfinite(enu_yaw)) {
+      return std::nullopt;
+    }
+    return enu_yaw;
   }
 
   void addWheelFactorForLatestTransition(double stamp_s)
@@ -640,13 +649,11 @@ private:
     if (!estimate.has_value()) {
       return;
     }
-    auto heading = heading_buffer_.closest(estimate->stamp_s, 0.5);
-    if (!heading.has_value()) {
+    const auto heading_yaw = latestHeadingYaw(estimate->stamp_s);
+    if (!heading_yaw.has_value()) {
       return;
     }
-    graph_->addRtkHeading(
-      estimate->stamp_s, yawFromQuaternion(
-        heading->value.quaternion), heading_sigma_rad_);
+    graph_->addRtkHeading(estimate->stamp_s, *heading_yaw, heading_sigma_rad_);
   }
 
   void publishEstimate(const ShadowCommitResult & commit_result)
@@ -862,6 +869,7 @@ private:
   std::string odom_fgo_frame_;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
+  bool heading_quaternion_yaw_is_compass_ = true;
   bool imu_enabled_ = false;
   bool fastlio_enabled_ = true;
   bool wheel_enabled_ = true;

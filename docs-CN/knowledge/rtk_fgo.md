@@ -22,6 +22,7 @@
 - `correction_smoother.hpp/.cpp`: 对平移与 yaw 校正做单步限幅，避免可信 RTK 恢复时一次性跳变输出。
 - `frame_anchor.hpp/.cpp`: 把原始 RTK fix 显式锚定到 FGO `map` 坐标系。连续通过质量检查的 Fixed 样本会初始化 `GeographicLib::LocalCartesian` 原点和 `ENU -> map` 的 yaw/translation 变换；普通 RTK innovation gate 只在 anchor 建立后才开始。
 - `fgo_graph.hpp/.cpp`: 实现 GTSAM graph API，支持初始状态、FAST-LIO relative pose、latest-transition wheel planar 因子、RTK position shadow commit/reject、RTK heading yaw factor、可选 IMU 预积分，以及有界窗口重建诊断。
+- `heading_conventions.hpp/.cpp`: 将当前 UM982 `/heading` 中按罗盘 heading 编码的 quaternion yaw 转换为 FGO/GTSAM 使用的 ENU yaw；若后续驱动改为标准 ROS ENU yaw，可通过参数关闭该转换。
 - `yaw_factor.hpp/.cpp`: 实现 yaw-only Pose3 因子，供双天线 RTK heading 作为绝对 yaw 候选约束。
 - IMU 预积分在 `factors.imu_enabled=true` 时使用保守的 GTSAM `ImuFactor` + bias `BetweenFactor` 路径。YAML 默认仍保持 `false`，直到 Jetson 回放和实车验证确认噪声参数。
 - `topic_buffers.hpp/.cpp`: 提供 ROS-free timestamped sample buffer，用于按时间查找传感器样本。
@@ -220,6 +221,8 @@ yaw <= 0.2-0.5 deg per update
 ```yaml
 /rtk_fgo_localizer:
   ros__parameters:
+    heading_quaternion_yaw_is_compass: true
+
     topics:
       fastlio_odom: /fastlio2/lio_odom
       imu: /livox/imu

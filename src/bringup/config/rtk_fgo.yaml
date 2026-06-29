@@ -2,6 +2,7 @@ rtk_fgo_localizer:
   ros__parameters:
     publish_tf: false
     nav2_use_fgo: false
+    heading_quaternion_yaw_is_compass: true
 
     topics:
       fastlio_odom: /fastlio2/lio_odom

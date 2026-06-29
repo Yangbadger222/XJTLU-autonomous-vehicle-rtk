@@ -27,6 +27,7 @@ add_library(rtk_fgo_core
   src/correction_smoother.cpp
   src/frame_anchor.cpp
   src/fgo_graph.cpp
+  src/heading_conventions.cpp
   src/rtk_quality.cpp
   src/state_machine.cpp
   src/topic_buffers.cpp
@@ -96,6 +97,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_correction_smoother test/test_correction_smoother.cpp)
   target_include_directories(test_correction_smoother PRIVATE include)
   target_link_libraries(test_correction_smoother rtk_fgo_core)
+
+  ament_add_gtest(test_heading_conventions test/test_heading_conventions.cpp)
+  target_include_directories(test_heading_conventions PRIVATE include)
+  target_link_libraries(test_heading_conventions rtk_fgo_core)
 
   ament_add_gtest(test_frame_anchor test/test_frame_anchor.cpp)
   target_include_directories(test_frame_anchor PRIVATE include)

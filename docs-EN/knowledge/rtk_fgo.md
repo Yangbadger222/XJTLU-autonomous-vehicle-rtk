@@ -22,6 +22,7 @@ Current implemented scope covers:
 - `correction_smoother.hpp/.cpp`: limits per-step translation and yaw correction so trusted RTK recovery cannot create a single output jump.
 - `frame_anchor.hpp/.cpp`: anchors raw RTK fixes into the FGO `map` frame through a two-stage bootstrap. The first accepted fixed-quality samples initialize a `GeographicLib::LocalCartesian` origin and an `ENU -> map` yaw/translation transform; normal RTK innovation gating starts only after this anchor exists.
 - `fgo_graph.hpp/.cpp`: implements the GTSAM graph API for initial states, FAST-LIO relative pose, latest-transition wheel planar factors, RTK position shadow commit/reject, RTK heading yaw factors, optional IMU preintegration, and bounded-window rebuild diagnostics.
+- `heading_conventions.hpp/.cpp`: converts the current UM982 `/heading` quaternion yaw, which is encoded as a compass heading, into the ENU yaw expected by FGO/GTSAM. If the driver later publishes standard ROS ENU yaw, this conversion can be disabled by parameter.
 - `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
 - IMU preintegration uses the conservative GTSAM `ImuFactor` plus bias `BetweenFactor` path when `factors.imu_enabled=true`. The YAML default remains `false` until Jetson replay/vehicle validation confirms the noise values.
 - `topic_buffers.hpp/.cpp`: provides a ROS-free timestamped sample buffer for time-based sensor lookup.
@@ -220,6 +221,8 @@ Initial parameter groups:
 ```yaml
 /rtk_fgo_localizer:
   ros__parameters:
+    heading_quaternion_yaw_is_compass: true
+
     topics:
       fastlio_odom: /fastlio2/lio_odom
       imu: /livox/imu

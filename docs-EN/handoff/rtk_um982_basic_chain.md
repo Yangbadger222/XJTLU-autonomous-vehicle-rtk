@@ -23,7 +23,7 @@ Published topics:
 
 ## Heading Calibration
 
-The current dual-antenna installation uses the right antenna as master and the left antenna as secondary. The UM982 raw heading therefore describes the lateral antenna baseline, not the vehicle `base_link +X` forward direction. The driver applies `heading_offset_deg: 90.0` before publishing `/heading`.
+The current dual-antenna installation uses the right antenna as master and the left antenna as secondary. The UM982 raw heading therefore describes the lateral antenna baseline, not the vehicle `base_link +X` forward direction. The driver applies `heading_offset_deg: 88.5` before publishing `/heading`. This value is estimated from RTK Fixed straight-line segments in the 2026-06-24 and 2026-06-29 bags and still needs a dedicated straight-line calibration run.
 
 In `rtk/status`, `heading=` is the calibrated vehicle heading and `raw=` is the receiver's raw lateral-baseline heading. If the antenna master/secondary wiring or physical mounting changes later, adjust `heading_offset_deg` rather than hard-coding compensation in navigation code.
 

@@ -90,7 +90,7 @@ def generate_launch_description():
             {
                 "route_frame": "map",
                 "global_frame": "map",
-                "base_frame": "base_link",
+                "base_frame": "base_footprint",
                 "graph_filepath": route_graph_file,
                 "enable_nn_search": False,
                 "path_density": 0.2,

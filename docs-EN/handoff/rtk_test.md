@@ -92,6 +92,11 @@ The RTK signal status should achieve `q=4`.
 - If it is `q=0`, the RTK has no signal. Go outdoors in a clear area.
 - If you are completely outside but `q=1`, make sure you are logged in.
 
+Use the custom python script:
+```bash
+python3 /tmp/rtk_heading_calibrate.py
+```
+
 When you are done, simply run this to stop recording data:
 ```bash
 make kill

@@ -97,6 +97,11 @@ RTK 信号状态应该达到 `q=4`。
 - 如果 `q=0`，说明 RTK 没有信号。请前往室外开阔区域。
 - 如果你已经完全处于室外但 `q=1`，请确保你已成功登录账号。
 
+Use the custom python script:
+```bash
+python3 /tmp/rtk_heading_calibrate.py
+```
+
 完成后，只需运行以下命令即可停止记录数据：
 
 ```bash

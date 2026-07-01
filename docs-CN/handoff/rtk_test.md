@@ -128,7 +128,7 @@ cd ~/XJTLU-autonomous-vehicle
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 
-cat > /tmp/rtk_heading_calibrate_original.py <<'PY'
+cat > /tmp/rtk_heading_calibrate.py <<'PY'
 #!/usr/bin/env python3
 import math
 import re
@@ -171,7 +171,7 @@ class Calibrator(Node):
     def status_cb(self, msg):
         q_match = re.search(r"\bq=(\d+)\b", msg.data)
         # raw_match = re.search(r"\braw=([-+]?\d+(?:\.\d+)?)", msg.data)
-	      raw_match = re.search(r"\bheading=([-+]?\d+(?:\.\d+)?)", msg.data)
+        raw_match = re.search(r"\bheading=([-+]?\d+(?:\.\d+)?)", msg.data)
         with self.lock:
             if q_match:
                 self.quality = int(q_match.group(1))
@@ -235,5 +235,5 @@ finally:
     thread.join(timeout=1.0)
 PY
 
-chmod +x /tmp/rtk_heading_calibrate_original.py
+chmod +x /tmp/rtk_heading_calibrate.py
 ```

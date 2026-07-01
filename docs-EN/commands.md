@@ -564,7 +564,7 @@ To start a connection, SSH into the Jetson and run:
 cd XJTLU-autonomous-vehicle
 source install/setup.bash
 source /opt/ros/humble/setup.bash
-ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+ros2 run foxglove_bridge foxglove_bridge
 ```
 
 Then from your computer, open Foxglove and click on "Open Connection" -> "Foxglove WebSocket (default)" and enter `ws://100.79.128.22:8765`
@@ -576,9 +576,29 @@ After entering, click anywhere on the center view, and the left panel will load 
 2. Open Tailscale from your computer or the [browser](https://login.tailscale.com/admin/machines) and check the robot address "badger"
 3. Go back to Foxglove and type the correct IP address in here: `ws://<TAILSCALE_IP>:8765`
 
+#### Foxglove Settings
+
+To correctly render the robot URDF along with other data, such as the point cloud, use the following settings:
+- Fixed frame: `<Root frame>`
+- Display frame: `base_link`
+- Follow mode: `Pose` (position + attitude)
+- Sync timestamps: `Off`
+- Location topic: `Auto`
+- ENU frame: `<Fixed frame>`
+- Grid Frame: `base_footprint`
+
+If the model
+
 ### Debugging
 
+Cannot connect:
 - Double-check the Tailscale address is correct, and you have Tailscale on
 - Ping the Jetson with the tailscale address from your computer with `ping <TAILSCALE_IP>`
 - If using a VPN, go to your proxy settings and add all Tailscale IPs to the exception list: `100.*.*.*` (or try turning your VPN off and connecting again)
+
+Connection too slow:
 - Change the Jetson WiFi to your phone hotspot and ping it again
+
+Topics not rendering properly (URDF or point cloud missing):
+- Make sure in `Panel` -> `Topics`, the topics `/fastlio2/world_cloud` and `/robot_description` are visible (click on the eye icon)
+- Close the current foxglove session and open another one, it usually fixes itself

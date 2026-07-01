@@ -90,7 +90,7 @@ def generate_launch_description():
             {
                 "route_frame": "map",
                 "global_frame": "map",
-                "base_frame": "base_footprint",
+                "base_frame": "base_link",
                 "graph_filepath": route_graph_file,
                 "enable_nn_search": False,
                 "path_density": 0.2,
@@ -133,11 +133,12 @@ def generate_launch_description():
     delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
     delayed_goal_manager = TimerAction(period=7.0, actions=[goal_manager_node])
 
-    urdf_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
-        )
-    )
+    # Does not currently work as intended. Review for later
+    # urdf_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource(
+    #         os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+    #     )
+    # )
 
     return LaunchDescription(
         [
@@ -186,6 +187,6 @@ def generate_launch_description():
             route_lifecycle_manager,
             delayed_nav2,
             delayed_goal_manager,
-            urdf_launch,
+            # urdf_launch,
         ]
     )

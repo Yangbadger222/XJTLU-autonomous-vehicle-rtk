@@ -27,7 +27,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
-| Travel | `make launch-travel` | 静态地图导航框架，当前暂停 |
+| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
 
@@ -145,6 +145,7 @@ map -> odom -> base_link
 
 - 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
+- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_link` 由 FAST-LIO2 发布，表示高频局部里程计
 - 两者组合后得到全局位姿
 

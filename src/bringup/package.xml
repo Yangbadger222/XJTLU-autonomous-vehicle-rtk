@@ -14,6 +14,7 @@
   <exec_depend>livox_ros_driver2</exec_depend>
   <exec_depend>fastlio2</exec_depend>
   <exec_depend>pgo</exec_depend>
+  <exec_depend>localizer</exec_depend>
   <exec_depend>nmea_navsat_driver</exec_depend>
   <exec_depend>um982_rtk_driver</exec_depend>
   <exec_depend>rtk_fgo_localizer</exec_depend>

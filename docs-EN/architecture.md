@@ -27,7 +27,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
-| Travel | `make launch-travel` | Static map navigation framework, currently paused |
+| Travel | `make launch-travel` | Experimental prior-map navigation: 2D-map global planning + PCD point-cloud relocalization |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
 
@@ -145,6 +145,7 @@ map -> odom -> base_link
 
 - In production navigation modes, `map -> odom` is published by PGO, representing global correction offset
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
+- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_link` is published by FAST-LIO2, representing high-frequency local odometry
 - The combination of both yields the global pose
 

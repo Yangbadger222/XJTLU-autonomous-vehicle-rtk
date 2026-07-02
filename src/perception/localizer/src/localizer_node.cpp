@@ -26,6 +26,7 @@ struct NodeConfig
     std::string odom_topic = "/fastlio2/lio_odom";
     std::string map_frame = "map";
     std::string local_frame = "lidar";
+    std::string pcd_map;
     double update_hz = 1.0;
 };
 
@@ -64,6 +65,7 @@ public:
         m_sync->setAgePenalty(0.1);
         m_sync->registerCallback(std::bind(&LocalizerNode::syncCB, this, std::placeholders::_1, std::placeholders::_2));
         m_localizer = std::make_shared<ICPLocalizer>(m_localizer_config);
+        loadStartupMap();
 
         m_reloc_srv = this->create_service<interface::srv::Relocalize>("relocalize", std::bind(&LocalizerNode::relocCB, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -77,8 +79,10 @@ public:
     void loadParameters()
     {
         this->declare_parameter("config_path", "");
+        this->declare_parameter("pcd_map", "");
         std::string config_path;
         this->get_parameter<std::string>("config_path", config_path);
+        this->get_parameter<std::string>("pcd_map", m_config.pcd_map);
         YAML::Node config = YAML::LoadFile(config_path);
         if (!config)
         {
@@ -102,6 +106,25 @@ public:
         m_localizer_config.refine_map_resolution = config["refine_map_resolution"].as<double>();
         m_localizer_config.refine_max_iteration = config["refine_max_iteration"].as<int>();
         m_localizer_config.refine_score_thresh = config["refine_score_thresh"].as<double>();
+    }
+    void loadStartupMap()
+    {
+        if (m_config.pcd_map.empty())
+        {
+            RCLCPP_INFO(this->get_logger(), "No startup PCD map configured; waiting for /localizer/relocalize");
+            return;
+        }
+        if (!std::filesystem::exists(m_config.pcd_map))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Startup PCD map not found: %s", m_config.pcd_map.c_str());
+            return;
+        }
+        if (!m_localizer->loadMap(m_config.pcd_map))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to load startup PCD map: %s", m_config.pcd_map.c_str());
+            return;
+        }
+        RCLCPP_INFO(this->get_logger(), "Loaded startup PCD map: %s", m_config.pcd_map.c_str());
     }
     void timerCB()
     {

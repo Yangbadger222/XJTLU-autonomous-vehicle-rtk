@@ -26,7 +26,7 @@ amcl:
     alpha5: 0.2
     # 机器人基坐标系；AMCL 会把定位结果对齐到该机体坐标。
     # 改成错误坐标系：定位姿态会与真实车体不一致。
-    base_frame_id: "base_footprint"
+    base_frame_id: "base_link"
     # beam skip 距离阈值；用于判断哪些激光束可以被视作异常并跳过。
     # 调大：更容易忽略偏离模型的量测；调小：更严格地要求每束参与匹配。
     beam_skip_distance: 0.5
@@ -95,7 +95,8 @@ amcl:
     sigma_hit: 0.2
     # 是否广播 map 到 odom 的 TF；决定 AMCL 是否直接输出定位变换。
     # 改为 true：由 AMCL 提供 TF；改为 false：需要外部链路自行维护该 TF。
-    tf_broadcast: true
+    # Travel 先验点云模式由 localizer 发布 map -> odom，AMCL 不抢 TF。
+    tf_broadcast: false
     # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
     # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
     transform_tolerance: 1.0
@@ -550,7 +551,7 @@ global_costmap:
       track_unknown_space: true
       # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。
       # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。
-      rolling_window: true
+      rolling_window: false
       # 地图宽度；决定 costmap 在 X 方向覆盖的物理范围。
       # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
       width: 50
@@ -559,7 +560,14 @@ global_costmap:
       height: 50
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
-      plugins: ["obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      # 静态层参数块；负责把先验 2D 栅格地图叠加到全局代价地图。
+      # Travel 先验点云模式中，PCD 负责重定位，2D map 负责全局规划。
+      static_layer:
+        # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+        plugin: "nav2_costmap_2d::StaticLayer"
+        # 是否使用 transient local 订阅地图；决定晚加入节点能否拿到已发布地图。
+        map_subscribe_transient_local: true
       # 膨胀层参数块；负责给障碍物外围增加安全缓冲。
       # 改错结构或参数：障碍安全边界会偏大或偏小。
       inflation_layer:

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 MODE="${1:-explore}"
+EXTRA_LAUNCH_ARGS=("${@:2}")
 SESSION=$(date +%Y-%m-%d-%H-%M-%S)
 SESSION_DIR="$HOME/XJTLU-autonomous-vehicle/runtime-data/logs/$SESSION"
 TEGRA_PID=""
@@ -111,7 +112,7 @@ if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
       ;;
   esac
 fi
-if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" ]]; then
+if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")
   elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
@@ -155,7 +156,7 @@ if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]
     echo "  Route stable-fix timeout: ${ROUTE_FIX_TIMEOUT_S}s (+30s buffer)"
   fi
 
-  ros2 launch bringup "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" >"$LAUNCH_STDOUT_LOG" 2>&1 &
+  ros2 launch bringup "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" "${EXTRA_LAUNCH_ARGS[@]}" >"$LAUNCH_STDOUT_LOG" 2>&1 &
   LAUNCH_PID=$!
 
   set +e
@@ -174,4 +175,4 @@ if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]
   exit "$MONITOR_RC"
 fi
 
-ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}"
+ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" "${EXTRA_LAUNCH_ARGS[@]}"

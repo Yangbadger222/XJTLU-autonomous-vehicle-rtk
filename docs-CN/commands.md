@@ -698,6 +698,14 @@ ros2 run foxglove_bridge foxglove_bridge
 - 仔细检查 Tailscale 地址是否正确，并确认您已开启 Tailscale。
 - 在您的电脑上使用 `ping <TAILSCALE_IP>` 命令，对 Jetson 的 Tailscale 地址进行 Ping 测试。
 - 如果使用了 VPN，请前往您的代理设置并将所有 Tailscale IP 添加到例外列表中：`100.*.*.*`（或者尝试关闭 VPN 并重新连接）。
+- 如果使用 Clash Verge:
+  1. 前往《设置》，然后《系统代理》点击小齿轮
+  2. 找《始终使用默认绕过》，关掉 OFF
+  3. 有个 text box 会出现（在《代理绕过设置》下面）。在 text box 上，写这个IP：`100.64.0.0/10`。然后点《新建》，再点《保存》。
+  4. 回去设置页。找《虚拟网卡模式》点击小齿轮。
+  5. 在下面的 text box （在《排除自定义网段》下面），写同样的IP：`100.64.0.0/10`。然后点《新建》，再点《保存》。
+  6. 回去 Foxglove 再试一遍
+
 
 连接速度过慢：
 - 将 Jetson 的 WiFi 切换为您的手机热点，然后再次进行 Ping 测试。

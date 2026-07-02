@@ -2,6 +2,7 @@
 set -euo pipefail
 
 MODE="${1:-explore}"
+EXTRA_LAUNCH_ARGS=("${@:2}")
 SESSION=$(date +%Y-%m-%d-%H-%M-%S)
 SESSION_DIR="$HOME/XJTLU-autonomous-vehicle/runtime-data/logs/$SESSION"
 TEGRA_PID=""
@@ -17,9 +18,9 @@ export ROS_LOG_DIR="$SESSION_DIR/console"
 export FYP_LOG_SESSION_DIR="$SESSION_DIR/data"
 
 cleanup_runtime_nodes() {
-  pkill -INT -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -INT -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   sleep 1
-  pkill -KILL -f '[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -KILL -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   ros2 daemon stop 2>/dev/null || true
   for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do
     if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
@@ -111,7 +112,7 @@ if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
       ;;
   esac
 fi
-if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" ]]; then
+if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")
   elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
@@ -155,7 +156,7 @@ if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]
     echo "  Route stable-fix timeout: ${ROUTE_FIX_TIMEOUT_S}s (+30s buffer)"
   fi
 
-  ros2 launch bringup "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" >"$LAUNCH_STDOUT_LOG" 2>&1 &
+  ros2 launch bringup "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" "${EXTRA_LAUNCH_ARGS[@]}" >"$LAUNCH_STDOUT_LOG" 2>&1 &
   LAUNCH_PID=$!
 
   set +e
@@ -174,4 +175,4 @@ if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]
   exit "$MONITOR_RC"
 fi
 
-ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}"
+ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" "${EXTRA_LAUNCH_ARGS[@]}"

@@ -99,6 +99,34 @@ Notes:
 - It keeps Livox, FAST-LIO2, PGO, Nav2, and the serial control chain running
 - In RViz, use `2D Goal Pose` to publish goals to `/goal_pose` for indoor click-to-go navigation
 
+One-line command for prior-map Travel navigation:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
+  map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
+  pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
+```
+
+Notes:
+- `travel` uses the 2D `map.yaml` for Nav2 global planning and the 3D `map.pcd` for ICP point-cloud relocalization in `localizer`
+- `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
+- `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
+- PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
+- After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
+
+```bash
+ros2 service call /localizer/relocalize interface/srv/Relocalize \
+  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
+```
+
+Verification:
+
+```bash
+ros2 run tf2_ros tf2_monitor odom base_footprint
+ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
+ros2 run tf2_ros tf2_monitor map odom
+```
+
 One-line command for GPS Corridor v2:
 
 ```bash
@@ -184,7 +212,7 @@ ros2 param get /pgo/pgo_node gps.origin_mode
 # TF
 ros2 run tf2_ros tf2_monitor
 ros2 run tf2_ros tf2_monitor map odom
-ros2 run tf2_ros tf2_monitor odom base_link
+ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 run tf2_tools tf2_echo map base_link
 ```
 

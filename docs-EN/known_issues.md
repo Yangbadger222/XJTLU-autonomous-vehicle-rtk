@@ -77,9 +77,9 @@
     - Description: The GPS parameters in `src/bringup/config/master_params.yaml` such as `gps.noise_xy` and `gps.noise_z` are outdated. They belong to the previous innaccurate GPS antenna, and have not been adapted for the new RTK.
     - Status: Awaiting tuning
 
-10. **[Medium] Travel mode development paused**
-    - Description: `system_travel.launch.py` and `nav2_travel.yaml` exist in the repository, but this mode is not a current development priority.
-    - Status: Paused
+10. **[Medium] Travel prior-map mode still needs on-vehicle validation**
+    - Description: `system_travel.launch.py` has been restored as an experimental prior-map chain: the 2D `map.yaml` feeds Nav2 global planning, while the 3D `map.pcd` feeds `localizer` ICP relocalization and `map -> odom`.
+    - Status: Software wiring restored and built on the Jetson; further indoor prior-map navigation validation is still needed.
 
 11. **[Medium] GPS route-graph still needs further collection and refinement**
     - Description: Fixed ENU origin and dispatcher route planning are implemented in software, but `campus_road_network.yaml` is still only a bootstrap graph that needs continued on-vehicle `/gnss` waypoint collection to expand.

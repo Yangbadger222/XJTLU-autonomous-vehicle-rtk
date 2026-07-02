@@ -44,6 +44,8 @@ runtime-data/
 # Claude Code
 .claude/
 .codex_tmp/
+docs/superpowers/plans/
+tmp/pdfs/
 
 # Firmware trees are ignored by default, except the vendored RM C Board snapshot.
 src/firmware/*

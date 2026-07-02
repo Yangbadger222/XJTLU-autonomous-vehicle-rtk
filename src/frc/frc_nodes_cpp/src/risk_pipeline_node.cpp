@@ -381,10 +381,10 @@ private:
   nav_msgs::msg::OccupancyGrid makeGrid(
     const std::vector<float> & values,
     const double origin_x,
-    const double origin_y) const
+    const double origin_y)
   {
     nav_msgs::msg::OccupancyGrid grid;
-    grid.header.stamp = get_clock()->now().to_msg();
+    grid.header.stamp = now();
     grid.header.frame_id = "odom";
     grid.info.resolution = static_cast<float>(config_.resolution);
     grid.info.width = static_cast<uint32_t>(config_.gridSize());
@@ -399,7 +399,7 @@ private:
   void publishRisk(const RiskFrame & frame, const uint8_t source_mask)
   {
     frc_msgs::msg::RiskGrid msg;
-    msg.header.stamp = get_clock()->now().to_msg();
+    msg.header.stamp = now();
     msg.header.frame_id = "odom";
     msg.risk = makeGrid(frame.risk, frame.origin_x, frame.origin_y);
     msg.confidence = makeGrid(frame.confidence, frame.origin_x, frame.origin_y);

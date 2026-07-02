@@ -137,6 +137,7 @@ struct NodeConfig
     std::string odom_topic = "/fastlio2/lio_odom";
     std::string map_frame = "map";
     std::string local_frame = "odom";
+    bool publish_tf = true;
     double global_map_pub_rate = 1.0;
     double global_map_resolution = 0.1;
     
@@ -342,6 +343,7 @@ public:
         m_node_config.odom_topic = this->declare_parameter<std::string>("odom_topic", "/fastlio2/lio_odom");
         m_node_config.map_frame = this->declare_parameter<std::string>("map_frame", "map");
         m_node_config.local_frame = this->declare_parameter<std::string>("local_frame", "odom");
+        m_node_config.publish_tf = this->declare_parameter<bool>("publish_tf", m_node_config.publish_tf);
         m_node_config.global_map_pub_rate = this->declare_parameter<double>("global_map_pub_rate", 1.0);
         m_node_config.global_map_resolution = this->declare_parameter<double>("global_map_resolution", 0.1);
 
@@ -438,6 +440,8 @@ public:
             m_node_config.map_frame = config["map_frame"].as<std::string>();
         if (config["local_frame"])
             m_node_config.local_frame = config["local_frame"].as<std::string>();
+        if (config["publish_tf"])
+            m_node_config.publish_tf = config["publish_tf"].as<bool>();
         if (config["global_map_pub_rate"])
             m_node_config.global_map_pub_rate = config["global_map_pub_rate"].as<double>();
         if (config["global_map_resolution"])
@@ -508,6 +512,7 @@ public:
             rclcpp::Parameter("odom_topic", m_node_config.odom_topic),
             rclcpp::Parameter("map_frame", m_node_config.map_frame),
             rclcpp::Parameter("local_frame", m_node_config.local_frame),
+            rclcpp::Parameter("publish_tf", m_node_config.publish_tf),
             rclcpp::Parameter("global_map_pub_rate", m_node_config.global_map_pub_rate),
             rclcpp::Parameter("global_map_resolution", m_node_config.global_map_resolution),
             rclcpp::Parameter("key_pose_delta_deg", m_pgo_config.key_pose_delta_deg),
@@ -704,6 +709,9 @@ public:
 
     void sendBroadCastTF(builtin_interfaces::msg::Time &time)
     {
+        if (!m_node_config.publish_tf)
+            return;
+
         geometry_msgs::msg::TransformStamped transformStamped;
         transformStamped.header.frame_id = m_node_config.map_frame;
         transformStamped.child_frame_id = m_node_config.local_frame;

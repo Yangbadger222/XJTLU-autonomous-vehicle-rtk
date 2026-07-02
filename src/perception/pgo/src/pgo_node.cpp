@@ -78,6 +78,7 @@ struct NodeConfig
     std::string odom_topic = "/lio/odom";
     std::string map_frame = "map";
     std::string local_frame = "lidar";
+    bool publish_tf = true;
     double global_map_pub_rate = 1.0;  // 全局地图发布频率 (Hz)
     double global_map_resolution = 0.1;  // 全局地图降采样分辨率 (m)
 };
@@ -218,6 +219,9 @@ public:
         m_node_config.odom_topic = config["odom_topic"].as<std::string>();
         m_node_config.map_frame = config["map_frame"].as<std::string>();
         m_node_config.local_frame = config["local_frame"].as<std::string>();
+        if (config["publish_tf"]) {
+            m_node_config.publish_tf = config["publish_tf"].as<bool>();
+        }
 
         m_pgo_config.key_pose_delta_deg = config["key_pose_delta_deg"].as<double>();
         m_pgo_config.key_pose_delta_trans = config["key_pose_delta_trans"].as<double>();
@@ -235,8 +239,10 @@ public:
         if (config["global_map_resolution"]) {
             m_node_config.global_map_resolution = config["global_map_resolution"].as<double>();
         }
-        RCLCPP_INFO(this->get_logger(), "Global map publish rate: %.2f Hz, resolution: %.3f m", 
-                    m_node_config.global_map_pub_rate, m_node_config.global_map_resolution);
+        RCLCPP_INFO(this->get_logger(), "Global map publish rate: %.2f Hz, resolution: %.3f m, publish_tf=%s",
+                    m_node_config.global_map_pub_rate,
+                    m_node_config.global_map_resolution,
+                    m_node_config.publish_tf ? "true" : "false");
     }
     void syncCB(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud_msg, const nav_msgs::msg::Odometry::ConstSharedPtr &odom_msg)
     {
@@ -310,6 +316,9 @@ public:
 
     void sendBroadCastTF(builtin_interfaces::msg::Time &time)
     {
+        if (!m_node_config.publish_tf)
+            return;
+
         geometry_msgs::msg::TransformStamped transformStamped;
         transformStamped.header.frame_id = m_node_config.map_frame;
         transformStamped.child_frame_id = m_node_config.local_frame;

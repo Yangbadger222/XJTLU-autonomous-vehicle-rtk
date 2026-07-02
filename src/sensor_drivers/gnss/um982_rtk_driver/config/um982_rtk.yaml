@@ -3,7 +3,7 @@ um982_rtk_driver:
     port: /dev/rtk_um982
     baud: 115200
     frame_id: gps
-    heading_offset_deg: 90.0
+    heading_offset_deg: 88.5
     publish_raw: true
     status_period_s: 1.0
     ntrip:

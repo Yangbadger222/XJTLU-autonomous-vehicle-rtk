@@ -36,7 +36,7 @@ bash scripts/init_runtime_data.sh
 ls ~/XJTLU-autonomous-vehicle/runtime-data
 ```
 
-## 3. Launch Seven Operating Modes
+## 3. Launch Operating Modes
 
 ```bash
 cd ~/XJTLU-autonomous-vehicle
@@ -47,6 +47,7 @@ make launch-indoor-nav
 make launch-corridor
 make launch-explore-gps
 make launch-nav-gps
+make launch-tightly-coupled
 make launch-travel
 ```
 
@@ -59,6 +60,7 @@ bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh tightly-coupled
 bash scripts/launch_with_logs.sh travel
 ```
 
@@ -68,9 +70,20 @@ Equivalent `ros2 launch` invocation:
 ros2 launch bringup system_slam.launch.py
 ros2 launch bringup system_explore.launch.py
 ros2 launch bringup system_gps_corridor.launch.py
+ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
 ros2 launch bringup system_travel.launch.py
+```
+
+Optional RTK recording in pure SLAM mapping:
+
+```bash
+# Default mapping run: build 2D/3D maps without starting RTK
+cd ~/XJTLU-autonomous-vehicle && bash scripts/launch_with_logs.sh slam
+
+# Enable RTK only when outdoor Fixed samples are needed for later indoor/outdoor geo-registration
+cd ~/XJTLU-autonomous-vehicle && ros2 launch bringup system_slam.launch.py use_rtk:=true
 ```
 
 One-line command for indoor click-to-go navigation without GPS:
@@ -221,18 +234,43 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 ## 8. Map Saving
 
 ```bash
-# Save 3D point cloud map
-ros2 service call /pgo/save_maps interface/srv/SaveMaps   "{file_path: '/home/jetson/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<dir>', save_patches: true}"
+# Save the current SLAM session's 2D + 3D maps and write a manifest
+cd ~/XJTLU-autonomous-vehicle && scripts/save_mapping_session.sh <map_name>
+```
+
+Output:
+
+```text
+runtime-data/maps/<map_name>/manifest.yaml
+runtime-data/maps/2d/<map_name>/map.yaml
+runtime-data/maps/2d/<map_name>/map.pgm
+runtime-data/maps/3d/<map_name>/map.pcd
+runtime-data/maps/3d/<map_name>/poses.txt
+runtime-data/maps/3d/<map_name>/patches/*.pcd
+```
+
+Notes:
+- `manifest.yaml` records `consistency_ok` to flag likely 2D/3D map drift; it is gated by the 2D/3D alignment diagnostic, patch/pose integrity, and frame checks. This is a save-time diagnostic, not a replacement for later relocalization validation
+- `patch_pose_integrity.ok` must be `true`, meaning `patches/*.pcd` and `poses.txt` keyframes are one-to-one
+- `frame_check.ok` must be `true`; by default `/scan.header.frame_id` and `/fastlio2/lio_odom.child_frame_id` are expected to be `base_footprint`. If the vehicle's FAST-LIO2 child frame is different, confirm it with `view_frames`/`tf2_echo` first, then save with `--expected-base-frame <frame>`
+- Later indoor/outdoor geo-registration must use RTK Fixed samples plus heading; indoor invalid/float RTK samples are records only, not strong constraints
+
+Low-level troubleshooting commands:
+
+```bash
+# Confirm TF and frame names before saving; do not change base_frame blindly.
+ros2 run tf2_tools view_frames
+ros2 run tf2_ros tf2_echo odom base_footprint
+
+# Save 3D point cloud map; file_path must be absolute because ROS service requests do not expand ~
+ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>', save_patches: true}"
 
 # Save 2D occupancy grid map
-ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<dir>/map
+ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map --ros-args -p map_subscribe_transient_local:=true
 
 # View PCD
 pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
 ```
-
-Notes:
-- The `file_path` passed to `/pgo/save_maps` must be an absolute path; `~` is not expanded inside the ROS service request
 
 ## 9. Stop System and Emergency Stop
 
@@ -492,6 +530,69 @@ Notes:
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+## RTK FGO Tight-Coupled Shadow Mode
+
+Build:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make build-perception
+source install/setup.bash
+```
+
+Launch the experimental shadow mode:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle
+make launch-tightly-coupled
+cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+```
+
+Launch with field RTK/CORS parameters:
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+```
+
+Observe shadow outputs:
+
+```bash
+ros2 topic echo /rtk_fgo/status
+ros2 topic echo /rtk_fgo/rtk_gate
+ros2 topic echo /rtk_fgo/correction_status
+ros2 topic echo /rtk_fgo/factor_diagnostics
+```
+
+Check chassis feedback and bag capture:
+
+```bash
+ros2 topic hz /cmd_vel
+ros2 topic hz /odom_CBoar
+ros2 topic echo /odom_CBoar --once
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/odom_CBoar|/cmd_vel|/fix|/heading|/rtk_fgo|/pgo/optimized_odom|/pgo/loop_markers|/livox/lidar|/fastlio2/body_cloud'
+tail -f runtime-data/logs/latest/data/serial_reader.log
+```
+
+Generate replay metrics from the latest tightly-coupled bag:
+
+```bash
+python3 scripts/evaluate_rtk_fgo_bag.py \
+  --bag runtime-data/logs/latest/bag \
+  --out runtime-data/logs/latest/system/rtk_fgo_metrics.json
+```
+
+Experimental TF must be enabled explicitly and only for guarded tests:
+
+```bash
+ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_use_fgo:=false
+```
+
+Notes:
+- This mode defaults to `publish_tf=false` and does not broadcast production `map -> odom`
+- Nav2 is not remapped, and `corridor`, `explore-gps`, and `nav-gps` are not replaced
+- The automatic bag includes `/rtk_fgo/*`, `/fix`, `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, `/fastlio2/lio_odom`, `/fastlio2/body_cloud`, `/pgo/optimized_odom`, `/pgo/loop_markers`, and `/tf`
+- `/rtk_fgo/factor_diagnostics` includes frame-anchor, wheel-factor, and graph-window health keys
 
 ***
 

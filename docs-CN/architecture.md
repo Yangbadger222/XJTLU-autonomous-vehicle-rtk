@@ -16,21 +16,47 @@
 - 串口连接到 STM32 下位机
 - PS2 手柄作为最高优先级人工接管
 
-## 3. 七种运行模式
+## 3. 八种运行模式
 
 | 模式 | 命令 | 当前用途 |
 |------|------|----------|
-| SLAM | `make launch-slam` | 建图与感知链验证 |
+| SLAM | `make launch-slam` | 纯建图：生成 2D Nav2 地图、3D PGO 点云地图与 manifest |
 | Explore | `make launch-explore` | 当前主运行模式，局部避障导航 |
 | Indoor Nav | `make launch-indoor-nav` | 不启 GNSS 的 RViz 点击点导航 |
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
+| Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 | Travel | `make launch-travel` | 静态地图导航框架，当前暂停 |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
 
-## 4. Explore 模式数据流
+## 4. SLAM 纯建图数据流
+
+```text
+Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
+                                  -> /fastlio2/lio_odom
+                                  -> TF: odom -> base_link
+
+/fastlio2/body_cloud -> pointcloud_to_laserscan -> /scan
+                                             |
+                                             v
+                                      SLAM Toolbox -> /map
+                                                   -> TF: map -> odom
+
+/fastlio2/body_cloud + /fastlio2/lio_odom -> PGO(publish_tf=false)
+                                             -> /pgo/global_map
+                                             -> /pgo/save_maps
+
+scripts/save_mapping_session.sh <map_name>
+  -> 保存 2D map.yaml/map.pgm
+  -> 保存 3D map.pcd/poses.txt/patches
+  -> 写 manifest.yaml，包括 2D/3D 一致性、patch/pose 完整性与 frame 检查
+```
+
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 SLAM Toolbox 同时发布 `map -> odom`。保存脚本默认检查 `base_link`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
+
+## 5. Explore 模式数据流
 
 ```text
 Livox MID360 -> /livox/lidar ------+
@@ -47,7 +73,7 @@ Nav2 -> /cmd_vel -> serial_twistctl -> STM32 -> motors
 STM32 -> serial_reader -> chassis feedback / odom_CBoard
 ```
 
-## 5. GPS 相关链路
+## 6. GPS 相关链路
 
 ### 5.1 Explore GPS 模式
 
@@ -96,19 +122,35 @@ goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
 - `goto_name` 是主入口；用户只输入英文目标名
 
-## 6. TF 链
+### 5.3 RTK FGO 紧耦合实验模式（shadow）
+
+```text
+Explore stack + UM982 RTK
+  -> rtk_fgo_localizer
+       inputs: /fastlio2/lio_odom, /livox/imu, /odom_CBoar, /fix, /heading, /rtk/*
+       outputs: /rtk_fgo/odom, /rtk_fgo/path, /rtk_fgo/status, /rtk_fgo/rtk_gate
+                /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
+```
+
+该模式通过 `make launch-tightly-coupled` 启动，第一版是 shadow mode：
+- 默认 `publish_tf=false`，不广播生产 `map -> odom`
+- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
+- 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
+
+## 7. TF 链
 
 ```text
 map -> odom -> base_link
 ```
 
-- `map -> odom` 由 PGO 发布，表示全局校正偏移
+- 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
+- SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - `odom -> base_link` 由 FAST-LIO2 发布，表示高频局部里程计
 - 两者组合后得到全局位姿
 
 如果 `map -> odom` 不存在，RViz 在 `map` fixed frame 下会表现为点云或 costmap 看起来空白，即使 Livox 和 FAST-LIO2 本身还在运行。
 
-## 7. 配置架构
+## 8. 配置架构
 
 - `src/bringup/config/master_params.yaml`
   - 仓库模板参数入口
@@ -170,7 +212,7 @@ src/
 
 说明：
 - `sensor_drivers/`: Livox、IMU、GNSS、串口
-- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关
+- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 是紧耦合 RTK FGO 实验包，当前只接入 shadow mode
 - `planning/`: 历史 GPS 全局规划与坐标转换试验区
 - `navigation/`: `waypoint_collector` 与 scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: 系统 launch、参数、地图、RViz 配置
@@ -188,6 +230,7 @@ src/
   - `pointcloud_to_laserscan`
   - `pgo`
   - `pgo_original`
+  - `rtk_fgo_localizer`（实验包骨架）
   - `hba`
   - `localizer`
   - `interface`
@@ -256,4 +299,3 @@ current_route.yaml
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）
 - `start_ref` + 多个 `waypoints[]` 的 GPS 坐标
 - `launch_yaw_deg` 为必填字段
-

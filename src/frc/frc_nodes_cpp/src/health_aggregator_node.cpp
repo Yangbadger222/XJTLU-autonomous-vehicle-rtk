@@ -58,9 +58,9 @@ public:
   }
 
 private:
-  double now_s() const
+  double now_s()
   {
-    return get_clock()->now().nanoseconds() * 1e-9;
+    return now().nanoseconds() * 1e-9;
   }
 
   void on_degeneracy(const std_msgs::msg::Float32MultiArray & msg)
@@ -99,7 +99,7 @@ private:
     const auto output = core_.build(inputs_, now_s());
 
     frc_msgs::msg::Health msg;
-    msg.header.stamp = get_clock()->now().to_msg();
+    msg.header.stamp = now();
     msg.lio_min_eig = output.lio_min_eig;
     msg.lio_cond = output.lio_cond;
     msg.lio_degenerate = output.lio_degenerate;

@@ -1,0 +1,66 @@
+rtk_fgo_localizer:
+  ros__parameters:
+    publish_tf: false
+    nav2_use_fgo: false
+    heading_quaternion_yaw_is_compass: true
+
+    topics:
+      fastlio_odom: /fastlio2/lio_odom
+      imu: /livox/imu
+      wheel_odom: /odom_CBoar
+      fix: /fix
+      heading: /heading
+      rtk_status: /rtk/status
+      raw_nmea: /rtk/nmea_sentence
+
+    frames:
+      map: map
+      base_link: base_footprint
+      odom_fgo: odom_fgo
+
+    window:
+      duration_s: 15.0
+      keyframe_rate_hz: 10.0
+      max_states: 120
+
+    factors:
+      imu_enabled: false
+      fastlio_enabled: true
+      wheel_enabled: true
+      rtk_position_enabled: true
+      rtk_heading_enabled: true
+
+    rtk_gating:
+      require_fixed_for_strong_factor: true
+      fixed_quality_code: 4
+      float_quality_code: 5
+      min_satellites: 10
+      max_hdop: 2.0
+      max_strong_position_innovation_m: 3.0
+      max_weak_position_innovation_m: 5.0
+      max_heading_innovation_rad: 0.5
+      recovery_min_samples: 8
+      max_implied_speed_mps: 2.0
+      max_position_jump_m: 3.0
+      heading_sigma_rad: 0.05
+
+    frame_anchor:
+      require_fixed_for_anchor: true
+      use_rtk_heading_for_yaw: true
+      max_anchor_position_innovation_m: 2.0
+      bootstrap_min_satellites: 10
+      bootstrap_max_hdop: 2.0
+      bootstrap_required_consecutive_samples: 5
+      max_heading_spread_deg: 3.0
+
+    imu:
+      accelerometer_noise_sigma: 0.1
+      gyroscope_noise_sigma: 0.01
+      accelerometer_bias_rw_sigma: 0.001
+      gyroscope_bias_rw_sigma: 0.0001
+      integration_error_sigma: 1.0e-8
+      gravity_mps2: 9.81
+
+    correction_smoother:
+      max_translation_step_m: 0.15
+      max_yaw_step_deg: 0.3

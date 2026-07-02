@@ -241,9 +241,9 @@ private:
     return fallback;
   }
 
-  double nowS() const
+  double nowS()
   {
-    return get_clock()->now().nanoseconds() * 1e-9;
+    return now().nanoseconds() * 1e-9;
   }
 
   void onChassis(const frc_msgs::msg::ChassisStatus & msg)
@@ -407,7 +407,7 @@ private:
     const auto pose = poseInMap();
 
     frc_msgs::msg::EventMarker msg;
-    msg.header.stamp = get_clock()->now().to_msg();
+    msg.header.stamp = now();
     msg.header.frame_id = "map";
     msg.type = event.type;
     msg.severity = event.severity;

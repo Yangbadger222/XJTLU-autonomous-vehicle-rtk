@@ -270,7 +270,8 @@
     # Convert UM982 dual-antenna baseline heading to vehicle heading.
     # On the current vehicle the right antenna is master and the left antenna is secondary,
     # so the receiver reports the leftward baseline direction; base_link +X is vehicle front.
-    heading_offset_deg: 90.0
+    # 2026-06-29 bag-based estimate: 88.5 deg, pending a dedicated straight-line calibration.
+    heading_offset_deg: 88.5
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

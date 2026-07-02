@@ -145,7 +145,8 @@ map -> odom -> base_link
 
 - In production navigation modes, `map -> odom` is published by PGO, representing global correction offset
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
-- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; PGO is off by default, or runs only with `publish_tf=false`
+- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated or stale-stamped TF in Nav2
+- PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_link` is published by FAST-LIO2, representing high-frequency local odometry
 - The combination of both yields the global pose
 

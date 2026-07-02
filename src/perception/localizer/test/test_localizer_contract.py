@@ -3,6 +3,7 @@ from pathlib import Path
 
 LOCALIZER_LAUNCH = Path("src/perception/localizer/launch/localizer_launch.py")
 LOCALIZER_NODE = Path("src/perception/localizer/src/localizer_node.cpp")
+LOCALIZER_CONFIG = Path("src/perception/localizer/config/localizer.yaml")
 
 
 def test_localizer_launch_can_be_reused_without_lio_or_rviz():
@@ -20,3 +21,21 @@ def test_localizer_node_can_load_startup_pcd_map():
     assert 'declare_parameter("pcd_map", "")' in text
     assert "loadStartupMap" in text
     assert "m_localizer->loadMap(m_config.pcd_map)" in text
+
+
+def test_localizer_config_documents_tf_staleness_guard():
+    text = LOCALIZER_CONFIG.read_text(encoding="utf-8")
+
+    assert "max_tf_input_age_s" in text
+
+
+def test_localizer_does_not_publish_stale_or_unvalidated_map_to_odom():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+    non_update_branch = text.split("if (!update_tf)", maxsplit=1)[1].split("m_state.last_send_tf_time", maxsplit=1)[0]
+
+    assert "sendBroadCastTF(m_state.last_message_time)" not in non_update_branch
+    assert "if (!localize_success && !service_received)" in text
+    assert 'RCLCPP_WARN_THROTTLE' in text
+    assert "isTransformStampFresh(current_time)" in text
+    assert "isNewerStamp(current_time, m_state.last_tf_time)" in text
+    assert "m_state.last_tf_time = current_time" in text

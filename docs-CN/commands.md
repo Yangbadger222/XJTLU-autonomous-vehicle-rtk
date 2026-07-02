@@ -110,8 +110,9 @@ cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs
 说明：
 - `travel` 使用 2D `map.yaml` 给 Nav2 做全局规划，使用 3D `map.pcd` 给 `localizer` 做 ICP 点云重定位
 - `localizer` 负责发布 `map -> odom`；FAST-LIO2 负责发布 `odom -> base_link`
+- `localizer` 启动时只预加载 PCD，不会立即发布 `map -> odom`；必须先调用 `/localizer/relocalize` 并看到 check 通过
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
-- 启动后可用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
+- 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
 
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
@@ -121,9 +122,9 @@ ros2 service call /localizer/relocalize interface/srv/Relocalize \
 验证：
 
 ```bash
-ros2 run tf2_ros tf2_monitor map odom
 ros2 run tf2_ros tf2_monitor odom base_link
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
+ros2 run tf2_ros tf2_monitor map odom
 ```
 
 GPS Corridor v2 的一整行命令：

@@ -145,7 +145,8 @@ map -> odom -> base_link
 
 - 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
-- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；PGO 默认不启动，或只以 `publish_tf=false` 运行
+- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证或旧时间戳 TF 污染 Nav2
+- PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_link` 由 FAST-LIO2 发布，表示高频局部里程计
 - 两者组合后得到全局位姿
 

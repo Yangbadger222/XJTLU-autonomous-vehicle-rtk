@@ -77,9 +77,9 @@
     - 描述: `src/bringup/config/master_params.yaml` 中的 `gps.noise_xy`、`gps.noise_z` 以及其他 GPS 参数已过时。它们属于之前不够精确的旧 GPS 天线，尚未针对新的 RTK 进行适配。
     - 状态: 等待调参
 
-10. **[中等] Travel 模式开发暂停**
-   - 描述: `system_travel.launch.py` 与 `nav2_travel.yaml` 已在仓库内，但该模式当前不作为主开发方向。
-   - 状态: 暂停
+10. **[中等] Travel 先验地图模式仍需实车验证**
+   - 描述: `system_travel.launch.py` 已恢复为实验性先验地图链路：2D `map.yaml` 供 Nav2 全局规划，3D `map.pcd` 供 `localizer` ICP 重定位并发布 `map -> odom`。
+   - 状态: 软件接线已恢复，并已完成 Jetson 构建；仍需继续做室内先验地图实车导航验证。
 
 11. **[中等] GPS 路网仍需继续采集和精修**
    - 描述: 固定 ENU 原点与 dispatcher 路网规划已经软件实现，但 `campus_road_network.yaml` 仍只是 bootstrap 图，需要继续用车载 `/gnss` 采点扩图。

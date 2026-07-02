@@ -99,6 +99,34 @@ cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs
 - 会保留 Livox、FAST-LIO2、PGO、Nav2、串口控制链路
 - 在 RViz 中使用 `2D Goal Pose` 向 `/goal_pose` 发目标即可做室内点击点导航
 
+先验地图 Travel 导航的一整行命令：
+
+```bash
+cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
+  map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
+  pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
+```
+
+说明：
+- `travel` 使用 2D `map.yaml` 给 Nav2 做全局规划，使用 3D `map.pcd` 给 `localizer` 做 ICP 点云重定位
+- `localizer` 负责发布 `map -> odom`；FAST-LIO2 负责发布 `odom -> base_footprint`，URDF 再提供 `base_footprint -> base_link`
+- `localizer` 启动时只预加载 PCD，不会立即发布 `map -> odom`；必须先调用 `/localizer/relocalize` 并看到 check 通过
+- PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
+- 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
+
+```bash
+ros2 service call /localizer/relocalize interface/srv/Relocalize \
+  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
+```
+
+验证：
+
+```bash
+ros2 run tf2_ros tf2_monitor odom base_footprint
+ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
+ros2 run tf2_ros tf2_monitor map odom
+```
+
 GPS Corridor v2 的一整行命令：
 
 ```bash
@@ -184,7 +212,7 @@ ros2 param get /pgo/pgo_node gps.origin_mode
 # TF
 ros2 run tf2_ros tf2_monitor
 ros2 run tf2_ros tf2_monitor map odom
-ros2 run tf2_ros tf2_monitor odom base_link
+ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 run tf2_tools tf2_echo map base_link
 ```
 

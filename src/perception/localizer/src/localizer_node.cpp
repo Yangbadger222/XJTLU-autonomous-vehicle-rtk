@@ -26,7 +26,9 @@ struct NodeConfig
     std::string odom_topic = "/fastlio2/lio_odom";
     std::string map_frame = "map";
     std::string local_frame = "lidar";
+    std::string pcd_map;
     double update_hz = 1.0;
+    double max_tf_input_age_s = 2.0;
 };
 
 struct NodeState
@@ -37,8 +39,10 @@ struct NodeState
     bool message_received = false;
     bool service_received = false;
     bool localize_success = false;
+    bool has_published_tf = false;
     rclcpp::Time last_send_tf_time = rclcpp::Clock().now();
     builtin_interfaces::msg::Time last_message_time;
+    builtin_interfaces::msg::Time last_tf_time;
     CloudType::Ptr last_cloud = std::make_shared<CloudType>();
     M3D last_r;                          // localmap_body_r
     V3D last_t;                          // localmap_body_t
@@ -64,6 +68,7 @@ public:
         m_sync->setAgePenalty(0.1);
         m_sync->registerCallback(std::bind(&LocalizerNode::syncCB, this, std::placeholders::_1, std::placeholders::_2));
         m_localizer = std::make_shared<ICPLocalizer>(m_localizer_config);
+        loadStartupMap();
 
         m_reloc_srv = this->create_service<interface::srv::Relocalize>("relocalize", std::bind(&LocalizerNode::relocCB, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -77,8 +82,10 @@ public:
     void loadParameters()
     {
         this->declare_parameter("config_path", "");
+        this->declare_parameter("pcd_map", "");
         std::string config_path;
         this->get_parameter<std::string>("config_path", config_path);
+        this->get_parameter<std::string>("pcd_map", m_config.pcd_map);
         YAML::Node config = YAML::LoadFile(config_path);
         if (!config)
         {
@@ -92,6 +99,8 @@ public:
         m_config.map_frame = config["map_frame"].as<std::string>();
         m_config.local_frame = config["local_frame"].as<std::string>();
         m_config.update_hz = config["update_hz"].as<double>();
+        if (config["max_tf_input_age_s"])
+            m_config.max_tf_input_age_s = config["max_tf_input_age_s"].as<double>();
 
         m_localizer_config.rough_scan_resolution = config["rough_scan_resolution"].as<double>();
         m_localizer_config.rough_map_resolution = config["rough_map_resolution"].as<double>();
@@ -102,6 +111,25 @@ public:
         m_localizer_config.refine_map_resolution = config["refine_map_resolution"].as<double>();
         m_localizer_config.refine_max_iteration = config["refine_max_iteration"].as<int>();
         m_localizer_config.refine_score_thresh = config["refine_score_thresh"].as<double>();
+    }
+    void loadStartupMap()
+    {
+        if (m_config.pcd_map.empty())
+        {
+            RCLCPP_INFO(this->get_logger(), "No startup PCD map configured; waiting for /localizer/relocalize");
+            return;
+        }
+        if (!std::filesystem::exists(m_config.pcd_map))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Startup PCD map not found: %s", m_config.pcd_map.c_str());
+            return;
+        }
+        if (!m_localizer->loadMap(m_config.pcd_map))
+        {
+            RCLCPP_ERROR(this->get_logger(), "Failed to load startup PCD map: %s", m_config.pcd_map.c_str());
+            return;
+        }
+        RCLCPP_INFO(this->get_logger(), "Loaded startup PCD map: %s", m_config.pcd_map.c_str());
     }
     void timerCB()
     {
@@ -114,7 +142,24 @@ public:
 
         if (!update_tf)
         {
-            sendBroadCastTF(m_state.last_message_time);
+            return;
+        }
+
+        bool localize_success;
+        bool service_received;
+        {
+            std::lock_guard<std::mutex> lock(m_state.service_mutex);
+            localize_success = m_state.localize_success;
+            service_received = m_state.service_received;
+        }
+
+        if (!localize_success && !service_received)
+        {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(),
+                *this->get_clock(),
+                5000,
+                "PCD map loaded, but map->odom is gated until /localizer/relocalize succeeds");
             return;
         }
 
@@ -145,6 +190,12 @@ public:
             m_localizer->setInput(m_state.last_cloud);
         }
 
+        if (!isTransformStampFresh(current_time))
+            return;
+
+        if (m_state.has_published_tf && !isNewerStamp(current_time, m_state.last_tf_time))
+            return;
+
         bool result = m_localizer->align(initial_guess);
         if (result)
         {
@@ -158,9 +209,12 @@ public:
                 m_state.localize_success = true;
                 m_state.service_received = false;
             }
+            sendBroadCastTF(current_time);
+            publishMapCloud(current_time);
+            m_state.last_tf_time = current_time;
+            m_state.has_published_tf = true;
+            return;
         }
-        sendBroadCastTF(current_time);
-        publishMapCloud(current_time);
     }
     void syncCB(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud_msg, const nav_msgs::msg::Odometry::ConstSharedPtr &odom_msg)
     {
@@ -231,7 +285,7 @@ public:
             return;
         }
         {
-            std::lock_guard<std::mutex>(m_state.message_mutex);
+            std::lock_guard<std::mutex>(m_state.service_mutex);
             m_state.initial_guess.setIdentity();
             m_state.initial_guess.block<3, 3>(0, 0) = (yaw_angle * roll_angle * pitch_angle).toRotationMatrix().cast<float>();
             m_state.initial_guess.block<3, 1>(0, 3) = V3F(x, y, z);
@@ -252,6 +306,30 @@ public:
         else
             response->valid = m_state.localize_success;
         return;
+    }
+    bool isNewerStamp(const builtin_interfaces::msg::Time &candidate, const builtin_interfaces::msg::Time &last) const
+    {
+        if (candidate.sec != last.sec)
+            return candidate.sec > last.sec;
+        return candidate.nanosec > last.nanosec;
+    }
+    bool isTransformStampFresh(const builtin_interfaces::msg::Time &stamp)
+    {
+        if (m_config.max_tf_input_age_s <= 0.0)
+            return true;
+
+        const double stamp_seconds = static_cast<double>(stamp.sec) + static_cast<double>(stamp.nanosec) * 1e-9;
+        const double age_s = this->now().seconds() - stamp_seconds;
+        if (age_s <= m_config.max_tf_input_age_s)
+            return true;
+
+        RCLCPP_WARN_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            5000,
+            "Skipping stale map->odom broadcast because synchronized input stamp is %.3f seconds old",
+            age_s);
+        return false;
     }
     void publishMapCloud(builtin_interfaces::msg::Time &time)
     {

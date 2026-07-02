@@ -27,7 +27,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
-| Travel | `make launch-travel` | 静态地图导航框架，当前暂停 |
+| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
 
@@ -36,7 +36,7 @@
 ```text
 Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
                                   -> /fastlio2/lio_odom
-                                  -> TF: odom -> base_link
+                                  -> TF: odom -> base_footprint -> base_link
 
 /fastlio2/body_cloud -> pointcloud_to_laserscan -> /scan
                                              |
@@ -54,7 +54,7 @@ scripts/save_mapping_session.sh <map_name>
   -> 写 manifest.yaml，包括 2D/3D 一致性、patch/pose 完整性与 frame 检查
 ```
 
-SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 SLAM Toolbox 同时发布 `map -> odom`。保存脚本默认检查 `base_link`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 SLAM Toolbox 同时发布 `map -> odom`。保存脚本默认检查 FAST-LIO2 当前子坐标系 `base_footprint`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
 
 ## 5. Explore 模式数据流
 
@@ -140,12 +140,14 @@ Explore stack + UM982 RTK
 ## 7. TF 链
 
 ```text
-map -> odom -> base_link
+map -> odom -> base_footprint -> base_link
 ```
 
 - 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
-- `odom -> base_link` 由 FAST-LIO2 发布，表示高频局部里程计
+- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证或旧时间戳 TF 污染 Nav2
+- PGO 默认不启动，或只以 `publish_tf=false` 运行
+- `odom -> base_footprint` 由 FAST-LIO2 发布，表示高频局部里程计；`base_footprint -> base_link` 由 URDF 静态 TF 提供
 - 两者组合后得到全局位姿
 
 如果 `map -> odom` 不存在，RViz 在 `map` fixed frame 下会表现为点云或 costmap 看起来空白，即使 Livox 和 FAST-LIO2 本身还在运行。

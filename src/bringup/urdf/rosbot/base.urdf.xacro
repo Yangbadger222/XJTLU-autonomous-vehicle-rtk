@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:include filename="$(find bringup)/urdf/rosbot/common_inertia.xacro"/>
+
+    <xacro:macro name="base_xacro" params="length width height">
+        <link name="base_footprint" />
+    
+        <!-- 机器人身体部分 -->
+        <link name="base_link">
+            <!-- 部件外观描述 -->
+            <visual>
+                <!-- 沿自己几何中心的偏移和旋转量 -->
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <!-- 几何形状 -->
+                <geometry>
+                    <!-- 正方体 -->
+                    <box size="${length} ${width} ${height}"/>
+                </geometry>
+                <!-- 材质子标签 -->
+                <material name="grey">
+                    <color rgba="0.5 0.5 0.5 0.9"/>
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <box size="${length} ${width} ${height}"/>
+                </geometry>
+                <!-- 材质子标签 -->
+                <material name="grey">
+                    <color rgba="0.5 0.5 0.5 0.9"/>
+                </material>
+            </collision>
+
+            <xacro:box_inertia m="1.0" w="${length}" h="${width}" d="${height}"/>
+        </link>
+
+
+        <link name="handle_left_link">
+            <visual>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <box size="0.03 0.03 0.30"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <box size="0.03 0.03 0.30"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </collision>
+            <xacro:box_inertia m="0.05" w="0.03" h="0.03" d="0.30"/>
+        </link>
+
+
+        <link name="handle_right_link">
+            <visual>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <box size="0.03 0.03 0.30"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <box size="0.03 0.03 0.30"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </collision>
+            <xacro:box_inertia m="0.05" w="0.03" h="0.03" d="0.30"/>
+        </link>
+
+
+        <link name="handle_bar_link">
+            <visual>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 1.57079"/>
+                <geometry>
+                    <box size="0.23 0.03 0.03"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </visual>
+            <collision>
+                <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 1.57079"/>
+                <geometry>
+                    <box size="0.23 0.03 0.03"/>
+                </geometry>
+                <material name="black">
+                    <color rgba="0.0 0.0 0.0 0.9"/>
+                </material>
+            </collision>
+            <xacro:box_inertia m="0.05" w="0.03" h="0.23" d="0.03"/>
+        </link>
+
+        <joint name="base_joint" type="fixed">
+            <parent link="base_footprint"/>
+            <child link="base_link"/>
+            <origin xyz="0.0 0.0 ${0.23-0.001}" rpy="0.0 0.0 0.0"/>            
+        </joint>
+
+        <joint name="handle_left_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="handle_left_link"/>
+            <origin xyz="0.23 0.13 0.22" rpy="0.0 0.0 0.0"/>            
+        </joint>
+
+        <joint name="handle_right_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="handle_right_link"/>
+            <origin xyz="0.23 -0.13 0.22" rpy="0.0 0.0 0.0"/>            
+        </joint>
+
+        <joint name="handle_bar_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="handle_bar_link"/>
+            <origin xyz="0.23 0.0 0.30" rpy="0.0 0.0 0.0"/>            
+        </joint>
+
+        <gazebo reference="base_link">
+            <material>Gazebo/Yellow</material>
+        </gazebo>
+
+        <gazebo reference="handle_left_link">
+            <material>Gazebo/Black</material>
+        </gazebo>
+
+        <gazebo reference="handle_right_link">
+            <material>Gazebo/Black</material>
+        </gazebo>
+
+        <gazebo reference="handle_bar_link">
+            <material>Gazebo/Black</material>
+        </gazebo>
+    </xacro:macro>
+</robot>

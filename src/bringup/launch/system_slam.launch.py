@@ -114,6 +114,12 @@ def generate_launch_description():
         period=5.0,
         actions=[slam_toolbox_node, map_saver_server, lifecycle_manager_mapping],
     )
+    
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+        )
+    )
 
     return LaunchDescription(
         [
@@ -124,5 +130,6 @@ def generate_launch_description():
             pointcloud_to_laserscan_node,
             rviz_node,
             delayed_slam,
+            urdf_launch,
         ]
     )

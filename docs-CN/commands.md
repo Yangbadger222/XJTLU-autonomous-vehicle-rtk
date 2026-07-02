@@ -566,12 +566,12 @@ sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 cd XJTLU-autonomous-vehicle
 source install/setup.bash
 source /opt/ros/humble/setup.bash
-ros2 launch foxglove_bridge foxglove_bridge_launch.xml
+ros2 run foxglove_bridge foxglove_bridge
 ```
 
 然后在您的电脑上打开 Foxglove，点击 **“Open Connection”** -> **“Foxglove WebSocket (default)”**，并输入 `ws://100.79.128.22:8765`
 
-输入完成后，点击中间视图的任意位置，左侧面板将开始加载许多选项。这可能 sectional 需要一些时间，最多可能需要一分钟。
+输入完成后，点击中间视图的任意位置，左侧面板将开始加载许多选项。这可能需要一些时间，最多可能需要一分钟。
 
 **注意**：每个账号的 Tailscale IP 可能会略有不同。如果您不确定正确的 IP：
 
@@ -579,9 +579,28 @@ ros2 launch foxglove_bridge foxglove_bridge_launch.xml
 2. 从您的电脑或[浏览器](https://login.tailscale.com/admin/machines)打开 Tailscale，检查名为 “badger” 的机器人地址
 3. 返回 Foxglove 并在此处输入正确的 IP 地址：`ws://<TAILSCALE_IP>:8765`
 
+#### Foxglove 设置
+
+为了正确渲染机器人 URDF 以及其他数据（如点云），请使用以下设置：
+
+* Fixed frame: `<Root frame>`
+* Display frame: `base_link`
+* Follow mode: `Pose`（位置 + 姿态）
+* Sync timestamps: `Off`
+* Location topic: `Auto`
+* ENU frame: `<Fixed frame>`
+* Grid Frame: `base_footprint`
+
 ### 故障排查
 
-* 仔细检查 Tailscale 地址是否正确，并确认您已开启 Tailscale。
-* 在您的电脑上使用 `ping <TAILSCALE_IP>` 命令，对 Jetson 的 Tailscale 地址进行 Ping 测试。
-* 如果使用了 VPN，请前往您的代理设置并将所有 Tailscale IP 添加到例外列表中：`100.*.*.*`（或者尝试关闭 VPN 并重新连接）。
-* 将 Jetson 的 WiFi 切换为您的手机热点，然后再次进行 Ping 测试。
+无法连接：
+- 仔细检查 Tailscale 地址是否正确，并确认您已开启 Tailscale。
+- 在您的电脑上使用 `ping <TAILSCALE_IP>` 命令，对 Jetson 的 Tailscale 地址进行 Ping 测试。
+- 如果使用了 VPN，请前往您的代理设置并将所有 Tailscale IP 添加到例外列表中：`100.*.*.*`（或者尝试关闭 VPN 并重新连接）。
+
+连接速度过慢：
+- 将 Jetson 的 WiFi 切换为您的手机热点，然后再次进行 Ping 测试。
+
+话题（Topics）未正常渲染（URDF 或点云缺失）：
+- 确保在 **Panel** -> **Topics** 中，话题 `/fastlio2/world_cloud` 和 `/robot_description` 是可见的（点击眼睛图标）。
+- 关闭当前的 Foxglove 会话并重新打开一个，通常可以解决问题。

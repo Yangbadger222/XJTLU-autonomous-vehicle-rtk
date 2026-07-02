@@ -26,6 +26,13 @@ def generate_launch_description():
         ),
         launch_arguments={"params_file": params_file}.items(),
     )
+    
+    bringup_share = get_package_share_directory("bringup")
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+        )
+    )
 
     return LaunchDescription(
         [
@@ -35,5 +42,6 @@ def generate_launch_description():
                 description="ROS 2 parameter file for UM982 RTK basic bring-up",
             ),
             rtk_launch,
+            urdf_launch,
         ]
     )

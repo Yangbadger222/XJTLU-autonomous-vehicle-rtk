@@ -144,6 +144,12 @@ def generate_launch_description():
     delayed_aligner = TimerAction(period=2.0, actions=[global_aligner])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+        )
+    )
+
     return LaunchDescription([
         route_file_arg,
         rtk_params_file_arg,
@@ -154,4 +160,5 @@ def generate_launch_description():
         bag_record,
         delayed_aligner,
         delayed_runner,
+        urdf_launch,
     ])

@@ -121,6 +121,34 @@
 
 ## Recently Fixed
 
+37. **[Fixed] make launch-nav-gps not launching URDF properly**
+   - Description: Launching the robot with `make launch-nav-gps` would not render properly in Foxglove, with missing grid and frame connections.
+   - Fix:
+        - **Step 1: Verify the parameters on the robot**
+          Run this command in the terminal on the vehicle to check if the running parameter is indeed stale:
+          ```bash
+          cat ~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/master_params_scene.yaml | grep body_frame
+          ```
+        - **Step 2: Regenerate the scene parameters**
+          Compile your scene bundle to update `master_params_scene.yaml` from your updated `master_params.yaml` template:
+          ```bash
+          cd ~/XJTLU-autonomous-vehicle
+          source /opt/ros/humble/setup.bash
+          source install/setup.bash
+          python3 scripts/build_scene_runtime.py
+          ```
+        - **Step 3: Launch the navigation stack**
+          Ensure the URDF launch is uncommented in [system_nav_gps.launch.py](file:///wsl.localhost/Ubuntu-22.04/home/yoonzh22/robotrepo/XJTLU-autonomous-vehicle-rtk/src/bringup/launch/system_nav_gps.launch.py#L137-L141) and run:
+          ```bash
+          make launch-nav-gps
+          ```
+
+          Once launched, the TF tree will correctly flow:
+          $$\text{map} \rightarrow \text{odom} \rightarrow \text{base\_footprint} \rightarrow \text{base\_link} \rightarrow \text{sensor\_links...}$$
+          All nodes will be able to resolve transforms correctly, and Foxglove will render the grid and robot model.
+   - Status: 2026-07-02, fixed and proven successful in on-vehicle testing
+   - Impact: No longer a blocker
+
 2. **[Fixed] Outdoor GNSS RF / fix quality**
    - Description: GPS antenna feed cable has been replaced; device enumeration is normal.
    - Status: 2026-03-22, across multiple corridor v2 outdoor on-vehicle runs, GPS fix worked reliably; startup positioning and PGO alignment both used `/fix` normally

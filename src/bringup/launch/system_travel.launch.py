@@ -126,6 +126,12 @@ def generate_launch_description():
 
     delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
 
+    urdf_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+        )
+    )
+
     return LaunchDescription(
         [
             mapping_mode_arg,
@@ -136,5 +142,6 @@ def generate_launch_description():
             pointcloud_to_laserscan_node,
             delayed_slam,
             delayed_nav2,
+            urdf_launch,
         ]
     )

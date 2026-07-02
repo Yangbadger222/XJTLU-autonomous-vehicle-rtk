@@ -121,6 +121,34 @@
 
 ## 最近已修复
 
+37. **[已修复] `make launch-nav-gps` 无法正确启动 URDF**
+
+   - 描述: 使用 `make launch-nav-gps` 启动机器人时，在 Foxglove 中无法正确渲染，表现为网格（grid）和坐标系连接（frame connections）缺失。
+   - 修复方案：
+      - **步骤 1：验证机器人上的参数**
+      在车载终端中运行以下命令，检查当前运行的参数是否确实已过期：
+      ```bash
+      cat ~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/master_params_scene.yaml | grep body_frame
+      ```
+      - **步骤 2：重新生成场景参数**
+      编译场景包（scene bundle），根据更新后的 `master_params.yaml` 模板来更新 `master_params_scene.yaml`：
+      ```bash
+      cd ~/XJTLU-autonomous-vehicle
+      source /opt/ros/humble/setup.bash
+      source install/setup.bash
+      python3 scripts/build_scene_runtime.py
+      ```
+      - **步骤 3：启动导航堆栈**
+      确保 system_nav_gps.launch.py 中有关 URDF 启动的代码行未被注释，然后运行：
+      ```bash
+      make launch-nav-gps
+      ```
+      启动后，TF 树将恢复正确的层级流转：
+      $$\text{map} \rightarrow \text{odom} \rightarrow \text{base\_footprint} \rightarrow \text{base\_link} \rightarrow \text{sensor\_links...}$$
+      所有节点都将能够正确解析坐标变换（transforms），并且 Foxglove 将正常渲染网格和机器人模型。
+   - 状态: 2026-07-02，已修复并通过实车测试验证成功
+   - 影响: 不再是阻塞性问题（Blocker）
+
 2. **[已修复] 室外 GNSS RF / fix 质量**
    - 描述: GPS 天线馈线已更换，设备枚举正常。
    - 状态: 2026-03-22 多轮 corridor v2 室外实车中 GPS fix 稳定工作，启动定位和 PGO 对齐均正常使用 `/fix`

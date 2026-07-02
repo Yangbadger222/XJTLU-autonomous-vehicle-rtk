@@ -6,7 +6,7 @@
       # Livox 点云输入话题；改错会导致 FAST-LIO2 收不到激光数据。
       lidar_topic: /livox/lidar
       # 机器人本体坐标系；改动会影响 TF 树和下游导航对接。
-      body_frame: base_link
+      body_frame: base_footprint
       # 里程计坐标系；改动会影响 odom 相关 TF 链路。
       world_frame: odom
       # 是否打印耗时日志；打开更利于诊断，但会增加终端噪声。

@@ -591,8 +591,6 @@ ros2 run foxglove_bridge foxglove_bridge
 * ENU frame: `<Fixed frame>`
 * Grid Frame: `base_footprint`
 
-如果模型
-
 ### 故障排查
 
 无法连接：

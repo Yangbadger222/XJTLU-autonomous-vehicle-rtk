@@ -587,8 +587,6 @@ To correctly render the robot URDF along with other data, such as the point clou
 - ENU frame: `<Fixed frame>`
 - Grid Frame: `base_footprint`
 
-If the model
-
 ### Debugging
 
 Cannot connect:

@@ -32,6 +32,7 @@ public:
   bool initialized() const;
   std::optional<gtsam::Point3> geoToMap(const GeoPoint & fix) const;
   gtsam::Point3 enuToMap(const gtsam::Point3 & enu) const;
+  std::optional<double> enuYawToMapYaw(double enu_yaw_rad) const;
   std::string statusString() const;
 
 private:

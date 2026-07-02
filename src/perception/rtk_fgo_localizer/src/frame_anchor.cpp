@@ -1,5 +1,7 @@
 #include "rtk_fgo_localizer/frame_anchor.hpp"
 
+#include "rtk_fgo_localizer/correction_smoother.hpp"
+
 #include <GeographicLib/LocalCartesian.hpp>
 
 #include <cmath>
@@ -83,6 +85,14 @@ gtsam::Point3 FrameAnchor::enuToMap(const gtsam::Point3 & enu) const
     rotated.x() + map_t_enu_.x(),
     rotated.y() + map_t_enu_.y(),
     rotated.z() + map_t_enu_.z());
+}
+
+std::optional<double> FrameAnchor::enuYawToMapYaw(double enu_yaw_rad) const
+{
+  if (!initialized_ || !std::isfinite(enu_yaw_rad)) {
+    return std::nullopt;
+  }
+  return normalizeYaw(map_R_enu_.yaw() + enu_yaw_rad);
 }
 
 std::string FrameAnchor::statusString() const

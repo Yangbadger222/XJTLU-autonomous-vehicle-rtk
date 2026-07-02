@@ -25,9 +25,11 @@ find_package(GeographicLib REQUIRED)
 
 add_library(rtk_fgo_core
   src/correction_smoother.cpp
+  src/diagnostic_snapshot.cpp
   src/frame_anchor.cpp
   src/fgo_graph.cpp
   src/heading_conventions.cpp
+  src/heading_stability.cpp
   src/rtk_quality.cpp
   src/state_machine.cpp
   src/topic_buffers.cpp
@@ -36,6 +38,7 @@ add_library(rtk_fgo_core
 target_include_directories(rtk_fgo_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+  ${diagnostic_msgs_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
 )
 target_link_libraries(rtk_fgo_core PUBLIC
@@ -102,6 +105,10 @@ if(BUILD_TESTING)
   target_include_directories(test_heading_conventions PRIVATE include)
   target_link_libraries(test_heading_conventions rtk_fgo_core)
 
+  ament_add_gtest(test_heading_stability test/test_heading_stability.cpp)
+  target_include_directories(test_heading_stability PRIVATE include)
+  target_link_libraries(test_heading_stability rtk_fgo_core)
+
   ament_add_gtest(test_frame_anchor test/test_frame_anchor.cpp)
   target_include_directories(test_frame_anchor PRIVATE include)
   target_link_libraries(test_frame_anchor rtk_fgo_core)
@@ -117,6 +124,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_topic_buffers test/test_topic_buffers.cpp)
   target_include_directories(test_topic_buffers PRIVATE include)
   target_link_libraries(test_topic_buffers rtk_fgo_core)
+
+  ament_add_gtest(test_diagnostic_snapshot test/test_diagnostic_snapshot.cpp)
+  target_include_directories(test_diagnostic_snapshot PRIVATE include)
+  target_link_libraries(test_diagnostic_snapshot rtk_fgo_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

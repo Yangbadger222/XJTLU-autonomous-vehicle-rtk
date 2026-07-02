@@ -23,6 +23,8 @@
 - `frame_anchor.hpp/.cpp`: 把原始 RTK fix 显式锚定到 FGO `map` 坐标系。连续通过质量检查的 Fixed 样本会初始化 `GeographicLib::LocalCartesian` 原点和 `ENU -> map` 的 yaw/translation 变换；普通 RTK innovation gate 只在 anchor 建立后才开始。
 - `fgo_graph.hpp/.cpp`: 实现 GTSAM graph API，支持初始状态、FAST-LIO relative pose、latest-transition wheel planar 因子、RTK position shadow commit/reject、RTK heading yaw factor、可选 IMU 预积分，以及有界窗口重建诊断。
 - `heading_conventions.hpp/.cpp`: 将当前 UM982 `/heading` 中按罗盘 heading 编码的 quaternion yaw 转换为 FGO/GTSAM 使用的 ENU yaw；若后续驱动改为标准 ROS ENU yaw，可通过参数关闭该转换。
+- `heading_stability.hpp/.cpp`: 在 frame-anchor bootstrap 阶段做支持 wraparound 的 RTK heading spread 检查，避免瞬时双天线 heading 跳变初始化 `ENU -> map` yaw。
+- `diagnostic_snapshot.hpp/.cpp`: 通过 `/rtk_fgo/factor_diagnostics` 发布 RTK quality、收星数、HDOP、位置/航向 innovation、fix 隐含速度和各输入 age，方便 rosbag 回放排查。
 - `yaw_factor.hpp/.cpp`: 实现 yaw-only Pose3 因子，供双天线 RTK heading 作为绝对 yaw 候选约束。
 - IMU 预积分在 `factors.imu_enabled=true` 时使用保守的 GTSAM `ImuFactor` + bias `BetweenFactor` 路径。YAML 默认仍保持 `false`，直到 Jetson 回放和实车验证确认噪声参数。
 - `topic_buffers.hpp/.cpp`: 提供 ROS-free timestamped sample buffer，用于按时间查找传感器样本。
@@ -151,7 +153,7 @@ Invalid heading    -> 不进入图
 大跳变处理：
 
 1. 质量门控：GGA quality、covariance/HDOP、satellite count、heading source、heading spread、NTRIP/RTCM 状态。
-2. 物理连续性门控：RTK implied speed、yaw rate 和方向必须在配置限制内与 FAST-LIO2、IMU、wheel 预测一致。
+2. 物理连续性门控：RTK implied speed、heading innovation 和方向必须在配置限制内与 FAST-LIO2、IMU、wheel 预测一致。
 3. 图残差门控：接收 RTK 因子前，先检查 innovation 或 Mahalanobis residual。
 4. 持续性门控：单个好点不能让系统恢复；必须有连续一致样本。
 
@@ -174,7 +176,9 @@ Invalid heading    -> 不进入图
 
 RTK position 在 frame anchor bootstrap 前不会被使用。anchor bootstrap 是 quality-only：有限的 `/fix`、配置的 GGA quality、卫星数、HDOP，以及可选 `/heading` 必须连续通过。这里刻意不使用普通 position-innovation gate，因为 innovation 只有在 RTK fix 已经映射到 FGO `map` 坐标系后才能计算。
 
-RTK heading yaw 约定：heading yaw 是 `base_link +X` 在 ENU 中的 yaw，`0` 指向东，正方向逆时针转向北。有 heading 时 anchor 使用 `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`；没有 heading 时回退到 identity yaw，并在诊断中报告低置信 bootstrap。
+RTK heading yaw 约定：`/heading` 先被解码为 `base_link +X` 在 ENU 中的 yaw，`0` 指向东，正方向逆时针转向北。有 heading 时 anchor 使用 `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`；没有 heading 时回退到 identity yaw，并在诊断中报告低置信 bootstrap。anchor 建立之后，所有 RTK heading factor 都必须经过同一个 `ENU -> map` yaw 旋转后，才能和 FGO pose yaw 比较。
+
+当 `frame_anchor.use_rtk_heading_for_yaw=true` 时，anchor bootstrap 还要求 heading 窗口稳定：最近连续通过质量检查的 heading 样本在 wraparound 归一化后的离散度必须小于 `frame_anchor.max_heading_spread_deg`，并用这些样本的 circular mean 初始化 anchor yaw。如果检测到 heading 跳变，bootstrap 会重新开始，而不是用瞬时天线解初始化全局 yaw。
 
 计划状态：
 
@@ -255,9 +259,9 @@ yaw <= 0.2-0.5 deg per update
       recovery_min_samples: 8
       max_implied_speed_mps: 2.0
       max_position_jump_m: 3.0
-      max_heading_spread_deg: 3.0
 
     frame_anchor:
+      max_heading_spread_deg: 3.0
       require_fixed_for_anchor: true
       use_rtk_heading_for_yaw: true
       max_anchor_position_innovation_m: 2.0

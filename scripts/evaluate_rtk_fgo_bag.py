@@ -9,6 +9,7 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+from statistics import median
 from typing import Any, Iterable
 
 
@@ -41,6 +42,45 @@ def parse_correction(values: list[float]) -> dict[str, Any]:
     }
 
 
+def parse_numeric(value: str) -> float | int | None:
+    if value in {"", "na"}:
+        return None
+    try:
+        number = float(value)
+    except ValueError:
+        return None
+    if number.is_integer():
+        return int(number)
+    return number
+
+
+def parse_diagnostic_values(message: Any) -> dict[str, float | int]:
+    """Extract numeric RTK/FGO diagnostic KeyValue fields."""
+    wanted = {
+        "rtk_gga_quality",
+        "rtk_satellites",
+        "rtk_hdop",
+        "position_innovation_m",
+        "heading_innovation_rad",
+        "implied_fix_speed_mps",
+        "fix_age_s",
+        "nmea_age_s",
+        "heading_age_s",
+        "fastlio_age_s",
+        "wheel_age_s",
+    }
+    out: dict[str, float | int] = {}
+    for status in getattr(message, "status", []):
+        for item in getattr(status, "values", []):
+            key = getattr(item, "key", "")
+            if key not in wanted:
+                continue
+            parsed = parse_numeric(getattr(item, "value", ""))
+            if parsed is not None:
+                out[key] = parsed
+    return out
+
+
 def empty_metrics() -> dict[str, Any]:
     return {
         "status_count": 0,
@@ -49,6 +89,13 @@ def empty_metrics() -> dict[str, Any]:
         "shadow_commit_count": 0,
         "max_correction_norm_m": 0.0,
         "rejection_reasons": {},
+        "rtk_quality_counts": {},
+        "rtk_satellites": {},
+        "rtk_hdop": {},
+        "position_innovation_m": {},
+        "heading_innovation_rad": {},
+        "implied_fix_speed_mps": {},
+        "input_age_s": {},
         "first_timestamp_ns": None,
         "last_timestamp_ns": None,
     }
@@ -61,11 +108,36 @@ def update_timestamp(metrics: dict[str, Any], timestamp_ns: int) -> None:
         metrics["last_timestamp_ns"] = timestamp_ns
 
 
+def summarize_numbers(values: list[float | int]) -> dict[str, float | int]:
+    if not values:
+        return {}
+    ordered = sorted(values)
+    return {
+        "count": len(values),
+        "min": ordered[0],
+        "median": median(ordered),
+        "max": ordered[-1],
+    }
+
+
 def summarize_events(events: Iterable[tuple[str, Any, int]]) -> dict[str, Any]:
     metrics = empty_metrics()
     state_counts: Counter[str] = Counter()
     gate_counts: Counter[str] = Counter()
     rejection_reasons: Counter[str] = Counter()
+    rtk_quality_counts: Counter[str] = Counter()
+    numeric_values: dict[str, list[float | int]] = {
+        "rtk_satellites": [],
+        "rtk_hdop": [],
+        "position_innovation_m": [],
+        "heading_innovation_rad": [],
+        "implied_fix_speed_mps": [],
+        "fix_age_s": [],
+        "nmea_age_s": [],
+        "heading_age_s": [],
+        "fastlio_age_s": [],
+        "wheel_age_s": [],
+    }
 
     for topic, message, timestamp_ns in events:
         update_timestamp(metrics, timestamp_ns)
@@ -86,10 +158,31 @@ def summarize_events(events: Iterable[tuple[str, Any, int]]) -> dict[str, Any]:
                 metrics["max_correction_norm_m"],
                 correction["correction_norm_m"],
             )
+        elif topic == "/rtk_fgo/factor_diagnostics":
+            parsed = parse_diagnostic_values(message)
+            quality = parsed.get("rtk_gga_quality")
+            if quality is not None:
+                rtk_quality_counts[str(int(quality))] += 1
+            for key in numeric_values:
+                if key in parsed:
+                    numeric_values[key].append(parsed[key])
 
     metrics["state_counts"] = dict(state_counts)
     metrics["gate_counts"] = dict(gate_counts)
     metrics["rejection_reasons"] = dict(rejection_reasons)
+    metrics["rtk_quality_counts"] = dict(rtk_quality_counts)
+    metrics["rtk_satellites"] = summarize_numbers(numeric_values["rtk_satellites"])
+    metrics["rtk_hdop"] = summarize_numbers(numeric_values["rtk_hdop"])
+    metrics["position_innovation_m"] = summarize_numbers(numeric_values["position_innovation_m"])
+    metrics["heading_innovation_rad"] = summarize_numbers(numeric_values["heading_innovation_rad"])
+    metrics["implied_fix_speed_mps"] = summarize_numbers(numeric_values["implied_fix_speed_mps"])
+    metrics["input_age_s"] = {
+        "fix": summarize_numbers(numeric_values["fix_age_s"]),
+        "nmea": summarize_numbers(numeric_values["nmea_age_s"]),
+        "heading": summarize_numbers(numeric_values["heading_age_s"]),
+        "fastlio": summarize_numbers(numeric_values["fastlio_age_s"]),
+        "wheel": summarize_numbers(numeric_values["wheel_age_s"]),
+    }
     return metrics
 
 
@@ -111,7 +204,11 @@ def read_rosbag_events(bag_path: Path) -> Iterable[tuple[str, Any, int]]:
     topic_types = {
         topic.name: topic.type for topic in reader.get_all_topics_and_types()
     }
-    wanted_topics = {"/rtk_fgo/status", "/rtk_fgo/correction_status"}
+    wanted_topics = {
+        "/rtk_fgo/status",
+        "/rtk_fgo/correction_status",
+        "/rtk_fgo/factor_diagnostics",
+    }
     message_types = {
         topic: get_message(type_name)
         for topic, type_name in topic_types.items()

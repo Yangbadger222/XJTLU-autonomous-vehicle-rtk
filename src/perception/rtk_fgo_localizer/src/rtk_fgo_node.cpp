@@ -1,8 +1,10 @@
 #include "rtk_fgo_localizer/correction_smoother.hpp"
+#include "rtk_fgo_localizer/diagnostic_snapshot.hpp"
 #include "rtk_fgo_localizer/fgo_graph.hpp"
 #include "rtk_fgo_localizer/frame_anchor.hpp"
 #include "rtk_fgo_localizer/gate_params.hpp"
 #include "rtk_fgo_localizer/heading_conventions.hpp"
+#include "rtk_fgo_localizer/heading_stability.hpp"
 #include "rtk_fgo_localizer/imu_preintegration_config.hpp"
 #include "rtk_fgo_localizer/rtk_quality.hpp"
 #include "rtk_fgo_localizer/state_machine.hpp"
@@ -119,6 +121,7 @@ struct FrameAnchorBootstrapParams
   int bootstrap_min_satellites = 10;
   double bootstrap_max_hdop = 2.0;
   std::size_t bootstrap_required_consecutive_samples = 5;
+  double max_heading_spread_rad = 0.05235987755982989;
 };
 
 bool anchorBootstrapCandidate(
@@ -243,6 +246,7 @@ private:
     declare_parameter<int>("frame_anchor.bootstrap_min_satellites", 10);
     declare_parameter<double>("frame_anchor.bootstrap_max_hdop", 2.0);
     declare_parameter<int>("frame_anchor.bootstrap_required_consecutive_samples", 5);
+    declare_parameter<double>("frame_anchor.max_heading_spread_deg", 3.0);
     declare_parameter<double>("imu.accelerometer_noise_sigma", 0.1);
     declare_parameter<double>("imu.gyroscope_noise_sigma", 0.01);
     declare_parameter<double>("imu.accelerometer_bias_rw_sigma", 0.001);
@@ -312,6 +316,8 @@ private:
       static_cast<std::size_t>(
       std::max<std::int64_t>(
         1, get_parameter("frame_anchor.bootstrap_required_consecutive_samples").as_int()));
+    anchor_params_.max_heading_spread_rad =
+      get_parameter("frame_anchor.max_heading_spread_deg").as_double() * kPi / 180.0;
     imu_config_.accelerometer_noise_sigma =
       get_parameter("imu.accelerometer_noise_sigma").as_double();
     imu_config_.gyroscope_noise_sigma =
@@ -400,8 +406,11 @@ private:
   void onTimer()
   {
     auto latest_lio = fastlio_buffer_.latest();
+    updateDiagnosticAges(
+      latest_lio.has_value() ? latest_lio->stamp_s : latestSensorStampOrNow());
     if (!latest_lio.has_value()) {
       publishStatus("WAITING_FOR_FASTLIO", RtkGateMode::Rejected, "no FAST-LIO odom");
+      publishDiagnostics({RtkGateMode::Rejected, "no FAST-LIO odom"}, ShadowCommitResult{});
       return;
     }
 
@@ -443,6 +452,7 @@ private:
 
   RtkGateDecision evaluateLatestRtkGate()
   {
+    resetGateDiagnosticValues();
     auto latest_nmea = nmea_buffer_.latest();
     if (!latest_nmea.has_value()) {
       return {RtkGateMode::Rejected, "no raw NMEA"};
@@ -451,6 +461,9 @@ private:
     if (!quality.has_value()) {
       return {RtkGateMode::Rejected, "latest NMEA is not valid GGA"};
     }
+    latest_diagnostics_.rtk_quality = quality->quality;
+    latest_diagnostics_.rtk_satellites = quality->satellites;
+    latest_diagnostics_.rtk_hdop = quality->hdop;
 
     const auto estimate = graph_->latestEstimate();
     const auto latest_fix = latestValidFix();
@@ -473,6 +486,7 @@ private:
     latest_fix_sigma_m_ = fixSigmaXY(*latest_fix);
     const double position_innovation =
       (estimate->pose.translation() - *fix_point).norm();
+    latest_diagnostics_.position_innovation_m = position_innovation;
     if (position_innovation > anchor_max_position_innovation_m_ &&
       anchor_bootstrap_count_ < anchor_params_.bootstrap_required_consecutive_samples)
     {
@@ -484,19 +498,22 @@ private:
     const auto implied_speed = computeMappedFixSpeed(*fix_point, fix_stamp_s, &speed_reason);
 
     double heading_innovation = 0.0;
-    if (heading_yaw.has_value()) {
+    const auto heading_map_yaw = headingMapYaw(heading_yaw);
+    if (heading_map_yaw.has_value()) {
       heading_innovation =
         normalizeYaw(
         estimate->pose.rotation().yaw() -
-        *heading_yaw);
+        *heading_map_yaw);
       quality->heading_stable = true;
     }
+    latest_diagnostics_.heading_innovation_rad = heading_innovation;
 
     RtkGateInput input;
     input.quality = *quality;
     input.position_innovation_m = position_innovation;
     input.heading_innovation_rad = heading_innovation;
     input.implied_speed_mps = implied_speed;
+    latest_diagnostics_.implied_fix_speed_mps = implied_speed;
     auto decision = evaluateRtkGate(input, gate_params_);
     if (!implied_speed.has_value() && decision.mode != RtkGateMode::Rejected) {
       decision.reason += "; " + speed_reason;
@@ -506,6 +523,62 @@ private:
       previous_mapped_fix_stamp_s_ = fix_stamp_s;
     }
     return decision;
+  }
+
+  void resetGateDiagnosticValues()
+  {
+    latest_diagnostics_.rtk_quality.reset();
+    latest_diagnostics_.rtk_satellites.reset();
+    latest_diagnostics_.rtk_hdop.reset();
+    latest_diagnostics_.position_innovation_m.reset();
+    latest_diagnostics_.heading_innovation_rad.reset();
+    latest_diagnostics_.implied_fix_speed_mps.reset();
+  }
+
+  void updateDiagnosticAges(double reference_stamp_s)
+  {
+    latest_diagnostics_.fastlio_age_s = latestAge(fastlio_buffer_, reference_stamp_s);
+    latest_diagnostics_.wheel_age_s = latestAge(wheel_buffer_, reference_stamp_s);
+    latest_diagnostics_.fix_age_s = latestAge(fix_buffer_, reference_stamp_s);
+    latest_diagnostics_.heading_age_s = latestAge(heading_buffer_, reference_stamp_s);
+    latest_diagnostics_.nmea_age_s = latestAge(nmea_buffer_, reference_stamp_s);
+  }
+
+  double latestSensorStampOrNow() const
+  {
+    std::optional<double> latest_stamp;
+    updateLatestStamp(latest_stamp, fastlio_buffer_);
+    updateLatestStamp(latest_stamp, wheel_buffer_);
+    updateLatestStamp(latest_stamp, fix_buffer_);
+    updateLatestStamp(latest_stamp, heading_buffer_);
+    updateLatestStamp(latest_stamp, nmea_buffer_);
+    return latest_stamp.value_or(now().seconds());
+  }
+
+  template<typename MessageT>
+  void updateLatestStamp(
+    std::optional<double> & latest_stamp,
+    const TimestampedBuffer<MessageT> & buffer) const
+  {
+    auto latest = buffer.latest();
+    if (!latest.has_value()) {
+      return;
+    }
+    if (!latest_stamp.has_value() || latest->stamp_s > *latest_stamp) {
+      latest_stamp = latest->stamp_s;
+    }
+  }
+
+  template<typename MessageT>
+  std::optional<double> latestAge(
+    const TimestampedBuffer<MessageT> & buffer,
+    double now_s) const
+  {
+    auto latest = buffer.latest();
+    if (!latest.has_value()) {
+      return std::nullopt;
+    }
+    return std::max(0.0, now_s - latest->stamp_s);
   }
 
   std::optional<sensor_msgs::msg::NavSatFix> latestValidFix()
@@ -579,17 +652,35 @@ private:
     anchor_bootstrap_reason_ = reason;
     if (!candidate) {
       anchor_bootstrap_count_ = 0;
+      anchor_heading_window_.clear();
       return;
+    }
+    if (anchor_params_.use_rtk_heading_for_yaw && heading_yaw.has_value()) {
+      anchor_heading_window_.push_back(*heading_yaw);
+      if (anchor_heading_window_.size() > anchor_params_.bootstrap_required_consecutive_samples) {
+        anchor_heading_window_.erase(anchor_heading_window_.begin());
+      }
     }
     ++anchor_bootstrap_count_;
     if (anchor_bootstrap_count_ < anchor_params_.bootstrap_required_consecutive_samples) {
       return;
     }
+    if (anchor_params_.use_rtk_heading_for_yaw) {
+      if (anchor_heading_window_.size() < anchor_params_.bootstrap_required_consecutive_samples ||
+        !headingWindowStable(anchor_heading_window_, anchor_params_.max_heading_spread_rad))
+      {
+        anchor_bootstrap_reason_ = "anchor waiting for stable RTK heading";
+        anchor_bootstrap_count_ = 0;
+        anchor_heading_window_.clear();
+        return;
+      }
+    }
     const auto yaw_for_anchor =
-      anchor_params_.use_rtk_heading_for_yaw ? heading_yaw : std::nullopt;
+      anchor_params_.use_rtk_heading_for_yaw ? meanYawRad(anchor_heading_window_) : std::nullopt;
     if (!frame_anchor_.initialize(geo, reference_pose, yaw_for_anchor)) {
       anchor_bootstrap_reason_ = "frame anchor initialization rejected";
       anchor_bootstrap_count_ = 0;
+      anchor_heading_window_.clear();
       return;
     }
     latest_fix_sigma_m_ = fixSigmaXY(fix);
@@ -650,10 +741,19 @@ private:
       return;
     }
     const auto heading_yaw = latestHeadingYaw(estimate->stamp_s);
-    if (!heading_yaw.has_value()) {
+    const auto heading_map_yaw = headingMapYaw(heading_yaw);
+    if (!heading_map_yaw.has_value()) {
       return;
     }
-    graph_->addRtkHeading(estimate->stamp_s, *heading_yaw, heading_sigma_rad_);
+    graph_->addRtkHeading(estimate->stamp_s, *heading_map_yaw, heading_sigma_rad_);
+  }
+
+  std::optional<double> headingMapYaw(const std::optional<double> & heading_enu_yaw) const
+  {
+    if (!heading_enu_yaw.has_value() || !frame_anchor_.initialized()) {
+      return std::nullopt;
+    }
+    return frame_anchor_.enuYawToMapYaw(*heading_enu_yaw);
   }
 
   void publishEstimate(const ShadowCommitResult & commit_result)
@@ -803,6 +903,7 @@ private:
     anchor_reason.key = "frame_anchor_bootstrap_reason";
     anchor_reason.value = anchor_bootstrap_reason_;
     status.values.push_back(anchor_reason);
+    appendDiagnosticSnapshot(status, latest_diagnostics_);
     diagnostic_msgs::msg::KeyValue wheel_enabled;
     wheel_enabled.key = "wheel_factor_enabled";
     wheel_enabled.value = wheel_enabled_ ? "true" : "false";
@@ -886,6 +987,7 @@ private:
   double anchor_max_position_innovation_m_ = 2.0;
   std::size_t anchor_bootstrap_count_ = 0;
   std::string anchor_bootstrap_reason_ = "not started";
+  std::vector<double> anchor_heading_window_;
   ImuPreintegrationConfig imu_config_;
   double max_translation_step_m_ = 0.15;
   double max_yaw_step_deg_ = 0.3;
@@ -901,6 +1003,7 @@ private:
   std::optional<double> previous_wheel_stamp_s_;
   bool wheel_factor_last_added_ = false;
   std::string wheel_factor_reason_ = "not started";
+  DiagnosticSnapshot latest_diagnostics_;
 
   TimestampedBuffer<nav_msgs::msg::Odometry> fastlio_buffer_{2.0};
   TimestampedBuffer<nav_msgs::msg::Odometry> wheel_buffer_{2.0};

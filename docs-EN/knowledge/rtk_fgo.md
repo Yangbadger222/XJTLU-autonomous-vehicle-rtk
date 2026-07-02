@@ -23,6 +23,8 @@ Current implemented scope covers:
 - `frame_anchor.hpp/.cpp`: anchors raw RTK fixes into the FGO `map` frame through a two-stage bootstrap. The first accepted fixed-quality samples initialize a `GeographicLib::LocalCartesian` origin and an `ENU -> map` yaw/translation transform; normal RTK innovation gating starts only after this anchor exists.
 - `fgo_graph.hpp/.cpp`: implements the GTSAM graph API for initial states, FAST-LIO relative pose, latest-transition wheel planar factors, RTK position shadow commit/reject, RTK heading yaw factors, optional IMU preintegration, and bounded-window rebuild diagnostics.
 - `heading_conventions.hpp/.cpp`: converts the current UM982 `/heading` quaternion yaw, which is encoded as a compass heading, into the ENU yaw expected by FGO/GTSAM. If the driver later publishes standard ROS ENU yaw, this conversion can be disabled by parameter.
+- `heading_stability.hpp/.cpp`: checks wraparound-safe RTK heading spread during frame-anchor bootstrap so a transient dual-antenna heading jump cannot initialize the `ENU -> map` yaw.
+- `diagnostic_snapshot.hpp/.cpp`: publishes RTK quality, satellite count, HDOP, position/heading innovations, implied fix speed, and input ages through `/rtk_fgo/factor_diagnostics` for replay triage.
 - `yaw_factor.hpp/.cpp`: implements a yaw-only Pose3 factor for dual-antenna RTK heading as an absolute yaw candidate constraint.
 - IMU preintegration uses the conservative GTSAM `ImuFactor` plus bias `BetweenFactor` path when `factors.imu_enabled=true`. The YAML default remains `false` until Jetson replay/vehicle validation confirms the noise values.
 - `topic_buffers.hpp/.cpp`: provides a ROS-free timestamped sample buffer for time-based sensor lookup.
@@ -151,7 +153,7 @@ Invalid heading    -> ignored by the graph
 Large-jump handling:
 
 1. Gate by quality: GGA quality, covariance/HDOP, satellite count, heading source, heading spread, NTRIP/RTCM state.
-2. Gate by physical continuity: implied RTK speed, yaw rate, and direction must match FAST-LIO2, IMU, and wheel predictions within configured limits.
+2. Gate by physical continuity: implied RTK speed, heading innovation, and direction must match FAST-LIO2, IMU, and wheel predictions within configured limits.
 3. Gate by graph residual: use innovation or Mahalanobis residual thresholds before accepting an RTK factor.
 4. Gate by persistence: a single good point must not recover the system. Recovery requires consecutive consistent samples.
 
@@ -174,7 +176,9 @@ In the current implementation, one rejected RTK Fixed shadow candidate does not 
 
 RTK position is not used until the frame anchor has bootstrapped. Anchor bootstrap is quality-only: finite `/fix`, configured GGA quality, satellite count, HDOP, and optional `/heading` must pass for consecutive samples. It deliberately avoids the normal position-innovation gate before initialization, because innovation can only be computed after the RTK fix is mapped into the FGO `map` frame.
 
-RTK heading yaw convention: heading yaw is the ENU yaw of `base_link +X`, where `0` points east and positive yaw rotates counter-clockwise toward north. When heading is available, the anchor uses `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`; otherwise it falls back to identity yaw and reports the lower-confidence bootstrap in diagnostics.
+RTK heading yaw convention: `/heading` is first decoded into the ENU yaw of `base_link +X`, where `0` points east and positive yaw rotates counter-clockwise toward north. When heading is available, the anchor uses `map_R_enu = Rz(reference_fgo_yaw - rtk_heading_enu_yaw)`; otherwise it falls back to identity yaw and reports the lower-confidence bootstrap in diagnostics. After the anchor exists, every RTK heading factor must be rotated through the same `ENU -> map` yaw before it is compared with the FGO pose yaw.
+
+Anchor bootstrap also requires a stable heading window when `frame_anchor.use_rtk_heading_for_yaw=true`: the latest consecutive accepted heading samples must stay within `frame_anchor.max_heading_spread_deg` after wraparound normalization, and their circular mean is used for the anchor yaw. If a heading jump is detected, bootstrap restarts instead of initializing the global yaw from a transient antenna solution.
 
 Planned states:
 
@@ -255,9 +259,9 @@ Initial parameter groups:
       recovery_min_samples: 8
       max_implied_speed_mps: 2.0
       max_position_jump_m: 3.0
-      max_heading_spread_deg: 3.0
 
     frame_anchor:
+      max_heading_spread_deg: 3.0
       require_fixed_for_anchor: true
       use_rtk_heading_for_yaw: true
       max_anchor_position_innovation_m: 2.0

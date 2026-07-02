@@ -53,6 +53,19 @@ TEST(FrameAnchor, NorthDisplacementRespectsAnchorYaw)
   EXPECT_NEAR(north.y(), 0.0, 1e-6);
 }
 
+TEST(FrameAnchor, EnuYawMapsIntoReferenceFrameYaw)
+{
+  FrameAnchor anchor;
+  GeoPoint origin{31.0, 121.0, 10.0};
+  gtsam::Pose3 fgo_pose(gtsam::Rot3::Yaw(kPi / 2.0), gtsam::Point3(0.0, 0.0, 0.0));
+
+  ASSERT_TRUE(anchor.initialize(origin, fgo_pose, 0.0));
+  const auto mapped_yaw = anchor.enuYawToMapYaw(0.0);
+
+  ASSERT_TRUE(mapped_yaw.has_value());
+  EXPECT_NEAR(*mapped_yaw, kPi / 2.0, 1e-6);
+}
+
 TEST(FrameAnchor, WraparoundYawIsHandledByRotation)
 {
   FrameAnchor anchor;

@@ -22,6 +22,7 @@ Introduce a hybrid localization architecture that uses:
 - Local submap registration instead of single-scan registration for doorway overlap zones.
 - Building-level map streaming instead of one campus-wide dense 3D map.
 - Pre-cropped lightweight entry patches and explicit worker-thread CPU isolation for Jetson safety.
+- The existing `rtk_fgo_localizer` as the smoothing and transition-fusion layer at the indoor/outdoor boundary.
 - Shadow-mode validation before any node is allowed to own production TF.
 
 The first deliverable must prove one building entrance can be relocalized reliably in shadow mode. It must not replace the current `explore`, `corridor`, `nav-gps`, or `tightly-coupled` modes.
@@ -38,6 +39,7 @@ The first implementation must not:
 - Require Scan Context for the MVP.
 - Use a single current LiDAR scan as the primary registration input.
 - Load or build search structures for a full building PCD on the real-time control path.
+- Treat FGO as a replacement for overlap-zone map registration.
 
 These capabilities may be added after the overlap-zone shadow pipeline is validated.
 
@@ -54,6 +56,7 @@ map -> odom -> base_link
 - `corridor` mode uses UM982 RTK plus a standalone ENU-to-map aligner.
 - `nav-gps` mode uses scene bundles, anchors, route graphs, and `gps_waypoint_dispatcher`.
 - `tightly-coupled` mode runs `rtk_fgo_localizer` in shadow mode by default.
+- `rtk_fgo_localizer` already has RTK quality gating, shadow graph behavior, a correction smoother, and a state machine. This makes it the natural place to smooth the boundary transition, but it must not become the point-cloud map matcher.
 - Mapping sessions can save 2D maps, 3D PGO maps, keyframe poses, patches, and a manifest.
 
 This design must preserve those boundaries until the new localization output has passed replay, shadow, and vehicle validation.
@@ -74,6 +77,12 @@ Overlap relocalizer
   -> builds a short FAST-LIO2 local submap from recent de-skewed scans
   -> aligns the local submap against a pre-cropped entry PCD patch
   -> publishes candidate pose, confidence, and diagnostics
+
+RTK FGO localizer
+  -> fuses FAST-LIO2, IMU, wheel odom, RTK position/heading, and accepted overlap pose candidates
+  -> downweights RTK when doorway quality degrades
+  -> adds overlap pose factors only after strict gating
+  -> smooths the indoor/outdoor correction in shadow mode first
 
 Hybrid localization supervisor
   -> accepts or rejects candidate localization
@@ -102,7 +111,64 @@ The overlap relocalizer publishes candidate poses in the campus `map` frame:
 
 It does not publish TF in Phase 1.
 
-## 7. Overlap Zone
+## 7. Indoor/Outdoor FGO Role
+
+The existing `rtk_fgo_localizer` should be used at the transition boundary, but only as the smoothing and factor-fusion layer. It should not replace the overlap relocalizer.
+
+The boundary transition should be modeled as a gradual change in factor strength:
+
+```text
+Outdoor:
+  RTK position factor strong
+  RTK heading factor strong
+  FAST-LIO2 / IMU / wheel factors continuous
+  overlap pose factor absent
+
+Approaching doorway:
+  RTK factors remain gated by quality and residuals
+  overlap relocalizer starts producing candidate map poses
+  overlap pose candidates remain diagnostic until stable
+
+Doorway / indoor entry:
+  RTK factors weaken or stop when quality degrades
+  overlap pose factor becomes the absolute map constraint after strict gate acceptance
+  FAST-LIO2 / IMU / wheel factors preserve local continuity
+  correction smoother limits output jumps
+
+Indoor:
+  RTK position factor absent or diagnostic-only
+  overlap/map pose factors or indoor map localization provide absolute constraints
+  local odometry factors remain continuous
+```
+
+This avoids a hard switch from outdoor ENU localization to indoor map localization. The overlap relocalizer provides a geometric measurement; FGO decides whether and how that measurement can be absorbed into the current trajectory.
+
+The first FGO integration must stay shadow-only:
+
+- Subscribe to overlap candidate pose and score diagnostics.
+- Publish overlap gate decisions and factor diagnostics.
+- Do not publish production `map -> odom`.
+- Do not remap Nav2.
+- Reject overlap observations that would create an implausible correction relative to the current FGO prediction.
+
+Later, after replay and vehicle shadow validation, FGO may add an overlap pose factor. That factor should be represented as a gated `Pose3` prior or equivalent custom factor on the current keyframe. The covariance must be derived from overlap registration confidence rather than hard-coded as always strong.
+
+Suggested overlap factor policy:
+
+```text
+High confidence, stable for N frames:
+  strong overlap pose candidate
+
+Moderate confidence or first stable segment:
+  weak overlap pose candidate
+
+Low confidence, ambiguous patch, bad score, bad continuity:
+  diagnostic only / rejected
+```
+
+FGO cannot solve perceptual aliasing by itself. If overlap registration selects the wrong building or wrong entrance, FGO can be pulled toward a wrong absolute constraint. Therefore overlap factors must be gated by building geofence, patch id, registration score, score gap, consecutive stability, RTK/heading consistency, and FGO innovation.
+
+## 8. Overlap Zone
 
 An overlap zone is a deliberately mapped area around a building entrance:
 
@@ -129,9 +195,9 @@ runtime-data/maps/buildings/<building_id>/
 
 The full `map.pcd` is an archival/reference artifact. The runtime path must load only pre-cropped entry patches. Each entry patch should be small enough to load and index without disturbing FAST-LIO2, PGO, Nav2, or serial control. The target upper bound is single-digit megabytes per preprocessed patch, with the exact threshold validated on the Jetson.
 
-## 8. Runtime Data Model
+## 9. Runtime Data Model
 
-### 8.1 Building Index
+### 9.1 Building Index
 
 `runtime-data/maps/buildings/building_index.yaml` lists known building maps.
 
@@ -153,7 +219,7 @@ buildings:
         file: entry_zones.yaml
 ```
 
-### 8.2 Building Manifest
+### 9.2 Building Manifest
 
 Each building map has `manifest.yaml`.
 
@@ -180,7 +246,7 @@ quality:
   consistency_ok: true
 ```
 
-### 8.3 Entry Zones
+### 9.3 Entry Zones
 
 `entry_zones.yaml` defines relocalization gates.
 
@@ -214,15 +280,17 @@ entry_zones:
       max_fitness_score: 0.6
       min_inlier_ratio: 0.45
       required_consecutive_successes: 5
+      max_fgo_innovation_m: 2.0
+      max_fgo_innovation_yaw_deg: 8.0
     runtime_limits:
       max_registration_hz: 1.0
       worker_cpu_set: [4, 5]
       max_registration_time_ms: 250
 ```
 
-## 9. ROS Components
+## 10. ROS Components
 
-### 9.1 `building_map_manager`
+### 10.1 `building_map_manager`
 
 Responsibility:
 
@@ -250,7 +318,7 @@ Suggested topics:
 
 Phase 1 can implement a simpler file-path parameter instead of full multi-building indexing. The data model should still match this design.
 
-### 9.2 `overlap_relocalizer`
+### 10.2 `overlap_relocalizer`
 
 Responsibility:
 
@@ -304,7 +372,40 @@ Suggested outputs:
 [submap_points, patch_points, load_time_ms, kdtree_or_grid_time_ms, registration_time_ms, worker_queue_depth]
 ```
 
-### 9.3 `hybrid_localization_supervisor`
+### 10.3 `rtk_fgo_localizer` overlap extension
+
+Responsibility:
+
+- Keep FAST-LIO2, IMU, wheel odom, RTK position, and RTK heading fusion continuous across the boundary.
+- Subscribe to accepted overlap relocalization candidates in shadow mode.
+- Gate overlap candidates by registration confidence, patch identity, geofence, and innovation against the current FGO prediction.
+- Publish diagnostics showing whether an overlap candidate would be rejected, weak, or strong.
+- Add an overlap pose factor only after shadow validation.
+
+Suggested inputs:
+
+```text
+/overlap_relocalization/candidate_pose   geometry_msgs/PoseStamped
+/overlap_relocalization/status           std_msgs/String
+/overlap_relocalization/score            std_msgs/Float32MultiArray
+```
+
+Suggested outputs:
+
+```text
+/rtk_fgo/overlap_gate          std_msgs/String
+/rtk_fgo/factor_diagnostics    diagnostic_msgs/DiagnosticArray or Float32MultiArray
+/rtk_fgo/correction_status     std_msgs/Float32MultiArray
+```
+
+Initial implementation mode:
+
+- Diagnostic subscription only.
+- No production TF.
+- No Nav2 remap.
+- No graph mutation until replay metrics show overlap candidates are safe.
+
+### 10.4 `hybrid_localization_supervisor`
 
 Responsibility:
 
@@ -323,7 +424,7 @@ Suggested outputs:
 
 No production `map -> odom` publication is allowed in Phase 1.
 
-## 10. Registration Method
+## 11. Registration Method
 
 The MVP should use deterministic PCL-based registration before learned models.
 
@@ -365,7 +466,7 @@ Runtime worker constraints:
 
 Scan Context can be introduced later as a candidate recall method when cold-start ambiguity remains. OverlapNet can be introduced later as a learned overlap score. AirLoop is a long-term learning enhancement and should not block MVP.
 
-## 11. State Machine
+## 12. State Machine
 
 The complete state machine is:
 
@@ -377,6 +478,8 @@ BUILDING_APPROACH
 MAP_PRELOADED
 OVERLAP_ALIGNING
 OVERLAP_LOCKED
+FGO_OVERLAP_CANDIDATE
+FGO_OVERLAP_LOCKED
 INDOOR_LOCALIZED
 RELOCALIZATION_FAILED
 LOCAL_DEGRADED
@@ -395,6 +498,19 @@ REJECTED
 FAULT
 ```
 
+FGO-specific transition states should remain internal to `rtk_fgo_localizer` at first:
+
+```text
+LOCAL_ONLY
+RTK_LOCKED
+RTK_DEGRADED
+OVERLAP_DIAGNOSTIC
+OVERLAP_CANDIDATE
+OVERLAP_RECOVERY
+OVERLAP_LOCKED
+FAULT_HOLD
+```
+
 Acceptance requires consecutive success, not one successful registration.
 
 Reject conditions include:
@@ -408,8 +524,10 @@ Reject conditions include:
 - TF or FAST-LIO2 odometry is stale.
 - Local submap has too few points or too little geometric spread.
 - Worker latency exceeds the configured budget.
+- Overlap candidate innovation is too large relative to the FGO prediction.
+- Overlap candidate would require a correction larger than the smoother can release safely.
 
-## 12. Launch Strategy
+## 13. Launch Strategy
 
 Add a new experimental mode only after the shadow nodes exist:
 
@@ -424,12 +542,13 @@ The launch file should start:
 - UM982 RTK driver.
 - Building map manager.
 - Overlap relocalizer.
+- `rtk_fgo_localizer` in shadow/diagnostic overlap mode.
 - Hybrid supervisor in shadow mode.
 - Rosbag recording for all relevant source and diagnostic topics.
 
-It must not modify existing `corridor`, `nav-gps`, `explore-gps`, or `tightly-coupled` launch behavior.
+It must not modify existing `corridor`, `nav-gps`, `explore-gps`, or `tightly-coupled` launch behavior. FGO overlap-factor insertion must be disabled by default and enabled only by explicit experimental parameters after shadow validation.
 
-## 13. Logging and Bagging
+## 14. Logging and Bagging
 
 Record at least:
 
@@ -450,15 +569,21 @@ Record at least:
 /overlap_relocalization/score
 /overlap_relocalization/perf
 /overlap_relocalization/local_submap
+/rtk_fgo/odom
+/rtk_fgo/status
+/rtk_fgo/rtk_gate
+/rtk_fgo/overlap_gate
+/rtk_fgo/correction_status
+/rtk_fgo/factor_diagnostics
 /hybrid_localization/status
 /hybrid_localization/state
 ```
 
 The session must use the existing `scripts/launch_with_logs.sh` logging pattern and write under `runtime-data/logs/<timestamp>/`.
 
-## 14. Validation Plan
+## 15. Validation Plan
 
-### 14.1 Offline Unit Tests
+### 15.1 Offline Unit Tests
 
 - Parse building index and entry-zone YAML.
 - Validate geofence trigger math.
@@ -467,8 +592,10 @@ The session must use the existing `scripts/launch_with_logs.sh` logging pattern 
 - Validate candidate acceptance/rejection logic.
 - Validate local submap windowing, point caps, and stale-odom rejection.
 - Validate worker-thread affinity parameter parsing on Linux where available, with graceful fallback when unavailable.
+- Validate FGO overlap gate decisions: rejected, diagnostic-only, weak candidate, and strong candidate.
+- Validate FGO innovation checks against candidate overlap poses.
 
-### 14.2 Bag Replay
+### 15.2 Bag Replay
 
 Use bags containing:
 
@@ -487,8 +614,10 @@ Measure:
 - Local submap point count and spatial spread.
 - FAST-LIO2 odometry frequency during map load and registration.
 - Nav2 controller loop warnings during map load and registration.
+- FGO state transitions around RTK degradation and overlap candidate acceptance.
+- Size and smoothness of proposed FGO corrections if overlap factors are replayed in shadow.
 
-### 14.3 Shadow Vehicle Test
+### 15.3 Shadow Vehicle Test
 
 Acceptance targets for a single entrance:
 
@@ -500,9 +629,11 @@ Acceptance targets for a single entrance:
 - Entry patch load plus search-structure build does not create visible FAST-LIO2 or Nav2 timing degradation.
 - Registration worker stays inside its configured CPU set and rate limit during the test.
 - FAST-LIO2 `/fastlio2/lio_odom` frequency does not materially drop during registration.
+- FGO reports overlap candidates as diagnostic/rejected/accepted consistently with replay thresholds.
+- FGO correction proposals remain bounded and smooth in shadow mode.
 - Nav2 behavior is unchanged because the system is shadow-only.
 
-### 14.4 Experimental TF Test
+### 15.4 Experimental TF Test
 
 Only after shadow success:
 
@@ -511,7 +642,7 @@ Only after shadow success:
 - Confirm Nav2 does not see sudden transform jumps.
 - Keep manual stop and PS2 `X` motor-disable safety active.
 
-## 15. Staged Roadmap
+## 16. Staged Roadmap
 
 ### Phase 0: Data and Map Preparation
 
@@ -531,32 +662,46 @@ Only after shadow success:
 - Implement worker-thread CPU affinity, registration rate limiting, and performance telemetry.
 - Publish candidate pose and score only.
 
-### Phase 2: Supervisor and Replay Metrics
+### Phase 2: FGO Diagnostic Overlap Gating
+
+- Extend `rtk_fgo_localizer` to subscribe to overlap candidate pose and score diagnostics.
+- Publish `/rtk_fgo/overlap_gate`.
+- Replay bags to classify overlap observations as rejected, diagnostic-only, weak, or strong candidates.
+- Keep graph mutation disabled.
+
+### Phase 3: Supervisor and Replay Metrics
 
 - Implement acceptance gate.
 - Add bag replay evaluator.
 - Define pass/fail thresholds from real logs.
 
-### Phase 3: Experimental Indoor Transition
+### Phase 4: Shadow Overlap Pose Factor
+
+- Add overlap pose factor insertion behind an explicit experimental parameter.
+- Run only in shadow mode.
+- Evaluate correction magnitude, residuals, and smoother output.
+- Disable overlap factor insertion by default if false positives appear.
+
+### Phase 5: Experimental Indoor Transition
 
 - Add experimental launch mode.
 - Allow supervisor to publish experimental TF after explicit launch flag.
 - Test one entrance transition from outdoor route to indoor localization.
 
-### Phase 4: Multi-Building Streaming
+### Phase 6: Multi-Building Streaming
 
 - Add `building_index.yaml`.
 - Add geofence-triggered background preload.
 - Add unload policy.
 - Support multiple entry zones per building.
 
-### Phase 5: Place Recognition Enhancements
+### Phase 7: Place Recognition Enhancements
 
 - Add Scan Context or Scan Context++ for cold-start candidate recall.
 - Add learned overlap scoring only if deterministic scoring is insufficient.
 - Consider long-term map maintenance inspired by LT-mapper/AirLoop.
 
-## 16. Risks
+## 17. Risks
 
 - RTK Fixed may not hold near the target entrance.
 - Doorway geometry may be too symmetric for ICP/NDT alone.
@@ -565,24 +710,29 @@ Only after shadow success:
 - Single-scan registration is too sparse and unstable for open doorway geometry.
 - Loading large PCD files, deserializing point clouds, and building KD-trees or NDT grids may stall the Jetson even in background threads.
 - Registration may steal CPU from FAST-LIO2, PGO, Nav2, or serial control if worker threads are not isolated and rate-limited.
+- FGO can be pulled toward a wrong absolute pose if an aliased overlap candidate passes the gate.
+- FGO overlap factors can create delayed but still harmful corrections if covariance is too optimistic.
 - Publishing a new TF source too early can destabilize Nav2.
 
-The mitigation is to keep Phase 1 shadow-only, use local submaps instead of single scans, use small preprocessed entry patches, isolate worker threads, log all diagnostics, and reject ambiguous candidates rather than forcing a localization switch.
+The mitigation is to keep Phase 1 shadow-only, use local submaps instead of single scans, use small preprocessed entry patches, isolate worker threads, keep FGO overlap factors diagnostic before graph mutation, log all diagnostics, and reject ambiguous candidates rather than forcing a localization switch.
 
-## 17. Open Decisions
+## 18. Open Decisions
 
 - Whether Phase 1 uses ICP, GICP, NDT, or multiple backends behind one interface.
 - Exact local submap window length, travel distance, voxel size, and max point count.
 - Exact entry-patch file-size budget for the Jetson after field timing tests.
 - Exact CPU set for map loading and registration workers on the vehicle.
+- Whether the first FGO integration uses a standard Pose3 prior or a custom overlap factor.
+- How overlap registration confidence maps to FGO covariance.
+- How many stable overlap candidates are required before a graph factor is allowed.
 - How building map `map_to_building` is calibrated in the first field workflow.
 - Whether the first map artifact should be saved directly in campus `map` or in a building-local frame.
 - Final score thresholds after replay on real doorway bags.
 
-## 18. Recommended First Milestone
+## 19. Recommended First Milestone
 
 The first milestone should be:
 
 > Single-building, single-entrance, RTK Fixed overlap-zone shadow relocalization.
 
-Success means the system can preload one lightweight entry PCD patch, build a bounded FAST-LIO2 local submap, use RTK + heading as the initial guess, register the local submap to the overlap patch, and publish a stable candidate pose with timing diagnostics, without changing Nav2 or production TF.
+Success means the system can preload one lightweight entry PCD patch, build a bounded FAST-LIO2 local submap, use RTK + heading as the initial guess, register the local submap to the overlap patch, publish a stable candidate pose with timing diagnostics, and let FGO classify that candidate in shadow mode, without changing Nav2 or production TF.

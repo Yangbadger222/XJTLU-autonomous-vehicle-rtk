@@ -593,6 +593,13 @@ Cannot connect:
 - Double-check the Tailscale address is correct, and you have Tailscale on
 - Ping the Jetson with the tailscale address from your computer with `ping <TAILSCALE_IP>`
 - If using a VPN, go to your proxy settings and add all Tailscale IPs to the exception list: `100.*.*.*` (or try turning your VPN off and connecting again)
+- If using Clash verge:
+  1. Go to Settings -> System Proxy, click on the gear icon
+  2. Set `Always use Default Bypass` to OFF
+  3. A text input box should appear in the bottom (below `Proxy Bypass Settings`). Type this IP: `100.64.0.0/10`, then click on the NEW button, then SAVE.
+  4. Go bach to the Settings page, look for "Tun Mode", click on the gear icon
+  5. In the bottom text input box (below `Route Exclude Address`), type the same IP: `100.64.0.0/10`. Click on NEW, then SAVE.
+  6. Go back to Foxglove and try again.
 
 Connection too slow:
 - Change the Jetson WiFi to your phone hotspot and ping it again

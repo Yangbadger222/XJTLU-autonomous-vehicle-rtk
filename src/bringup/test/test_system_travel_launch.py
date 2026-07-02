@@ -44,3 +44,12 @@ def test_launch_wrapper_forwards_extra_launch_arguments():
 
     assert 'EXTRA_LAUNCH_ARGS=("${@:2}")' in text
     assert '"${EXTRA_LAUNCH_ARGS[@]}"' in text
+
+
+def test_runtime_cleanup_includes_travel_localizer_and_direct_ros2_launch():
+    launch_wrapper_text = LAUNCH_WRAPPER.read_text(encoding="utf-8")
+    makefile_text = Path("Makefile").read_text(encoding="utf-8")
+
+    for text in (launch_wrapper_text, makefile_text):
+        assert "[l]ocalizer_node" in text
+        assert "[r]os2 launch" in text

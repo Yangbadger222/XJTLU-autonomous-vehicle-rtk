@@ -61,11 +61,15 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
 
 def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
     launch_text = _travel_launch_text()
+    nav2_text = NAV2_TRAVEL.read_text(encoding="utf-8")
+    bt_navigator_text = nav2_text.split("# Navigate Through Poses", maxsplit=1)[0]
 
     assert "travel_nav_to_pose_fail_stop.xml" in launch_text
     assert "travel_nav_through_poses_fail_stop.xml" in launch_text
     assert '"default_nav_to_pose_bt_xml": travel_bt_xml' in launch_text
     assert '"default_nav_through_poses_bt_xml": travel_through_poses_bt_xml' in launch_text
+    assert "default_nav_to_pose_bt_xml:" in bt_navigator_text
+    assert "default_nav_through_poses_bt_xml:" in bt_navigator_text
 
     bt_expectations = {
         TRAVEL_FAIL_STOP_BT: "ComputePathToPose",

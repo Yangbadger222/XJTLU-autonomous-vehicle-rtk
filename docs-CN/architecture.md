@@ -155,7 +155,7 @@ map -> odom -> base_footprint -> base_link
 - Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证 TF 污染 Nav2。ICP 校正仍按 `update_hz` 更新，但最近一次有效校正会按 `tf_republish_hz` 使用当前 ROS stamp 重发，供 Nav2 controller 查询当前位姿。
-- Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并额外发布 Nav2 专用重时间戳点云 `/fastlio2/body_cloud_nav2`，避免 costmap 直接消费 FAST-LIO2 body cloud 的旧 stamp
+- Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并额外发布 Nav2 专用重时间戳点云 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_footprint` 由 FAST-LIO2 发布，表示高频局部里程计；`base_footprint -> base_link` 由 URDF 静态 TF 提供
 - 两者组合后得到全局位姿

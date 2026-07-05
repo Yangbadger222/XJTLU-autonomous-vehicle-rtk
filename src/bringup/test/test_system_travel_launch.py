@@ -47,7 +47,10 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "tf_broadcast: false" in text
     assert "topic: /fastlio2/body_cloud_nav2" in text
     assert "topic: /fastlio2/body_cloud\n" not in text
-    assert 'plugins: ["static_layer", "obstacle_layer", "inflation_layer"]' in global_costmap_text
+    assert 'plugins: ["static_layer", "inflation_layer"]' in global_costmap_text
+    assert 'plugins: ["obstacle_layer", "inflation_layer"]' in local_costmap_text
+    assert "topic: /fastlio2/body_cloud_nav2" in local_costmap_text
+    assert "topic: /fastlio2/body_cloud_nav2" not in global_costmap_text
     assert "rolling_window: false" in global_costmap_text
     assert "rolling_window: true" in local_costmap_text
 

@@ -142,7 +142,7 @@ Notes:
 - `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
 - After relocalization, `localizer` keeps ICP correction at `update_hz` but republishes the latest valid `map -> odom` with the current ROS time at `tf_republish_hz`, so Nav2 can transform the current robot pose while following goals
 - Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
-- Travel also starts `nav2_cloud_retime.py`; Nav2 costmaps read `/fastlio2/body_cloud_nav2`, while `localizer` and mapping nodes keep using the original `/fastlio2/body_cloud`
+- Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 - After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
 

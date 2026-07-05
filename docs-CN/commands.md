@@ -143,7 +143,7 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - `localizer` 启动时只预加载 PCD，不会立即发布 `map -> odom`；必须先调用 `/localizer/relocalize` 并看到 check 通过
 - 重定位后，`localizer` 仍按 `update_hz` 做 ICP 校正，但会按 `tf_republish_hz` 用当前 ROS 时间重发最近一次有效 `map -> odom`，让 Nav2 跟踪目标时能查询当前机器人位姿
 - Travel 现在会启动 `initialpose_relocalize_bridge.py`，因此 RViz 的 `2D Pose Estimate` 发到 `/initialpose` 后，会自动用启动时的 `pcd_map` 调 `/localizer/relocalize`
-- Travel 也会启动 `nav2_cloud_retime.py`；Nav2 costmap 使用 `/fastlio2/body_cloud_nav2`，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
+- Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 - 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
 

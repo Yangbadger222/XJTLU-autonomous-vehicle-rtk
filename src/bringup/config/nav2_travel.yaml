@@ -560,7 +560,7 @@ global_costmap:
       height: 50
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
-      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      plugins: ["static_layer", "inflation_layer"]
       # 静态层参数块；负责把先验 2D 栅格地图叠加到全局代价地图。
       # Travel 先验点云模式中，PCD 负责重定位，2D map 负责全局规划。
       static_layer:
@@ -580,60 +580,6 @@ global_costmap:
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
         inflation_radius: 0.4
-      # 障碍物层参数块；负责把传感器观测直接写入代价地图。
-      # 改错结构或参数：代价地图会漏障碍或误报障碍。
-      obstacle_layer:
-        # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-        # 改成不存在或不兼容的插件：对应功能块会加载失败。
-        plugin: "nav2_costmap_2d::ObstacleLayer"
-        # 功能开关；决定当前参数块对应的能力是否真正参与运行。
-        # 改为 true：该能力生效；改为 false：该能力被关闭。
-        enabled: true
-        # 观测源列表；决定该层从哪些传感器配置块读取数据。
-        # 增删观测源：会直接改变写入地图的数据来源。
-        observation_sources: pointcloud
-        # PointCloud 观测参数块；负责描述点云如何写入地图。
-        # 改错结构或参数：点云障碍投影会失真。
-        pointcloud:
-          # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
-          # 改错话题：上下游节点会直接断链。
-          topic: /fastlio2/body_cloud_nav2
-          # 输入消息类型；决定当前观测源按哪种 ROS 消息格式解析。
-          # 改成错误类型：数据解析会失败。
-          data_type: "PointCloud2"
-          # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-          # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-          max_obstacle_height: 1.5
-          # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-          # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-          min_obstacle_height: -0.3
-          # 是否允许清障；决定观测源能否清掉旧障碍。
-          # 改为 true：地图更容易清掉旧障碍；改为 false：旧障碍更容易残留。
-          clearing: true
-          # 是否允许标障；决定观测源命中的障碍能否写入地图。
-          # 改为 true：新障碍会被写入；改为 false：该源只清障不标障。
-          marking: true
-          # 最大障碍标记距离；超过该值的观测不会被写成障碍。
-          # 调大：更远障碍也会入图；调小：只保留更近的障碍。
-          obstacle_max_range: 50.0
-          # 最小障碍标记距离；用于滤掉本体附近或近场噪声。
-          # 调大：更容易滤掉近场点；调小：更容易把近场物体写入。
-          obstacle_min_range: 0.3
-          # 最大清障距离；决定射线清障能清到多远。
-          # 调大：更远区域也能被清空；调小：清障范围缩短。
-          raytrace_max_range: 50.0
-          # 最小清障距离；决定离传感器太近的区域是否参与清障。
-          # 调大：近场更不参与清障；调小：更贴近本体开始清障。
-          raytrace_min_range: 0.0
-          # 无穷远量测是否有效；决定无穷远点是否参与清障判断。
-          # 改为 true：更容易把无返回视作空闲；改为 false：忽略无穷远量测。
-          inf_is_valid: false
-          # 是否启用清障功能；用于总开关控制当前观测源清障。
-          # 改为 true：允许清掉旧障碍；改为 false：该源不再清障。
-          clearing_enabled: true
-          # 是否启用标障功能；用于总开关控制当前观测源标障。
-          # 改为 true：允许写入新障碍；改为 false：该源不再标障。
-          marking_enabled: true
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
       always_send_full_costmap: false

@@ -41,7 +41,7 @@ struct NodeState
     bool service_received = false;
     bool localize_success = false;
     bool has_published_tf = false;
-    rclcpp::Time last_send_tf_time = rclcpp::Clock().now();
+    rclcpp::Time last_send_tf_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
     rclcpp::Time last_republish_tf_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
     builtin_interfaces::msg::Time last_message_time;
     builtin_interfaces::msg::Time last_tf_time;

@@ -58,3 +58,10 @@ def test_localizer_republishes_last_valid_map_to_odom_with_current_time():
     )[0]
     assert "sendBroadCastTF" in republish_block
     assert "this->now()" in republish_block
+
+
+def test_localizer_tf_throttle_uses_node_clock_only():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+
+    assert "rclcpp::Clock().now()" not in text
+    assert "this->now() - m_state.last_send_tf_time" in text

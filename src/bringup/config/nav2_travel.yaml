@@ -536,7 +536,7 @@ global_costmap:
       use_sim_time: false
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
-      robot_radius: 0.25
+      robot_radius: 0.22
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.02
@@ -574,7 +574,7 @@ global_costmap:
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.30
+        inflation_radius: 0.25
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
       always_send_full_costmap: false

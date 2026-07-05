@@ -142,9 +142,9 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     global_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[1]
 
     assert "robot_radius: 0.38625" in local_costmap_text
-    assert "robot_radius: 0.25" in global_costmap_text
+    assert "robot_radius: 0.22" in global_costmap_text
     assert "inflation_radius: 0.4" in local_costmap_text
-    assert "inflation_radius: 0.30" in global_costmap_text
+    assert "inflation_radius: 0.25" in global_costmap_text
     assert "robot_radius: 0.38625" not in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
 

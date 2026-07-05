@@ -566,12 +566,13 @@ global_costmap:
         # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
         # 改成不存在或不兼容的插件：对应功能块会加载失败。
         plugin: "nav2_costmap_2d::InflationLayer"
+        # Travel 全局规划只基于静态 2D 地图，膨胀半径小于 local costmap，避免窄通道被静态膨胀完全切断。
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.4
+        inflation_radius: 0.25
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
       always_send_full_costmap: false

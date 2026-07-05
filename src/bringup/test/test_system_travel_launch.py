@@ -128,6 +128,16 @@ def test_travel_local_costmap_uses_stable_field_runtime_rates():
     assert "resolution: 0.02" not in local_costmap_text
 
 
+def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
+    text = NAV2_TRAVEL.read_text(encoding="utf-8")
+    local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
+    global_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[1]
+
+    assert "inflation_radius: 0.4" in local_costmap_text
+    assert "inflation_radius: 0.25" in global_costmap_text
+    assert "inflation_radius: 0.4" not in global_costmap_text
+
+
 def test_bringup_installs_travel_runtime_helper_nodes():
     cmake_text = BRINGUP_CMAKE.read_text(encoding="utf-8")
     package_text = BRINGUP_PACKAGE.read_text(encoding="utf-8")

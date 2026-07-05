@@ -26,6 +26,11 @@ def generate_launch_description():
     default_master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
     nav2_params_file = os.path.join(bringup_share, "config", "nav2_travel.yaml")
     default_rviz_config = os.path.join(bringup_share, "rviz", "pgo.rviz")
+    travel_bt_xml = os.path.join(
+        bringup_share,
+        "behavior_trees",
+        "travel_nav_to_pose_fail_stop.xml",
+    )
     localizer_config_path = PathJoinSubstitution(
         [FindPackageShare("localizer"), "config", "localizer.yaml"]
     )
@@ -66,7 +71,10 @@ def generate_launch_description():
 
     rewritten_nav2_params = RewrittenYaml(
         source_file=nav2_params_file,
-        param_rewrites={"yaml_filename": LaunchConfiguration("map_yaml")},
+        param_rewrites={
+            "yaml_filename": LaunchConfiguration("map_yaml"),
+            "default_nav_to_pose_bt_xml": travel_bt_xml,
+        },
         convert_types=True,
     )
 

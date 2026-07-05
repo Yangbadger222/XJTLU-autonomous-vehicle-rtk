@@ -141,7 +141,7 @@ bt_navigator:
     odom_topic: /fastlio2/lio_odom
     # 行为树循环周期毫秒数；决定导航行为树 tick 的频率。
     # 调大：行为树响应更慢但更省 CPU；调小：响应更快但线程负载更高。
-    bt_loop_duration: 10
+    bt_loop_duration: 50
     # 动作和服务默认超时；用于判定下游节点是否失联。
     # 调大：对慢节点更宽容；调小：更快暴露超时但更容易误判。
     default_server_timeout: 20
@@ -230,7 +230,7 @@ controller_server:
     use_sim_time: false
     # 控制循环频率；决定局部控制器每秒更新多少次速度指令。
     # 调大：响应更快但 CPU 更高；调小：负载更低但控制更迟缓。
-    controller_frequency: 20.0
+    controller_frequency: 10.0
     # 前向速度死区阈值；低于该值的前向速度会被视为零。
     # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
     min_x_velocity_threshold: 0.001
@@ -287,7 +287,7 @@ controller_server:
       plugin: "dwb_core::DWBLocalPlanner"
       # 轨迹调试开关；决定 DWB 是否输出每条候选轨迹的详细评分。
       # 改为 true：更利于诊断但日志更多；改为 false：日志更干净。
-      debug_trajectory_details: true
+      debug_trajectory_details: false
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
       min_vel_x: 0.0
@@ -296,49 +296,49 @@ controller_server:
       min_vel_y: 0.0
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_vel_x: 0.5
+      max_vel_x: 0.25
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
       max_vel_y: 0.0
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_vel_theta: 1.0
+      max_vel_theta: 0.6
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
       min_speed_xy: 0.0
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_speed_xy: 0.5
+      max_speed_xy: 0.25
       # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
       # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
       min_speed_theta: 0.0
       # 前向加速度上限；限制机器人沿 x 方向提速的快慢。
       # 调大：起步更快但更冲；调小：更平顺但响应更慢。
-      acc_lim_x: 3.0
+      acc_lim_x: 0.8
       # 侧向加速度上限；限制机器人沿 y 方向提速的快慢。
       # 调大：侧移更激进；调小：侧移更平缓。
       acc_lim_y: 0.0
       # 角加速度上限；限制机器人转向提速的快慢。
       # 调大：转向响应更快但更猛；调小：更柔和但更慢。
-      acc_lim_theta: 3.5
+      acc_lim_theta: 1.5
       # 前向减速度上限；限制机器人沿 x 方向减速的快慢。
       # 绝对值调大：刹车更狠；绝对值调小：刹车更柔和。
-      decel_lim_x: -3.0
+      decel_lim_x: -0.8
       # 侧向减速度上限；限制机器人沿 y 方向减速的快慢。
       # 绝对值调大：侧移制动更狠；绝对值调小：侧移制动更缓。
       decel_lim_y: 0.0
       # 角减速度上限；限制机器人转向减速的快慢。
       # 绝对值调大：收角更快；绝对值调小：收角更平缓。
-      decel_lim_theta: -3.5
+      decel_lim_theta: -1.5
       # 前向速度采样数；决定 DWB 评估多少种前进速度。
       # 调大：搜索更细但计算更重；调小：计算更省但轨迹更粗。
-      vx_samples: 20
+      vx_samples: 12
       # 侧向速度采样数；决定 DWB 评估多少种横向速度。
       # 调大：搜索更细但计算更重；调小：计算更省但侧向选项更少。
-      vy_samples: 5
+      vy_samples: 1
       # 角速度采样数；决定 DWB 评估多少种转向速度。
       # 调大：转向搜索更细但计算更重；调小：计算更省但转向离散更粗。
-      vtheta_samples: 20
+      vtheta_samples: 16
       # 前向仿真时长；决定每条候选轨迹向前预测多远。
       # 调大：更有前瞻性但更保守；调小：更灵敏但容易只看近处。
       sim_time: 1.7
@@ -368,7 +368,7 @@ controller_server:
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
       # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
       # 调大：更强调该维度；调小：更弱化该维度。
-      BaseObstacle.scale: 0.002
+      BaseObstacle.scale: 0.02
       # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
       # 调大：更强调该维度；调小：更弱化该维度。
       PathAlign.scale: 32.0
@@ -377,7 +377,7 @@ controller_server:
       PathAlign.forward_point_distance: 0.1
       # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
       # 调大：更强调该维度；调小：更弱化该维度。
-      GoalAlign.scale: 300.0
+      GoalAlign.scale: 24.0
       # 目标对齐前视距离；决定在多远处评估朝向目标的趋势。
       # 调大：更看重中远处朝向；调小：更看重近处朝向。
       GoalAlign.forward_point_distance: 0.1
@@ -425,13 +425,13 @@ local_costmap:
       rolling_window: true
       # 地图宽度；决定 costmap 在 X 方向覆盖的物理范围。
       # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
-      width: 15
+      width: 6
       # 地图高度；决定 costmap 在 Y 方向覆盖的物理范围。
       # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
-      height: 15
+      height: 6
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
-      resolution: 0.02
+      resolution: 0.05
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
       robot_radius: 0.38625
@@ -485,13 +485,13 @@ local_costmap:
           marking: true
           # 最大障碍标记距离；超过该值的观测不会被写成障碍。
           # 调大：更远障碍也会入图；调小：只保留更近的障碍。
-          obstacle_max_range: 15.0
+          obstacle_max_range: 6.0
           # 最小障碍标记距离；用于滤掉本体附近或近场噪声。
           # 调大：更容易滤掉近场点；调小：更容易把近场物体写入。
           obstacle_min_range: 0.3
           # 最大清障距离；决定射线清障能清到多远。
           # 调大：更远区域也能被清空；调小：清障范围缩短。
-          raytrace_max_range: 15.0
+          raytrace_max_range: 6.0
           # 最小清障距离；决定离传感器太近的区域是否参与清障。
           # 调大：近场更不参与清障；调小：更贴近本体开始清障。
           raytrace_min_range: 0.0
@@ -693,37 +693,13 @@ behavior_server:
     cycle_frequency: 10.0
     # 恢复行为列表；决定 behavior server 可提供哪些动作。
     # 增删行为：会直接改变恢复和辅助动作集合。
-    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
-    # Spin 恢复行为参数块；负责原地转向动作。
-    # 改错结构或参数：原地转向行为可能不可用。
-    spin:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_behaviors/Spin"
-    # BackUp 恢复行为参数块；负责后退脱困动作。
-    # 改错结构或参数：后退行为可能不可用。
-    backup:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_behaviors/BackUp"
-    # DriveOnHeading 恢复行为参数块；负责定向直行动作。
-    # 改错结构或参数：定向直行行为可能不可用。
-    drive_on_heading:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_behaviors/DriveOnHeading"
+    behavior_plugins: ["wait"]
     # Wait 恢复行为参数块；负责等待动作。
     # 改错结构或参数：等待行为可能不可用。
     wait:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
       # 改成不存在或不兼容的插件：对应功能块会加载失败。
       plugin: "nav2_behaviors/Wait"
-    # AssistedTeleop 恢复行为参数块；负责辅助遥控动作。
-    # 改错结构或参数：辅助遥控行为可能不可用。
-    assisted_teleop:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_behaviors/AssistedTeleop"
     # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
     # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
     global_frame: odom

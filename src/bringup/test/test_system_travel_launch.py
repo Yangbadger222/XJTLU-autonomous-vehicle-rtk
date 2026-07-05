@@ -8,6 +8,7 @@ BRINGUP_CMAKE = Path("src/bringup/CMakeLists.txt")
 BRINGUP_PACKAGE = Path("src/bringup/package.xml")
 INITIALPOSE_BRIDGE = Path("src/bringup/scripts/initialpose_relocalize_bridge.py")
 NAV2_CLOUD_RETIME = Path("src/bringup/scripts/nav2_cloud_retime.py")
+TRAVEL_FAIL_STOP_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_fail_stop.xml")
 
 
 def _travel_launch_text():
@@ -55,14 +56,63 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "rolling_window: true" in local_costmap_text
 
 
+def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
+    launch_text = _travel_launch_text()
+
+    assert "travel_nav_to_pose_fail_stop.xml" in launch_text
+    assert '"default_nav_to_pose_bt_xml": travel_bt_xml' in launch_text
+
+    bt_text = TRAVEL_FAIL_STOP_BT.read_text(encoding="utf-8")
+    assert "ComputePathToPose" in bt_text
+    assert "FollowPath" in bt_text
+
+    for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
+        assert unsafe_motion_recovery not in bt_text
+
+
+def test_travel_dwb_uses_conservative_indoor_controller_limits():
+    text = NAV2_TRAVEL.read_text(encoding="utf-8")
+    controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
+    behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
+
+    assert "controller_frequency: 10.0" in controller_text
+    assert "debug_trajectory_details: false" in controller_text
+    assert "max_vel_x: 0.25" in controller_text
+    assert "max_vel_theta: 0.6" in controller_text
+    assert "max_speed_xy: 0.25" in controller_text
+    assert "acc_lim_x: 0.8" in controller_text
+    assert "decel_lim_x: -0.8" in controller_text
+    assert "acc_lim_theta: 1.5" in controller_text
+    assert "decel_lim_theta: -1.5" in controller_text
+    assert "vx_samples: 12" in controller_text
+    assert "vy_samples: 1" in controller_text
+    assert "vtheta_samples: 16" in controller_text
+    assert "BaseObstacle.scale: 0.02" in controller_text
+    assert "GoalAlign.scale: 24.0" in controller_text
+    assert 'behavior_plugins: ["wait"]' in behavior_text
+
+    assert "controller_frequency: 20.0" not in controller_text
+    assert "debug_trajectory_details: true" not in controller_text
+    assert "max_vel_x: 0.5" not in controller_text
+    assert "GoalAlign.scale: 300.0" not in controller_text
+
+
 def test_travel_local_costmap_uses_stable_field_runtime_rates():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
 
     assert "update_frequency: 15.0" in local_costmap_text
     assert "publish_frequency: 5.0" in local_costmap_text
+    assert "width: 6" in local_costmap_text
+    assert "height: 6" in local_costmap_text
+    assert "resolution: 0.05" in local_costmap_text
+    assert "obstacle_max_range: 6.0" in local_costmap_text
+    assert "raytrace_max_range: 6.0" in local_costmap_text
     assert "update_frequency: 40.0" not in local_costmap_text
     assert "publish_frequency: 40.0" not in local_costmap_text
+    assert "width: 15" not in local_costmap_text
+    assert "height: 15" not in local_costmap_text
+    assert "resolution: 0.02" not in local_costmap_text
 
 
 def test_bringup_installs_travel_runtime_helper_nodes():

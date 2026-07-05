@@ -143,6 +143,8 @@ Notes:
 - After relocalization, Travel defaults to `continuous_icp: false`: `localizer` freezes the valid `map -> odom` correction and republishes it with the current ROS time at `tf_republish_hz`, avoiding map drift from partial local scans during navigation; sending `/initialpose` or calling `/localizer/relocalize` runs ICP again
 - Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
+- Travel `NavigateToPose` uses a dedicated fail-stop behavior tree: if the local controller or planner fails, it stops and returns failure instead of automatically running `Spin`, `BackUp`, or costmap-clearing recovery actions
+- Travel DWB/controller settings are tuned for conservative indoor table-edge testing, with a `6 m x 6 m @ 0.05 m` near-field local costmap window
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 - After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
 

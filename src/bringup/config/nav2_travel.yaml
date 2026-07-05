@@ -1,5 +1,5 @@
 # Nav2 Travel 模式参数文件。
-# Travel 使用先验 2D/3D 地图重定位链路，并沿用 Explore/Corridor 的 MPPI 局部控制基线。
+# Travel 使用先验 2D/3D 地图重定位链路，并使用室内低负载 MPPI 平滑控制配置。
 # AMCL 节点参数块；负责静态地图定位和粒子滤波。
 # 改错节点名或层级：AMCL 会读不到参数并回退默认值。
 amcl:
@@ -293,17 +293,17 @@ controller_server:
       plugin: "nav2_mppi_controller::MPPIController"
       time_steps: 48
       model_dt: 0.05
-      batch_size: 1000
-      vx_std: 0.28
+      batch_size: 700
+      vx_std: 0.22
       vy_std: 0.0
-      wz_std: 0.22
-      vx_max: 1.0
+      wz_std: 0.18
+      vx_max: 0.55
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 1.2
-      ax_max: 1.2
-      ax_min: -3.0
-      az_max: 6.0
+      wz_max: 0.9
+      ax_max: 0.8
+      ax_min: -1.2
+      az_max: 3.0
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
@@ -424,6 +424,7 @@ local_costmap:
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.05
+      transform_tolerance: 0.8
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
       robot_radius: 0.38625
@@ -463,6 +464,7 @@ local_costmap:
           # 输入消息类型；决定当前观测源按哪种 ROS 消息格式解析。
           # 改成错误类型：数据解析会失败。
           data_type: "PointCloud2"
+          transform_tolerance: 0.8
           # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
           # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
           max_obstacle_height: 1.5
@@ -534,7 +536,7 @@ global_costmap:
       use_sim_time: false
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
-      robot_radius: 0.38625
+      robot_radius: 0.25
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.02
@@ -566,13 +568,13 @@ global_costmap:
         # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
         # 改成不存在或不兼容的插件：对应功能块会加载失败。
         plugin: "nav2_costmap_2d::InflationLayer"
-        # Travel 全局规划只基于静态 2D 地图，膨胀半径小于 local costmap，避免窄通道被静态膨胀完全切断。
+        # Travel 全局规划只基于静态 2D 地图，使用小于 local costmap 的虚拟规划半径和膨胀半径，避免窄通道被静态膨胀完全切断。
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.25
+        inflation_radius: 0.30
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
       always_send_full_costmap: false
@@ -638,7 +640,7 @@ planner_server:
       tolerance: 0.5
       # 是否使用 A* 搜索；决定 NavFn 走 A* 还是更传统的搜索策略。
       # 改为 true：通常更偏向启发式搜索；改为 false：更接近传统全图搜索。
-      use_astar: false
+      use_astar: true
       # 是否允许穿越未知区域；决定规划器能否把未知空间当作可通行。
       # 改为 true：更容易找到穿越未知区的路；改为 false：路径更保守。
       allow_unknown: true
@@ -653,22 +655,29 @@ smoother_server:
     use_sim_time: false
     # 平滑器列表；决定 smoother server 提供哪些路径平滑器。
     # 增删平滑器：会改变路径后处理能力或导致引用失败。
-    smoother_plugins: ["simple_smoother"]
-    # Simple Smoother 参数块；负责控制路径平滑的迭代策略。
-    # 改错结构或参数：平滑后的路径会更抖或更慢。
-    simple_smoother:
+    costmap_topic: global_costmap/costmap_raw
+    footprint_topic: global_costmap/published_footprint
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    smoother_plugins: ["savitzky_golay_smoother"]
+    # Savitzky-Golay 参数块；用于去掉 NavFn 路径中的细小锯齿和微小折线。
+    # 改错结构或参数：平滑器可能加载失败或平滑效果不稳定。
+    savitzky_golay_smoother:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
       # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_smoother::SimpleSmoother"
-      # 容差参数；决定当前算法接受多大误差仍视为有效。
-      # 调大：更宽松；调小：更严格。
-      tolerance: 1.0e-10
-      # 最大迭代次数；限制路径平滑最多做多少轮优化。
-      # 调大：更充分但更耗时；调小：更快但可能平滑不够。
-      max_its: 1000
-      # 是否执行细化步骤；决定平滑后是否再做一轮精修。
-      # 改为 true：路径更平滑但更耗时；改为 false：更快但结果可能更粗。
+      plugin: "nav2_smoother::SavitzkyGolaySmoother"
+      # 平滑窗口大小；必须为奇数，窗口更大时更能抑制路径细碎噪声。
+      # 调大：更平滑；调小：更贴近原始路径。
+      window_size: 7
+      # 拟合多项式阶数；决定每个窗口内如何逼近原始路径。
+      # 调大：更灵活但更容易保留细碎变化；调小：更保守更稳。
+      poly_order: 3
+      # 是否递归细化平滑结果；可进一步消除微小折线。
+      # 改为 true：更平滑；改为 false：更接近原始路径。
       do_refinement: true
+      # 递归细化次数；决定额外平滑迭代轮数。
+      # 调大：更平滑但更可能抹掉细节；调小：更保守。
+      refinement_num: 2
 # Behavior Server 节点参数块；负责恢复行为和辅助动作。
 # 改错节点名或层级：恢复行为会读不到参数或不可用。
 behavior_server:
@@ -776,16 +785,16 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_velocity: [0.5, 0.0, 1.0]
+    max_velocity: [0.55, 0.0, 0.9]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    min_velocity: [0.0, 0.0, -1.0]
+    min_velocity: [0.0, 0.0, -0.9]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_accel: [3.0, 0.0, 3.5]
+    max_accel: [0.8, 0.0, 2.0]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_decel: [-3.0, 0.0, -3.5]
+    max_decel: [-1.2, 0.0, -2.5]
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
     # 改错话题：上下游节点会直接断链。
     odom_topic: "odom_CBoar"

@@ -78,13 +78,15 @@ def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
     for bt_file, planner_node in bt_expectations.items():
         bt_text = bt_file.read_text(encoding="utf-8")
         assert planner_node in bt_text
+        assert "SmoothPath" in bt_text
+        assert 'smoother_id="savitzky_golay_smoother"' in bt_text
         assert "FollowPath" in bt_text
 
         for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
             assert unsafe_motion_recovery not in bt_text
 
 
-def test_travel_uses_explore_mppi_controller_baseline():
+def test_travel_uses_smooth_low_load_mppi_controller_profile():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
     behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
@@ -93,12 +95,16 @@ def test_travel_uses_explore_mppi_controller_baseline():
     assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
-    assert "batch_size: 1000" in controller_text
-    assert "vx_max: 1.0" in controller_text
+    assert "batch_size: 700" in controller_text
+    assert "vx_std: 0.22" in controller_text
+    assert "wz_std: 0.18" in controller_text
+    assert "vx_max: 0.55" in controller_text
     assert "vx_min: 0.0" in controller_text
     assert "vy_max: 0.0" in controller_text
-    assert "wz_max: 1.2" in controller_text
-    assert "ax_max: 1.2" in controller_text
+    assert "wz_max: 0.9" in controller_text
+    assert "ax_max: 0.8" in controller_text
+    assert "ax_min: -1.2" in controller_text
+    assert "az_max: 3.0" in controller_text
     assert "PathAlignCritic:" in controller_text
     assert "offset_from_furthest: 6" in controller_text
     assert "PathFollowCritic:" in controller_text
@@ -108,6 +114,8 @@ def test_travel_uses_explore_mppi_controller_baseline():
     assert 'plugin: "dwb_core::DWBLocalPlanner"' not in controller_text
     assert "vx_samples:" not in controller_text
     assert "BaseObstacle.scale:" not in controller_text
+    assert "batch_size: 1000" not in controller_text
+    assert "vx_max: 1.0" not in controller_text
 
 
 def test_travel_local_costmap_uses_stable_field_runtime_rates():
@@ -133,9 +141,32 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
     global_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[1]
 
+    assert "robot_radius: 0.38625" in local_costmap_text
+    assert "robot_radius: 0.25" in global_costmap_text
     assert "inflation_radius: 0.4" in local_costmap_text
-    assert "inflation_radius: 0.25" in global_costmap_text
+    assert "inflation_radius: 0.30" in global_costmap_text
+    assert "robot_radius: 0.38625" not in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
+
+
+def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
+    text = NAV2_TRAVEL.read_text(encoding="utf-8")
+    smoother_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[0].split(
+        "# Smoother Server 节点参数块", maxsplit=1
+    )[1]
+    velocity_text = text.split("# Velocity Smoother 节点参数块", maxsplit=1)[1]
+
+    assert 'smoother_plugins: ["savitzky_golay_smoother"]' in smoother_text
+    assert 'plugin: "nav2_smoother::SavitzkyGolaySmoother"' in smoother_text
+    assert "window_size: 7" in smoother_text
+    assert "poly_order: 3" in smoother_text
+    assert "do_refinement: true" in smoother_text
+    assert "refinement_num: 2" in smoother_text
+
+    assert "max_velocity: [0.55, 0.0, 0.9]" in velocity_text
+    assert "min_velocity: [0.0, 0.0, -0.9]" in velocity_text
+    assert "max_accel: [0.8, 0.0, 2.0]" in velocity_text
+    assert "max_decel: [-1.2, 0.0, -2.5]" in velocity_text
 
 
 def test_bringup_installs_travel_runtime_helper_nodes():

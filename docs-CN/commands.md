@@ -144,7 +144,7 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - 重定位后，Travel 默认 `continuous_icp: false`：`localizer` 会冻结本次有效 `map -> odom` 校正，并按 `tf_republish_hz` 用当前 ROS 时间重发，避免导航过程中局部点云把地图拉散；再次发 `/initialpose` 或调 `/localizer/relocalize` 会重新做一次 ICP
 - Travel 现在会启动 `initialpose_relocalize_bridge.py`，因此 RViz 的 `2D Pose Estimate` 发到 `/initialpose` 后，会自动用启动时的 `pcd_map` 调 `/localizer/relocalize`
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
-- Travel 的 `NavigateToPose` 使用专用 fail-stop 行为树：局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp` 或清图恢复动作
+- Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用专用 fail-stop 行为树：局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp` 或清图恢复动作
 - Travel 的 DWB/controller 参数按室内桌边测试收敛为低速保守配置，local costmap 近场窗口为 `6 m x 6 m @ 0.05 m`
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 - 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：

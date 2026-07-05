@@ -156,7 +156,7 @@ map -> odom -> base_footprint -> base_link
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证 TF 污染 Nav2。Travel 默认 `continuous_icp: false`，因此重定位成功后冻结该次校正，只按 `tf_republish_hz` 使用当前 ROS stamp 重发，供 Nav2 controller 查询当前位姿。
 - Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并让 FAST-LIO2 额外发布高窗 Nav2 障碍点云 `/fastlio2/body_cloud_nav2_obstacles`，再重时间戳为 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
-- Travel 的 Nav2 行为树是 fail-stop 版本：`FollowPath` 或 `ComputePathToPose` 失败时停止并让目标失败，不触发自动原地旋转、倒车或清图恢复；局部避障由低速 DWB 和 `6 m x 6 m` local costmap 负责。
+- Travel 的 Nav2 行为树是 fail-stop 版本：`ComputePathToPose`、`ComputePathThroughPoses` 或 `FollowPath` 失败时停止并让目标失败，不触发自动原地旋转、倒车或清图恢复；局部避障由低速 DWB 和 `6 m x 6 m` local costmap 负责。
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_footprint` 由 FAST-LIO2 发布，表示高频局部里程计；`base_footprint -> base_link` 由 URDF 静态 TF 提供
 - 两者组合后得到全局位姿

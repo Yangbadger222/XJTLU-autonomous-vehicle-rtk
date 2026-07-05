@@ -9,6 +9,9 @@ BRINGUP_PACKAGE = Path("src/bringup/package.xml")
 INITIALPOSE_BRIDGE = Path("src/bringup/scripts/initialpose_relocalize_bridge.py")
 NAV2_CLOUD_RETIME = Path("src/bringup/scripts/nav2_cloud_retime.py")
 TRAVEL_FAIL_STOP_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_fail_stop.xml")
+TRAVEL_THROUGH_POSES_FAIL_STOP_BT = Path(
+    "src/bringup/behavior_trees/travel_nav_through_poses_fail_stop.xml"
+)
 
 
 def _travel_launch_text():
@@ -60,14 +63,21 @@ def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
     launch_text = _travel_launch_text()
 
     assert "travel_nav_to_pose_fail_stop.xml" in launch_text
+    assert "travel_nav_through_poses_fail_stop.xml" in launch_text
     assert '"default_nav_to_pose_bt_xml": travel_bt_xml' in launch_text
+    assert '"default_nav_through_poses_bt_xml": travel_through_poses_bt_xml' in launch_text
 
-    bt_text = TRAVEL_FAIL_STOP_BT.read_text(encoding="utf-8")
-    assert "ComputePathToPose" in bt_text
-    assert "FollowPath" in bt_text
+    bt_expectations = {
+        TRAVEL_FAIL_STOP_BT: "ComputePathToPose",
+        TRAVEL_THROUGH_POSES_FAIL_STOP_BT: "ComputePathThroughPoses",
+    }
+    for bt_file, planner_node in bt_expectations.items():
+        bt_text = bt_file.read_text(encoding="utf-8")
+        assert planner_node in bt_text
+        assert "FollowPath" in bt_text
 
-    for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
-        assert unsafe_motion_recovery not in bt_text
+        for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
+            assert unsafe_motion_recovery not in bt_text
 
 
 def test_travel_dwb_uses_conservative_indoor_controller_limits():

@@ -31,6 +31,11 @@ def generate_launch_description():
         "behavior_trees",
         "travel_nav_to_pose_fail_stop.xml",
     )
+    travel_through_poses_bt_xml = os.path.join(
+        bringup_share,
+        "behavior_trees",
+        "travel_nav_through_poses_fail_stop.xml",
+    )
     localizer_config_path = PathJoinSubstitution(
         [FindPackageShare("localizer"), "config", "localizer.yaml"]
     )
@@ -74,6 +79,7 @@ def generate_launch_description():
         param_rewrites={
             "yaml_filename": LaunchConfiguration("map_yaml"),
             "default_nav_to_pose_bt_xml": travel_bt_xml,
+            "default_nav_through_poses_bt_xml": travel_through_poses_bt_xml,
         },
         convert_types=True,
     )

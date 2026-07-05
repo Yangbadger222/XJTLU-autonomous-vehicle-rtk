@@ -1,0 +1,16 @@
+<!--
+  Travel prior-map Nav2 NavigateThroughPoses Behavior Tree.
+
+  Keep this aligned with travel_nav_to_pose_fail_stop.xml: no automatic Spin,
+  BackUp, or costmap-clearing recovery actions are allowed in tight indoor tests.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <PipelineSequence name="NavigateThroughPosesWithFailStop">
+      <RateController hz="2.0">
+        <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+      </RateController>
+      <FollowPath path="{path}" controller_id="FollowPath"/>
+    </PipelineSequence>
+  </BehaviorTree>
+</root>

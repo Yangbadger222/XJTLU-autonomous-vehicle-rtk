@@ -127,6 +127,8 @@ def test_travel_local_costmap_uses_stable_field_runtime_rates():
     assert "width: 6" in local_costmap_text
     assert "height: 6" in local_costmap_text
     assert "resolution: 0.05" in local_costmap_text
+    assert "min_obstacle_height: 0.05" in local_costmap_text
+    assert "max_obstacle_height: 1.2" in local_costmap_text
     assert "obstacle_max_range: 6.0" in local_costmap_text
     assert "raytrace_max_range: 6.0" in local_costmap_text
     assert "update_frequency: 40.0" not in local_costmap_text
@@ -143,7 +145,7 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
 
     assert "robot_radius: 0.38625" in local_costmap_text
     assert "robot_radius: 0.22" in global_costmap_text
-    assert "inflation_radius: 0.4" in local_costmap_text
+    assert "inflation_radius: 0.30" in local_costmap_text
     assert "inflation_radius: 0.25" in global_costmap_text
     assert "robot_radius: 0.38625" not in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text

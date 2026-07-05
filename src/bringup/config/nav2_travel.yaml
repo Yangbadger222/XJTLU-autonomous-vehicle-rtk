@@ -442,7 +442,7 @@ local_costmap:
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.4
+        inflation_radius: 0.30
       # 障碍物层参数块；负责把传感器观测直接写入代价地图。
       # 改错结构或参数：代价地图会漏障碍或误报障碍。
       obstacle_layer:
@@ -467,10 +467,10 @@ local_costmap:
           transform_tolerance: 0.8
           # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
           # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-          max_obstacle_height: 1.5
+          max_obstacle_height: 1.2
           # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
           # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-          min_obstacle_height: -0.3
+          min_obstacle_height: 0.05
           # 是否允许清障；决定观测源能否清掉旧障碍。
           # 改为 true：地图更容易清掉旧障碍；改为 false：旧障碍更容易残留。
           clearing: true

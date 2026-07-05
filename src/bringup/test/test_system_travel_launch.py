@@ -102,3 +102,4 @@ def test_runtime_cleanup_includes_travel_localizer_and_direct_ros2_launch():
         assert "[r]os2 launch" in text
         assert "[i]nitialpose_relocalize_bridge" in text
         assert "[n]av2_cloud_retime" in text
+        assert "[j]oint_state_publisher" in text

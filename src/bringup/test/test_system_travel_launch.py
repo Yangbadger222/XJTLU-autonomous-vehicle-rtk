@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import yaml
+
 
 TRAVEL_LAUNCH = Path("src/bringup/launch/system_travel.launch.py")
 NAV2_TRAVEL = Path("src/bringup/config/nav2_travel.yaml")
@@ -16,6 +18,10 @@ TRAVEL_THROUGH_POSES_FAIL_STOP_BT = Path(
 
 def _travel_launch_text():
     return TRAVEL_LAUNCH.read_text(encoding="utf-8")
+
+
+def _nav2_travel_yaml():
+    return yaml.safe_load(NAV2_TRAVEL.read_text(encoding="utf-8"))
 
 
 def test_travel_launch_exposes_prior_map_arguments():
@@ -96,15 +102,15 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 700" in controller_text
-    assert "vx_std: 0.22" in controller_text
-    assert "wz_std: 0.18" in controller_text
-    assert "vx_max: 0.55" in controller_text
+    assert "vx_std: 0.14" in controller_text
+    assert "wz_std: 0.14" in controller_text
+    assert "vx_max: 0.35" in controller_text
     assert "vx_min: 0.0" in controller_text
     assert "vy_max: 0.0" in controller_text
-    assert "wz_max: 0.9" in controller_text
-    assert "ax_max: 0.8" in controller_text
-    assert "ax_min: -1.2" in controller_text
-    assert "az_max: 3.0" in controller_text
+    assert "wz_max: 0.65" in controller_text
+    assert "ax_max: 0.45" in controller_text
+    assert "ax_min: -0.8" in controller_text
+    assert "az_max: 2.0" in controller_text
     assert "PathAlignCritic:" in controller_text
     assert "offset_from_furthest: 6" in controller_text
     assert "PathFollowCritic:" in controller_text
@@ -145,10 +151,19 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
 
     assert "robot_radius: 0.38625" in local_costmap_text
     assert "robot_radius: 0.22" in global_costmap_text
-    assert "inflation_radius: 0.30" in local_costmap_text
+    assert "inflation_radius: 0.40" in local_costmap_text
     assert "inflation_radius: 0.25" in global_costmap_text
     assert "robot_radius: 0.38625" not in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
+
+
+def test_travel_local_inflation_covers_real_vehicle_radius():
+    config = _nav2_travel_yaml()
+    local = config["local_costmap"]["local_costmap"]["ros__parameters"]
+    local_inflation = local["inflation_layer"]["inflation_radius"]
+    local_robot_radius = local["robot_radius"]
+
+    assert local_inflation >= local_robot_radius
 
 
 def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
@@ -165,10 +180,10 @@ def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
     assert "do_refinement: true" in smoother_text
     assert "refinement_num: 2" in smoother_text
 
-    assert "max_velocity: [0.55, 0.0, 0.9]" in velocity_text
-    assert "min_velocity: [0.0, 0.0, -0.9]" in velocity_text
-    assert "max_accel: [0.8, 0.0, 2.0]" in velocity_text
-    assert "max_decel: [-1.2, 0.0, -2.5]" in velocity_text
+    assert "max_velocity: [0.35, 0.0, 0.65]" in velocity_text
+    assert "min_velocity: [0.0, 0.0, -0.65]" in velocity_text
+    assert "max_accel: [0.45, 0.0, 1.4]" in velocity_text
+    assert "max_decel: [-0.8, 0.0, -1.8]" in velocity_text
 
 
 def test_bringup_installs_travel_runtime_helper_nodes():

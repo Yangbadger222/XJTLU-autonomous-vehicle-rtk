@@ -294,16 +294,16 @@ controller_server:
       time_steps: 48
       model_dt: 0.05
       batch_size: 700
-      vx_std: 0.22
+      vx_std: 0.14
       vy_std: 0.0
-      wz_std: 0.18
-      vx_max: 0.55
+      wz_std: 0.14
+      vx_max: 0.35
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 0.9
-      ax_max: 0.8
-      ax_min: -1.2
-      az_max: 3.0
+      wz_max: 0.65
+      ax_max: 0.45
+      ax_min: -0.8
+      az_max: 2.0
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
@@ -442,7 +442,7 @@ local_costmap:
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.30
+        inflation_radius: 0.40
       # 障碍物层参数块；负责把传感器观测直接写入代价地图。
       # 改错结构或参数：代价地图会漏障碍或误报障碍。
       obstacle_layer:
@@ -785,16 +785,16 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_velocity: [0.55, 0.0, 0.9]
+    max_velocity: [0.35, 0.0, 0.65]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    min_velocity: [0.0, 0.0, -0.9]
+    min_velocity: [0.0, 0.0, -0.65]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_accel: [0.8, 0.0, 2.0]
+    max_accel: [0.45, 0.0, 1.4]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_decel: [-1.2, 0.0, -2.5]
+    max_decel: [-0.8, 0.0, -1.8]
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
     # 改错话题：上下游节点会直接断链。
     odom_topic: "odom_CBoar"

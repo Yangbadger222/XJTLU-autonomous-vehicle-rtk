@@ -140,9 +140,9 @@ Notes:
 - `travel` uses the 2D `map.yaml` for Nav2 global planning and the 3D `map.pcd` for ICP point-cloud relocalization in `localizer`
 - `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
 - `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
-- After relocalization, `localizer` keeps ICP correction at `update_hz` but republishes the latest valid `map -> odom` with the current ROS time at `tf_republish_hz`, so Nav2 can transform the current robot pose while following goals
+- After relocalization, Travel defaults to `continuous_icp: false`: `localizer` freezes the valid `map -> odom` correction and republishes it with the current ROS time at `tf_republish_hz`, avoiding map drift from partial local scans during navigation; sending `/initialpose` or calling `/localizer/relocalize` runs ICP again
 - Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
-- Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
+- Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 - After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
 

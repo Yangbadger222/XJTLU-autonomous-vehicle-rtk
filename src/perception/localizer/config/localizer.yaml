@@ -5,6 +5,7 @@ local_frame: lidar
 update_hz: 1.0
 max_tf_input_age_s: 2.0
 tf_republish_hz: 20.0
+continuous_icp: false
 
 rough_scan_resolution: 0.25
 rough_map_resolution: 0.25

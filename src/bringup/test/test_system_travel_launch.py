@@ -29,7 +29,7 @@ def test_travel_launch_wires_localizer_and_nav2():
     assert 'executable="initialpose_relocalize_bridge.py"' in text
     assert '"pcd_map": LaunchConfiguration("pcd_map")' in text
     assert 'executable="nav2_cloud_retime.py"' in text
-    assert '("cloud_in", "/fastlio2/body_cloud")' in text
+    assert '("cloud_in", "/fastlio2/body_cloud_nav2_obstacles")' in text
     assert '("cloud_out", "/fastlio2/body_cloud_nav2")' in text
     assert "navigation_launch.py" in text
     assert "localization_launch.py" in text
@@ -53,6 +53,16 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "topic: /fastlio2/body_cloud_nav2" not in global_costmap_text
     assert "rolling_window: false" in global_costmap_text
     assert "rolling_window: true" in local_costmap_text
+
+
+def test_travel_local_costmap_uses_stable_field_runtime_rates():
+    text = NAV2_TRAVEL.read_text(encoding="utf-8")
+    local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
+
+    assert "update_frequency: 15.0" in local_costmap_text
+    assert "publish_frequency: 5.0" in local_costmap_text
+    assert "update_frequency: 40.0" not in local_costmap_text
+    assert "publish_frequency: 40.0" not in local_costmap_text
 
 
 def test_bringup_installs_travel_runtime_helper_nodes():

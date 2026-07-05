@@ -35,6 +35,12 @@ def test_localizer_config_exposes_current_time_tf_republish_rate():
     assert "tf_republish_hz" in text
 
 
+def test_localizer_config_can_disable_continuous_icp_for_travel():
+    text = LOCALIZER_CONFIG.read_text(encoding="utf-8")
+
+    assert "continuous_icp: false" in text
+
+
 def test_localizer_does_not_publish_stale_or_unvalidated_map_to_odom():
     text = LOCALIZER_NODE.read_text(encoding="utf-8")
     non_update_branch = text.split("if (!update_tf)", maxsplit=1)[1].split("m_state.last_send_tf_time", maxsplit=1)[0]
@@ -58,6 +64,17 @@ def test_localizer_republishes_last_valid_map_to_odom_with_current_time():
     )[0]
     assert "sendBroadCastTF" in republish_block
     assert "this->now()" in republish_block
+
+
+def test_localizer_can_freeze_map_to_odom_after_relocalize():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+
+    assert "continuous_icp" in text
+    assert "if (!m_config.continuous_icp && !service_received && m_state.has_published_tf)" in text
+    assert "return;" in text.split(
+        "if (!m_config.continuous_icp && !service_received && m_state.has_published_tf)",
+        maxsplit=1,
+    )[1].split("m_state.last_send_tf_time", maxsplit=1)[0]
 
 
 def test_localizer_tf_throttle_uses_node_clock_only():

@@ -30,6 +30,7 @@ struct NodeConfig
     double update_hz = 1.0;
     double max_tf_input_age_s = 2.0;
     double tf_republish_hz = 20.0;
+    bool continuous_icp = true;
 };
 
 struct NodeState
@@ -105,6 +106,8 @@ public:
             m_config.max_tf_input_age_s = config["max_tf_input_age_s"].as<double>();
         if (config["tf_republish_hz"])
             m_config.tf_republish_hz = config["tf_republish_hz"].as<double>();
+        if (config["continuous_icp"])
+            m_config.continuous_icp = config["continuous_icp"].as<bool>();
 
         m_localizer_config.rough_scan_resolution = config["rough_scan_resolution"].as<double>();
         m_localizer_config.rough_map_resolution = config["rough_map_resolution"].as<double>();
@@ -166,6 +169,9 @@ public:
             republishLatestTF();
 
         if (!update_tf)
+            return;
+
+        if (!m_config.continuous_icp && !service_received && m_state.has_published_tf)
             return;
 
         m_state.last_send_tf_time = this->now();

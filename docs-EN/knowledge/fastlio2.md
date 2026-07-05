@@ -6,6 +6,7 @@
 - Current primary outputs (when height filtering is enabled, point cloud outputs are height-filtered before publishing; see below):
   - `/fastlio2/lio_odom`
   - `/fastlio2/body_cloud`
+  - `/fastlio2/body_cloud_nav2_obstacles` (optional taller Nav2 obstacle cloud)
 - Current primary entry point:
 
 ```bash
@@ -20,14 +21,20 @@ ros2 launch fastlio2 lio_no_rviz.py params_file:=~/XJTLU-autonomous-vehicle/src/
 
 FAST-LIO2 now includes publish-time point cloud height filtering in `lio_node.cpp` (commit `f619fa6`):
 
-- Before publishing `body_cloud` and `world_cloud` to downstream consumers (PGO, Nav2 STVL), points are filtered by their relative height along gravity with respect to the body origin
+- Before publishing `body_cloud` and `world_cloud` to downstream consumers (PGO, localizer, etc.), points are filtered by their relative height along gravity with respect to the body origin
 - Filter window controlled via `master_params.yaml`:
   - `publish_cloud_height_filter_enabled: true` (toggle)
   - `publish_cloud_min_z: -0.33` (minimum relative height)
   - `publish_cloud_max_z: 0.30` (maximum relative height)
 - Relative height calculation: `relative_height = world_cloud.z - body_origin_z_in_world`
-- Effect: ground-level low points and above-vehicle-height noise (ceiling, elevated structures) are eliminated at the source; downstream costmaps no longer need redundant height filtering
+- Effect: ground-level low points and above-vehicle-height noise are eliminated at the source; downstream PGO/localizer consumers keep using the stable low-window cloud
 - This filter does not affect FAST-LIO2's internal SLAM mapping and state estimation; it only affects the point clouds published to external consumers
+- Travel/Nav2 has a separate obstacle cloud:
+  - `nav2_obstacle_cloud_enabled: true`
+  - `nav2_obstacle_cloud_min_z: -0.30`
+  - `nav2_obstacle_cloud_max_z: 1.20`
+  - Publishes `/fastlio2/body_cloud_nav2_obstacles`, which `nav2_cloud_retime.py` republishes as `/fastlio2/body_cloud_nav2`
+  - This topic lets tables, table edges, and other obstacles above 0.30 m enter the local costmap without changing the original `/fastlio2/body_cloud`
 
 ## Nav2-Dedicated Obstacle Cloud (2026-07-09)
 

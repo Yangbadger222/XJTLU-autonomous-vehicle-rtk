@@ -136,7 +136,7 @@ def generate_launch_description():
         name="nav2_cloud_retime",
         output="screen",
         remappings=[
-            ("cloud_in", "/fastlio2/body_cloud"),
+            ("cloud_in", "/fastlio2/body_cloud_nav2_obstacles"),
             ("cloud_out", "/fastlio2/body_cloud_nav2"),
         ],
     )

@@ -154,7 +154,7 @@ map -> odom -> base_footprint -> base_link
 - In Explore / explore-gps production navigation modes, `map -> odom` is published by PGO, representing global correction offset
 - In Corridor and RTK nav-gps modes, PGO disables `publish_tf`; the only production `map -> odom` owner is `rtk_map_odom_corrector`
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
-- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated or stale-stamped TF in Nav2
+- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated TF in Nav2. The ICP correction still updates at `update_hz`, while the latest valid correction is republished with current ROS stamps at `tf_republish_hz` for Nav2 controller lookups.
 - Travel mode bridges RViz `2D Pose Estimate` (`/initialpose`) into `/localizer/relocalize`, and retimes a Nav2-only point cloud as `/fastlio2/body_cloud_nav2` so costmaps do not consume stale FAST-LIO2 body-cloud stamps
 - PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_footprint` is published by FAST-LIO2, representing high-frequency local odometry; `base_footprint -> base_link` is provided by URDF static TF

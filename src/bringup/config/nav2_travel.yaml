@@ -467,7 +467,7 @@ local_costmap:
         pointcloud:
           # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
           # 改错话题：上下游节点会直接断链。
-          topic: /fastlio2/body_cloud
+          topic: /fastlio2/body_cloud_nav2
           # 输入消息类型；决定当前观测源按哪种 ROS 消息格式解析。
           # 改成错误类型：数据解析会失败。
           data_type: "PointCloud2"
@@ -597,7 +597,7 @@ global_costmap:
         pointcloud:
           # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
           # 改错话题：上下游节点会直接断链。
-          topic: /fastlio2/body_cloud
+          topic: /fastlio2/body_cloud_nav2
           # 输入消息类型；决定当前观测源按哪种 ROS 消息格式解析。
           # 改成错误类型：数据解析会失败。
           data_type: "PointCloud2"

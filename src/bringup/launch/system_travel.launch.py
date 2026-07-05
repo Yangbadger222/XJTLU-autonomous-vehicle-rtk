@@ -118,6 +118,29 @@ def generate_launch_description():
         ],
     )
 
+    initialpose_relocalize_bridge_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="initialpose_relocalize_bridge.py",
+        name="initialpose_relocalize_bridge",
+        output="screen",
+        parameters=[
+            {
+                "pcd_map": LaunchConfiguration("pcd_map"),
+            }
+        ],
+    )
+
+    nav2_cloud_retime_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="nav2_cloud_retime.py",
+        name="nav2_cloud_retime",
+        output="screen",
+        remappings=[
+            ("cloud_in", "/fastlio2/body_cloud"),
+            ("cloud_out", "/fastlio2/body_cloud_nav2"),
+        ],
+    )
+
     serial_node = launch_ros.actions.Node(
         package="serial_twistctl",
         executable="serial_twistctl_node",
@@ -203,6 +226,8 @@ def generate_launch_description():
             fastlio_launch,
             pgo_node,
             localizer_node,
+            initialpose_relocalize_bridge_node,
+            nav2_cloud_retime_node,
             serial_node,
             serial_reader_node,
             pointcloud_to_laserscan_node,

@@ -145,7 +145,7 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - Travel 现在会启动 `initialpose_relocalize_bridge.py`，因此 RViz 的 `2D Pose Estimate` 发到 `/initialpose` 后，会自动用启动时的 `pcd_map` 调 `/localizer/relocalize`
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用专用 fail-stop 行为树：局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp` 或清图恢复动作
-- Travel 的 DWB/controller 参数按室内桌边测试收敛为低速保守配置，local costmap 近场窗口为 `6 m x 6 m @ 0.05 m`
+- Travel 的局部控制器使用 Explore/Corridor 同款 MPPI baseline（`vx_max=1.0`、`wz_max=1.2`、`controller_frequency=20 Hz`），同时保留 fail-stop 行为树和 `6 m x 6 m @ 0.05 m` local costmap
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 - 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
 

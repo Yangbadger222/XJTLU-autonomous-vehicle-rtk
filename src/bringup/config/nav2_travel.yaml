@@ -1,5 +1,5 @@
 # Nav2 Travel 模式参数文件。
-# 本次仅重写逐参数注释和排版，不改任何参数值。
+# Travel 使用先验 2D/3D 地图重定位链路，并沿用 Explore/Corridor 的 MPPI 局部控制基线。
 # AMCL 节点参数块；负责静态地图定位和粒子滤波。
 # 改错节点名或层级：AMCL 会读不到参数并回退默认值。
 amcl:
@@ -236,7 +236,7 @@ controller_server:
     use_sim_time: false
     # 控制循环频率；决定局部控制器每秒更新多少次速度指令。
     # 调大：响应更快但 CPU 更高；调小：负载更低但控制更迟缓。
-    controller_frequency: 10.0
+    controller_frequency: 20.0
     # 前向速度死区阈值；低于该值的前向速度会被视为零。
     # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
     min_x_velocity_threshold: 0.001
@@ -248,7 +248,7 @@ controller_server:
     min_theta_velocity_threshold: 0.001
     # 控制失败容忍度；决定局部控制短时失败时还能容忍多大误差。
     # 调大：系统更宽容、不易立刻失败；调小：更严格、更快进入恢复。
-    failure_tolerance: 0.3
+    failure_tolerance: 0.6
     # 进度检查器名称；用于选择 controller server 里启用哪一个卡住判定器。
     # 改错名称：控制器会找不到对应检查器并启动失败。
     progress_checker_plugin: "progress_checker"
@@ -266,7 +266,7 @@ controller_server:
       plugin: "nav2_controller::SimpleProgressChecker"
       # 最小有效移动半径；在该时间窗内位移小于此值会被视为没前进。
       # 调大：更容易判定卡住；调小：更不容易触发卡住。
-      required_movement_radius: 0.5
+      required_movement_radius: 0.15
       # 移动超时时间；决定多久没有明显进展就判定为卡住。
       # 调大：更宽容、更晚判定卡住；调小：更严格、更早进入恢复。
       movement_time_allowance: 10.0
@@ -281,127 +281,113 @@ controller_server:
       plugin: "nav2_controller::SimpleGoalChecker"
       # 平面位置到点容差；进入该半径内可视为位置达到目标。
       # 调大：更容易判定到点；调小：更严格、更接近目标才算到点。
-      xy_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.35
       # 朝向到点容差；角度误差小于该值可视为方向对正。
       # 调大：更容易判定朝向达标；调小：更严格、更要求精确对正。
-      yaw_goal_tolerance: 0.25
-    # DWB 局部规划器参数块；负责速度采样、轨迹评估和实时避障。
+      yaw_goal_tolerance: 6.28
+    # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。
     # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。
     FollowPath:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
       # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "dwb_core::DWBLocalPlanner"
-      # 轨迹调试开关；决定 DWB 是否输出每条候选轨迹的详细评分。
-      # 改为 true：更利于诊断但日志更多；改为 false：日志更干净。
-      debug_trajectory_details: false
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      min_vel_x: 0.0
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      min_vel_y: 0.0
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_vel_x: 0.25
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_vel_y: 0.0
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_vel_theta: 0.6
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      min_speed_xy: 0.0
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      max_speed_xy: 0.25
-      # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
-      # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-      min_speed_theta: 0.0
-      # 前向加速度上限；限制机器人沿 x 方向提速的快慢。
-      # 调大：起步更快但更冲；调小：更平顺但响应更慢。
-      acc_lim_x: 0.8
-      # 侧向加速度上限；限制机器人沿 y 方向提速的快慢。
-      # 调大：侧移更激进；调小：侧移更平缓。
-      acc_lim_y: 0.0
-      # 角加速度上限；限制机器人转向提速的快慢。
-      # 调大：转向响应更快但更猛；调小：更柔和但更慢。
-      acc_lim_theta: 1.5
-      # 前向减速度上限；限制机器人沿 x 方向减速的快慢。
-      # 绝对值调大：刹车更狠；绝对值调小：刹车更柔和。
-      decel_lim_x: -0.8
-      # 侧向减速度上限；限制机器人沿 y 方向减速的快慢。
-      # 绝对值调大：侧移制动更狠；绝对值调小：侧移制动更缓。
-      decel_lim_y: 0.0
-      # 角减速度上限；限制机器人转向减速的快慢。
-      # 绝对值调大：收角更快；绝对值调小：收角更平缓。
-      decel_lim_theta: -1.5
-      # 前向速度采样数；决定 DWB 评估多少种前进速度。
-      # 调大：搜索更细但计算更重；调小：计算更省但轨迹更粗。
-      vx_samples: 12
-      # 侧向速度采样数；决定 DWB 评估多少种横向速度。
-      # 调大：搜索更细但计算更重；调小：计算更省但侧向选项更少。
-      vy_samples: 1
-      # 角速度采样数；决定 DWB 评估多少种转向速度。
-      # 调大：转向搜索更细但计算更重；调小：计算更省但转向离散更粗。
-      vtheta_samples: 16
-      # 前向仿真时长；决定每条候选轨迹向前预测多远。
-      # 调大：更有前瞻性但更保守；调小：更灵敏但容易只看近处。
-      sim_time: 1.7
-      # 分辨率或采样粒度；决定空间或轨迹离散得多细。
-      # 调大：更粗、更省资源；调小：更细、更精确但更耗资源。
-      linear_granularity: 0.05
-      # 分辨率或采样粒度；决定空间或轨迹离散得多细。
-      # 调大：更粗、更省资源；调小：更细、更精确但更耗资源。
-      angular_granularity: 0.025
-      # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
-      # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
-      transform_tolerance: 0.4
-      # 平面位置到点容差；进入该半径内可视为位置达到目标。
-      # 调大：更容易判定到点；调小：更严格、更接近目标才算到点。
-      xy_goal_tolerance: 0.25
-      # 停止判定线速度阈值；低于该速度时 DWB 会认为机器人已停住。
-      # 调大：更容易认定已停；调小：更严格，必须更慢才算停。
-      trans_stopped_velocity: 0.25
-      # 是否启用短路评估；发现明显劣轨迹时提前结束评分。
-      # 改为 true：更省算力；改为 false：评分更完整但更耗时。
-      short_circuit_trajectory_evaluation: true
-      # 状态保持开关；决定模块是否保留上一时刻内部状态。
-      # 改为 true：连续性更好；改为 false：每次都独立处理。
-      stateful: true
-      # 轨迹评分器列表；决定 DWB 从哪些维度给候选轨迹打分。
-      # 增删评分器：会直接改变控制器的行为偏好。
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      BaseObstacle.scale: 0.02
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      PathAlign.scale: 32.0
-      # 路径对齐前视距离；决定用多远的前视点评估贴路径程度。
-      # 调大：更关注中远处路径方向；调小：更关注近处路径方向。
-      PathAlign.forward_point_distance: 0.1
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      GoalAlign.scale: 24.0
-      # 目标对齐前视距离；决定在多远处评估朝向目标的趋势。
-      # 调大：更看重中远处朝向；调小：更看重近处朝向。
-      GoalAlign.forward_point_distance: 0.1
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      PathDist.scale: 32.0
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      GoalDist.scale: 24.0
-      # 轨迹评分权重；决定 DWB 在该评分维度上惩罚或偏好的强度。
-      # 调大：更强调该维度；调小：更弱化该维度。
-      RotateToGoal.scale: 300.0
-      # 到点转向细化参数；决定接近目标时的减速和朝向评估策略。
-      # 调大：更保守或更看远；调小：更直接或更激进。
-      RotateToGoal.slowing_factor: 5.0
-      # 到点转向细化参数；决定接近目标时的减速和朝向评估策略。
-      # 调大：更保守或更看远；调小：更直接或更激进。
-      RotateToGoal.lookahead_time: -1.0
+      plugin: "nav2_mppi_controller::MPPIController"
+      time_steps: 48
+      model_dt: 0.05
+      batch_size: 1000
+      vx_std: 0.28
+      vy_std: 0.0
+      wz_std: 0.22
+      vx_max: 1.0
+      vx_min: 0.0
+      vy_max: 0.0
+      wz_max: 1.2
+      ax_max: 1.2
+      ax_min: -3.0
+      az_max: 6.0
+      iteration_count: 1
+      prune_distance: 4.0
+      transform_tolerance: 0.5
+      temperature: 0.3
+      gamma: 0.015
+      motion_model: "DiffDrive"
+      publish_critics_stats: true
+      open_loop: true
+      visualize: false
+      reset_period: 1.0
+      regenerate_noises: false
+
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+
+      critics:
+        - "ConstraintCritic"
+        - "CostCritic"
+        - "GoalCritic"
+        - "GoalAngleCritic"
+        - "PathAlignCritic"
+        - "PathFollowCritic"
+        - "PathAngleCritic"
+        - "PreferForwardCritic"
+
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.5
+        critical_cost: 300.0
+        consider_footprint: false
+        collision_cost: 1000000.0
+        near_goal_distance: 1.0
+        trajectory_point_step: 2
+
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.6
+
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.0
+        threshold_to_consider: 0.5
+
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.5
+
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 12.0
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 4
+        threshold_to_consider: 0.5
+        offset_from_furthest: 6
+        use_path_orientations: false
+
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 16.0
+        offset_from_furthest: 5
+        threshold_to_consider: 1.4
+
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+        max_angle_to_furthest: 1.0
+        mode: 0
 # 局部代价地图参数块；负责近场避障和局部环境表达。
 # 改错节点名或层级：局部代价地图会读不到参数。
 local_costmap:

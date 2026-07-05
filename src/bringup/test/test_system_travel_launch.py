@@ -84,31 +84,30 @@ def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
             assert unsafe_motion_recovery not in bt_text
 
 
-def test_travel_dwb_uses_conservative_indoor_controller_limits():
+def test_travel_uses_explore_mppi_controller_baseline():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
     behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
 
-    assert "controller_frequency: 10.0" in controller_text
-    assert "debug_trajectory_details: false" in controller_text
-    assert "max_vel_x: 0.25" in controller_text
-    assert "max_vel_theta: 0.6" in controller_text
-    assert "max_speed_xy: 0.25" in controller_text
-    assert "acc_lim_x: 0.8" in controller_text
-    assert "decel_lim_x: -0.8" in controller_text
-    assert "acc_lim_theta: 1.5" in controller_text
-    assert "decel_lim_theta: -1.5" in controller_text
-    assert "vx_samples: 12" in controller_text
-    assert "vy_samples: 1" in controller_text
-    assert "vtheta_samples: 16" in controller_text
-    assert "BaseObstacle.scale: 0.02" in controller_text
-    assert "GoalAlign.scale: 24.0" in controller_text
+    assert "controller_frequency: 20.0" in controller_text
+    assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text
+    assert "time_steps: 48" in controller_text
+    assert "model_dt: 0.05" in controller_text
+    assert "batch_size: 1000" in controller_text
+    assert "vx_max: 1.0" in controller_text
+    assert "vx_min: 0.0" in controller_text
+    assert "vy_max: 0.0" in controller_text
+    assert "wz_max: 1.2" in controller_text
+    assert "ax_max: 1.2" in controller_text
+    assert "PathAlignCritic:" in controller_text
+    assert "offset_from_furthest: 6" in controller_text
+    assert "PathFollowCritic:" in controller_text
+    assert "cost_weight: 16.0" in controller_text
     assert 'behavior_plugins: ["wait"]' in behavior_text
 
-    assert "controller_frequency: 20.0" not in controller_text
-    assert "debug_trajectory_details: true" not in controller_text
-    assert "max_vel_x: 0.5" not in controller_text
-    assert "GoalAlign.scale: 300.0" not in controller_text
+    assert 'plugin: "dwb_core::DWBLocalPlanner"' not in controller_text
+    assert "vx_samples:" not in controller_text
+    assert "BaseObstacle.scale:" not in controller_text
 
 
 def test_travel_local_costmap_uses_stable_field_runtime_rates():

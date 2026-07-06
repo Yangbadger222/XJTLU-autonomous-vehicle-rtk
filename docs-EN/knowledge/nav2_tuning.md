@@ -153,9 +153,10 @@ Tuning principles:
 2. If `map -> odom` is not established, even with Livox and FAST-LIO2 running, RViz may appear blank or the costmap may not display.
 3. Explore uses the MPPI mainline baseline; Corridor uses a launch-time generated temporary Nav2 parameter file for the RTK low-speed acceptance profile.
 4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.45` in Corridor.
-5. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
-6. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-7. Corridor rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
+5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
+6. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
+7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
+8. Corridor rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
 
 ## 8. Waypoint System
 

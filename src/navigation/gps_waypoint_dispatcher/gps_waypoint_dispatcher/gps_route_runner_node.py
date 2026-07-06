@@ -963,7 +963,66 @@ class GPSRouteRunner(Node):
                 )
                 return False, current_xy
 
+            verified_ok, current_xy, current_progress_m = self._verify_nav2_success_progress(
+                segment=segment,
+                waypoint_name=waypoint.name,
+                subgoal_index=subgoal_index,
+                target_progress_m=next_progress_m,
+                current_progress_m=current_progress_m,
+                waypoint_tolerance_m=waypoint_tolerance_m,
+            )
+            if not verified_ok:
+                return False, current_xy
+
         return False, self._current_xy()
+
+    def _verify_nav2_success_progress(
+        self,
+        segment: SegmentPlan,
+        waypoint_name: str,
+        subgoal_index: int,
+        target_progress_m: float,
+        current_progress_m: float,
+        waypoint_tolerance_m: float,
+    ) -> tuple[bool, tuple[float, float], float]:
+        current_xy = self._current_xy()
+        live_alignment = self._latest_alignment
+        if live_alignment is None:
+            self.get_logger().error("Lost alignment after Nav2 success for %s" % waypoint_name)
+            self._publish_status(
+                "NAV2_FALSE_SUCCESS_ABORT|%s|%d|LOST_ALIGNMENT"
+                % (waypoint_name, subgoal_index)
+            )
+            self._publish_zero_cmd_vel()
+            return False, current_xy, current_progress_m
+        if not self._map_gps_consistent(
+            current_xy, live_alignment, "nav2_success_%s" % waypoint_name
+        ):
+            return False, current_xy, current_progress_m
+
+        current_enu = self._map_to_enu(current_xy[0], current_xy[1], live_alignment)
+        observed_progress_m, _ = self._progress_on_segment(segment, current_enu)
+        verified_progress_m = max(current_progress_m, observed_progress_m)
+        shortfall_m = target_progress_m - verified_progress_m
+        if shortfall_m <= waypoint_tolerance_m:
+            return True, current_xy, verified_progress_m
+
+        detail = (
+            "%s|%d|target=%.2f|progress=%.2f|shortfall=%.2f"
+            % (
+                waypoint_name,
+                subgoal_index,
+                target_progress_m,
+                verified_progress_m,
+                shortfall_m,
+            )
+        )
+        self.get_logger().error(
+            "Nav2 reported success without route progress: %s" % detail
+        )
+        self._publish_status("NAV2_FALSE_SUCCESS_ABORT|%s" % detail)
+        self._publish_zero_cmd_vel()
+        return False, current_xy, verified_progress_m
 
     def run(self) -> bool:
         self._publish_status("INITIALIZING")

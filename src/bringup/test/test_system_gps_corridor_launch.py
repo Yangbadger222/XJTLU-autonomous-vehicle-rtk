@@ -26,6 +26,7 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     assert "follow_path['vx_max'] = 0.45" in text
     assert "follow_path['wz_max'] = 0.65" in text
     assert "follow_path['ax_max'] = 0.45" in text
+    assert "controller_params['general_goal_checker']['stateful'] = False" in text
     assert "smoother_params['max_velocity'] = [0.45, 0.0, 0.65]" in text
     assert "smoother_params['max_decel'] = [-0.8, 0.0, -1.8]" in text
     assert "'nav2_params_file': corridor_nav2_params" in text

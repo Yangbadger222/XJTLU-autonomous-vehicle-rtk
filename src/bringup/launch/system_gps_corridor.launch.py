@@ -63,6 +63,7 @@ def _make_corridor_nav2_params(source_file):
 
     controller_params = data['controller_server']['ros__parameters']
     controller_params['controller_frequency'] = 20.0
+    controller_params['general_goal_checker']['stateful'] = False
 
     follow_path = controller_params['FollowPath']
     follow_path['batch_size'] = 500

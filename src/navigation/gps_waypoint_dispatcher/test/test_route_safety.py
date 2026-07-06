@@ -62,6 +62,8 @@ def test_route_runner_uses_tf_freshness_gate_before_pose_use():
     assert "summarize_tf_freshness" in text
     assert "odom_watchdog_tf_stale_abort_s" in text
     assert "summarize_tf_watchdog_gap" in text
+    assert "NAV2_FALSE_SUCCESS_ABORT" in text
+    assert "_verify_nav2_success_progress" in text
     assert "TF_STALE" in text
 
 

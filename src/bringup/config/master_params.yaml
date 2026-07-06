@@ -202,6 +202,38 @@
     # aligner 发布 waypoint 校准结果的话题。
     calibration_status_topic: /gps_corridor/calibration_status
 
+/rtk_map_odom_corrector:
+  ros__parameters:
+    # RTK authoritative 模式发布 map->odom；corridor 中 PGO 必须关闭 publish_tf，避免 TF 抢占。
+    map_frame: map
+    odom_frame: odom
+    base_frame: base_link
+    fix_topic: /fix
+    heading_topic: /heading
+    rtk_status_topic: /rtk/status
+    alignment_topic: /gps_corridor/enu_to_map
+    mode_topic: /localization_authority/mode
+    status_topic: /localization_authority/status
+    diagnostics_topic: /localization_authority/diagnostics
+    # 与 corridor route / global aligner 使用同一固定 ENU 原点。
+    enu_origin_lat: 31.274927
+    enu_origin_lon: 120.737548
+    enu_origin_alt: 0.0
+    heading_quaternion_yaw_is_compass: true
+    require_rtk_fixed: true
+    max_fix_age_s: 1.0
+    max_heading_age_s: 1.0
+    max_alignment_age_s: 1.0
+    max_rtk_status_age_s: 2.0
+    # RTK target 突然跳变超过阈值时冻结 authority，不直接拉动 map->odom。
+    max_target_jump_m: 2.0
+    max_target_yaw_jump_deg: 20.0
+    # 正常 RTK 更新通过小步限幅释放，避免 Nav2 看到瞬时 TF 大跳。
+    max_translation_step_m: 0.20
+    max_yaw_step_deg: 1.0
+    publish_period_s: 0.05
+    tf_lookup_timeout_s: 0.05
+
 /gps_route_runner:
   ros__parameters:
     # GPS route runner 使用的固定 ENU 原点纬度；必须与 PGO 完全一致。

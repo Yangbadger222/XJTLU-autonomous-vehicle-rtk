@@ -34,6 +34,9 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/gps_corridor/calibration_status',
     '/gps_corridor/enu_to_map',
     '/gps_corridor/pgo_enu_to_map',
+    '/localization_authority/mode',
+    '/localization_authority/status',
+    '/localization_authority/diagnostics',
     '/gps_corridor/goal_map',
     '/gps_corridor/path_map',
     '/cmd_vel',
@@ -204,6 +207,22 @@ def generate_launch_description():
         ],
     )
 
+    rtk_authority = Node(
+        package='gps_waypoint_dispatcher',
+        executable='rtk_map_odom_corrector_node',
+        name='rtk_map_odom_corrector',
+        output='screen',
+        parameters=[
+            master_params_file,
+            {
+                'fix_topic': '/fix',
+                'heading_topic': '/heading',
+                'rtk_status_topic': '/rtk/status',
+                'alignment_topic': '/gps_corridor/enu_to_map',
+            },
+        ],
+    )
+
     session_data_dir = os.environ.get('FYP_LOG_SESSION_DIR', '')
     if session_data_dir:
         session_root = os.path.dirname(session_data_dir)
@@ -227,6 +246,7 @@ def generate_launch_description():
     )
 
     delayed_aligner = TimerAction(period=2.0, actions=[global_aligner])
+    delayed_rtk_authority = TimerAction(period=3.0, actions=[rtk_authority])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
     urdf_launch = IncludeLaunchDescription(
@@ -245,6 +265,7 @@ def generate_launch_description():
         LogInfo(msg=f'Corridor bag profile: {bag_profile}'),
         bag_record,
         delayed_aligner,
+        delayed_rtk_authority,
         delayed_runner,
         urdf_launch,
     ])

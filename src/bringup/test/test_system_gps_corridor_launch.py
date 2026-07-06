@@ -16,6 +16,7 @@ FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
+PGO_CORRIDOR_PARAMS = Path("src/bringup/config/pgo_corridor_no_gps.yaml")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -99,6 +100,19 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
     assert "'/livox/lidar'," in debug_topics
     assert "'/livox/imu'," in debug_topics
     assert "'/fastlio2/body_cloud'," in debug_topics
+
+
+def test_corridor_uses_rtk_authoritative_map_odom_owner():
+    corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+    pgo_override_text = PGO_CORRIDOR_PARAMS.read_text(encoding="utf-8")
+
+    assert "rtk_map_odom_corrector_node" in corridor_text
+    assert "rtk_map_odom_corrector" in corridor_text
+    assert "'/localization_authority/mode'," in corridor_text
+    assert "'/localization_authority/status'," in corridor_text
+    assert "'/localization_authority/diagnostics'," in corridor_text
+    assert "publish_tf: false" in pgo_override_text
+    assert '"gps.enable": false' in pgo_override_text
 
 
 def test_livox_packet_logging_is_explicitly_opt_in():

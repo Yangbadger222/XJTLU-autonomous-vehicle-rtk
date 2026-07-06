@@ -266,16 +266,20 @@ current_route.yaml
   -> start_ref / waypoints[] / launch_yaw_deg / enu_origin
 
 /fix -----> gps_global_aligner -----> /gps_corridor/enu_to_map (平滑 ENU→map 变换)
-                 |                              |
-                 | TF: map->base_link           |
-                 +------------------------------+---> gps_route_runner
-                                                      1. bootstrap: yaw0 + launch_yaw_deg → 初始 ENU→map
-                                                      2. 等稳定 /fix
-                                                      3. 检查启动点 ≤ start_ref 容差
-                                                      4. GPS waypoints → ENU → map (用 aligner 输出)
-                                                      5. waypoint 内冻结 alignment，按段切 subgoals
-                                                      6. 串行 NavigateToPose
-                                                      v
+  |                              |
+  |                              +---> gps_route_runner
+  |                                    1. bootstrap: yaw0 + launch_yaw_deg → 初始 ENU→map
+  |                                    2. 等稳定 /fix
+  |                                    3. 检查启动点 ≤ start_ref 容差
+  |                                    4. GPS waypoints → ENU → map (用 aligner 输出)
+  |                                    5. waypoint 内冻结 alignment，按段切 subgoals
+  |                                    6. 串行 NavigateToPose
+  |
+  +-- /heading + /rtk/status + odom->base_link TF
+      -> rtk_map_odom_corrector
+      -> TF: map->odom (RTK authoritative)
+                                                     |
+                                                     v
                                                Nav2 Explore stack (MPPI controller)
                                                -> planner/controller/costmaps
                                                -> /cmd_vel
@@ -298,9 +302,12 @@ current_route.yaml
 - **Bootstrap 启动**: 用 `yaw0 - radians(launch_yaw_deg)` 立即计算初始对齐，不等 GPS
 - **Corridor 专用 Nav2 BT**: corridor 使用无 `Spin` / `BackUp` 的 NavigateToPose / NavigateThroughPoses 行为树；规划或跟踪失败时由 `gps_route_runner` 停车并上报进度，不执行物理 recovery 动作
 - **Nav2 action 超时**: corridor 运行时将 BT `default_server_timeout` 提高到 1000ms，避免 Jetson 负载下 FollowPath ack 稍慢就误触发 recovery
-- **PGO TF 保鲜**: PGO 在无新 cloud 时按 timer 重发最近一次 `map→odom`，保证 Nav2 controller/costmap 查询当前时刻 TF 时不会因 LIO 低频或掉帧误判
+- **RTK authoritative `map→odom`**: corridor 中 PGO 通过 `pgo_corridor_no_gps.yaml` 关闭 `publish_tf`，由 `rtk_map_odom_corrector` 根据 RTK fix、双天线 heading、`ENU→map` 和当前 `odom→base_link` 计算唯一的 `map→odom`
+- **RTK bootstrap**: 在 `gps_global_aligner` 尚未发布 `ENU→map` 前，`rtk_map_odom_corrector` 会用当前 RTK fix、heading 和 `odom→base_link` 先发布临时 `map→odom`，打破启动时 aligner 等待 map TF 的闭环
+- **室内外切换接口**: `rtk_map_odom_corrector` 发布 `/localization_authority/mode`、`/localization_authority/status` 和 `/localization_authority/diagnostics`；后续室内先验地图 relocalization 可作为新的 authority source 接管同一 `map→odom` 接口
 
 该模式的数据面：
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）
 - `start_ref` + 多个 `waypoints[]` 的 GPS 坐标
 - `launch_yaw_deg` 为必填字段
+- `/localization_authority/*` 记录当前 `map→odom` authority 来源、拒绝原因和限幅后的输出

@@ -29,6 +29,14 @@ FAST-LIO2 在 `lio_node.cpp` 中新增了发布前点云高度过滤功能（com
 - 效果：地面低点和车体高度以上的杂点（顶棚��高处结构）在源头被剔除，下游 costmap 不再需要重复过滤
 - 该过滤不影响 FAST-LIO2 内部的 SLAM 建图和状态估计，仅影响发布给外部的点云
 
+## LiDAR / IMU 同步保护（2026-07-06）
+
+FAST-LIO2 现在会在进入 IESKF 更新前检查同步包中的 IMU 样本数；若少于 `min_imu_samples_per_lidar`，直接丢弃该 LiDAR 帧。当前 corridor 验收值为：
+
+- `min_imu_samples_per_lidar: 3`
+
+原因：2026-07-06 21:02 corridor bag 显示车辆静止时，FAST-LIO2 仍处理了 `0 IMU samples, 925 LIDAR points`、`1 IMU samples, 1086 LIDAR points` 等同步包，随后 odom 在 Nav2 收到路线目标前跳出几十米。丢弃 IMU 约束不足的 LiDAR 帧，比让坏同步窗口推进滤波器更安全。
+
 ## 1. odom 里程计数据解读
 
 FASTLIO2 输出的 odom（`nav_msgs/Odometry`）包含两部分核心数据：

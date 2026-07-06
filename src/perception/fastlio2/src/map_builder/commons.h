@@ -44,6 +44,7 @@ struct Config
     double nba = 0.0001;
     double nbg = 0.0001;
     int imu_init_num = 20;
+    int min_imu_samples_per_lidar = 3;
     int near_search_num = 5;
     int ieskf_max_iter = 5;
     bool gravity_align = true;

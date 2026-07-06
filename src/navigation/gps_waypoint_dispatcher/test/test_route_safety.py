@@ -1,6 +1,17 @@
 import pytest
+from pathlib import Path
 
-from gps_waypoint_dispatcher.route_safety import summarize_map_gps_consistency
+from gps_waypoint_dispatcher.route_safety import (
+    summarize_map_gps_consistency,
+    summarize_tf_freshness,
+)
+
+
+ROUTE_RUNNER = (
+    Path(__file__).resolve().parents[1]
+    / "gps_waypoint_dispatcher"
+    / "gps_route_runner_node.py"
+)
 
 
 def test_map_gps_consistency_aborts_large_tf_divergence():
@@ -27,3 +38,25 @@ def test_map_gps_consistency_accepts_small_alignment_error():
     assert summary.ok is True
     assert summary.warn is False
     assert summary.distance_m == pytest.approx(2 ** 0.5)
+
+
+def test_tf_freshness_rejects_old_pose_samples():
+    summary = summarize_tf_freshness(now_s=1783342965.48, stamp_s=1783342960.30, max_age_s=0.75)
+
+    assert summary.ok is False
+    assert summary.age_s == pytest.approx(5.18, abs=0.01)
+
+
+def test_tf_freshness_accepts_recent_pose_samples():
+    summary = summarize_tf_freshness(now_s=1783342965.48, stamp_s=1783342965.36, max_age_s=0.75)
+
+    assert summary.ok is True
+    assert summary.age_s == pytest.approx(0.12, abs=0.01)
+
+
+def test_route_runner_uses_tf_freshness_gate_before_pose_use():
+    text = ROUTE_RUNNER.read_text(encoding="utf-8")
+
+    assert "tf_pose_max_age_s" in text
+    assert "summarize_tf_freshness" in text
+    assert "TF_STALE" in text

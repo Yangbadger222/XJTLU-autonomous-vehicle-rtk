@@ -188,12 +188,12 @@ public:
                 return enable;
             }
             
-            RCLCPP_WARN(this->get_logger(), "No logging config found for '%s', enabling by default", node_key.c_str());
-            return true;
+            RCLCPP_WARN(this->get_logger(), "No logging config found for '%s', disabling by default", node_key.c_str());
+            return false;
             
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Failed to read log config: %s", e.what());
-            return true; // 配置文件读取失败，默认启用日志
+            return false; // 配置文件读取失败，默认关闭逐帧日志，避免现场运行刷爆 stdout
         }
     }
 
@@ -227,6 +227,8 @@ public:
         m_builder_config.nba = this->declare_parameter<double>("nba", 0.0001);
         m_builder_config.nbg = this->declare_parameter<double>("nbg", 0.0001);
         m_builder_config.imu_init_num = this->declare_parameter<int>("imu_init_num", 20);
+        m_builder_config.min_imu_samples_per_lidar =
+            this->declare_parameter<int>("min_imu_samples_per_lidar", 3);
         m_builder_config.near_search_num = this->declare_parameter<int>("near_search_num", 5);
         m_builder_config.ieskf_max_iter = this->declare_parameter<int>("ieskf_max_iter", 5);
         m_builder_config.gravity_align = this->declare_parameter<bool>("gravity_align", true);
@@ -315,6 +317,9 @@ public:
             m_builder_config.nbg = config["nbg"].as<double>();
         if (config["imu_init_num"])
             m_builder_config.imu_init_num = config["imu_init_num"].as<int>();
+        if (config["min_imu_samples_per_lidar"])
+            m_builder_config.min_imu_samples_per_lidar =
+                config["min_imu_samples_per_lidar"].as<int>();
         if (config["near_search_num"])
             m_builder_config.near_search_num = config["near_search_num"].as<int>();
         if (config["ieskf_max_iter"])
@@ -373,6 +378,7 @@ public:
             rclcpp::Parameter("nba", m_builder_config.nba),
             rclcpp::Parameter("nbg", m_builder_config.nbg),
             rclcpp::Parameter("imu_init_num", m_builder_config.imu_init_num),
+            rclcpp::Parameter("min_imu_samples_per_lidar", m_builder_config.min_imu_samples_per_lidar),
             rclcpp::Parameter("near_search_num", m_builder_config.near_search_num),
             rclcpp::Parameter("ieskf_max_iter", m_builder_config.ieskf_max_iter),
             rclcpp::Parameter("gravity_align", m_builder_config.gravity_align),
@@ -651,6 +657,18 @@ public:
             "Processing sync package: %zu IMU samples, %zu LIDAR points",
             m_package.imus.size(),
             m_package.cloud->size());
+
+        if (m_package.imus.size() < static_cast<size_t>(m_builder_config.min_imu_samples_per_lidar))
+        {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(),
+                *this->get_clock(),
+                2000,
+                "Dropping LIDAR package with only %zu IMU samples (minimum %d)",
+                m_package.imus.size(),
+                m_builder_config.min_imu_samples_per_lidar);
+            return;
+        }
         
         if (m_log_file.is_open()) {
             auto ros_time = this->now();

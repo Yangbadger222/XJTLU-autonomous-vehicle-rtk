@@ -11,6 +11,12 @@ class MapGpsConsistencySummary:
     distance_m: float
 
 
+@dataclass(frozen=True)
+class TfFreshnessSummary:
+    ok: bool
+    age_s: float
+
+
 def summarize_map_gps_consistency(
     map_xy: tuple[float, float],
     gps_map_xy: tuple[float, float],
@@ -22,4 +28,12 @@ def summarize_map_gps_consistency(
         ok=distance_m <= abort_m,
         warn=distance_m > warn_m,
         distance_m=distance_m,
+    )
+
+
+def summarize_tf_freshness(now_s: float, stamp_s: float, max_age_s: float) -> TfFreshnessSummary:
+    age_s = now_s - stamp_s
+    return TfFreshnessSummary(
+        ok=math.isfinite(age_s) and age_s >= -0.1 and age_s <= max_age_s,
+        age_s=age_s,
     )

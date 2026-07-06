@@ -41,6 +41,8 @@
 
       # IMU 初始化样本数；调大更稳，但启动更慢。
       imu_init_num: 20
+      # 单帧 LiDAR 至少需要的 IMU 样本数；低于该值说明同步异常，直接丢帧避免 LIO 飞走。
+      min_imu_samples_per_lidar: 3
       # 近邻搜索点数；调大更稳但计算更重。
       near_search_num: 5
       # IESKF 最大迭代次数；调大更充分但算力更高。
@@ -220,6 +222,8 @@
     odom_watchdog_tf_stale_abort_count: 3
     # watchdog 检查周期。
     odom_watchdog_monitor_period_s: 0.1
+    # TF pose 最大允许年龄；旧 TF 不用于 route_start / subgoal / watchdog，避免缓存旧位姿发目标。
+    tf_pose_max_age_s: 0.75
     # 已下发 subgoal 若因 live alignment 飘移而偏移超阈值，则 preempt 并重算。
     alignment_shift_cancel_threshold_m: 0.5
     # alignment shift 触发 preempt 后的冷却时间，避免 GPS 抖动导致高频重发 goal。

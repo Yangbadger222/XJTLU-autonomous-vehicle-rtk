@@ -5,6 +5,9 @@ import re
 EXPLORE_LAUNCH = Path("src/bringup/launch/system_explore.launch.py")
 CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
 LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
+FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
+PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
+MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -61,3 +64,29 @@ def test_livox_packet_logging_is_explicitly_opt_in():
     assert "enabling by default" not in text
     assert "Default to quiet" in text
     assert text.count("if (livoxVerbosePacketLogsEnabled())") >= 3
+
+
+def test_corridor_runtime_rejects_low_imu_fastlio_packages():
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+    params_text = MASTER_PARAMS.read_text(encoding="utf-8")
+
+    assert "min_imu_samples_per_lidar" in lio_text
+    assert "Dropping LIDAR package with only" in lio_text
+    assert "m_builder->process(m_package)" in lio_text
+    assert lio_text.index("Dropping LIDAR package with only") < lio_text.index(
+        "m_builder->process(m_package)"
+    )
+    assert "min_imu_samples_per_lidar: 3" in params_text
+
+
+def test_pgo_and_fastlio_logging_default_to_quiet_when_switch_is_missing():
+    pgo_text = PGO_NODE.read_text(encoding="utf-8")
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+
+    assert "enabling by default" not in pgo_text
+    assert "enabling by default" not in lio_text
+    assert "disabling by default" in pgo_text
+    assert "disabling by default" in lio_text
+    assert "PGO_VERBOSE_DIAG" in pgo_text
+    assert pgo_text.count("if (pgoVerboseDiagEnabled())") >= 6
+    assert "RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, \"Received synced cloud and odom" in pgo_text

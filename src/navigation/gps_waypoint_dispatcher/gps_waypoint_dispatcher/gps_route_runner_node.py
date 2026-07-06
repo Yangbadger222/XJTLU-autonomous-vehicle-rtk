@@ -26,7 +26,10 @@ from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
     normalize_lifecycle_node_names,
     summarize_lifecycle_states,
 )
-from gps_waypoint_dispatcher.route_safety import summarize_map_gps_consistency
+from gps_waypoint_dispatcher.route_safety import (
+    summarize_map_gps_consistency,
+    summarize_tf_freshness,
+)
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
     default_route_file,
@@ -101,6 +104,7 @@ class GPSRouteRunner(Node):
         self.declare_parameter("odom_watchdog_warn_count_abort", 3)
         self.declare_parameter("odom_watchdog_tf_stale_abort_count", 3)
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
+        self.declare_parameter("tf_pose_max_age_s", 0.75)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
         self.declare_parameter("map_gps_divergence_warn_m", 2.0)
@@ -135,6 +139,7 @@ class GPSRouteRunner(Node):
         self._odom_watchdog_monitor_period_s = float(
             self.get_parameter("odom_watchdog_monitor_period_s").value
         )
+        self._tf_pose_max_age_s = float(self.get_parameter("tf_pose_max_age_s").value)
         self._alignment_shift_cancel_threshold_m = float(
             self.get_parameter("alignment_shift_cancel_threshold_m").value
         )
@@ -400,6 +405,7 @@ class GPSRouteRunner(Node):
         deadline = time.time() + self._startup_wait_timeout_s
         if announce_wait:
             self._publish_status("WAITING_FOR_MAP_TF")
+        last_stale_age_s: float | None = None
         while rclpy.ok() and time.time() < deadline:
             try:
                 transform = self._tf_buffer.lookup_transform(
@@ -408,12 +414,24 @@ class GPSRouteRunner(Node):
                     Time(),
                     timeout=Duration(seconds=0.5),
                 )
-                translation = transform.transform.translation
-                rotation = transform.transform.rotation
-                yaw = quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w)
-                return float(translation.x), float(translation.y), yaw
+                pose = self._pose_from_transform(transform)
+                if pose is not None:
+                    return pose
+                stamp_s = self._stamp_to_seconds(transform.header.stamp)
+                last_stale_age_s = self._now_seconds() - stamp_s
             except TransformException:
-                rclpy.spin_once(self, timeout_sec=0.2)
+                pass
+            rclpy.spin_once(self, timeout_sec=0.2)
+        if last_stale_age_s is not None:
+            raise RuntimeError(
+                "timed out waiting for fresh TF %s->%s (last age %.2fs, max %.2fs)"
+                % (
+                    self._route_frame,
+                    self._base_frame,
+                    last_stale_age_s,
+                    self._tf_pose_max_age_s,
+                )
+            )
         raise RuntimeError(f"timed out waiting for TF {self._route_frame}->{self._base_frame}")
 
     def _current_xy(self) -> tuple[float, float]:
@@ -431,6 +449,32 @@ class GPSRouteRunner(Node):
                 timeout=Duration(seconds=timeout_s),
             )
         except TransformException:
+            return None
+        return self._pose_from_transform(transform)
+
+    def _stamp_to_seconds(self, stamp) -> float:
+        return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+
+    def _now_seconds(self) -> float:
+        return float(self.get_clock().now().nanoseconds) * 1e-9
+
+    def _pose_from_transform(self, transform) -> tuple[float, float, float] | None:
+        stamp_s = self._stamp_to_seconds(transform.header.stamp)
+        freshness = summarize_tf_freshness(
+            now_s=self._now_seconds(),
+            stamp_s=stamp_s,
+            max_age_s=self._tf_pose_max_age_s,
+        )
+        if not freshness.ok:
+            self.get_logger().debug(
+                "Ignoring stale TF %s->%s age=%.2fs max=%.2fs"
+                % (
+                    self._route_frame,
+                    self._base_frame,
+                    freshness.age_s,
+                    self._tf_pose_max_age_s,
+                )
+            )
             return None
         translation = transform.transform.translation
         rotation = transform.transform.rotation

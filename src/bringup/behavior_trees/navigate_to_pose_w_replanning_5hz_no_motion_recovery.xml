@@ -1,0 +1,19 @@
+<!--
+  Corridor RTK acceptance Behavior Tree.
+  Keep 5 Hz global replanning, but do not run motion recovery actions.
+  If planning or following fails, the route runner stops the vehicle and reports
+  the failure with GPS/route-progress context.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <PipelineSequence name="NavigateWithReplanningNoMotionRecovery">
+      <RateController hz="5.0">
+        <Sequence name="ComputeAndSmoothPath">
+          <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+          <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
+        </Sequence>
+      </RateController>
+      <FollowPath path="{path}" controller_id="FollowPath"/>
+    </PipelineSequence>
+  </BehaviorTree>
+</root>

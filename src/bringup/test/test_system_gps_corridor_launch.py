@@ -1,9 +1,13 @@
 from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 
 
 EXPLORE_LAUNCH = Path("src/bringup/launch/system_explore.launch.py")
 CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
+CORRIDOR_NO_RECOVERY_BT = Path(
+    "src/bringup/behavior_trees/navigate_to_pose_w_replanning_5hz_no_motion_recovery.xml"
+)
 LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
@@ -21,6 +25,9 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     assert "corridor_nav2_params = _make_corridor_nav2_params" in text
+    assert "bt_params = data['bt_navigator']['ros__parameters']" in text
+    assert "bt_params['bt_loop_duration'] = 50" in text
+    assert "bt_params['default_server_timeout'] = 1000" in text
     assert "controller_params['controller_frequency'] = 20.0" in text
     assert "controller_params['controller_frequency'] = 15.0" not in text
     assert "follow_path['vx_max'] = 0.45" in text
@@ -29,7 +36,25 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     assert "controller_params['general_goal_checker']['stateful'] = False" in text
     assert "smoother_params['max_velocity'] = [0.45, 0.0, 0.65]" in text
     assert "smoother_params['max_decel'] = [-0.8, 0.0, -1.8]" in text
+    assert "behavior_params['behavior_plugins'] = ['wait']" in text
     assert "'nav2_params_file': corridor_nav2_params" in text
+
+
+def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
+    corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+    tree = ET.parse(CORRIDOR_NO_RECOVERY_BT)
+    root = tree.getroot()
+
+    assert "nav_to_pose_bt_xml" in explore_text
+    assert "corridor_no_recovery_bt_xml" in corridor_text
+    assert "'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml" in corridor_text
+    assert root.findall(".//Spin") == []
+    assert root.findall(".//BackUp") == []
+    assert root.find(".//FollowPath") is not None
+    rate_controller = root.find(".//RateController")
+    assert rate_controller is not None
+    assert rate_controller.attrib["hz"] == "5.0"
 
 
 def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
@@ -123,3 +148,14 @@ def test_pgo_and_fastlio_logging_default_to_quiet_when_switch_is_missing():
     assert "PGO_VERBOSE_DIAG" in pgo_text
     assert pgo_text.count("if (pgoVerboseDiagEnabled())") >= 6
     assert "RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, \"Received synced cloud and odom" in pgo_text
+
+
+def test_pgo_rebroadcasts_last_map_odom_tf_when_lio_has_gaps():
+    pgo_text = PGO_NODE.read_text(encoding="utf-8")
+
+    assert "last_tf_valid" in pgo_text
+    assert "publishLastTfWithCurrentTime()" in pgo_text
+    assert "m_state.last_tf_rotation = q;" in pgo_text
+    assert "m_state.last_tf_translation = t;" in pgo_text
+    assert "m_state.cloud_buffer.empty()" in pgo_text
+    assert "publishLastTfWithCurrentTime();" in pgo_text

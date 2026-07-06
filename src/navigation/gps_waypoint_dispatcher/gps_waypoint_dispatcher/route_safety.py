@@ -60,3 +60,15 @@ def summarize_tf_watchdog_gap(
         abort=should_abort,
         reason=("TF_STALE_%.2fs" % stale_elapsed_s) if should_abort else None,
     )
+
+
+def is_rcl_context_shutdown_error_message(message: str) -> bool:
+    normalized = message.lower()
+    return (
+        "context is not valid" in normalized
+        and (
+            "rcl_shutdown" in normalized
+            or "rcl_init" in normalized
+            or "wait set" in normalized
+        )
+    )

@@ -31,12 +31,6 @@ def generate_launch_description():
         "behavior_trees",
         "navigate_to_pose_w_replanning_3hz_and_recovery.xml",
     )
-    rewritten_nav2_params = RewrittenYaml(
-        source_file=LaunchConfiguration("nav2_params_file"),
-        param_rewrites={"default_nav_to_pose_bt_xml": corridor_bt_xml},
-        convert_types=True,
-    )
-
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz",
         default_value="true",
@@ -57,6 +51,11 @@ def generate_launch_description():
         default_value=default_nav2_params_file,
         description="Nav2 parameter file used by the Explore/Corridor stack",
     )
+    nav_to_pose_bt_xml_arg = DeclareLaunchArgument(
+        "nav_to_pose_bt_xml",
+        default_value=corridor_bt_xml,
+        description="NavigateToPose behavior tree XML injected into bt_navigator",
+    )
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
         default_value=default_rviz_config,
@@ -71,6 +70,11 @@ def generate_launch_description():
         "frc_extra_params_file",
         default_value="",
         description="Optional ROS2 parameter file appended only to the FRC nodes",
+    )
+    rewritten_nav2_params = RewrittenYaml(
+        source_file=LaunchConfiguration("nav2_params_file"),
+        param_rewrites={"default_nav_to_pose_bt_xml": LaunchConfiguration("nav_to_pose_bt_xml")},
+        convert_types=True,
     )
 
     livox_launch = IncludeLaunchDescription(
@@ -170,6 +174,7 @@ def generate_launch_description():
             master_params_arg,
             pgo_extra_params_arg,
             nav2_params_arg,
+            nav_to_pose_bt_xml_arg,
             rviz_config_arg,
             frc_mode_arg,
             frc_extra_params_arg,

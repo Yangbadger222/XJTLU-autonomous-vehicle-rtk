@@ -61,6 +61,10 @@ def _make_corridor_nav2_params(source_file):
     with open(source_file, 'r', encoding='utf-8') as stream:
         data = yaml.safe_load(stream)
 
+    bt_params = data['bt_navigator']['ros__parameters']
+    bt_params['bt_loop_duration'] = 50
+    bt_params['default_server_timeout'] = 1000
+
     controller_params = data['controller_server']['ros__parameters']
     controller_params['controller_frequency'] = 20.0
     controller_params['general_goal_checker']['stateful'] = False
@@ -81,6 +85,9 @@ def _make_corridor_nav2_params(source_file):
     smoother_params['max_accel'] = [0.45, 0.0, 1.4]
     smoother_params['max_decel'] = [-0.8, 0.0, -1.8]
 
+    behavior_params = data['behavior_server']['ros__parameters']
+    behavior_params['behavior_plugins'] = ['wait']
+
     rewritten = tempfile.NamedTemporaryFile(
         mode='w',
         prefix='xjtlu_corridor_nav2_',
@@ -100,6 +107,11 @@ def generate_launch_description():
     )
     nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
     corridor_nav2_params = _make_corridor_nav2_params(nav2_explore_params_file)
+    corridor_no_recovery_bt_xml = os.path.join(
+        bringup_share,
+        'behavior_trees',
+        'navigate_to_pose_w_replanning_5hz_no_motion_recovery.xml',
+    )
 
     route_file_arg = DeclareLaunchArgument(
         'route_file',
@@ -131,6 +143,7 @@ def generate_launch_description():
             'master_params_file': master_params_file,
             'pgo_extra_params_file': pgo_corridor_override_file,
             'nav2_params_file': corridor_nav2_params,
+            'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml,
         }.items(),
     )
 

@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 
 from gps_waypoint_dispatcher.route_safety import (
+    is_rcl_context_shutdown_error_message,
     summarize_map_gps_consistency,
     summarize_tf_freshness,
     summarize_tf_watchdog_gap,
@@ -12,6 +13,11 @@ ROUTE_RUNNER = (
     Path(__file__).resolve().parents[1]
     / "gps_waypoint_dispatcher"
     / "gps_route_runner_node.py"
+)
+GLOBAL_ALIGNER = (
+    Path(__file__).resolve().parents[1]
+    / "gps_waypoint_dispatcher"
+    / "gps_global_aligner_node.py"
 )
 
 
@@ -65,6 +71,19 @@ def test_route_runner_uses_tf_freshness_gate_before_pose_use():
     assert "NAV2_FALSE_SUCCESS_ABORT" in text
     assert "_verify_nav2_success_progress" in text
     assert "TF_STALE" in text
+
+
+def test_rcl_context_shutdown_error_is_not_reported_as_aligner_abort():
+    text = GLOBAL_ALIGNER.read_text(encoding="utf-8")
+    message = (
+        "failed to initialize wait set: the given context is not valid, "
+        "either rcl_init() was not called or rcl_shutdown() was called."
+    )
+
+    assert is_rcl_context_shutdown_error_message(message) is True
+    assert is_rcl_context_shutdown_error_message("serial port failed") is False
+    assert "is_rcl_context_shutdown_error_message" in text
+    assert "ALIGNER_ABORTED" in text
 
 
 def test_tf_watchdog_waits_for_stale_grace_duration():

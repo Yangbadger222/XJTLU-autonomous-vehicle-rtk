@@ -247,6 +247,7 @@
    - 根因: `default_nav_to_pose_bt_xml` 参数写在 `bt_navigator_navigate_to_pose_rclcpp_node` 下，不是 `bt_navigator` 下，导致 launch 注入无效
    - 修复: commit `d075c6b` 将参数移到正确的 `bt_navigator` 节点下
    - 状态: 已修复（2026-03-26）
+   - 2026-07-06 更新: RTK corridor 实测中再次出现 recovery 抢 `/cmd_vel`。这次不是参数层级错误，而是 `system_explore.launch.py` 对 explore/corridor 共用注入带 recovery 的 BT，且 `default_server_timeout=20ms` 导致 FollowPath ack 稍慢就进入 recovery。已改为 corridor 专用无 `Spin`/`BackUp` BT，并将 corridor BT action timeout 提高到 1000ms。
 
 24. **[根因已修复] 后段 `lio_odom` / `odom→base_link` 发散**
    - 描述: 多轮实车中第二段后半程 `odom→base_link` 开始连续大跳，导致位姿发散、导航失败

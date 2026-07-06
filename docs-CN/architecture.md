@@ -296,6 +296,9 @@ current_route.yaml
 - **独立 global aligner**: 与 PGO 解耦，平滑发布 `ENU→map` 变换
 - **Live alignment 重算 subgoal**: 运行中持续使用当前对齐结果重算有效 subgoal，不再使用 per-waypoint frozen 机制
 - **Bootstrap 启动**: 用 `yaw0 - radians(launch_yaw_deg)` 立即计算初始对齐，不等 GPS
+- **Corridor 专用 Nav2 BT**: corridor 使用无 `Spin` / `BackUp` 的 NavigateToPose 行为树；规划或跟踪失败时由 `gps_route_runner` 停车并上报进度，不执行物理 recovery 动作
+- **Nav2 action 超时**: corridor 运行时将 BT `default_server_timeout` 提高到 1000ms，避免 Jetson 负载下 FollowPath ack 稍慢就误触发 recovery
+- **PGO TF 保鲜**: PGO 在无新 cloud 时按 timer 重发最近一次 `map→odom`，保证 Nav2 controller/costmap 查询当前时刻 TF 时不会因 LIO 低频或掉帧误判
 
 该模式的数据面：
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）

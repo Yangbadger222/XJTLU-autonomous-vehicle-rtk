@@ -73,6 +73,8 @@ def _format_status(node_name: str, text: str) -> tuple[str, bool, int | None]:
         return "[Corridor] 导航被中断，系统将退出。", True, 130
     if text.startswith("ABORTED:"):
         return f"[Corridor] 启动失败: {text.split(':', 1)[1].strip()}", False, 1
+    if text.startswith("NAV2_FALSE_SUCCESS_ABORT|"):
+        return f"[Corridor] 导航失败: Nav2 误报到达但路线无进展 ({text.split('|', 1)[1]})", True, 1
     if text.startswith("FAILED_WAYPOINT_"):
         return f"[Corridor] 导航失败: {text}", True, 1
     if text.startswith("WAYPOINT_TARGET|"):

@@ -22,6 +22,7 @@ from gps_waypoint_dispatcher.alignment_math import (
     compute_bootstrap_alignment,
     heading_quaternion_yaw_to_enu_yaw,
 )
+from gps_waypoint_dispatcher.route_safety import is_rcl_context_shutdown_error_message
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
     default_route_file,
@@ -970,11 +971,15 @@ def main(args=None) -> None:
     except KeyboardInterrupt:
         node._publish_status("ALIGNER_INTERRUPTED")
     except Exception as exc:
-        node.get_logger().error(str(exc))
-        node._publish_status(f"ALIGNER_ABORTED: {exc}")
+        if is_rcl_context_shutdown_error_message(str(exc)):
+            ok = True
+        else:
+            node.get_logger().error(str(exc))
+            node._publish_status(f"ALIGNER_ABORTED: {exc}")
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
     raise SystemExit(0 if ok else 1)
 
 

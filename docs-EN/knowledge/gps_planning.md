@@ -280,6 +280,7 @@ Therefore:
 3. When the corridor runner starts:
    - Wait for a stable `/fix`
    - Check whether the current startup point is within `startup_gps_tolerance_m`
+   - Wait for the `navigate_to_pose` action server and the core Nav2 lifecycle nodes (`controller_server`, `planner_server`, `behavior_server`, `bt_navigator`) to report `active`
    - Read the current `map -> base_link`
    - Generate `goal_map` using `body_vector_m`
    - Split the corridor into multiple subgoals by `segment_length_m` (default 30m, based on global costmap radius 35m - 5m buffer)

@@ -545,7 +545,7 @@ Notes:
 - Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- Corridor currently uses a launch-time `RewrittenYaml` RTK-acceptance low-speed profile: `vx_max=0.45`, `wz_max=0.65`, `ax_max=0.45`, and `controller_frequency=15Hz`, so first outdoor RTK validation does not run with Explore's aggressive `1.0m/s` control limit
+- Corridor currently generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and applies the RTK-acceptance low-speed profile: `vx_max=0.45`, `wz_max=0.65`, `ax_max=0.45`, and `controller_frequency=15Hz`, so first outdoor RTK validation does not run with Explore's aggressive `1.0m/s` control limit
 - The corridor bag records `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` for reviewing dual-antenna heading, RTK quality, and FAST-LIO2 point-cloud/IMU synchronization
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`

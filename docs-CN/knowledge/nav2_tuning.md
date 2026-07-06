@@ -37,7 +37,7 @@ Explore 模式使用 `nav2_explore.yaml` 的 MPPI 主线配置：
 - `yaw_goal_tolerance: 6.28`（实质上禁用朝向检查）
 - 仍保留 2026-04-05 收口的 `5 Hz` 全局重规划、A* 搜索和 5 级恢复行为
 
-Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会通过 launch-time `RewrittenYaml` 注入 RTK 首次室外验收低速 profile：
+Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会在启动时从 `nav2_explore.yaml` 生成临时 Nav2 参数文件，注入 RTK 首次室外验收低速 profile：
 
 - `controller_frequency: 15.0`
 - `batch_size: 500`
@@ -151,7 +151,7 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 
 1. RViz 的 fixed frame 必须设为 `map`。
 2. 如果 `map -> odom` 没建立，即使 Livox 和 FAST-LIO2 在跑，RViz 也可能表现为空白或 costmap 不显示。
-3. Explore 使用 MPPI 主线 baseline；Corridor 通过 launch-time `RewrittenYaml` 使用 RTK 低速验收 profile。
+3. Explore 使用 MPPI 主线 baseline；Corridor 启动时生成临时 Nav2 参数文件来使用 RTK 低速验收 profile。
 4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.45`。
 5. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
 6. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。

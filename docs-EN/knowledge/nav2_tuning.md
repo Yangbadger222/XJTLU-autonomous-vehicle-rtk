@@ -37,7 +37,7 @@ Explore mode uses the main MPPI configuration from `nav2_explore.yaml`:
 - `yaw_goal_tolerance: 6.28` (effectively disables heading check)
 - The `5 Hz` global replanning, A* search, and 5-level recovery stack introduced on 2026-04-05 remain active
 
-Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py` injects an RTK first-outdoor-acceptance low-speed profile through launch-time `RewrittenYaml`:
+Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py` generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and injects an RTK first-outdoor-acceptance low-speed profile:
 
 - `controller_frequency: 15.0`
 - `batch_size: 500`
@@ -151,7 +151,7 @@ Tuning principles:
 
 1. RViz fixed frame must be set to `map`.
 2. If `map -> odom` is not established, even with Livox and FAST-LIO2 running, RViz may appear blank or the costmap may not display.
-3. Explore uses the MPPI mainline baseline; Corridor uses the RTK low-speed acceptance profile through launch-time `RewrittenYaml`.
+3. Explore uses the MPPI mainline baseline; Corridor uses a launch-time generated temporary Nav2 parameter file for the RTK low-speed acceptance profile.
 4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.45` in Corridor.
 5. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
 6. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.

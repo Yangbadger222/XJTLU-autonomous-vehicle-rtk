@@ -1,6 +1,8 @@
 import os
+import tempfile
 from datetime import datetime
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, Shutdown, TimerAction
@@ -8,7 +10,40 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from nav2_common.launch import RewrittenYaml
+
+
+def _make_corridor_nav2_params(source_file):
+    with open(source_file, 'r', encoding='utf-8') as stream:
+        data = yaml.safe_load(stream)
+
+    controller_params = data['controller_server']['ros__parameters']
+    controller_params['controller_frequency'] = 15.0
+
+    follow_path = controller_params['FollowPath']
+    follow_path['batch_size'] = 500
+    follow_path['vx_std'] = 0.14
+    follow_path['wz_std'] = 0.14
+    follow_path['vx_max'] = 0.45
+    follow_path['wz_max'] = 0.65
+    follow_path['ax_max'] = 0.45
+    follow_path['ax_min'] = -0.8
+    follow_path['az_max'] = 2.0
+
+    smoother_params = data['velocity_smoother']['ros__parameters']
+    smoother_params['max_velocity'] = [0.45, 0.0, 0.65]
+    smoother_params['min_velocity'] = [0.0, 0.0, -0.65]
+    smoother_params['max_accel'] = [0.45, 0.0, 1.4]
+    smoother_params['max_decel'] = [-0.8, 0.0, -1.8]
+
+    rewritten = tempfile.NamedTemporaryFile(
+        mode='w',
+        prefix='xjtlu_corridor_nav2_',
+        suffix='.yaml',
+        delete=False,
+    )
+    yaml.safe_dump(data, rewritten, sort_keys=False)
+    rewritten.close()
+    return rewritten.name
 
 
 def generate_launch_description():
@@ -18,28 +53,7 @@ def generate_launch_description():
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
     nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
-    corridor_nav2_params = RewrittenYaml(
-        source_file=nav2_explore_params_file,
-        param_rewrites={
-            "controller_server.ros__parameters.controller_frequency": "15.0",
-            "controller_server.ros__parameters.FollowPath.batch_size": "500",
-            "controller_server.ros__parameters.FollowPath.vx_std": "0.14",
-            "controller_server.ros__parameters.FollowPath.wz_std": "0.14",
-            "controller_server.ros__parameters.FollowPath.vx_max": "0.45",
-            "controller_server.ros__parameters.FollowPath.wz_max": "0.65",
-            "controller_server.ros__parameters.FollowPath.ax_max": "0.45",
-            "controller_server.ros__parameters.FollowPath.ax_min": "-0.8",
-            "controller_server.ros__parameters.FollowPath.az_max": "2.0",
-            "velocity_smoother.ros__parameters.max_velocity.0": "0.45",
-            "velocity_smoother.ros__parameters.max_velocity.2": "0.65",
-            "velocity_smoother.ros__parameters.min_velocity.2": "-0.65",
-            "velocity_smoother.ros__parameters.max_accel.0": "0.45",
-            "velocity_smoother.ros__parameters.max_accel.2": "1.4",
-            "velocity_smoother.ros__parameters.max_decel.0": "-0.8",
-            "velocity_smoother.ros__parameters.max_decel.2": "-1.8",
-        },
-        convert_types=True,
-    )
+    corridor_nav2_params = _make_corridor_nav2_params(nav2_explore_params_file)
 
     route_file_arg = DeclareLaunchArgument(
         'route_file',

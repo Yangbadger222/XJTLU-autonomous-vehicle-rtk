@@ -39,7 +39,7 @@ Explore 模式使用 `nav2_explore.yaml` 的 MPPI 主线配置：
 
 Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会在启动时从 `nav2_explore.yaml` 生成临时 Nav2 参数文件，注入 RTK 首次室外验收低速 profile：
 
-- `controller_frequency: 15.0`
+- `controller_frequency: 20.0`（保持与 `model_dt=0.05s` 一致；15Hz 会让 MPPI 配置失败）
 - `batch_size: 500`
 - `vx_max: 0.45`，`wz_max: 0.65`，`ax_max: 0.45`，`ax_min: -0.8`，`az_max: 2.0`
 - `vx_std: 0.14`，`wz_std: 0.14`
@@ -47,7 +47,7 @@ Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` �
 - `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
 - `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
 
-原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
+原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。2026-07-06 20:06 的现场日志证明 `controller_frequency=15Hz` 会触发 MPPI `Controller period more then model dt` 配置失败，因此 corridor 保持 `20Hz` 并通过速度/采样量降负载。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
 
 ## 4b. 2026-04-05 走廊高速基线（历史记录）
 

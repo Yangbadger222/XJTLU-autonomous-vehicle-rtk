@@ -16,6 +16,8 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     assert "corridor_nav2_params = _make_corridor_nav2_params" in text
+    assert "controller_params['controller_frequency'] = 20.0" in text
+    assert "controller_params['controller_frequency'] = 15.0" not in text
     assert "follow_path['vx_max'] = 0.45" in text
     assert "follow_path['wz_max'] = 0.65" in text
     assert "follow_path['ax_max'] = 0.45" in text

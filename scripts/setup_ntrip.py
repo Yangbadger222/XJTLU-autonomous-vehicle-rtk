@@ -48,7 +48,35 @@ def test_ntrip(host, port, mountpoint, username, password):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--logout', action='store_true', help='Clear saved credentials')
+    parser.add_argument('--status', action='store_true', help='Check current login status')
     args = parser.parse_args()
+
+    # Handle Status Check
+    if args.status:
+        if not os.path.exists(CRED_CACHE):
+            print("Status: ⚪ Not logged in (No cached credentials found).")
+            sys.exit(0)
+            
+        try:
+            with open(CRED_CACHE, 'r') as f:
+                creds = json.load(f)
+                username = creds.get('username')
+                password = creds.get('password')
+        except json.JSONDecodeError:
+            print("Status: ❌ Error reading cached credentials. Please run 'make ntrip-login'.")
+            sys.exit(1)
+            
+        print(f"Current User: {username}")
+        print(f"Server: {HOST}:{PORT} (Mountpoint: {MOUNTPOINT})")
+        print("Pinging server...")
+        
+        success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password)
+        if success:
+            print("Status: ✅ ACTIVE (Connection successful)")
+        else:
+            print(f"Status: ❌ EXPIRED / FAILED ({msg})")
+            print("Hint: Run 'make ntrip-login' to update your credentials.")
+        sys.exit(0)
 
     # Handle Logout
     if args.logout:

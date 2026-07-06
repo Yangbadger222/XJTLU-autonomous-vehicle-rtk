@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup build build-rtk-basic build-sensor build-perception build-planning build-navigation build-frc frc-daily test launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel kill kill-runtime clean
+.PHONY: setup build build-rtk-basic build-sensor build-perception build-planning build-navigation build-frc frc-daily test launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel kill kill-runtime clean ntrip-login ntrip-logout ntrip-status ntrip-setup
 
 setup:
 	@echo ">>> 拉取第三方依赖..."
@@ -107,3 +107,15 @@ kill-runtime:
 
 clean:
 	rm -rf build/ install/ log/
+
+ntrip-login:
+	@python3 scripts/setup_ntrip.py
+
+ntrip-logout:
+	@python3 scripts/setup_ntrip.py --logout
+
+ntrip-status:
+	@python3 scripts/setup_ntrip.py --status
+
+ntrip-setup:
+	@python3 scripts/setup_ntrip.py --setup

@@ -1,16 +1,25 @@
 import sys
-import re
 import socket
 import base64
 import yaml
 import os
+import json
+import getpass
+import argparse
 
-def test_ntrip(host, port, mountpoint, username, password):
+# --- File Paths ---
+CONFIG_CACHE = os.path.expanduser("~/.ntrip_config.json")
+CRED_CACHE = os.path.expanduser("~/.ntrip_credentials.json")
+OUT_PARAMS_FILE = "/tmp/um982_cors.yaml"
+ENV_FILE = "/tmp/ntrip_env.sh"
+
+def test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(5.0)
+        s.settimeout(timeout_sec)
         s.connect((host, port))
         
+        # If mountpoint is empty, request the root directory to fetch the sourcetable
         req = f"GET /{mountpoint} HTTP/1.0\r\n"
         req += "User-Agent: NTRIP Client/1.0\r\n"
         auth = base64.b64encode(f"{username}:{password}".encode()).decode()
@@ -23,6 +32,11 @@ def test_ntrip(host, port, mountpoint, username, password):
         
         if "ICY 200 OK" in resp or "HTTP/1.1 200 OK" in resp:
             return True, "Success"
+        elif "SOURCETABLE 200 OK" in resp:
+            if not mountpoint:
+                return True, "Success (Caster alive, sourcetable retrieved)"
+            else:
+                return False, f"Server returned sourcetable. Mountpoint '{mountpoint}' might not exist on this caster."
         elif "401 Unauthorized" in resp:
             return False, "Unauthorized (check username/password)"
         elif "404 Not Found" in resp:
@@ -34,67 +48,132 @@ def test_ntrip(host, port, mountpoint, username, password):
         return False, str(e)
 
 def main():
-    print("Please paste the NTRIP account info below.")
-    print("When finished pasting, type '==' on a new line and press Enter:")
-    
-    lines = []
-    while True:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--setup', action='store_true', help='Interactively configure server')
+    parser.add_argument('--logout', action='store_true', help='Clear saved credentials')
+    parser.add_argument('--status', action='store_true', help='Check current login status')
+    args = parser.parse_args()
+
+    # ==========================================
+    # LOGOUT MODE
+    # ==========================================
+    if args.logout:
+        if os.path.exists(CRED_CACHE):
+            os.remove(CRED_CACHE)
+            print("Logged out. Cached credentials removed (Server config retained).")
+        else:
+            print("No cached credentials found.")
+        sys.exit(0)
+
+    # ==========================================
+    # STATUS CHECK MODE
+    # ==========================================
+    if args.status:
+        if not os.path.exists(CRED_CACHE) or not os.path.exists(CONFIG_CACHE):
+            print("Status: ⚪ Not configured or logged in.")
+            sys.exit(0)
+            
         try:
-            line = input()
-            lines.append(line)
+            with open(CONFIG_CACHE, 'r') as f:
+                cfg = json.load(f)
+            with open(CRED_CACHE, 'r') as f:
+                creds = json.load(f)
+                username, password = creds.get('username'), creds.get('password')
+        except json.JSONDecodeError:
+            print("Status: ❌ Error reading cache. Run 'make ntrip-setup'.")
+            sys.exit(1)
             
-            # Combine current lines to check for the double '==' delimiter
-            current_text = "\n".join(lines)
-            
-            # Break if we have two '==' in the text, or if the user manually typed '==' or 'EOF' alone.
-            if current_text.count("==") >= 2:
-                break
-            if line.strip() in ["==", "EOF", "quit", "exit"]:
-                break
-        except EOFError:
-            break
-            
-    text = "\n".join(lines)
-    
-    # Parse the text
-    username_match = re.search(r"账号[:：]\s*([a-zA-Z0-9]+)", text)
-    password_match = re.search(r"密码[:：]\s*([a-zA-Z0-9]+)", text)
-    ip_match = re.search(r"IP[:：]\s*([0-9\.]+)", text)
-    mountpoint_match = re.search(r"接入点[:：]\s*([A-Za-z0-9_]+)", text)
-    
-    # Port parsing. Prefer the WGS84 one, usually 8002.
-    port_match = re.search(r"端口[:：].*?(\d+)[（\(]WGS84", text)
-    if not port_match:
-        port_match = re.search(r"端口[:：]\s*(\d+)", text)
+        print(f"Current User: {username}")
+        print(f"Server: {cfg['host']}:{cfg['port']} (Mountpoint: {cfg['mountpoint'] if cfg['mountpoint'] else '[None/Sourcetable]'})")
         
-    if not (username_match and password_match and ip_match and mountpoint_match and port_match):
-        print("\nError: Could not parse all required information. Please check the format.")
+        success, msg = test_ntrip(cfg['host'], cfg['port'], cfg['mountpoint'], username, password, timeout_sec=1.0)
+        if success:
+            print("Status: ✅ ACTIVE (Connection successful)")
+        else:
+            print(f"Status: ❌ EXPIRED / FAILED ({msg})")
+            print("Hint: Run 'make ntrip-login' or 'make ntrip-setup' to update.")
+        sys.exit(0)
+
+    # ==========================================
+    # SETUP MODE (Interactive Prompts)
+    # ==========================================
+    host, port, mountpoint = "", 8002, ""
+    username, password = "", ""
+
+    if args.setup:
+        print("\n================================================")
+        print("          NTRIP SERVER CONFIGURATION")
+        print("================================================")
+        
+        host = input("1. Host IP (e.g., 140.143.212.42): ").strip()
+        
+        port_in = input("2. Port [Press Enter for 8002]: ").strip()
+        port = int(port_in) if port_in else 8002
+        
+        mountpoint = input("3. Mountpoint (e.g., RTCM32_GRECJ2) [Optional]: ").strip()
+        
+        username = input("4. Username: ").strip()
+        password = input("5. Password: ").strip()
+
+        # Save the server configuration
+        with open(CONFIG_CACHE, 'w') as f:
+            json.dump({'host': host, 'port': port, 'mountpoint': mountpoint}, f)
+
+    # ==========================================
+    # LOGIN MODE (Normal flow)
+    # ==========================================
+    else:
+        if not os.path.exists(CONFIG_CACHE):
+            print("❌ No server configuration found.")
+            print("Please run 'make ntrip-setup' first to configure the IP and Mountpoint.")
+            sys.exit(1)
+            
+        with open(CONFIG_CACHE, 'r') as f:
+            cfg = json.load(f)
+            host, port, mountpoint = cfg['host'], cfg['port'], cfg['mountpoint']
+
+    # Handle Credentials Logging (Only if we didn't just ask for them in setup)
+    if not args.setup:
+        if os.path.exists(CRED_CACHE):
+            try:
+                with open(CRED_CACHE, 'r') as f:
+                    creds = json.load(f)
+                    c_user, c_pass = creds.get('username'), creds.get('password')
+                    
+                if c_user and c_pass:
+                    print(f"Found previous credentials for user: {c_user}")
+                    choice = input("Do you want to restore this session? [Y/n]: ").strip().lower()
+                    if choice in ['', 'y', 'yes']:
+                        username, password = c_user, c_pass
+                    else:
+                        print("\nProceeding with new login...")
+            except json.JSONDecodeError:
+                pass
+
+    # Fallback if username/password aren't populated yet
+    if not username or not password:
+        print(f"\nConnecting to {host}:{port} (Mountpoint: {mountpoint if mountpoint else '[None]'})")
+        username = input("Username: ").strip()
+        password = getpass.getpass("Password: ").strip()
+
+    # ==========================================
+    # CONNECTION TEST & YAML GENERATION
+    # ==========================================
+    print("\nTesting connection...")
+    success, msg = test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0)
+    
+    if success:
+        print(f"✅ Connection test successful! ({msg})")
+        # Save working credentials
+        with open(CRED_CACHE, 'w') as f:
+            json.dump({'username': username, 'password': password}, f)
+    else:
+        print(f"❌ Connection test failed: {msg}")
+        if os.path.exists(CRED_CACHE):
+            os.remove(CRED_CACHE)
         sys.exit(1)
 
-    username = username_match.group(1)
-    password = password_match.group(1)
-    host = ip_match.group(1)
-    mountpoint = mountpoint_match.group(1)
-    port = int(port_match.group(1))
-    
-    print(f"\nParsed info:")
-    print(f"Host: {host}:{port}")
-    print(f"Mountpoint: {mountpoint}")
-    print(f"Username: {username}")
-    print(f"Password: {password}")
-    
-    print("\nTesting connection...")
-    success, msg = test_ntrip(host, port, mountpoint, username, password)
-    if success:
-        print("Connection test successful!")
-    else:
-        print(f"Connection test failed: {msg}")
-        choice = input("Do you want to continue anyway? (y/n): ")
-        if choice.lower() != 'y':
-            print("Aborted.")
-            sys.exit(1)
-
-    # Load master params
+    # Generate ROS YAML
     script_dir = os.path.dirname(os.path.abspath(__file__))
     repo_dir = os.path.dirname(script_dir)
     params_file = os.path.join(repo_dir, "src", "bringup", "config", "master_params.yaml")
@@ -107,7 +186,6 @@ def main():
         params = yaml.safe_load(f)
         
     um982_config = params.get('/um982_rtk_driver', {})
-    
     if 'ros__parameters' not in um982_config:
         um982_config['ros__parameters'] = {}
     if 'ntrip' not in um982_config['ros__parameters']:
@@ -119,21 +197,15 @@ def main():
     ntrip_cfg['port'] = port
     ntrip_cfg['mountpoint'] = mountpoint
     ntrip_cfg['username'] = username
-    ntrip_cfg['password'] = ""
-    ntrip_cfg['password_env'] = "NTRIP_PASSWORD"
+    ntrip_cfg['password'] = password
+    if 'password_env' in ntrip_cfg:
+        del ntrip_cfg['password_env'] 
     
     out_params = {'/um982_rtk_driver': um982_config}
-    
-    out_file = "/tmp/um982_cors.yaml"
-    with open(out_file, 'w', encoding='utf-8') as f:
+    with open(OUT_PARAMS_FILE, 'w', encoding='utf-8') as f:
         yaml.safe_dump(out_params, f, default_flow_style=False)
         
-    print(f"\nCreated parameter file at {out_file}")
-    
-    # Write exports to be sourced by the bash wrapper
-    with open("/tmp/ntrip_env.sh", "w") as f:
-        f.write(f"export NTRIP_PASSWORD='{password}'\n")
-        f.write(f"export FYP_RTK_PARAMS_FILE='{out_file}'\n")
+    print(f"✅ Created parameter file at {OUT_PARAMS_FILE}")
 
 if __name__ == "__main__":
     main()

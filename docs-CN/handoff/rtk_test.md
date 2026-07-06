@@ -9,84 +9,30 @@
 ssh badger@100.79.128.21
 ```
 
-登录后，运行以下命令：
-
-1. 对于第一个终端（每天只需执行一次）：
-
-```bash
-cd XJTLU-autonomous-vehicle/
-git switch Tightly-coupled
-git pull
-colcon build --packages-select bringup --symlink-install --parallel-workers 1
-source install/setup.bash
-source /opt/ros/humble/setup.bash
-```
-
-等待加载完成。可以使用 `Ctrl L` 清空终端。
-
-2. 随后打开的其他终端：
-
-```bash
-cd XJTLU-autonomous-vehicle/
-source install/setup.bash
-source /opt/ros/humble/setup.bash
-```
-
 ## NTRIP 账号
 
-RTK 需要一个 NTRIP 账号。购买后，运行以下命令（**只需**修改包含 `ADD_YOUR_USERNAME_HERE` 和 `ADD_YOUR_PASSWORD_HERE` 的行）：
+RTK 需要一个 NTRIP 账号。你 SSH 的时候，屏幕上会出现当前有没有账号。如需要买新账号，可以点出这里：https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z
 
+购买后，运行以下命令：
 ```bash
-cat << 'EOF' > /tmp/um982_cors.yaml
-um982_rtk_driver:
-  ros__parameters:
-    port: /dev/rtk_um982
-    baud: 115200
-    frame_id: gps
-    heading_offset_deg: 90.0
-    publish_raw: true
-    status_period_s: 1.0
-    ntrip:
-      enabled: true
-      host: "120.253.239.161"
-      port: 8002
-      mountpoint: "RTCM33_GRCEJ"
-      username: "ADD_YOUR_USERNAME_HERE"
-      password: ""
-      password_env: NTRIP_PASSWORD
-      connect_requires_valid_gga: true
-EOF
-export NTRIP_PASSWORD='ADD_YOUR_PASSWORD_HERE'
-export FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml
+make ntrip-setup
 ```
 
-> 如果你切换终端、断开连接或打开了新终端，必须重新运行此命令。
+登录成功后，账号信息会自动保留。除非需要更改账号，否则不需要重新登录（包括切换 terminal 或关掉机器人）。
 
 ***
 
 ## 运行并收集数据
 
-打开 2 个终端。在第一个终端中，运行上述所有命令。然后，启动 RTK：
+打开 2 个终端。
 
+1. 在第一个终端中，启动 RTK：
 ```bash
-bash scripts/launch_with_logs.sh tightly-coupled
+make launch-rtk-basic
 ```
 
-在第二个终端中，查看 RTK 信号数据。如果你刚刚登录：
-
+2. 在第二个终端中，查看 RTK 信号数据：
 ```bash
-cd XJTLU-autonomous-vehicle/
-source install/setup.bash
-source /opt/ros/humble/setup.bash
-ros2 topic list
-ros2 topic echo /rtk/status
-```
-
-如果你已经处于项目目录中：
-
-```bash
-cd XJTLU-autonomous-vehicle/
-source /opt/ros/humble/setup.bash
 ros2 topic echo /rtk/status
 ```
 
@@ -108,6 +54,8 @@ python3 /tmp/rtk_heading_calibrate.py
 make kill
 ```
 
+你也可以 `Ctrl C` 停止。
+
 数据将保存在机器人的 `/runtime-data/logs/` 目录下。
 
 当你想将数据传输到电脑时，可以使用 U 盘，也可以将机器人中的文件上传到网上。你可以运行以下命令：
@@ -124,10 +72,6 @@ hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ## RTK offset test script
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
-
 cat > /tmp/rtk_heading_calibrate.py <<'PY'
 #!/usr/bin/env python3
 import math

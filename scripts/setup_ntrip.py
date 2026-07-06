@@ -17,10 +17,10 @@ CRED_CACHE = os.path.expanduser("~/.ntrip_credentials.json")
 OUT_PARAMS_FILE = "/tmp/um982_cors.yaml"
 ENV_FILE = "/tmp/ntrip_env.sh"
 
-def test_ntrip(host, port, mountpoint, username, password):
+def test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0):
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(5.0)
+        s.settimeout(timeout_sec)
         s.connect((host, port))
         
         req = f"GET /{mountpoint} HTTP/1.0\r\n"
@@ -70,7 +70,8 @@ def main():
         print(f"Server: {HOST}:{PORT} (Mountpoint: {MOUNTPOINT})")
         print("Pinging server...")
         
-        success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password)
+        # Use a strict 1-second timeout for the status check
+        success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password, timeout_sec=1.0)
         if success:
             print("Status: ✅ ACTIVE (Connection successful)")
         else:
@@ -87,38 +88,47 @@ def main():
             print("No cached credentials found.")
         sys.exit(0)
 
+    # Handle Login
     username = None
     password = None
 
-    # Try loading from cache
     if os.path.exists(CRED_CACHE):
         try:
             with open(CRED_CACHE, 'r') as f:
                 creds = json.load(f)
-                username = creds.get('username')
-                password = creds.get('password')
-                print(f"Loaded saved credentials for user: {username}")
+                c_user = creds.get('username')
+                c_pass = creds.get('password')
+                
+            if c_user and c_pass:
+                print(f"Found previous credentials for user: {c_user}")
+                choice = input("Do you want to restore this session? [Y/n]: ").strip().lower()
+                
+                # If they hit Enter (empty string) or type 'y', restore it.
+                if choice in ['', 'y', 'yes']:
+                    username = c_user
+                    password = c_pass
+                else:
+                    print("\nProceeding with new login...")
         except json.JSONDecodeError:
             pass
 
-    # Prompt if no cache is found
+    # Prompt if no cache was found or user chose not to restore
     if not username or not password:
         print(f"Connecting to {HOST}:{PORT} (Mountpoint: {MOUNTPOINT})")
         username = input("Username: ").strip()
         password = getpass.getpass("Password: ").strip()
 
     print("\nTesting connection...")
-    success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password)
+    success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password, timeout_sec=5.0)
     
     if success:
         print("✅ Connection test successful!")
-        # Save working credentials to cache
         with open(CRED_CACHE, 'w') as f:
             json.dump({'username': username, 'password': password}, f)
     else:
         print(f"❌ Connection test failed: {msg}")
         if os.path.exists(CRED_CACHE):
-            os.remove(CRED_CACHE) # Clear bad cache
+            os.remove(CRED_CACHE)
         sys.exit(1)
 
     # --- Generate the ROS YAML File ---
@@ -146,10 +156,9 @@ def main():
     ntrip_cfg['mountpoint'] = MOUNTPOINT
     ntrip_cfg['username'] = username
     
-    # We now inject the password directly into the config file to bypass environment variables
     ntrip_cfg['password'] = password
     if 'password_env' in ntrip_cfg:
-        del ntrip_cfg['password_env'] # Remove this so the driver uses the raw string
+        del ntrip_cfg['password_env'] 
     
     out_params = {'/um982_rtk_driver': um982_config}
     with open(OUT_PARAMS_FILE, 'w', encoding='utf-8') as f:
@@ -157,7 +166,7 @@ def main():
         
     print(f"✅ Created parameter file at {OUT_PARAMS_FILE}")
 
-    # --- Generate bash exports (just for FYP_RTK_PARAMS_FILE now) ---
+    # --- Generate bash exports ---
     with open(ENV_FILE, "w") as f:
         f.write(f"export FYP_RTK_PARAMS_FILE='{OUT_PARAMS_FILE}'\n")
 

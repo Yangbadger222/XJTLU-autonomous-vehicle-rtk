@@ -1,9 +1,21 @@
 import sys
-import re
 import socket
 import base64
 import yaml
 import os
+import json
+import getpass
+import argparse
+
+# --- Static NTRIP Configuration ---
+HOST = "120.253.239.161"
+PORT = 8002
+MOUNTPOINT = "RTCM33_GRCEJ"
+
+# --- File Paths ---
+CRED_CACHE = os.path.expanduser("~/.ntrip_credentials.json")
+OUT_PARAMS_FILE = "/tmp/um982_cors.yaml"
+ENV_FILE = "/tmp/ntrip_env.sh"
 
 def test_ntrip(host, port, mountpoint, username, password):
     try:
@@ -34,67 +46,54 @@ def test_ntrip(host, port, mountpoint, username, password):
         return False, str(e)
 
 def main():
-    print("Please paste the NTRIP account info below.")
-    print("When finished pasting, type '==' on a new line and press Enter:")
-    
-    lines = []
-    while True:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--logout', action='store_true', help='Clear saved credentials')
+    args = parser.parse_args()
+
+    # Handle Logout
+    if args.logout:
+        if os.path.exists(CRED_CACHE):
+            os.remove(CRED_CACHE)
+            print("Logged out. Cached credentials removed.")
+        else:
+            print("No cached credentials found.")
+        sys.exit(0)
+
+    username = None
+    password = None
+
+    # Try loading from cache
+    if os.path.exists(CRED_CACHE):
         try:
-            line = input()
-            lines.append(line)
-            
-            # Combine current lines to check for the double '==' delimiter
-            current_text = "\n".join(lines)
-            
-            # Break if we have two '==' in the text, or if the user manually typed '==' or 'EOF' alone.
-            if current_text.count("==") >= 2:
-                break
-            if line.strip() in ["==", "EOF", "quit", "exit"]:
-                break
-        except EOFError:
-            break
-            
-    text = "\n".join(lines)
+            with open(CRED_CACHE, 'r') as f:
+                creds = json.load(f)
+                username = creds.get('username')
+                password = creds.get('password')
+                print(f"Loaded saved credentials for user: {username}")
+        except json.JSONDecodeError:
+            pass
+
+    # Prompt if no cache is found
+    if not username or not password:
+        print(f"Connecting to {HOST}:{PORT} (Mountpoint: {MOUNTPOINT})")
+        username = input("Username: ").strip()
+        password = getpass.getpass("Password: ").strip()
+
+    print("\nTesting connection...")
+    success, msg = test_ntrip(HOST, PORT, MOUNTPOINT, username, password)
     
-    # Parse the text
-    username_match = re.search(r"账号[:：]\s*([a-zA-Z0-9]+)", text)
-    password_match = re.search(r"密码[:：]\s*([a-zA-Z0-9]+)", text)
-    ip_match = re.search(r"IP[:：]\s*([0-9\.]+)", text)
-    mountpoint_match = re.search(r"接入点[:：]\s*([A-Za-z0-9_]+)", text)
-    
-    # Port parsing. Prefer the WGS84 one, usually 8002.
-    port_match = re.search(r"端口[:：].*?(\d+)[（\(]WGS84", text)
-    if not port_match:
-        port_match = re.search(r"端口[:：]\s*(\d+)", text)
-        
-    if not (username_match and password_match and ip_match and mountpoint_match and port_match):
-        print("\nError: Could not parse all required information. Please check the format.")
+    if success:
+        print("✅ Connection test successful!")
+        # Save working credentials to cache
+        with open(CRED_CACHE, 'w') as f:
+            json.dump({'username': username, 'password': password}, f)
+    else:
+        print(f"❌ Connection test failed: {msg}")
+        if os.path.exists(CRED_CACHE):
+            os.remove(CRED_CACHE) # Clear bad cache
         sys.exit(1)
 
-    username = username_match.group(1)
-    password = password_match.group(1)
-    host = ip_match.group(1)
-    mountpoint = mountpoint_match.group(1)
-    port = int(port_match.group(1))
-    
-    print(f"\nParsed info:")
-    print(f"Host: {host}:{port}")
-    print(f"Mountpoint: {mountpoint}")
-    print(f"Username: {username}")
-    print(f"Password: {password}")
-    
-    print("\nTesting connection...")
-    success, msg = test_ntrip(host, port, mountpoint, username, password)
-    if success:
-        print("Connection test successful!")
-    else:
-        print(f"Connection test failed: {msg}")
-        choice = input("Do you want to continue anyway? (y/n): ")
-        if choice.lower() != 'y':
-            print("Aborted.")
-            sys.exit(1)
-
-    # Load master params
+    # --- Generate the ROS YAML File ---
     script_dir = os.path.dirname(os.path.abspath(__file__))
     repo_dir = os.path.dirname(script_dir)
     params_file = os.path.join(repo_dir, "src", "bringup", "config", "master_params.yaml")
@@ -107,7 +106,6 @@ def main():
         params = yaml.safe_load(f)
         
     um982_config = params.get('/um982_rtk_driver', {})
-    
     if 'ros__parameters' not in um982_config:
         um982_config['ros__parameters'] = {}
     if 'ntrip' not in um982_config['ros__parameters']:
@@ -115,25 +113,25 @@ def main():
         
     ntrip_cfg = um982_config['ros__parameters']['ntrip']
     ntrip_cfg['enabled'] = True
-    ntrip_cfg['host'] = host
-    ntrip_cfg['port'] = port
-    ntrip_cfg['mountpoint'] = mountpoint
+    ntrip_cfg['host'] = HOST
+    ntrip_cfg['port'] = PORT
+    ntrip_cfg['mountpoint'] = MOUNTPOINT
     ntrip_cfg['username'] = username
-    ntrip_cfg['password'] = ""
-    ntrip_cfg['password_env'] = "NTRIP_PASSWORD"
+    
+    # We now inject the password directly into the config file to bypass environment variables
+    ntrip_cfg['password'] = password
+    if 'password_env' in ntrip_cfg:
+        del ntrip_cfg['password_env'] # Remove this so the driver uses the raw string
     
     out_params = {'/um982_rtk_driver': um982_config}
-    
-    out_file = "/tmp/um982_cors.yaml"
-    with open(out_file, 'w', encoding='utf-8') as f:
+    with open(OUT_PARAMS_FILE, 'w', encoding='utf-8') as f:
         yaml.safe_dump(out_params, f, default_flow_style=False)
         
-    print(f"\nCreated parameter file at {out_file}")
-    
-    # Write exports to be sourced by the bash wrapper
-    with open("/tmp/ntrip_env.sh", "w") as f:
-        f.write(f"export NTRIP_PASSWORD='{password}'\n")
-        f.write(f"export FYP_RTK_PARAMS_FILE='{out_file}'\n")
+    print(f"✅ Created parameter file at {OUT_PARAMS_FILE}")
+
+    # --- Generate bash exports (just for FYP_RTK_PARAMS_FILE now) ---
+    with open(ENV_FILE, "w") as f:
+        f.write(f"export FYP_RTK_PARAMS_FILE='{OUT_PARAMS_FILE}'\n")
 
 if __name__ == "__main__":
     main()

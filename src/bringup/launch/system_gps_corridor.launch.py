@@ -1,6 +1,8 @@
 import os
+import tempfile
 from datetime import datetime
 
+import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, Shutdown, TimerAction
@@ -10,12 +12,48 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
+def _make_corridor_nav2_params(source_file):
+    with open(source_file, 'r', encoding='utf-8') as stream:
+        data = yaml.safe_load(stream)
+
+    controller_params = data['controller_server']['ros__parameters']
+    controller_params['controller_frequency'] = 20.0
+
+    follow_path = controller_params['FollowPath']
+    follow_path['batch_size'] = 500
+    follow_path['vx_std'] = 0.14
+    follow_path['wz_std'] = 0.14
+    follow_path['vx_max'] = 0.45
+    follow_path['wz_max'] = 0.65
+    follow_path['ax_max'] = 0.45
+    follow_path['ax_min'] = -0.8
+    follow_path['az_max'] = 2.0
+
+    smoother_params = data['velocity_smoother']['ros__parameters']
+    smoother_params['max_velocity'] = [0.45, 0.0, 0.65]
+    smoother_params['min_velocity'] = [0.0, 0.0, -0.65]
+    smoother_params['max_accel'] = [0.45, 0.0, 1.4]
+    smoother_params['max_decel'] = [-0.8, 0.0, -1.8]
+
+    rewritten = tempfile.NamedTemporaryFile(
+        mode='w',
+        prefix='xjtlu_corridor_nav2_',
+        suffix='.yaml',
+        delete=False,
+    )
+    yaml.safe_dump(data, rewritten, sort_keys=False)
+    rewritten.close()
+    return rewritten.name
+
+
 def generate_launch_description():
     bringup_share = get_package_share_directory('bringup')
     master_params_file = os.path.join(bringup_share, 'config', 'master_params.yaml')
     pgo_corridor_override_file = os.path.join(
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
+    nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
+    corridor_nav2_params = _make_corridor_nav2_params(nav2_explore_params_file)
 
     route_file_arg = DeclareLaunchArgument(
         'route_file',
@@ -46,6 +84,7 @@ def generate_launch_description():
             'use_rviz': LaunchConfiguration('use_rviz'),
             'master_params_file': master_params_file,
             'pgo_extra_params_file': pgo_corridor_override_file,
+            'nav2_params_file': corridor_nav2_params,
         }.items(),
     )
 
@@ -121,7 +160,10 @@ def generate_launch_description():
             '/heading',
             '/rtk/status',
             '/rtk/nmea_sentence',
+            '/livox/lidar',
+            '/livox/imu',
             '/fastlio2/lio_odom',
+            '/fastlio2/body_cloud',
             '/tf',
             '/tf_static',
             '/gps_corridor/status',

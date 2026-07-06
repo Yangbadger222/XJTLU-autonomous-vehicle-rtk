@@ -10,6 +10,7 @@ import rclpy
 import yaml
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseStamped, Twist
+from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateToPose
 from nav_msgs.msg import Path as NavPath
 from rclpy.action import ActionClient
@@ -20,6 +21,12 @@ from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Float64MultiArray, String
 from tf2_ros import Buffer, TransformException, TransformListener
 
+from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
+    DEFAULT_REQUIRED_NAV2_LIFECYCLE_NODES,
+    normalize_lifecycle_node_names,
+    summarize_lifecycle_states,
+)
+from gps_waypoint_dispatcher.route_safety import summarize_map_gps_consistency
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
     default_route_file,
@@ -96,6 +103,12 @@ class GPSRouteRunner(Node):
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
+        self.declare_parameter("map_gps_divergence_warn_m", 2.0)
+        self.declare_parameter("map_gps_divergence_abort_m", 5.0)
+        self.declare_parameter(
+            "nav2_lifecycle_nodes",
+            list(DEFAULT_REQUIRED_NAV2_LIFECYCLE_NODES),
+        )
 
         self._route_file = FSPath(self.get_parameter("route_file").value).expanduser()
         self._route_frame = str(self.get_parameter("route_frame").value)
@@ -128,6 +141,14 @@ class GPSRouteRunner(Node):
         self._alignment_shift_cooldown_s = float(
             self.get_parameter("alignment_shift_cooldown_s").value
         )
+        self._map_gps_divergence_warn_m = float(
+            self.get_parameter("map_gps_divergence_warn_m").value
+        )
+        self._map_gps_divergence_abort_m = float(
+            self.get_parameter("map_gps_divergence_abort_m").value
+        )
+        raw_lifecycle_nodes = self.get_parameter("nav2_lifecycle_nodes").value
+        self._nav2_lifecycle_nodes = normalize_lifecycle_node_names(raw_lifecycle_nodes)
         self._last_alignment_shift_mono = -math.inf
 
         self._status_pub = self.create_publisher(String, "/gps_corridor/status", 10)
@@ -146,6 +167,10 @@ class GPSRouteRunner(Node):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
+        self._nav2_state_clients = {
+            node_name: self.create_client(GetState, f"/{node_name}/get_state")
+            for node_name in self._nav2_lifecycle_nodes
+        }
 
         self._projector = FixedENUProjector(
             self._enu_origin_lat, self._enu_origin_lon, self._enu_origin_alt
@@ -330,10 +355,37 @@ class GPSRouteRunner(Node):
     def _wait_for_nav2(self) -> None:
         self._publish_status("WAITING_FOR_NAV2")
         deadline = time.time() + self._startup_wait_timeout_s
+        action_ready = False
         while rclpy.ok() and time.time() < deadline:
-            if self._nav_client.wait_for_server(timeout_sec=1.0):
+            if not action_ready:
+                action_ready = self._nav_client.wait_for_server(timeout_sec=1.0)
+            if action_ready and self._nav2_lifecycle_ready():
+                self.get_logger().info("Nav2 action server and lifecycle nodes are active")
                 return
-        raise RuntimeError("navigate_to_pose action server not available")
+            rclpy.spin_once(self, timeout_sec=0.2)
+        raise RuntimeError("navigate_to_pose action server or lifecycle nodes not available")
+
+    def _nav2_lifecycle_ready(self) -> bool:
+        if not self._nav2_lifecycle_nodes:
+            return True
+
+        state_by_node: dict[str, int] = {}
+        for node_name, client in self._nav2_state_clients.items():
+            if not client.wait_for_service(timeout_sec=0.1):
+                continue
+            future = client.call_async(GetState.Request())
+            rclpy.spin_until_future_complete(self, future, timeout_sec=0.3)
+            if not future.done() or future.result() is None:
+                continue
+            state_by_node[node_name] = int(future.result().current_state.id)
+
+        summary = summarize_lifecycle_states(self._nav2_lifecycle_nodes, state_by_node)
+        if not summary.ready:
+            self.get_logger().debug(
+                "Waiting for Nav2 lifecycle active: missing=%s inactive=%s"
+                % (list(summary.missing_nodes), list(summary.inactive_nodes))
+            )
+        return summary.ready
 
     def _wait_for_alignment(self) -> Alignment2D:
         self._publish_status("WAITING_FOR_ALIGNMENT")
@@ -400,6 +452,54 @@ class GPSRouteRunner(Node):
         enu_x = cos_theta * dx + sin_theta * dy
         enu_y = -sin_theta * dx + cos_theta * dy
         return enu_x, enu_y
+
+    def _latest_fix_map_xy(self, alignment: Alignment2D) -> tuple[float, float] | None:
+        if not valid_fix(self._latest_fix):
+            return None
+        enu_x, enu_y = self._projector.forward(
+            float(self._latest_fix.latitude), float(self._latest_fix.longitude)
+        )
+        return self._enu_to_map(enu_x, enu_y, alignment)
+
+    def _map_gps_consistent(
+        self,
+        current_xy: tuple[float, float],
+        alignment: Alignment2D,
+        context: str,
+    ) -> bool:
+        gps_map_xy = self._latest_fix_map_xy(alignment)
+        if gps_map_xy is None:
+            self.get_logger().warn("Cannot check map/GPS consistency without a valid /fix")
+            return True
+
+        summary = summarize_map_gps_consistency(
+            current_xy,
+            gps_map_xy,
+            self._map_gps_divergence_warn_m,
+            self._map_gps_divergence_abort_m,
+        )
+        if not summary.warn:
+            return True
+
+        detail = (
+            "%s divergence=%.2fm map=(%.2f,%.2f) gps_map=(%.2f,%.2f)"
+            % (
+                context,
+                summary.distance_m,
+                current_xy[0],
+                current_xy[1],
+                gps_map_xy[0],
+                gps_map_xy[1],
+            )
+        )
+        if not summary.ok:
+            self.get_logger().error("Map/GPS divergence abort: %s" % detail)
+            self._publish_status("MAP_GPS_DIVERGENCE_ABORT|%s" % detail)
+            self._publish_zero_cmd_vel()
+            return False
+
+        self.get_logger().warn("Map/GPS divergence warning: %s" % detail)
+        return True
 
     def _segment_plan(self, waypoint_index: int) -> SegmentPlan:
         waypoint = self._route["waypoints"][waypoint_index]
@@ -742,6 +842,10 @@ class GPSRouteRunner(Node):
             if live_alignment is None:
                 self.get_logger().error("Lost alignment during waypoint %s" % waypoint.name)
                 return False, current_xy
+            if not self._map_gps_consistent(
+                current_xy, live_alignment, "waypoint_%s" % waypoint.name
+            ):
+                return False, current_xy
             current_enu = self._map_to_enu(current_xy[0], current_xy[1], live_alignment)
             projected_progress_m, _ = self._progress_on_segment(segment, current_enu)
             current_progress_m = max(current_progress_m, projected_progress_m)
@@ -822,6 +926,8 @@ class GPSRouteRunner(Node):
 
         x0, y0, _ = self._lookup_current_pose(announce_wait=True)
         current_xy = (x0, y0)
+        if not self._map_gps_consistent(current_xy, alignment, "route_start"):
+            return False
         for waypoint_index, waypoint in enumerate(self._route["waypoints"]):
             self._publish_status(
                 "WAYPOINT_TARGET|%d|%d|%s"

@@ -23,6 +23,7 @@
   <exec_depend>serial_reader</exec_depend>
   <exec_depend>pointcloud_to_laserscan</exec_depend>
   <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_common</exec_depend>
   <exec_depend>slam_toolbox</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>

@@ -531,10 +531,10 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-检查 corridor 自动录包里是否包含 RTK 诊断话题：
+检查 corridor 自动录包里是否包含 RTK 与 FAST-LIO2 诊断话题：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 说明：
@@ -545,7 +545,8 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 - 子目标间距默认 30m（基于 global costmap 半径 35m - 5m buffer），采集时自动写入路线文件
 - 运行时不会再弹出 menu，也不会等待额外命令
 - wrapper 会把日志和 bag 写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`，用于复盘双天线航向和 RTK 质量
+- corridor 当前启动时会从 `nav2_explore.yaml` 生成临时 Nav2 参数文件并使用 RTK 验收低速档：`vx_max=0.45`、`wz_max=0.65`、`ax_max=0.45`、`controller_frequency=20Hz`、`batch_size=500`，避免首次户外 RTK 验证直接使用 Explore 的 `1.0m/s` 激进控制上限；MPPI 的 `model_dt=0.05s` 要求控制周期不能大于模型步长，因此不能降到 `15Hz`
+- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`、`/livox/lidar`、`/livox/imu`、`/fastlio2/body_cloud`，用于复盘双天线航向、RTK 质量和 FAST-LIO2 点云/IMU 同步
 - 启动阶段若当前 `/fix` 与 `start_ref` 偏差超限，`gps_route_runner` 会直接 abort，不动车
 - **Ctrl+C 会自动清理全部节点、ros2 daemon、串口占用**，无需手动 `make kill-runtime`
 
@@ -653,39 +654,20 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 ## NTRIP 账户设置
 
-在使用 RTK 天线时，机器人必须拥有一个 NTRIP 账户才能接收到完整质量的信号。您可以在淘宝上购买这些账户，例如：[https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z](https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z)
+要设置或更新 NTRIP 凭据，请运行：
 
-此外，本仓库自带一个用于管理这些认证凭据的脚本。
-
-如需登录 NTRIP 账户，请运行：
 ```bash
-make ntrip-login
+cd ~/XJTLU-autonomous-vehicle
+source scripts/setup_ntrip.sh # 使用 source，不要用 bash
 ```
 
-如需修改账户参数（例如服务器 IP 和挂载点），请运行：
-```bash
-make ntrip-setup
-```
+然后，将淘宝卖家提供的文本原封不动地粘贴为一行。该脚本将创建临时文件 `/tmp/um982_cors.yaml`，并将环境变量 `FYP_RTK_PARAMS_FILE` 和 `NTRIP_PASSWORD` 添加到 `/tmp/ntrip_env.sh` 中。
 
-如需检查当前凭据并进行连接测试，请运行：
-```bash
-make ntrip-status
-```
+如果你稍后打开一个新终端，无需再次粘贴密码。只需运行以下命令加载当前环境：
 
-如需登出账户，请运行：
 ```bash
-make ntrip-logout
+source /tmp/ntrip_env.sh
 ```
-
-等效的脚本直接调用方式：
-```bash
-@python3 scripts/setup_ntrip.py
-@python3 scripts/setup_ntrip.py --setup
-@python3 scripts/setup_ntrip.py --status
-@python3 scripts/setup_ntrip.py --logout
-```
-
-一旦登录成功，凭据将会保存在机器人中。除非您手动登出或更改凭据，否则每次系统启动时都会自动登录。
 
 ***
 

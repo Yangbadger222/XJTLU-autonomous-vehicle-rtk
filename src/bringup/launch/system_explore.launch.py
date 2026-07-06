@@ -24,7 +24,7 @@ def generate_launch_description():
 
     bringup_share = get_package_share_directory("bringup")
     default_master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
-    nav2_params_file = os.path.join(bringup_share, "config", "nav2_explore.yaml")
+    default_nav2_params_file = os.path.join(bringup_share, "config", "nav2_explore.yaml")
     default_rviz_config = os.path.join(bringup_share, "rviz", "pgo.rviz")
     corridor_bt_xml = os.path.join(
         bringup_share,
@@ -32,7 +32,7 @@ def generate_launch_description():
         "navigate_to_pose_w_replanning_3hz_and_recovery.xml",
     )
     rewritten_nav2_params = RewrittenYaml(
-        source_file=nav2_params_file,
+        source_file=LaunchConfiguration("nav2_params_file"),
         param_rewrites={"default_nav_to_pose_bt_xml": corridor_bt_xml},
         convert_types=True,
     )
@@ -51,6 +51,11 @@ def generate_launch_description():
         "pgo_extra_params_file",
         default_value="",
         description="Optional ROS2 parameter file appended only to the PGO node",
+    )
+    nav2_params_arg = DeclareLaunchArgument(
+        "nav2_params_file",
+        default_value=default_nav2_params_file,
+        description="Nav2 parameter file used by the Explore/Corridor stack",
     )
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
@@ -164,6 +169,7 @@ def generate_launch_description():
             use_rviz_arg,
             master_params_arg,
             pgo_extra_params_arg,
+            nav2_params_arg,
             rviz_config_arg,
             frc_mode_arg,
             frc_extra_params_arg,

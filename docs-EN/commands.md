@@ -531,10 +531,10 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-Check whether the automatic corridor bag contains RTK diagnostic topics:
+Check whether the automatic corridor bag contains RTK and FAST-LIO2 diagnostic topics:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 Notes:
@@ -545,7 +545,8 @@ Notes:
 - Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- The corridor bag records `/heading`, `/rtk/status`, and `/rtk/nmea_sentence` for reviewing dual-antenna heading and RTK quality
+- Corridor currently generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and applies the RTK-acceptance low-speed profile: `vx_max=0.45`, `wz_max=0.65`, `ax_max=0.45`, `controller_frequency=20Hz`, and `batch_size=500`, so first outdoor RTK validation does not run with Explore's aggressive `1.0m/s` control limit; MPPI keeps `model_dt=0.05s`, so the control period must not be larger than the model step and cannot be lowered to `15Hz`
+- The corridor bag records `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` for reviewing dual-antenna heading, RTK quality, and FAST-LIO2 point-cloud/IMU synchronization
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`
 
@@ -653,39 +654,19 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 ## NTRIP Account Setting
 
-When using the RTK antenna, the robot must have an NTRIP account to receive full-quality signal. These can be bought in Taobao, for example in here: https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z
+To set up or update the NTRIP credentials, run:
 
-In addition, this repo counts with a script that handles these credentials.
-
-To login onto an NTRIP account, run:
 ```bash
-make ntrip-login
+cd ~/XJTLU-autonomous-vehicle
+source scripts/setup_ntrip.sh # Use source, not bash
 ```
 
-To change the account parameters, such as the server IP and mountpoint, run:
-```bash
-make ntrip-setup
-```
+Then, paste the text from the Taobao vendor in one line, exactly as-is. The script creates the temporary file `/tmp/um982_cors.yaml` and adds the environment variables `FYP_RTK_PARAMS_FILE` and `NTRIP_PASSWORD` to `/tmp/ntrip_env.sh`.
 
-To check current credentials and connection test, run:
+If you open a **new terminal** later, you do not need to paste the password again. Just load the active environment by running:
 ```bash
-make ntrip-status
+source /tmp/ntrip_env.sh
 ```
-
-To log out, run:
-```bash
-make ntrip-logout
-```
-
-Equivalent wrapper direct invocation:
-```bash
-@python3 scripts/setup_ntrip.py
-@python3 scripts/setup_ntrip.py --setup
-@python3 scripts/setup_ntrip.py --status
-@python3 scripts/setup_ntrip.py --logout
-```
-
-Once logged in, the credentials are stored in the robot. You will be logged in automatically every time until you manually log out or change the credentials.
 
 ***
 

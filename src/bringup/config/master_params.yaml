@@ -224,6 +224,10 @@
     alignment_shift_cancel_threshold_m: 0.5
     # alignment shift 触发 preempt 后的冷却时间，避免 GPS 抖动导致高频重发 goal。
     alignment_shift_cooldown_s: 3.0
+    # map->base_link 与当前 RTK fix 经 alignment 投到 map 后的偏差预警阈值。
+    map_gps_divergence_warn_m: 2.0
+    # map->base_link 与 RTK map 估计偏差超过该值时 abort，避免 LIO/TF 飞走后假成功。
+    map_gps_divergence_abort_m: 5.0
 
 /serial_twistctl_node:
   ros__parameters:

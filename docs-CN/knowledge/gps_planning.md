@@ -282,6 +282,7 @@ source install/setup.bash
    - 检查当前启动点是否在 `startup_gps_tolerance_m` 内
    - 等待 `navigate_to_pose` action server 以及核心 Nav2 lifecycle 节点（`controller_server`、`planner_server`、`behavior_server`、`bt_navigator`）均进入 `active`
    - 读取当前 `map -> base_link`
+   - 将当前 RTK `/fix` 经 alignment 投到 `map`，与 `map -> base_link` 对比；若超过 `map_gps_divergence_abort_m` 则 abort
    - 用 `body_vector_m` 生成 `goal_map`
    - 将 corridor 按 `segment_length_m`（默认 30m，基于 global costmap 半径 35m - 5m buffer）切成多个 subgoals
    - 串行执行 `NavigateToPose`

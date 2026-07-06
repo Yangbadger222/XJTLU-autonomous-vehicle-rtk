@@ -653,20 +653,39 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 ## NTRIP 账户设置
 
-要设置或更新 NTRIP 凭据，请运行：
+在使用 RTK 天线时，机器人必须拥有一个 NTRIP 账户才能接收到完整质量的信号。您可以在淘宝上购买这些账户，例如：[https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z](https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z)
 
+此外，本仓库自带一个用于管理这些认证凭据的脚本。
+
+如需登录 NTRIP 账户，请运行：
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source scripts/setup_ntrip.sh # 使用 source，不要用 bash
+make ntrip-login
 ```
 
-然后，将淘宝卖家提供的文本原封不动地粘贴为一行。该脚本将创建临时文件 `/tmp/um982_cors.yaml`，并将环境变量 `FYP_RTK_PARAMS_FILE` 和 `NTRIP_PASSWORD` 添加到 `/tmp/ntrip_env.sh` 中。
-
-如果你稍后打开一个新终端，无需再次粘贴密码。只需运行以下命令加载当前环境：
-
+如需修改账户参数（例如服务器 IP 和挂载点），请运行：
 ```bash
-source /tmp/ntrip_env.sh
+make ntrip-setup
 ```
+
+如需检查当前凭据并进行连接测试，请运行：
+```bash
+make ntrip-status
+```
+
+如需登出账户，请运行：
+```bash
+make ntrip-logout
+```
+
+等效的脚本直接调用方式：
+```bash
+@python3 scripts/setup_ntrip.py
+@python3 scripts/setup_ntrip.py --setup
+@python3 scripts/setup_ntrip.py --status
+@python3 scripts/setup_ntrip.py --logout
+```
+
+一旦登录成功，凭据将会保存在机器人中。除非您手动登出或更改凭据，否则每次系统启动时都会自动登录。
 
 ***
 

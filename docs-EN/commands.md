@@ -653,19 +653,39 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 ## NTRIP Account Setting
 
-To set up or update the NTRIP credentials, run:
+When using the RTK antenna, the robot must have an NTRIP account to receive full-quality signal. These can be bought in Taobao, for example in here: https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z
 
+In addition, this repo counts with a script that handles these credentials.
+
+To login onto an NTRIP account, run:
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source scripts/setup_ntrip.sh # Use source, not bash
+make ntrip-login
 ```
 
-Then, paste the text from the Taobao vendor in one line, exactly as-is. The script creates the temporary file `/tmp/um982_cors.yaml` and adds the environment variables `FYP_RTK_PARAMS_FILE` and `NTRIP_PASSWORD` to `/tmp/ntrip_env.sh`.
-
-If you open a **new terminal** later, you do not need to paste the password again. Just load the active environment by running:
+To change the account parameters, such as the server IP and mountpoint, run:
 ```bash
-source /tmp/ntrip_env.sh
+make ntrip-setup
 ```
+
+To check current credentials and connection test, run:
+```bash
+make ntrip-status
+```
+
+To log out, run:
+```bash
+make ntrip-logout
+```
+
+Equivalent wrapper direct invocation:
+```bash
+@python3 scripts/setup_ntrip.py
+@python3 scripts/setup_ntrip.py --setup
+@python3 scripts/setup_ntrip.py --status
+@python3 scripts/setup_ntrip.py --logout
+```
+
+Once logged in, the credentials are stored in the robot. You will be logged in automatically every time until you manually log out or change the credentials.
 
 ***
 

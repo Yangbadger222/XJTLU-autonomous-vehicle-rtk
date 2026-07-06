@@ -46,8 +46,9 @@ Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` �
 - `velocity_smoother.max_velocity: [0.45, 0.0, 0.65]`
 - `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
 - `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
+- corridor 通过 launch 注入无 `Spin` / `BackUp` 的 NavigateToPose 与 NavigateThroughPoses BT；`nav2_explore.yaml` 必须同时保留 `default_nav_to_pose_bt_xml` 和 `default_nav_through_poses_bt_xml` 两个空默认槽位，否则 Nav2 会对 through-poses action 回退到上游 recovery 树
 
-原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。2026-07-06 20:06 的现场日志证明 `controller_frequency=15Hz` 会触发 MPPI `Controller period more then model dt` 配置失败，因此 corridor 保持 `20Hz` 并通过速度/采样量降负载。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
+原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。2026-07-06 20:06 的现场日志证明 `controller_frequency=15Hz` 会触发 MPPI `Controller period more then model dt` 配置失败，因此 corridor 保持 `20Hz` 并通过速度/采样量降负载。2026-07-06 22:33 的实车日志又证明缺少 `default_nav_through_poses_bt_xml` 槽位时，`bt_navigator` 会继续加载 Nav2 默认 `navigate_through_poses_w_replanning_and_recovery.xml`，在 corridor 只加载 `wait` 行为后因缺少 `spin` action server 而启动失败。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
 
 ## 4b. 2026-04-05 走廊高速基线（历史记录）
 

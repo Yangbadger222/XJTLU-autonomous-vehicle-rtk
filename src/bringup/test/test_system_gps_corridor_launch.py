@@ -15,6 +15,7 @@ LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
+NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -66,6 +67,13 @@ def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
     rate_controller = to_pose_root.find(".//RateController")
     assert rate_controller is not None
     assert rate_controller.attrib["hz"] == "5.0"
+
+
+def test_nav2_explore_exposes_both_bt_xml_rewrite_slots():
+    params_text = NAV2_EXPLORE_PARAMS.read_text(encoding="utf-8")
+
+    assert "default_nav_to_pose_bt_xml: \"\"" in params_text
+    assert "default_nav_through_poses_bt_xml: \"\"" in params_text
 
 
 def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():

@@ -247,7 +247,7 @@
     - Root cause: `default_nav_to_pose_bt_xml` parameter was placed under `bt_navigator_navigate_to_pose_rclcpp_node` instead of `bt_navigator`, causing the launch injection to have no effect
     - Fix: Commit `d075c6b` moved the parameter to the correct `bt_navigator` node
     - Status: Fixed (2026-03-26)
-    - 2026-07-06 update: RTK corridor testing hit recovery `/cmd_vel` contention again. This time the cause was not the parameter namespace; `system_explore.launch.py` injected the same recovery BT for both explore and corridor, and `default_server_timeout=20ms` let a slightly slow FollowPath acknowledgement trigger recovery. Corridor now uses a dedicated BT without `Spin`/`BackUp`, and its BT action timeout is raised to 1000ms.
+    - 2026-07-06 update: RTK corridor testing hit recovery `/cmd_vel` contention again. This time the cause was not the parameter namespace; `system_explore.launch.py` injected the same recovery BT for both explore and corridor, and `default_server_timeout=20ms` let a slightly slow FollowPath acknowledgement trigger recovery. Corridor now uses dedicated NavigateToPose / NavigateThroughPoses BTs without `Spin`/`BackUp`, and its BT action timeout is raised to 1000ms.
 
 24. **[Root Cause Fixed] Late-segment `lio_odom` / `odom->base_link` divergence**
     - Description: In multiple on-vehicle runs, `odom->base_link` starts making continuous large jumps in the second half of the second segment, causing pose divergence and navigation failure

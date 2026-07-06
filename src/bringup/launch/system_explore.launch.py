@@ -31,6 +31,11 @@ def generate_launch_description():
         "behavior_trees",
         "navigate_to_pose_w_replanning_3hz_and_recovery.xml",
     )
+    default_nav_through_poses_bt_xml = os.path.join(
+        get_package_share_directory("nav2_bt_navigator"),
+        "behavior_trees",
+        "navigate_through_poses_w_replanning_and_recovery.xml",
+    )
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz",
         default_value="true",
@@ -56,6 +61,11 @@ def generate_launch_description():
         default_value=corridor_bt_xml,
         description="NavigateToPose behavior tree XML injected into bt_navigator",
     )
+    nav_through_poses_bt_xml_arg = DeclareLaunchArgument(
+        "nav_through_poses_bt_xml",
+        default_value=default_nav_through_poses_bt_xml,
+        description="NavigateThroughPoses behavior tree XML injected into bt_navigator",
+    )
     rviz_config_arg = DeclareLaunchArgument(
         "rviz_config",
         default_value=default_rviz_config,
@@ -73,7 +83,10 @@ def generate_launch_description():
     )
     rewritten_nav2_params = RewrittenYaml(
         source_file=LaunchConfiguration("nav2_params_file"),
-        param_rewrites={"default_nav_to_pose_bt_xml": LaunchConfiguration("nav_to_pose_bt_xml")},
+        param_rewrites={
+            "default_nav_to_pose_bt_xml": LaunchConfiguration("nav_to_pose_bt_xml"),
+            "default_nav_through_poses_bt_xml": LaunchConfiguration("nav_through_poses_bt_xml"),
+        },
         convert_types=True,
     )
 
@@ -175,6 +188,7 @@ def generate_launch_description():
             pgo_extra_params_arg,
             nav2_params_arg,
             nav_to_pose_bt_xml_arg,
+            nav_through_poses_bt_xml_arg,
             rviz_config_arg,
             frc_mode_arg,
             frc_extra_params_arg,

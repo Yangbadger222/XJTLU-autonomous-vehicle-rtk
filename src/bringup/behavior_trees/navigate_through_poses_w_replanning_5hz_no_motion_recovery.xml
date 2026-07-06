@@ -1,0 +1,20 @@
+<!--
+  Corridor RTK acceptance NavigateThroughPoses Behavior Tree.
+  Nav2 loads this navigator during lifecycle bringup even when the corridor
+  runner only sends NavigateToPose goals, so it must also avoid motion recovery
+  actions when corridor disables spin/backup behavior plugins.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <PipelineSequence name="NavigateThroughPosesNoMotionRecovery">
+      <RateController hz="5.0">
+        <Sequence name="ComputePathThroughPosesSequence">
+          <RemovePassedGoals input_goals="{goals}" output_goals="{goals}" radius="0.7"/>
+          <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+          <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
+        </Sequence>
+      </RateController>
+      <FollowPath path="{path}" controller_id="FollowPath"/>
+    </PipelineSequence>
+  </BehaviorTree>
+</root>

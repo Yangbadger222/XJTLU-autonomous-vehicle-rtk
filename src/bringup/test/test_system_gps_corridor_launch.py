@@ -8,6 +8,9 @@ CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
 CORRIDOR_NO_RECOVERY_BT = Path(
     "src/bringup/behavior_trees/navigate_to_pose_w_replanning_5hz_no_motion_recovery.xml"
 )
+CORRIDOR_NO_RECOVERY_THROUGH_BT = Path(
+    "src/bringup/behavior_trees/navigate_through_poses_w_replanning_5hz_no_motion_recovery.xml"
+)
 LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
@@ -43,16 +46,24 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
 def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
     explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
     corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
-    tree = ET.parse(CORRIDOR_NO_RECOVERY_BT)
-    root = tree.getroot()
+    to_pose_tree = ET.parse(CORRIDOR_NO_RECOVERY_BT)
+    to_pose_root = to_pose_tree.getroot()
+    through_poses_tree = ET.parse(CORRIDOR_NO_RECOVERY_THROUGH_BT)
+    through_poses_root = through_poses_tree.getroot()
 
     assert "nav_to_pose_bt_xml" in explore_text
+    assert "nav_through_poses_bt_xml" in explore_text
     assert "corridor_no_recovery_bt_xml" in corridor_text
+    assert "corridor_no_recovery_through_poses_bt_xml" in corridor_text
     assert "'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml" in corridor_text
-    assert root.findall(".//Spin") == []
-    assert root.findall(".//BackUp") == []
-    assert root.find(".//FollowPath") is not None
-    rate_controller = root.find(".//RateController")
+    assert "'nav_through_poses_bt_xml': corridor_no_recovery_through_poses_bt_xml" in corridor_text
+    assert to_pose_root.findall(".//Spin") == []
+    assert to_pose_root.findall(".//BackUp") == []
+    assert to_pose_root.find(".//FollowPath") is not None
+    assert through_poses_root.findall(".//Spin") == []
+    assert through_poses_root.findall(".//BackUp") == []
+    assert through_poses_root.find(".//ComputePathThroughPoses") is not None
+    rate_controller = to_pose_root.find(".//RateController")
     assert rate_controller is not None
     assert rate_controller.attrib["hz"] == "5.0"
 

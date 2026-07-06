@@ -112,6 +112,11 @@ def generate_launch_description():
         'behavior_trees',
         'navigate_to_pose_w_replanning_5hz_no_motion_recovery.xml',
     )
+    corridor_no_recovery_through_poses_bt_xml = os.path.join(
+        bringup_share,
+        'behavior_trees',
+        'navigate_through_poses_w_replanning_5hz_no_motion_recovery.xml',
+    )
 
     route_file_arg = DeclareLaunchArgument(
         'route_file',
@@ -144,6 +149,7 @@ def generate_launch_description():
             'pgo_extra_params_file': pgo_corridor_override_file,
             'nav2_params_file': corridor_nav2_params,
             'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml,
+            'nav_through_poses_bt_xml': corridor_no_recovery_through_poses_bt_xml,
         }.items(),
     )
 

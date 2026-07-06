@@ -650,13 +650,6 @@ public:
     {
         if (!syncPackage())
             return;
-        RCLCPP_INFO_THROTTLE(
-            this->get_logger(),
-            *this->get_clock(),
-            5000,
-            "Processing sync package: %zu IMU samples, %zu LIDAR points",
-            m_package.imus.size(),
-            m_package.cloud->size());
 
         if (m_package.imus.size() < static_cast<size_t>(m_builder_config.min_imu_samples_per_lidar))
         {
@@ -669,6 +662,14 @@ public:
                 m_builder_config.min_imu_samples_per_lidar);
             return;
         }
+
+        RCLCPP_INFO_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            5000,
+            "Processing sync package: %zu IMU samples, %zu LIDAR points",
+            m_package.imus.size(),
+            m_package.cloud->size());
         
         if (m_log_file.is_open()) {
             auto ros_time = this->now();

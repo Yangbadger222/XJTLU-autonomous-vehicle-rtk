@@ -218,12 +218,14 @@
     odom_watchdog_step_abort_m: 1.0
     # 连续多少次 warning 后直接 abort。
     odom_watchdog_warn_count_abort: 3
-    # 连续多少次 TF stale 后直接 abort。
+    # 连续多少次 TF stale 后进入 abort 判定。
     odom_watchdog_tf_stale_abort_count: 3
+    # TF stale 连续持续超过该时间才 abort，避免 LIO 短空窗导致刚发目标就失败。
+    odom_watchdog_tf_stale_abort_s: 3.0
     # watchdog 检查周期。
     odom_watchdog_monitor_period_s: 0.1
     # TF pose 最大允许年龄；旧 TF 不用于 route_start / subgoal / watchdog，避免缓存旧位姿发目标。
-    tf_pose_max_age_s: 0.75
+    tf_pose_max_age_s: 3.0
     # 已下发 subgoal 若因 live alignment 飘移而偏移超阈值，则 preempt 并重算。
     alignment_shift_cancel_threshold_m: 0.5
     # alignment shift 触发 preempt 后的冷却时间，避免 GPS 抖动导致高频重发 goal。

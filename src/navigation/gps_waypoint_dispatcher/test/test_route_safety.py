@@ -4,6 +4,7 @@ from pathlib import Path
 from gps_waypoint_dispatcher.route_safety import (
     summarize_map_gps_consistency,
     summarize_tf_freshness,
+    summarize_tf_watchdog_gap,
 )
 
 
@@ -59,4 +60,30 @@ def test_route_runner_uses_tf_freshness_gate_before_pose_use():
 
     assert "tf_pose_max_age_s" in text
     assert "summarize_tf_freshness" in text
+    assert "odom_watchdog_tf_stale_abort_s" in text
+    assert "summarize_tf_watchdog_gap" in text
     assert "TF_STALE" in text
+
+
+def test_tf_watchdog_waits_for_stale_grace_duration():
+    summary = summarize_tf_watchdog_gap(
+        stale_count=3,
+        stale_elapsed_s=0.3,
+        abort_count=3,
+        abort_after_s=2.0,
+    )
+
+    assert summary.abort is False
+    assert summary.reason is None
+
+
+def test_tf_watchdog_aborts_after_count_and_grace_duration():
+    summary = summarize_tf_watchdog_gap(
+        stale_count=3,
+        stale_elapsed_s=2.1,
+        abort_count=3,
+        abort_after_s=2.0,
+    )
+
+    assert summary.abort is True
+    assert summary.reason == "TF_STALE_2.10s"

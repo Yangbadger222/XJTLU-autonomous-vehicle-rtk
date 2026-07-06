@@ -74,9 +74,20 @@ def test_corridor_runtime_rejects_low_imu_fastlio_packages():
     assert "Dropping LIDAR package with only" in lio_text
     assert "m_builder->process(m_package)" in lio_text
     assert lio_text.index("Dropping LIDAR package with only") < lio_text.index(
+        "Processing sync package"
+    )
+    assert lio_text.index("Dropping LIDAR package with only") < lio_text.index(
         "m_builder->process(m_package)"
     )
     assert "min_imu_samples_per_lidar: 3" in params_text
+
+
+def test_corridor_tf_watchdog_allows_short_fastlio_gaps():
+    params_text = MASTER_PARAMS.read_text(encoding="utf-8")
+
+    assert "odom_watchdog_tf_stale_abort_count: 3" in params_text
+    assert "odom_watchdog_tf_stale_abort_s: 3.0" in params_text
+    assert "tf_pose_max_age_s: 3.0" in params_text
 
 
 def test_pgo_and_fastlio_logging_default_to_quiet_when_switch_is_missing():

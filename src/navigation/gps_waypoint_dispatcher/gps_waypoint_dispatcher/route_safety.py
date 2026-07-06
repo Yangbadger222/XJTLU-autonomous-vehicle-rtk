@@ -17,6 +17,12 @@ class TfFreshnessSummary:
     age_s: float
 
 
+@dataclass(frozen=True)
+class TfWatchdogGapSummary:
+    abort: bool
+    reason: str | None
+
+
 def summarize_map_gps_consistency(
     map_xy: tuple[float, float],
     gps_map_xy: tuple[float, float],
@@ -36,4 +42,21 @@ def summarize_tf_freshness(now_s: float, stamp_s: float, max_age_s: float) -> Tf
     return TfFreshnessSummary(
         ok=math.isfinite(age_s) and age_s >= -0.1 and age_s <= max_age_s,
         age_s=age_s,
+    )
+
+
+def summarize_tf_watchdog_gap(
+    stale_count: int,
+    stale_elapsed_s: float,
+    abort_count: int,
+    abort_after_s: float,
+) -> TfWatchdogGapSummary:
+    should_abort = (
+        stale_count >= abort_count
+        and math.isfinite(stale_elapsed_s)
+        and stale_elapsed_s >= abort_after_s
+    )
+    return TfWatchdogGapSummary(
+        abort=should_abort,
+        reason=("TF_STALE_%.2fs" % stale_elapsed_s) if should_abort else None,
     )

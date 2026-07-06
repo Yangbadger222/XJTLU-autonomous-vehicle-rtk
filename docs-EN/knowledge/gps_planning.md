@@ -281,7 +281,8 @@ Therefore:
    - Wait for a stable `/fix`
    - Check whether the current startup point is within `startup_gps_tolerance_m`
    - Wait for the `navigate_to_pose` action server and the core Nav2 lifecycle nodes (`controller_server`, `planner_server`, `behavior_server`, `bt_navigator`) to report `active`
-   - Read the current `map -> base_link`; transforms older than `tf_pose_max_age_s` are ignored so a cached startup pose cannot be used as the live Nav2 pose
+   - Read the current `map -> base_link`; transforms older than `tf_pose_max_age_s` (3.0s in corridor runtime) are ignored so a cached startup pose cannot be used as the live Nav2 pose
+   - During a sent subgoal, short FAST-LIO2 TF gaps are tolerated; `odom_watchdog_tf_stale_abort_s` requires the TF stale condition to persist before canceling Nav2
    - Compare `map -> base_link` with the current RTK `/fix` projected into `map`; abort if the divergence exceeds `map_gps_divergence_abort_m`
    - Generate `goal_map` using `body_vector_m`
    - Split the corridor into multiple subgoals by `segment_length_m` (default 30m, based on global costmap radius 35m - 5m buffer)

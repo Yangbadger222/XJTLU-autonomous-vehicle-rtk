@@ -29,6 +29,7 @@ from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
 from gps_waypoint_dispatcher.route_safety import (
     summarize_map_gps_consistency,
     summarize_tf_freshness,
+    summarize_tf_watchdog_gap,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
@@ -103,8 +104,9 @@ class GPSRouteRunner(Node):
         self.declare_parameter("odom_watchdog_step_abort_m", 1.0)
         self.declare_parameter("odom_watchdog_warn_count_abort", 3)
         self.declare_parameter("odom_watchdog_tf_stale_abort_count", 3)
+        self.declare_parameter("odom_watchdog_tf_stale_abort_s", 3.0)
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
-        self.declare_parameter("tf_pose_max_age_s", 0.75)
+        self.declare_parameter("tf_pose_max_age_s", 3.0)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
         self.declare_parameter("map_gps_divergence_warn_m", 2.0)
@@ -135,6 +137,9 @@ class GPSRouteRunner(Node):
         )
         self._odom_watchdog_tf_stale_abort_count = int(
             self.get_parameter("odom_watchdog_tf_stale_abort_count").value
+        )
+        self._odom_watchdog_tf_stale_abort_s = float(
+            self.get_parameter("odom_watchdog_tf_stale_abort_s").value
         )
         self._odom_watchdog_monitor_period_s = float(
             self.get_parameter("odom_watchdog_monitor_period_s").value
@@ -752,6 +757,7 @@ class GPSRouteRunner(Node):
         last_pose_mono = time.monotonic()
         warning_count = 0
         tf_stale_count = 0
+        tf_stale_started_mono: float | None = None
 
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=self._odom_watchdog_monitor_period_s)
@@ -788,17 +794,27 @@ class GPSRouteRunner(Node):
             current_pose = self._try_lookup_current_pose(timeout_s=0.05)
             now_mono = time.monotonic()
             if current_pose is None:
+                if tf_stale_started_mono is None:
+                    tf_stale_started_mono = now_mono
                 tf_stale_count += 1
-                if tf_stale_count >= self._odom_watchdog_tf_stale_abort_count:
+                stale_elapsed_s = now_mono - tf_stale_started_mono
+                gap = summarize_tf_watchdog_gap(
+                    stale_count=tf_stale_count,
+                    stale_elapsed_s=stale_elapsed_s,
+                    abort_count=self._odom_watchdog_tf_stale_abort_count,
+                    abort_after_s=self._odom_watchdog_tf_stale_abort_s,
+                )
+                if gap.abort:
                     return self._abort_goal_with_watchdog(
                         goal_handle,
                         waypoint_name,
                         subgoal_index,
-                        "TF_STALE",
+                        gap.reason or "TF_STALE",
                     )
                 continue
 
             tf_stale_count = 0
+            tf_stale_started_mono = None
             if last_pose is None:
                 last_pose = current_pose
                 last_pose_mono = now_mono

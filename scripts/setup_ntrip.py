@@ -19,6 +19,7 @@ def test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0):
         s.settimeout(timeout_sec)
         s.connect((host, port))
         
+        # If mountpoint is empty, request the root directory to fetch the sourcetable
         req = f"GET /{mountpoint} HTTP/1.0\r\n"
         req += "User-Agent: NTRIP Client/1.0\r\n"
         auth = base64.b64encode(f"{username}:{password}".encode()).decode()
@@ -31,6 +32,11 @@ def test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0):
         
         if "ICY 200 OK" in resp or "HTTP/1.1 200 OK" in resp:
             return True, "Success"
+        elif "SOURCETABLE 200 OK" in resp:
+            if not mountpoint:
+                return True, "Success (Caster alive, sourcetable retrieved)"
+            else:
+                return False, f"Server returned sourcetable. Mountpoint '{mountpoint}' might not exist on this caster."
         elif "401 Unauthorized" in resp:
             return False, "Unauthorized (check username/password)"
         elif "404 Not Found" in resp:
@@ -78,7 +84,7 @@ def main():
             sys.exit(1)
             
         print(f"Current User: {username}")
-        print(f"Server: {cfg['host']}:{cfg['port']} (Mountpoint: {cfg['mountpoint']})")
+        print(f"Server: {cfg['host']}:{cfg['port']} (Mountpoint: {cfg['mountpoint'] if cfg['mountpoint'] else '[None/Sourcetable]'})")
         
         success, msg = test_ntrip(cfg['host'], cfg['port'], cfg['mountpoint'], username, password, timeout_sec=1.0)
         if success:
@@ -104,11 +110,9 @@ def main():
         port_in = input("2. Port [Press Enter for 8002]: ").strip()
         port = int(port_in) if port_in else 8002
         
-        mountpoint = input("3. Mountpoint (e.g., RTCM32_GRECJ2): ").strip()
+        mountpoint = input("3. Mountpoint (e.g., RTCM32_GRECJ2) [Optional]: ").strip()
         
         username = input("4. Username: ").strip()
-        
-        # Using standard input instead of getpass so you can verify you pasted correctly
         password = input("5. Password: ").strip()
 
         # Save the server configuration
@@ -148,7 +152,7 @@ def main():
 
     # Fallback if username/password aren't populated yet
     if not username or not password:
-        print(f"\nConnecting to {host}:{port} (Mountpoint: {mountpoint})")
+        print(f"\nConnecting to {host}:{port} (Mountpoint: {mountpoint if mountpoint else '[None]'})")
         username = input("Username: ").strip()
         password = getpass.getpass("Password: ").strip()
 
@@ -159,7 +163,7 @@ def main():
     success, msg = test_ntrip(host, port, mountpoint, username, password, timeout_sec=5.0)
     
     if success:
-        print("✅ Connection test successful!")
+        print(f"✅ Connection test successful! ({msg})")
         # Save working credentials
         with open(CRED_CACHE, 'w') as f:
             json.dump({'username': username, 'password': password}, f)
@@ -202,10 +206,6 @@ def main():
         yaml.safe_dump(out_params, f, default_flow_style=False)
         
     print(f"✅ Created parameter file at {OUT_PARAMS_FILE}")
-
-    # --- Generate bash exports ---
-    with open(ENV_FILE, "w") as f:
-        f.write(f"export FYP_RTK_PARAMS_FILE='{OUT_PARAMS_FILE}'\n")
 
 if __name__ == "__main__":
     main()

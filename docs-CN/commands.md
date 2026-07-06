@@ -531,10 +531,10 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-检查 corridor 自动录包里是否包含 RTK 诊断话题：
+检查 corridor 自动录包里是否包含 RTK 与 FAST-LIO2 诊断话题：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 说明：
@@ -545,7 +545,8 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 - 子目标间距默认 30m（基于 global costmap 半径 35m - 5m buffer），采集时自动写入路线文件
 - 运行时不会再弹出 menu，也不会等待额外命令
 - wrapper 会把日志和 bag 写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`，用于复盘双天线航向和 RTK 质量
+- corridor 当前通过 launch-time `RewrittenYaml` 使用 RTK 验收低速档：`vx_max=0.45`、`wz_max=0.65`、`ax_max=0.45`、`controller_frequency=15Hz`，避免首次户外 RTK 验证直接使用 Explore 的 `1.0m/s` 激进控制上限
+- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`、`/livox/lidar`、`/livox/imu`、`/fastlio2/body_cloud`，用于复盘双天线航向、RTK 质量和 FAST-LIO2 点云/IMU 同步
 - 启动阶段若当前 `/fix` 与 `start_ref` 偏差超限，`gps_route_runner` 会直接 abort，不动车
 - **Ctrl+C 会自动清理全部节点、ros2 daemon、串口占用**，无需手动 `make kill-runtime`
 

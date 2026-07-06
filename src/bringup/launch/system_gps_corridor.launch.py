@@ -8,6 +8,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
@@ -15,6 +16,29 @@ def generate_launch_description():
     master_params_file = os.path.join(bringup_share, 'config', 'master_params.yaml')
     pgo_corridor_override_file = os.path.join(
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
+    )
+    nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
+    corridor_nav2_params = RewrittenYaml(
+        source_file=nav2_explore_params_file,
+        param_rewrites={
+            "controller_server.ros__parameters.controller_frequency": "15.0",
+            "controller_server.ros__parameters.FollowPath.batch_size": "500",
+            "controller_server.ros__parameters.FollowPath.vx_std": "0.14",
+            "controller_server.ros__parameters.FollowPath.wz_std": "0.14",
+            "controller_server.ros__parameters.FollowPath.vx_max": "0.45",
+            "controller_server.ros__parameters.FollowPath.wz_max": "0.65",
+            "controller_server.ros__parameters.FollowPath.ax_max": "0.45",
+            "controller_server.ros__parameters.FollowPath.ax_min": "-0.8",
+            "controller_server.ros__parameters.FollowPath.az_max": "2.0",
+            "velocity_smoother.ros__parameters.max_velocity.0": "0.45",
+            "velocity_smoother.ros__parameters.max_velocity.2": "0.65",
+            "velocity_smoother.ros__parameters.min_velocity.2": "-0.65",
+            "velocity_smoother.ros__parameters.max_accel.0": "0.45",
+            "velocity_smoother.ros__parameters.max_accel.2": "1.4",
+            "velocity_smoother.ros__parameters.max_decel.0": "-0.8",
+            "velocity_smoother.ros__parameters.max_decel.2": "-1.8",
+        },
+        convert_types=True,
     )
 
     route_file_arg = DeclareLaunchArgument(
@@ -46,6 +70,7 @@ def generate_launch_description():
             'use_rviz': LaunchConfiguration('use_rviz'),
             'master_params_file': master_params_file,
             'pgo_extra_params_file': pgo_corridor_override_file,
+            'nav2_params_file': corridor_nav2_params,
         }.items(),
     )
 
@@ -121,7 +146,10 @@ def generate_launch_description():
             '/heading',
             '/rtk/status',
             '/rtk/nmea_sentence',
+            '/livox/lidar',
+            '/livox/imu',
             '/fastlio2/lio_odom',
+            '/fastlio2/body_cloud',
             '/tf',
             '/tf_static',
             '/gps_corridor/status',

@@ -22,9 +22,9 @@
 - `max_accel: [1.2, 0.0, 6.0]`
 - 原因: 已确认闭环接入现阶段不稳定，继续使用开环是当前真实配置
 
-## 4. Explore / Corridor 主模式当前控制器（2026-04-15 更新）
+## 4. Explore / Corridor 主模式当前控制器（2026-07-06 更新）
 
-Explore 和 Corridor 模式已统一使用 MPPI 控制器（`nav2_explore.yaml`）：
+Explore 模式使用 `nav2_explore.yaml` 的 MPPI 主线配置：
 
 - `plugin: nav2_mppi_controller::MPPIController`
 - `time_steps: 48`，`model_dt: 0.05`（前向仿真 2.4s）
@@ -37,7 +37,17 @@ Explore 和 Corridor 模式已统一使用 MPPI 控制器（`nav2_explore.yaml`�
 - `yaw_goal_tolerance: 6.28`（实质上禁用朝向检查）
 - 仍保留 2026-04-05 收口的 `5 Hz` 全局重规划、A* 搜索和 5 级恢复行为
 
-历史 DWB 配置已不再使用，仅保留在 `nav2_gps.yaml` 和 `nav2_travel.yaml` 中。
+Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会通过 launch-time `RewrittenYaml` 注入 RTK 首次室外验收低速 profile：
+
+- `controller_frequency: 15.0`
+- `batch_size: 500`
+- `vx_max: 0.45`，`wz_max: 0.65`，`ax_max: 0.45`，`ax_min: -0.8`，`az_max: 2.0`
+- `vx_std: 0.14`，`wz_std: 0.14`
+- `velocity_smoother.max_velocity: [0.45, 0.0, 0.65]`
+- `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
+- `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
+
+原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
 
 ## 4b. 2026-04-05 走廊高速基线（历史记录）
 
@@ -137,14 +147,15 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 - 保持现有 DWB / costmap 主结构不动
 - 不在 GPS MVP 分支中顺手引入 MPPI、VoxelLayer 等更大变更
 
-## 7. 当前运行注意事项（2026-04）
+## 7. 当前运行注意事项（2026-07）
 
 1. RViz 的 fixed frame 必须设为 `map`。
 2. 如果 `map -> odom` 没建立，即使 Livox 和 FAST-LIO2 在跑，RViz 也可能表现为空白或 costmap 不显示。
-3. Explore 和 Corridor 模式已统一使用 MPPI 控制器（commit `9d71823`）。
-4. `velocity_smoother.max_velocity[0]` 当前为 `1.0`，对应 2026-04-15 吸收的抗推头 baseline。
-5. `nav2_gps.yaml` 仍使用 DWB 控制器，独立于 Explore/Corridor。
+3. Explore 使用 MPPI 主线 baseline；Corridor 通过 launch-time `RewrittenYaml` 使用 RTK 低速验收 profile。
+4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.45`。
+5. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
 6. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
+7. Corridor rosbag 需要记录 `/rtk/status`、`/fix`、`/heading`、`/fastlio2/lio_odom`、`/livox/lidar`、`/livox/imu` 和 `/fastlio2/body_cloud`，用于区分 RTK 质量、控制器输出和 LIO 退化。
 
 ## 8. 航点系统
 

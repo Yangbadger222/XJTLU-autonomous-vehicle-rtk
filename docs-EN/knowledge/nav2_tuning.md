@@ -22,9 +22,9 @@
 - `max_accel: [1.2, 0.0, 6.0]`
 - Reason: Closed-loop integration has been confirmed unstable at this stage; continuing with open-loop is the current real configuration
 
-## 4. Explore / Corridor Main Mode Current Controller (Updated 2026-04-15)
+## 4. Explore / Corridor Main Mode Current Controller (Updated 2026-07-06)
 
-Explore and Corridor modes are now unified under the MPPI controller (`nav2_explore.yaml`):
+Explore mode uses the main MPPI configuration from `nav2_explore.yaml`:
 
 - `plugin: nav2_mppi_controller::MPPIController`
 - `time_steps: 48`, `model_dt: 0.05` (forward simulation 2.4s)
@@ -37,7 +37,17 @@ Explore and Corridor modes are now unified under the MPPI controller (`nav2_expl
 - `yaw_goal_tolerance: 6.28` (effectively disables heading check)
 - The `5 Hz` global replanning, A* search, and 5-level recovery stack introduced on 2026-04-05 remain active
 
-Historical DWB configuration is no longer used, only retained in `nav2_gps.yaml` and `nav2_travel.yaml`.
+Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py` injects an RTK first-outdoor-acceptance low-speed profile through launch-time `RewrittenYaml`:
+
+- `controller_frequency: 15.0`
+- `batch_size: 500`
+- `vx_max: 0.45`, `wz_max: 0.65`, `ax_max: 0.45`, `ax_min: -0.8`, `az_max: 2.0`
+- `vx_std: 0.14`, `wz_std: 0.14`
+- `velocity_smoother.max_velocity: [0.45, 0.0, 0.65]`
+- `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
+- `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
+
+Reason: the 2026-07-06 RTK corridor vehicle log showed RTK stayed at `RTK Fixed q=4`, but the trajectory drifted right and `/fastlio2/lio_odom` jumped by about `1.18m/0.19s`. The low-speed profile reduces first-pass RTK acceptance risk from right drift, excessive angular velocity, and FAST-LIO2 degeneration. Historical DWB configuration is no longer the Explore/Corridor mainline; `nav2_gps.yaml` and `nav2_travel.yaml` remain independent configurations.
 
 ## 4b. 2026-04-05 Corridor High-Speed Baseline (Historical Record)
 
@@ -137,14 +147,15 @@ Tuning principles:
 - Keep the existing DWB / costmap main structure unchanged
 - Do not introduce larger changes like MPPI or VoxelLayer in the GPS MVP branch
 
-## 7. Current Operational Notes (2026-04)
+## 7. Current Operational Notes (2026-07)
 
 1. RViz fixed frame must be set to `map`.
 2. If `map -> odom` is not established, even with Livox and FAST-LIO2 running, RViz may appear blank or the costmap may not display.
-3. Explore and Corridor modes are now unified under the MPPI controller (commit `9d71823`).
-4. `velocity_smoother.max_velocity[0]` is now `1.0`, matching the anti-understeering baseline absorbed on 2026-04-15.
-5. `nav2_gps.yaml` still uses the DWB controller, independent of Explore/Corridor.
+3. Explore uses the MPPI mainline baseline; Corridor uses the RTK low-speed acceptance profile through launch-time `RewrittenYaml`.
+4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.45` in Corridor.
+5. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
 6. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
+7. Corridor rosbags should record `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` so RTK quality, controller output, and LIO degeneration can be separated during debugging.
 
 ## 8. Waypoint System
 

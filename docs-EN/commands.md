@@ -531,10 +531,10 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-Check whether the automatic corridor bag contains RTK diagnostic topics:
+Check whether the automatic corridor bag contains RTK and FAST-LIO2 diagnostic topics:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 Notes:
@@ -545,7 +545,8 @@ Notes:
 - Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- The corridor bag records `/heading`, `/rtk/status`, and `/rtk/nmea_sentence` for reviewing dual-antenna heading and RTK quality
+- Corridor currently uses a launch-time `RewrittenYaml` RTK-acceptance low-speed profile: `vx_max=0.45`, `wz_max=0.65`, `ax_max=0.45`, and `controller_frequency=15Hz`, so first outdoor RTK validation does not run with Explore's aggressive `1.0m/s` control limit
+- The corridor bag records `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` for reviewing dual-antenna heading, RTK quality, and FAST-LIO2 point-cloud/IMU synchronization
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`
 

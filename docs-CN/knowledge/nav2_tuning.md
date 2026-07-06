@@ -155,7 +155,7 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.45`。
 5. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
 6. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
-7. Corridor rosbag 需要记录 `/rtk/status`、`/fix`、`/heading`、`/fastlio2/lio_odom`、`/livox/lidar`、`/livox/imu` 和 `/fastlio2/body_cloud`，用于区分 RTK 质量、控制器输出和 LIO 退化。
+7. Corridor rosbag 默认使用 lean profile，记录 `/rtk/status`、`/fix`、`/heading`、`/fastlio2/lio_odom`、TF、corridor 状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/livox/imu`、`/fastlio2/body_cloud` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
 
 ## 8. 航点系统
 

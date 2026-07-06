@@ -155,7 +155,7 @@ Tuning principles:
 4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.45` in Corridor.
 5. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
 6. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-7. Corridor rosbags should record `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` so RTK quality, controller output, and LIO degeneration can be separated during debugging.
+7. Corridor rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
 
 ## 8. Waypoint System
 

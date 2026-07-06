@@ -531,10 +531,17 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-检查 corridor 自动录包里是否包含 RTK 与 FAST-LIO2 诊断话题：
+检查 corridor 默认自动录包里是否包含轻量 RTK / FAST-LIO2 / Nav2 诊断话题：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
+```
+
+如果需要回放原始 Livox 数据，启动前显式切到更重的 debug bag profile：
+
+```bash
+FYP_CORRIDOR_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 说明：
@@ -546,7 +553,8 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 - 运行时不会再弹出 menu，也不会等待额外命令
 - wrapper 会把日志和 bag 写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
 - corridor 当前启动时会从 `nav2_explore.yaml` 生成临时 Nav2 参数文件并使用 RTK 验收低速档：`vx_max=0.45`、`wz_max=0.65`、`ax_max=0.45`、`controller_frequency=20Hz`、`batch_size=500`，避免首次户外 RTK 验证直接使用 Explore 的 `1.0m/s` 激进控制上限；MPPI 的 `model_dt=0.05s` 要求控制周期不能大于模型步长，因此不能降到 `15Hz`
-- corridor bag 会记录 `/heading`、`/rtk/status`、`/rtk/nmea_sentence`、`/livox/lidar`、`/livox/imu`、`/fastlio2/body_cloud`，用于复盘双天线航向、RTK 质量和 FAST-LIO2 点云/IMU 同步
+- corridor 默认使用 lean bag profile，记录 RTK、FAST-LIO2 odom、TF、corridor 状态、目标、costmap、`/cmd_vel` 和 `/plan`；原始 Livox 点云、Livox IMU 与 `/fastlio2/body_cloud` 仅在 `FYP_CORRIDOR_BAG_PROFILE=debug` 时记录
+- Livox 逐包 console/CSV 日志默认关闭。只有短时间台架诊断时才使用 `LIVOX_VERBOSE_PACKET_LOGS=1`，因为它会逐包打印并 flush。
 - 启动阶段若当前 `/fix` 与 `start_ref` 偏差超限，`gps_route_runner` 会直接 abort，不动车
 - **Ctrl+C 会自动清理全部节点、ros2 daemon、串口占用**，无需手动 `make kill-runtime`
 

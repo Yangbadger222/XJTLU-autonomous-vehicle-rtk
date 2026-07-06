@@ -1,8 +1,10 @@
 from pathlib import Path
+import re
 
 
 EXPLORE_LAUNCH = Path("src/bringup/launch/system_explore.launch.py")
 CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
+LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -26,9 +28,36 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     assert "'nav2_params_file': corridor_nav2_params" in text
 
 
-def test_corridor_bag_records_raw_livox_and_fastlio_diagnostics():
+def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
-    assert "'/livox/lidar'," in text
-    assert "'/livox/imu'," in text
-    assert "'/fastlio2/body_cloud'," in text
+    base_topics = re.search(
+        r"_CORRIDOR_BAG_BASE_TOPICS = \[(?P<topics>.*?)\]",
+        text,
+        re.DOTALL,
+    ).group("topics")
+    debug_topics = re.search(
+        r"_CORRIDOR_BAG_DEBUG_TOPICS = \[(?P<topics>.*?)\]",
+        text,
+        re.DOTALL,
+    ).group("topics")
+
+    assert "FYP_CORRIDOR_BAG_PROFILE" in text
+    assert "def _corridor_bag_topics" in text
+    assert "'/fastlio2/lio_odom'," in base_topics
+    assert "'/livox/lidar'," not in base_topics
+    assert "'/livox/imu'," not in base_topics
+    assert "'/fastlio2/body_cloud'," not in base_topics
+    assert "'/livox/lidar'," in debug_topics
+    assert "'/livox/imu'," in debug_topics
+    assert "'/fastlio2/body_cloud'," in debug_topics
+
+
+def test_livox_packet_logging_is_explicitly_opt_in():
+    text = LIVOX_LDDC.read_text(encoding="utf-8")
+
+    assert "LIVOX_VERBOSE_PACKET_LOGS" in text
+    assert "livoxVerbosePacketLogsEnabled()" in text
+    assert "enabling by default" not in text
+    assert "Default to quiet" in text
+    assert text.count("if (livoxVerbosePacketLogsEnabled())") >= 3

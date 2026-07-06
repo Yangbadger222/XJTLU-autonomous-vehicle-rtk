@@ -5,11 +5,56 @@ from datetime import datetime
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, Shutdown, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    LogInfo,
+    Shutdown,
+    TimerAction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+
+
+_CORRIDOR_BAG_BASE_TOPICS = [
+    '/fix',
+    '/heading',
+    '/rtk/status',
+    '/rtk/nmea_sentence',
+    '/fastlio2/lio_odom',
+    '/tf',
+    '/tf_static',
+    '/gps_corridor/status',
+    '/gps_corridor/alignment_status',
+    '/gps_corridor/alignment_debug',
+    '/gps_corridor/calibration_request',
+    '/gps_corridor/calibration_status',
+    '/gps_corridor/enu_to_map',
+    '/gps_corridor/pgo_enu_to_map',
+    '/gps_corridor/goal_map',
+    '/gps_corridor/path_map',
+    '/cmd_vel',
+    '/local_costmap/costmap',
+    '/global_costmap/costmap',
+    '/plan',
+]
+
+_CORRIDOR_BAG_DEBUG_TOPICS = [
+    '/livox/lidar',
+    '/livox/imu',
+    '/fastlio2/body_cloud',
+]
+
+
+def _corridor_bag_topics(profile):
+    normalized = (profile or 'lean').strip().lower()
+    topics = list(_CORRIDOR_BAG_BASE_TOPICS)
+    if normalized in {'debug', 'full', 'raw'}:
+        topics.extend(_CORRIDOR_BAG_DEBUG_TOPICS)
+    return topics
 
 
 def _make_corridor_nav2_params(source_file):
@@ -148,6 +193,7 @@ def generate_launch_description():
         )
     bag_dir = os.path.join(session_root, 'bag')
     os.makedirs(session_root, exist_ok=True)
+    bag_profile = os.environ.get('FYP_CORRIDOR_BAG_PROFILE', 'lean')
 
     bag_record = ExecuteProcess(
         cmd=[
@@ -156,30 +202,7 @@ def generate_launch_description():
             'record',
             '--output',
             bag_dir,
-            '/fix',
-            '/heading',
-            '/rtk/status',
-            '/rtk/nmea_sentence',
-            '/livox/lidar',
-            '/livox/imu',
-            '/fastlio2/lio_odom',
-            '/fastlio2/body_cloud',
-            '/tf',
-            '/tf_static',
-            '/gps_corridor/status',
-            '/gps_corridor/alignment_status',
-            '/gps_corridor/alignment_debug',
-            '/gps_corridor/calibration_request',
-            '/gps_corridor/calibration_status',
-            '/gps_corridor/enu_to_map',
-            '/gps_corridor/pgo_enu_to_map',
-            '/gps_corridor/goal_map',
-            '/gps_corridor/path_map',
-            '/cmd_vel',
-            '/local_costmap/costmap',
-            '/global_costmap/costmap',
-            '/plan',
-        ],
+        ] + _corridor_bag_topics(bag_profile),
         output='log',
     )
 
@@ -199,6 +222,7 @@ def generate_launch_description():
         use_rviz_arg,
         explore_launch,
         rtk_launch,
+        LogInfo(msg=f'Corridor bag profile: {bag_profile}'),
         bag_record,
         delayed_aligner,
         delayed_runner,

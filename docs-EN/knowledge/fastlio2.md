@@ -37,6 +37,8 @@ FAST-LIO2 now drops a LiDAR frame before the IESKF update when its synchronized 
 
 Reason: the 2026-07-06 21:02 corridor bag showed the robot stationary while FAST-LIO2 processed packages such as `0 IMU samples, 925 LIDAR points` and `1 IMU samples, 1086 LIDAR points`; the odom then jumped tens of meters before Nav2 received the route goal. Dropping under-constrained LiDAR frames is safer than allowing a bad IMU/LiDAR sync window to advance the filter.
 
+The guard has a second layer for low-feature outdoor startup: if the IESKF update has no valid LiDAR correction, FAST-LIO2 restores the pre-prediction state, skips incremental map insertion, and does not publish TF/odom for that frame. This prevents IMU-only prediction from being exposed as a valid localization estimate when the LiDAR matcher reports `NO Effective Points`.
+
 ## 1. Odom (Odometry) Data Interpretation
 
 The odom output from FASTLIO2 (`nav_msgs/Odometry`) contains two core data components:

@@ -80,7 +80,7 @@ class IESKF
 
         void predict(const Input &inp, double dt, const M12D &Q);
 
-        void update();
+        bool update();
 
         State &x() { return m_x; }
 

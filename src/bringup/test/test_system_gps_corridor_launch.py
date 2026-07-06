@@ -82,6 +82,27 @@ def test_corridor_runtime_rejects_low_imu_fastlio_packages():
     assert "min_imu_samples_per_lidar: 3" in params_text
 
 
+def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():
+    map_builder_text = Path("src/perception/fastlio2/src/map_builder/map_builder.cpp").read_text(
+        encoding="utf-8"
+    )
+    lidar_text = Path("src/perception/fastlio2/src/map_builder/lidar_processor.cpp").read_text(
+        encoding="utf-8"
+    )
+    ieskf_text = Path("src/perception/fastlio2/src/map_builder/ieskf.cpp").read_text(
+        encoding="utf-8"
+    )
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+
+    assert "State state_before_prediction = m_kf->x();" in map_builder_text
+    assert "m_kf->x() = state_before_prediction;" in map_builder_text
+    assert "bool LidarProcessor::process" in lidar_text
+    assert "if (!update_valid)" in lidar_text
+    assert "return have_valid_measurement;" in ieskf_text
+    assert "if (!process_accepted)" in lio_text
+    assert "FAST-LIO2 rejected package without valid LiDAR correction" in lio_text
+
+
 def test_corridor_tf_watchdog_allows_short_fastlio_gaps():
     params_text = MASTER_PARAMS.read_text(encoding="utf-8")
 

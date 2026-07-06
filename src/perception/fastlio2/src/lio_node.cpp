@@ -681,13 +681,26 @@ public:
         }
         
         auto t1 = std::chrono::high_resolution_clock::now();
-        m_builder->process(m_package);
+        bool process_accepted = m_builder->process(m_package);
         auto t2 = std::chrono::high_resolution_clock::now();
 
         if (m_node_config.print_time_cost)
         {
             auto time_used = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000;
             RCLCPP_WARN(this->get_logger(), "Time cost: %.2f ms", time_used);
+        }
+
+        if (!process_accepted)
+        {
+            if (m_builder->status() == BuilderStatus::MAPPING)
+            {
+                RCLCPP_WARN_THROTTLE(
+                    this->get_logger(),
+                    *this->get_clock(),
+                    2000,
+                    "FAST-LIO2 rejected package without valid LiDAR correction; not publishing TF/odom");
+            }
+            return;
         }
 
         if (m_builder->status() != BuilderStatus::MAPPING)

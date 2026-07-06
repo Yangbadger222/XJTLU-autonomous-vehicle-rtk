@@ -150,7 +150,7 @@ void LidarProcessor::initCloudMap(PointVec &point_vec)
     m_ikdtree->Build(point_vec);
 }
 
-void LidarProcessor::process(SyncPackage &package)
+bool LidarProcessor::process(SyncPackage &package)
 {
     // m_kf->setLossFunction([&](State &s, SharedState &d)
     //                       { updateLossFunc(s, d); });
@@ -168,8 +168,11 @@ void LidarProcessor::process(SyncPackage &package)
         pcl::copyPointCloud(*package.cloud, *m_cloud_down_lidar);
     }
     trimCloudMap();
-    m_kf->update();
+    bool update_valid = m_kf->update();
+    if (!update_valid)
+        return false;
     incrCloudMap();
+    return true;
 }
 
 void LidarProcessor::updateLossFunc(State &state, SharedState &share_data)

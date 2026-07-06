@@ -14,7 +14,7 @@ class MapBuilder
 public:
     MapBuilder(Config &config, std::shared_ptr<IESKF> kf);
 
-    void process(SyncPackage &package);
+    bool process(SyncPackage &package);
     BuilderStatus status() { return m_status; }    
     std::shared_ptr<LidarProcessor> lidar_processor(){return m_lidar_processor;}
 

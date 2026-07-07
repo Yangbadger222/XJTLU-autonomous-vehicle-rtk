@@ -419,3 +419,14 @@ To address the insufficiency of single-point `start_ref` anchoring, a waypoint p
 | Endpoint accuracy | ~4m (affected by yaw0) | Theoretically higher (depends on aligner quality) |
 | PGO role | Provides map->odom | Loop closure only, no participation in corridor alignment |
 | Real-vehicle status | Baseline retained | Deployed; Nav2 tuning converged; main bottleneck is GPS anchoring + odom divergence |
+
+### 12.7 RTK-Authoritative TF Owner Constraint (2026-07-07)
+
+Corridor runtime must have exactly one `map -> odom` publisher: `rtk_map_odom_corrector`. In this mode PGO may still provide point clouds, keyframes, and diagnostics, but it must not broadcast `map -> odom`; otherwise Nav2 sees `map -> base_link` jumping between two global solutions.
+
+Corridor now passes two PGO overrides:
+
+- `pgo_corridor_no_tf.yaml`: a legacy flat `config_path` override with `publish_tf: false` and `gps.enable: false`.
+- `pgo_corridor_no_gps.yaml`: a ROS parameter override that also disables `publish_tf` / GPS factors and isolates PGO alignment diagnostics on `/gps_corridor/pgo_enu_to_map`.
+
+Field diagnostic rule: if `/rtk/status` stays `q=4` and `/fastlio2/lio_odom` has no large step, but `/tf` shows conflicting `map -> odom` jumps above 0.15m within 30ms, first check for duplicate TF owners or a stale Jetson `install/` tree.

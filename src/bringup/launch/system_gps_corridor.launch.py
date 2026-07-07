@@ -105,6 +105,9 @@ def _make_corridor_nav2_params(source_file):
 def generate_launch_description():
     bringup_share = get_package_share_directory('bringup')
     master_params_file = os.path.join(bringup_share, 'config', 'master_params.yaml')
+    pgo_corridor_config_file = os.path.join(
+        bringup_share, 'config', 'pgo_corridor_no_tf.yaml'
+    )
     pgo_corridor_override_file = os.path.join(
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
@@ -149,6 +152,7 @@ def generate_launch_description():
         launch_arguments={
             'use_rviz': LaunchConfiguration('use_rviz'),
             'master_params_file': master_params_file,
+            'pgo_config_file': pgo_corridor_config_file,
             'pgo_extra_params_file': pgo_corridor_override_file,
             'nav2_params_file': corridor_nav2_params,
             'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml,

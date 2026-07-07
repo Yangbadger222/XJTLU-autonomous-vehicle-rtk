@@ -14,9 +14,11 @@ CORRIDOR_NO_RECOVERY_THROUGH_BT = Path(
 LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
+PGO_LAUNCH = Path("src/perception/pgo_gps_fusion/launch/pgo_launch.py")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
 PGO_CORRIDOR_PARAMS = Path("src/bringup/config/pgo_corridor_no_gps.yaml")
+PGO_CORRIDOR_LEGACY_PARAMS = Path("src/bringup/config/pgo_corridor_no_tf.yaml")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -109,8 +111,11 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
 
 
 def test_corridor_uses_rtk_authoritative_map_odom_owner():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
     corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+    pgo_launch_text = PGO_LAUNCH.read_text(encoding="utf-8")
     pgo_override_text = PGO_CORRIDOR_PARAMS.read_text(encoding="utf-8")
+    pgo_legacy_override_text = PGO_CORRIDOR_LEGACY_PARAMS.read_text(encoding="utf-8")
     master_params_text = MASTER_PARAMS.read_text(encoding="utf-8")
 
     assert "rtk_map_odom_corrector_node" in corridor_text
@@ -118,7 +123,15 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "'/localization_authority/mode'," in corridor_text
     assert "'/localization_authority/status'," in corridor_text
     assert "'/localization_authority/diagnostics'," in corridor_text
+    assert '"pgo_config": LaunchConfiguration("pgo_config_file")' in explore_text
+    assert "'pgo_config_file': pgo_corridor_config_file" in corridor_text
+    assert 'pgo_config = LaunchConfiguration("pgo_config").perform(context).strip()' in pgo_launch_text
+    assert 'pgo_params.append({"config_path": legacy_pgo_config})' in pgo_launch_text
+    assert "extra_params_file = LaunchConfiguration(\"extra_params_file\")" in pgo_launch_text
+    assert "pgo_params.append(extra_params_file)" in pgo_launch_text
     assert "publish_tf: false" in pgo_override_text
+    assert "publish_tf: false" in pgo_legacy_override_text
+    assert "enable: false" in pgo_legacy_override_text
     assert '"gps.enable": false' in pgo_override_text
     assert "allow_yaw_reacquire: true" in master_params_text
     assert "max_yaw_reacquire_jump_deg: 45.0" in master_params_text

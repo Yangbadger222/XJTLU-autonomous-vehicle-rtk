@@ -33,6 +33,9 @@ class AuthorityInputSummary:
     reason: str | None
 
 
+AlignmentTuple = tuple[float, float, float, bool]
+
+
 def normalize_angle(angle: float) -> float:
     return math.atan2(math.sin(angle), math.cos(angle))
 
@@ -93,6 +96,32 @@ def compute_bootstrap_alignment_from_current_pose(
         theta=theta,
         tx=odom_base.x - (cos_theta * enu_x - sin_theta * enu_y),
         ty=odom_base.y - (sin_theta * enu_x + cos_theta * enu_y),
+    )
+
+
+def select_authority_alignment(
+    *,
+    latest_alignment: AlignmentTuple | None,
+    external_alignment_valid: bool,
+    bootstrap_alignment: AlignmentTuple | None,
+) -> tuple[AlignmentTuple | None, bool]:
+    if external_alignment_valid and latest_alignment is not None and latest_alignment[3]:
+        return latest_alignment, True
+    if bootstrap_alignment is not None and bootstrap_alignment[3]:
+        return bootstrap_alignment, False
+    return None, False
+
+
+def should_publish_bootstrap_without_fixed(
+    *,
+    rtk_fixed_ok: bool,
+    using_external_alignment: bool,
+    bootstrap_alignment_valid: bool,
+) -> bool:
+    return (
+        not rtk_fixed_ok
+        and not using_external_alignment
+        and bootstrap_alignment_valid
     )
 
 

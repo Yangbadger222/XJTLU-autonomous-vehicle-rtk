@@ -21,6 +21,8 @@ from gps_waypoint_dispatcher.rtk_authority import (
     compute_rtk_map_base,
     limit_pose_step,
     normalize_angle,
+    select_authority_alignment,
+    should_publish_bootstrap_without_fixed,
     summarize_authority_inputs,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
@@ -311,7 +313,11 @@ class RtkMapOdomCorrector(Node):
             and self._latest_alignment[3]
             and alignment_age_s <= self._max_alignment_age_s
         )
-        alignment = self._latest_alignment if external_alignment_valid else None
+        alignment, using_external_alignment = select_authority_alignment(
+            latest_alignment=self._latest_alignment,
+            external_alignment_valid=external_alignment_valid,
+            bootstrap_alignment=self._bootstrap_alignment,
+        )
         if (
             alignment is None
             and odom_base is not None
@@ -338,6 +344,7 @@ class RtkMapOdomCorrector(Node):
             )
             alignment = self._bootstrap_alignment
             alignment_age_s = 0.0
+            using_external_alignment = False
 
         alignment_valid = alignment is not None and alignment[3]
         summary = summarize_authority_inputs(
@@ -369,7 +376,12 @@ class RtkMapOdomCorrector(Node):
             not self._require_rtk_fixed
             or (self._latest_rtk_fixed and rtk_status_age_s <= self._max_rtk_status_age_s)
         )
-        if not rtk_fixed_ok:
+        publish_bootstrap_without_fixed = should_publish_bootstrap_without_fixed(
+            rtk_fixed_ok=rtk_fixed_ok,
+            using_external_alignment=using_external_alignment,
+            bootstrap_alignment_valid=alignment_valid,
+        )
+        if not rtk_fixed_ok and not publish_bootstrap_without_fixed:
             self._publish_mode_status("RTK_DEGRADED", "NOT_RTK_FIXED")
             self._publish_diagnostics(
                 ok=False,
@@ -454,7 +466,7 @@ class RtkMapOdomCorrector(Node):
         self._publish_tf(output)
         if authority_status == "YAW_REACQUIRE":
             self._publish_mode_status("RTK_AUTHORITATIVE", "YAW_REACQUIRE")
-        elif external_alignment_valid:
+        elif using_external_alignment:
             self._publish_mode_status("RTK_AUTHORITATIVE", "PUBLISHING_MAP_ODOM")
         else:
             self._publish_mode_status("RTK_BOOTSTRAP", "PUBLISHING_BOOTSTRAP_MAP_ODOM")

@@ -8,6 +8,8 @@ from gps_waypoint_dispatcher.rtk_authority import (
     compute_map_to_odom,
     compute_rtk_map_base,
     limit_pose_step,
+    select_authority_alignment,
+    should_publish_bootstrap_without_fixed,
     summarize_authority_inputs,
 )
 
@@ -68,6 +70,33 @@ def test_bootstrap_alignment_maps_current_rtk_pose_to_current_odom_pose():
     assert map_base.x == pytest.approx(odom_base.x)
     assert map_base.y == pytest.approx(odom_base.y)
     assert map_base.yaw == pytest.approx(odom_base.yaw)
+
+
+def test_select_authority_alignment_reuses_bootstrap_when_external_missing():
+    external = (math.radians(10.0), 1.0, 2.0, True)
+    bootstrap = (math.radians(20.0), 3.0, 4.0, True)
+
+    alignment, using_external = select_authority_alignment(
+        latest_alignment=external,
+        external_alignment_valid=False,
+        bootstrap_alignment=bootstrap,
+    )
+
+    assert alignment == bootstrap
+    assert using_external is False
+
+
+def test_bootstrap_tf_can_publish_before_rtk_fixed_for_nav2_startup():
+    assert should_publish_bootstrap_without_fixed(
+        rtk_fixed_ok=False,
+        using_external_alignment=False,
+        bootstrap_alignment_valid=True,
+    )
+    assert not should_publish_bootstrap_without_fixed(
+        rtk_fixed_ok=False,
+        using_external_alignment=True,
+        bootstrap_alignment_valid=True,
+    )
 
 
 def test_limit_pose_step_caps_translation_and_yaw():

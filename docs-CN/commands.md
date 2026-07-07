@@ -761,3 +761,22 @@ ros2 run foxglove_bridge foxglove_bridge
 话题（Topics）未正常渲染（URDF 或点云缺失）：
 - 确保在 **Panel** -> **Topics** 中，话题 `/fastlio2/world_cloud` 和 `/robot_description` 是可见的（点击眼睛图标）。
 - 关闭当前的 Foxglove 会话并重新打开一个，通常可以解决问题。
+
+## `~/.bashrc`
+
+每当在 Jetson 中打开终端（包括 SSH 连接）时，该脚本都会运行。我们对其进行了修改，以包含常用命令并提供机器人当前状态的概述。
+
+该脚本正在 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中进行版本追踪。如需在 Jetson 中进行设置：
+
+1. 将 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中的脚本内容复制到剪贴板中
+2. 在 Jetson 中打开一个终端（SSH 或本地终端均可）
+3. 输入以下命令以使用 Vim 打开 `~/.bashrc`：
+```bash
+vi ~/.bashrc
+```
+4. 打开后，输入 `:%d` 以删除文件中的所有内容
+5. 使用 `Ctrl + V` 将剪贴板中的新脚本粘贴进去
+6. 按 `Esc`，然后输入 `:wq` 保存并退出
+7. 如需进行测试，请打开一个新终端或运行：`source ~/.bashrc`
+
+每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/bashrc.sh](https://www.google.com/search?q=/scripts/bashrc.sh) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。

@@ -757,3 +757,22 @@ Connection too slow:
 Topics not rendering properly (URDF or point cloud missing):
 - Make sure in `Panel` -> `Topics`, the topics `/fastlio2/world_cloud` and `/robot_description` are visible (click on the eye icon)
 - Close the current foxglove session and open another one, it usually fixes itself
+
+## `~/.bashrc`
+
+This script runs whenever a terminal is opened in the jetson (including SSH). We have modified it to include common commands and give us an overview of the robot's current state.
+
+The script is being tracked in [/scripts/bashrc.sh](/scripts/bashrc.sh). To set it up in the Jetson:
+
+1. Copy the script in [/scripts/bashrc.sh](/scripts/bashrc.sh) into your clipboard
+2. Open a terminal in the Jetson (SSH or local are both ok)
+3. Type the following command to open `~/.bashrc` with Vim:
+```bash
+vi ~/.bashrc
+```
+4. After it opens, type `:%d` to delete all contents in the file
+5. Use `Ctrl + V` to paste the new script from your clipboard
+6. Press `Esc`, then `:wq` to write and quit (save and exit)
+7. To test it, open a new terminal or run: `source ~/.bashrc`
+
+Whenever you want to update `~/.bashrc`, modify it first from [/scripts/bashrc.sh](/scripts/bashrc.sh), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.

@@ -203,14 +203,48 @@ class RtkMapOdomCorrector(Node):
         )
 
     def _publish_mode_status(self, mode: str, status: str) -> None:
+        if not rclpy.ok():
+            return
         if mode != self._last_mode:
             self.get_logger().info(mode)
             self._last_mode = mode
         if status != self._last_status:
             self.get_logger().info(status)
             self._last_status = status
-        self._mode_pub.publish(String(data=mode))
-        self._status_pub.publish(String(data=status))
+        self._safe_publish(self._mode_pub, String(data=mode))
+        self._safe_publish(self._status_pub, String(data=status))
+
+    def _is_shutdown_publish_error(self, exc: Exception) -> bool:
+        text = str(exc)
+        return (
+            not rclpy.ok()
+            or "context is invalid" in text
+            or "publisher's context is invalid" in text
+        )
+
+    def _safe_publish(self, publisher, msg) -> bool:
+        if not rclpy.ok():
+            return False
+        try:
+            publisher.publish(msg)
+        except Exception as exc:
+            if self._is_shutdown_publish_error(exc):
+                self.get_logger().debug(f"Ignoring publish during shutdown: {exc}")
+                return False
+            raise
+        return True
+
+    def _safe_send_transform(self, msg: TransformStamped) -> bool:
+        if not rclpy.ok():
+            return False
+        try:
+            self._tf_broadcaster.sendTransform(msg)
+        except Exception as exc:
+            if self._is_shutdown_publish_error(exc):
+                self.get_logger().debug(f"Ignoring publish during shutdown: {exc}")
+                return False
+            raise
+        return True
 
     def _publish_diagnostics(
         self,
@@ -236,7 +270,7 @@ class RtkMapOdomCorrector(Node):
             math.degrees(output.yaw) if output is not None else 0.0,
             1.0 if self._latest_rtk_fixed else 0.0,
         ]
-        self._diagnostics_pub.publish(msg)
+        self._safe_publish(self._diagnostics_pub, msg)
 
     def _publish_tf(self, pose: Pose2D) -> None:
         msg = TransformStamped()
@@ -251,9 +285,11 @@ class RtkMapOdomCorrector(Node):
         msg.transform.rotation.y = qy
         msg.transform.rotation.z = qz
         msg.transform.rotation.w = qw
-        self._tf_broadcaster.sendTransform(msg)
+        self._safe_send_transform(msg)
 
     def _timer_callback(self) -> None:
+        if not rclpy.ok():
+            return
         now_mono = time.monotonic()
         fix_age_s = self._age_s(self._latest_fix_mono, now_mono)
         heading_age_s = self._age_s(self._latest_heading_mono, now_mono)

@@ -165,3 +165,18 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"/localization_authority/diagnostics"' in node_text
     assert "compute_map_to_odom" in node_text
     assert "compute_rtk_map_base" in node_text
+
+
+def test_rtk_map_odom_corrector_is_shutdown_safe():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "def _safe_publish(" in node_text
+    assert "if not rclpy.ok():" in node_text
+    assert "_safe_publish(self._mode_pub" in node_text
+    assert "_safe_publish(self._status_pub" in node_text
+    assert "_safe_publish(self._diagnostics_pub" in node_text
+    assert "Ignoring publish during shutdown" in node_text

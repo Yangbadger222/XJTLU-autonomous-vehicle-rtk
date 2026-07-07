@@ -107,6 +107,47 @@ def test_authority_inputs_accept_current_rtk_authority_source():
     assert summary.reason is None
 
 
+def test_authority_inputs_allow_yaw_reacquire_when_translation_is_safe():
+    summary = summarize_authority_inputs(
+        alignment_valid=True,
+        odom_available=True,
+        fix_age_s=0.2,
+        heading_age_s=0.1,
+        target_jump_m=1.6,
+        target_yaw_jump_rad=math.radians(40.0),
+        max_fix_age_s=1.0,
+        max_heading_age_s=1.0,
+        max_target_jump_m=2.0,
+        max_target_yaw_jump_rad=math.radians(20.0),
+        allow_yaw_reacquire=True,
+        max_yaw_reacquire_jump_rad=math.radians(45.0),
+    )
+
+    assert summary.ok is True
+    assert summary.mode == "RTK_AUTHORITATIVE"
+    assert summary.reason == "YAW_REACQUIRE"
+
+
+def test_authority_inputs_reject_yaw_reacquire_outside_window():
+    summary = summarize_authority_inputs(
+        alignment_valid=True,
+        odom_available=True,
+        fix_age_s=0.2,
+        heading_age_s=0.1,
+        target_jump_m=1.6,
+        target_yaw_jump_rad=math.radians(55.0),
+        max_fix_age_s=1.0,
+        max_heading_age_s=1.0,
+        max_target_jump_m=2.0,
+        max_target_yaw_jump_rad=math.radians(20.0),
+        allow_yaw_reacquire=True,
+        max_yaw_reacquire_jump_rad=math.radians(45.0),
+    )
+
+    assert summary.ok is False
+    assert summary.reason == "TARGET_YAW_JUMP"
+
+
 @pytest.mark.parametrize(
     ("kwargs", "reason"),
     [
@@ -165,6 +206,8 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"/localization_authority/diagnostics"' in node_text
     assert "compute_map_to_odom" in node_text
     assert "compute_rtk_map_base" in node_text
+    assert '"allow_yaw_reacquire"' in node_text
+    assert '"YAW_REACQUIRE"' in node_text
 
 
 def test_rtk_map_odom_corrector_is_shutdown_safe():

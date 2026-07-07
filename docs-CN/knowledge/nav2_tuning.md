@@ -22,7 +22,7 @@
 - `max_accel: [1.2, 0.0, 6.0]`
 - 原因: 已确认闭环接入现阶段不稳定，继续使用开环是当前真实配置
 
-## 4. Explore / Corridor 主模式当前控制器（2026-07-06 更新）
+## 4. Explore / Corridor 主模式当前控制器（2026-07-07 更新）
 
 Explore 模式使用 `nav2_explore.yaml` 的 MPPI 主线配置：
 
@@ -37,19 +37,20 @@ Explore 模式使用 `nav2_explore.yaml` 的 MPPI 主线配置：
 - `yaw_goal_tolerance: 6.28`（实质上禁用朝向检查）
 - 仍保留 2026-04-05 收口的 `5 Hz` 全局重规划、A* 搜索和 5 级恢复行为
 
-Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会在启动时从 `nav2_explore.yaml` 生成临时 Nav2 参数文件，注入 RTK 首次室外验收低速 profile：
+Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` 会在启动时从 `nav2_explore.yaml` 生成临时 Nav2 参数文件，注入 RTK 小步提速与横摆抑制 profile：
 
 - `controller_frequency: 20.0`（保持与 `model_dt=0.05s` 一致；15Hz 会让 MPPI 配置失败）
 - `batch_size: 500`
-- `vx_max: 0.45`，`wz_max: 0.65`，`ax_max: 0.45`，`ax_min: -0.8`，`az_max: 2.0`
-- `vx_std: 0.14`，`wz_std: 0.14`
-- `velocity_smoother.max_velocity: [0.45, 0.0, 0.65]`
-- `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
-- `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
+- `vx_max: 0.55`，`wz_max: 0.50`，`ax_max: 0.55`，`ax_min: -0.9`，`az_max: 1.0`
+- `vx_std: 0.16`，`wz_std: 0.10`
+- `velocity_smoother.max_velocity: [0.55, 0.0, 0.50]`
+- `velocity_smoother.max_accel: [0.55, 0.0, 0.9]`
+- `velocity_smoother.max_decel: [-0.9, 0.0, -1.0]`
 - corridor 通过 launch 注入无 `Spin` / `BackUp` 的 NavigateToPose 与 NavigateThroughPoses BT；`nav2_explore.yaml` 必须同时保留 `default_nav_to_pose_bt_xml` 和 `default_nav_through_poses_bt_xml` 两个空默认槽位，否则 Nav2 会对 through-poses action 回退到上游 recovery 树
 - corridor 由 `rtk_map_odom_corrector` 发布 RTK authoritative `map→odom`；PGO 在 `pgo_corridor_no_gps.yaml` 中关闭 `publish_tf`，只保留点云/优化输出，不再作为 corridor 的全局 TF owner
+- RTK corrector 在 RTK/heading/alignment 新鲜且平移跳变仍安全时允许 `YAW_REACQUIRE`：`max_yaw_reacquire_jump_deg=45.0`，但实际 `map→odom` yaw 每周期只释放 `0.5deg`，避免 40 度级别 yaw target jump 长时间冻结 TF
 
-原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。2026-07-06 20:06 的现场日志证明 `controller_frequency=15Hz` 会触发 MPPI `Controller period more then model dt` 配置失败，因此 corridor 保持 `20Hz` 并通过速度/采样量降负载。2026-07-06 22:33 的实车日志又证明缺少 `default_nav_through_poses_bt_xml` 槽位时，`bt_navigator` 会继续加载 Nav2 默认 `navigate_through_poses_w_replanning_and_recovery.xml`，在 corridor 只加载 `wait` 行为后因缺少 `spin` action server 而启动失败。随后现场判断确认：LIO 只要约 1m 漂移，Nav2 的 `map→base_link` 就会偏离路线并停止；因此 corridor 需要 RTK authoritative `map→odom` 把全局位姿压回 RTK，而不是继续让 PGO/LIO 漂移主导 Nav2。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
+原因：2026-07-06 RTK corridor 实车日志显示 RTK 本身保持 `RTK Fixed q=4`，但轨迹出现右偏，且 `/fastlio2/lio_odom` 有约 `1.18m/0.19s` 跳变。低速 profile 用于降低首次 RTK 验收时的右偏、过大角速度和 FAST-LIO2 退化风险。2026-07-06 20:06 的现场日志证明 `controller_frequency=15Hz` 会触发 MPPI `Controller period more then model dt` 配置失败，因此 corridor 保持 `20Hz` 并通过速度/采样量降负载。2026-07-06 22:33 的实车日志又证明缺少 `default_nav_through_poses_bt_xml` 槽位时，`bt_navigator` 会继续加载 Nav2 默认 `navigate_through_poses_w_replanning_and_recovery.xml`，在 corridor 只加载 `wait` 行为后因缺少 `spin` action server 而启动失败。随后现场判断确认：LIO 只要约 1m 漂移，Nav2 的 `map→base_link` 就会偏离路线并停止；因此 corridor 需要 RTK authoritative `map→odom` 把全局位姿压回 RTK，而不是继续让 PGO/LIO 漂移主导 Nav2。2026-07-07 成功跑通的 `2026-07-07-08-48-14` bag 显示，运动段 `vx` 中位数 `0.428m/s` 且 p95/max 已达 `0.45m/s` 上限，可以小步提速；但 `|wz|` p95 为 `0.537rad/s`、角速度正负切换约 `0.53次/s`，并出现 `TARGET_YAW_JUMP` 窗口，因此本轮只把 `vx_max` 提到 `0.55`，同时降低 `wz_max/wz_std/az_max` 并让 yaw 重捕获限速释放。历史 DWB 配置已不再作为 Explore/Corridor 主线使用；`nav2_gps.yaml` 和 `nav2_travel.yaml` 保持独立配置。
 
 ## 4b. 2026-04-05 走廊高速基线（历史记录）
 
@@ -153,8 +154,8 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 
 1. RViz 的 fixed frame 必须设为 `map`。
 2. 如果 `map -> odom` 没建立，即使 Livox 和 FAST-LIO2 在跑，RViz 也可能表现为空白或 costmap 不显示。
-3. Explore 使用 MPPI 主线 baseline；Corridor 启动时生成临时 Nav2 参数文件来使用 RTK 低速验收 profile。
-4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.45`。
+3. Explore 使用 MPPI 主线 baseline；Corridor 启动时生成临时 Nav2 参数文件来使用 RTK 小步提速与横摆抑制 profile。
+4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.55`。
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
 6. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。

@@ -62,6 +62,8 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_rtk_status_age_s", 2.0)
         self.declare_parameter("max_target_jump_m", 2.0)
         self.declare_parameter("max_target_yaw_jump_deg", 20.0)
+        self.declare_parameter("allow_yaw_reacquire", True)
+        self.declare_parameter("max_yaw_reacquire_jump_deg", 45.0)
         self.declare_parameter("max_translation_step_m", 0.20)
         self.declare_parameter("max_yaw_step_deg", 1.0)
         self.declare_parameter("publish_period_s", 0.05)
@@ -90,6 +92,12 @@ class RtkMapOdomCorrector(Node):
         self._max_target_jump_m = float(self.get_parameter("max_target_jump_m").value)
         self._max_target_yaw_jump_rad = math.radians(
             float(self.get_parameter("max_target_yaw_jump_deg").value)
+        )
+        self._allow_yaw_reacquire = bool(
+            self.get_parameter("allow_yaw_reacquire").value
+        )
+        self._max_yaw_reacquire_jump_rad = math.radians(
+            float(self.get_parameter("max_yaw_reacquire_jump_deg").value)
         )
         self._max_translation_step_m = float(
             self.get_parameter("max_translation_step_m").value
@@ -397,6 +405,7 @@ class RtkMapOdomCorrector(Node):
             target_jump_m = 0.0
             target_yaw_jump_rad = 0.0
             output = target
+            authority_status = None
         else:
             target_jump_m = math.hypot(
                 target.x - self._last_output.x,
@@ -414,6 +423,8 @@ class RtkMapOdomCorrector(Node):
                 max_heading_age_s=self._max_heading_age_s,
                 max_target_jump_m=self._max_target_jump_m,
                 max_target_yaw_jump_rad=self._max_target_yaw_jump_rad,
+                allow_yaw_reacquire=self._allow_yaw_reacquire,
+                max_yaw_reacquire_jump_rad=self._max_yaw_reacquire_jump_rad,
             )
             if not jump_summary.ok:
                 self._publish_mode_status(
@@ -431,6 +442,7 @@ class RtkMapOdomCorrector(Node):
                 )
                 return
 
+            authority_status = jump_summary.reason
             output = limit_pose_step(
                 self._last_output,
                 target,
@@ -440,7 +452,9 @@ class RtkMapOdomCorrector(Node):
 
         self._last_output = output
         self._publish_tf(output)
-        if external_alignment_valid:
+        if authority_status == "YAW_REACQUIRE":
+            self._publish_mode_status("RTK_AUTHORITATIVE", "YAW_REACQUIRE")
+        elif external_alignment_valid:
             self._publish_mode_status("RTK_AUTHORITATIVE", "PUBLISHING_MAP_ODOM")
         else:
             self._publish_mode_status("RTK_BOOTSTRAP", "PUBLISHING_BOOTSTRAP_MAP_ODOM")

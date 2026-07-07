@@ -143,6 +143,8 @@ def summarize_authority_inputs(
     max_heading_age_s: float,
     max_target_jump_m: float,
     max_target_yaw_jump_rad: float,
+    allow_yaw_reacquire: bool = False,
+    max_yaw_reacquire_jump_rad: float | None = None,
 ) -> AuthorityInputSummary:
     reason = None
     if not alignment_valid:
@@ -159,6 +161,17 @@ def summarize_authority_inputs(
         not math.isfinite(target_yaw_jump_rad)
         or abs(target_yaw_jump_rad) > max_target_yaw_jump_rad
     ):
+        if (
+            allow_yaw_reacquire
+            and max_yaw_reacquire_jump_rad is not None
+            and math.isfinite(target_yaw_jump_rad)
+            and abs(target_yaw_jump_rad) <= max_yaw_reacquire_jump_rad
+        ):
+            return AuthorityInputSummary(
+                ok=True,
+                mode="RTK_AUTHORITATIVE",
+                reason="YAW_REACQUIRE",
+            )
         reason = "TARGET_YAW_JUMP"
 
     if reason is not None:

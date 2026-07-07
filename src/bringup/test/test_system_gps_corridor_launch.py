@@ -35,12 +35,16 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     assert "bt_params['default_server_timeout'] = 1000" in text
     assert "controller_params['controller_frequency'] = 20.0" in text
     assert "controller_params['controller_frequency'] = 15.0" not in text
-    assert "follow_path['vx_max'] = 0.45" in text
-    assert "follow_path['wz_max'] = 0.65" in text
-    assert "follow_path['ax_max'] = 0.45" in text
+    assert "follow_path['vx_std'] = 0.16" in text
+    assert "follow_path['wz_std'] = 0.10" in text
+    assert "follow_path['vx_max'] = 0.55" in text
+    assert "follow_path['wz_max'] = 0.50" in text
+    assert "follow_path['ax_max'] = 0.55" in text
+    assert "follow_path['az_max'] = 1.0" in text
     assert "controller_params['general_goal_checker']['stateful'] = False" in text
-    assert "smoother_params['max_velocity'] = [0.45, 0.0, 0.65]" in text
-    assert "smoother_params['max_decel'] = [-0.8, 0.0, -1.8]" in text
+    assert "smoother_params['max_velocity'] = [0.55, 0.0, 0.50]" in text
+    assert "smoother_params['max_accel'] = [0.55, 0.0, 0.9]" in text
+    assert "smoother_params['max_decel'] = [-0.9, 0.0, -1.0]" in text
     assert "behavior_params['behavior_plugins'] = ['wait']" in text
     assert "'nav2_params_file': corridor_nav2_params" in text
 
@@ -105,6 +109,7 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
 def test_corridor_uses_rtk_authoritative_map_odom_owner():
     corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
     pgo_override_text = PGO_CORRIDOR_PARAMS.read_text(encoding="utf-8")
+    master_params_text = MASTER_PARAMS.read_text(encoding="utf-8")
 
     assert "rtk_map_odom_corrector_node" in corridor_text
     assert "rtk_map_odom_corrector" in corridor_text
@@ -113,6 +118,9 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "'/localization_authority/diagnostics'," in corridor_text
     assert "publish_tf: false" in pgo_override_text
     assert '"gps.enable": false' in pgo_override_text
+    assert "allow_yaw_reacquire: true" in master_params_text
+    assert "max_yaw_reacquire_jump_deg: 45.0" in master_params_text
+    assert "max_yaw_step_deg: 0.5" in master_params_text
 
 
 def test_livox_packet_logging_is_explicitly_opt_in():

@@ -228,9 +228,12 @@
     # RTK target 突然跳变超过阈值时冻结 authority，不直接拉动 map->odom。
     max_target_jump_m: 2.0
     max_target_yaw_jump_deg: 20.0
+    # 仅 yaw target 跳变且平移仍安全时，允许小步重捕获，避免长时间冻结 map->odom。
+    allow_yaw_reacquire: true
+    max_yaw_reacquire_jump_deg: 45.0
     # 正常 RTK 更新通过小步限幅释放，避免 Nav2 看到瞬时 TF 大跳。
     max_translation_step_m: 0.20
-    max_yaw_step_deg: 1.0
+    max_yaw_step_deg: 0.5
     publish_period_s: 0.05
     tf_lookup_timeout_s: 0.05
 

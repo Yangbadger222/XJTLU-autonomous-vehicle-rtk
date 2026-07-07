@@ -288,6 +288,7 @@ Therefore:
    - Split the corridor into multiple subgoals by `segment_length_m` (default 30m, based on global costmap radius 35m - 5m buffer)
    - Execute `NavigateToPose` sequentially
    - After Nav2 reports `SUCCEEDED`, re-read live `map -> base_link` and verify route progress; if Nav2 reports success without physical progress, publish `NAV2_FALSE_SUCCESS_ABORT` and stop instead of resending the same subgoal
+   - After the final waypoint is verified, publish `STOPPING_BEFORE_EXIT`, hold zero `/cmd_vel` for 1.2s at 20Hz, then publish terminal `SUCCEEDED` so quiet mode does not tear down the stack before the lower controller receives the stop tail
 
 ### 11.4 Current v1 Constraints
 

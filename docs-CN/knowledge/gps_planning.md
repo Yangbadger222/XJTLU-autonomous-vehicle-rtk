@@ -288,6 +288,7 @@ source install/setup.bash
    - 将 corridor 按 `segment_length_m`（默认 30m，基于 global costmap 半径 35m - 5m buffer）切成多个 subgoals
    - 串行执行 `NavigateToPose`
    - Nav2 返回 `SUCCEEDED` 后重新读取 live `map -> base_link` 并复核路线进度；如果 Nav2 报成功但物理进度没有接近目标，则发布 `NAV2_FALSE_SUCCESS_ABORT` 并停住，而不是反复重发同一个 subgoal
+   - 最后一个 waypoint 复核通过后，先发布 `STOPPING_BEFORE_EXIT`，以 20Hz 保持 1.2s 的零 `/cmd_vel`，再发布终止 `SUCCEEDED`，避免 quiet 模式在下位机收到刹停尾巴前拆掉整套 launch
 
 ### 11.4 当前 v1 约束
 

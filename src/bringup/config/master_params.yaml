@@ -247,6 +247,10 @@
     enu_origin_alt: 0.0
     # 发布底盘速度控制的话题；watchdog abort 时发送零速度。
     cmd_vel_topic: /cmd_vel
+    # route runner 发布终止状态前持续发送零速度，避免 quiet monitor 过早杀 launch。
+    terminal_stop_hold_s: 1.2
+    # 终止零速度保持期间的发布频率。
+    terminal_stop_publish_hz: 20.0
     # odom watchdog 预警阈值：单步位移超过该值记一次 warning。
     odom_watchdog_step_warn_m: 0.5
     # odom watchdog 直接中止阈值：单步位移超过该值立即 abort。

@@ -96,6 +96,8 @@ class GPSRouteRunner(Node):
         self.declare_parameter("fix_topic", "/fix")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("terminal_stop_hold_s", 1.2)
+        self.declare_parameter("terminal_stop_publish_hz", 20.0)
         self.declare_parameter("startup_wait_timeout_s", 90.0)
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
@@ -122,6 +124,12 @@ class GPSRouteRunner(Node):
         self._fix_topic = str(self.get_parameter("fix_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
         self._cmd_vel_topic = str(self.get_parameter("cmd_vel_topic").value)
+        self._terminal_stop_hold_s = max(
+            0.0, float(self.get_parameter("terminal_stop_hold_s").value)
+        )
+        self._terminal_stop_publish_hz = max(
+            1.0, float(self.get_parameter("terminal_stop_publish_hz").value)
+        )
         self._startup_wait_timeout_s = float(self.get_parameter("startup_wait_timeout_s").value)
         self._enu_origin_lat = float(self.get_parameter("enu_origin_lat").value)
         self._enu_origin_lon = float(self.get_parameter("enu_origin_lon").value)
@@ -712,11 +720,20 @@ class GPSRouteRunner(Node):
         if path.poses:
             self._goal_pub.publish(path.poses[0])
 
-    def _publish_zero_cmd_vel(self, repeat: int = 3) -> None:
+    def _publish_zero_cmd_vel(self, repeat: int = 3, period_s: float = 0.05) -> None:
         zero = Twist()
         for _ in range(max(1, repeat)):
             self._cmd_vel_pub.publish(zero)
-            rclpy.spin_once(self, timeout_sec=0.05)
+            rclpy.spin_once(self, timeout_sec=max(0.0, period_s))
+
+    def _publish_terminal_stop_hold(self) -> None:
+        period_s = 1.0 / self._terminal_stop_publish_hz
+        repeat = max(1, int(math.ceil(self._terminal_stop_hold_s / period_s)))
+        self.get_logger().info(
+            "Holding zero cmd_vel for %.2fs before terminal status (%d samples @ %.1fHz)"
+            % (self._terminal_stop_hold_s, repeat, self._terminal_stop_publish_hz)
+        )
+        self._publish_zero_cmd_vel(repeat=repeat, period_s=period_s)
 
     def _abort_goal_with_watchdog(
         self,
@@ -958,6 +975,7 @@ class GPSRouteRunner(Node):
                 )
                 continue
             if status != GoalStatus.STATUS_SUCCEEDED:
+                self._publish_terminal_stop_hold()
                 self._publish_status(
                     f"FAILED_WAYPOINT_{waypoint.name}_SUBGOAL_{subgoal_index}_STATUS_{status}"
                 )
@@ -989,11 +1007,11 @@ class GPSRouteRunner(Node):
         live_alignment = self._latest_alignment
         if live_alignment is None:
             self.get_logger().error("Lost alignment after Nav2 success for %s" % waypoint_name)
+            self._publish_terminal_stop_hold()
             self._publish_status(
                 "NAV2_FALSE_SUCCESS_ABORT|%s|%d|LOST_ALIGNMENT"
                 % (waypoint_name, subgoal_index)
             )
-            self._publish_zero_cmd_vel()
             return False, current_xy, current_progress_m
         if not self._map_gps_consistent(
             current_xy, live_alignment, "nav2_success_%s" % waypoint_name
@@ -1020,8 +1038,8 @@ class GPSRouteRunner(Node):
         self.get_logger().error(
             "Nav2 reported success without route progress: %s" % detail
         )
+        self._publish_terminal_stop_hold()
         self._publish_status("NAV2_FALSE_SUCCESS_ABORT|%s" % detail)
-        self._publish_zero_cmd_vel()
         return False, current_xy, verified_progress_m
 
     def run(self) -> bool:
@@ -1064,6 +1082,8 @@ class GPSRouteRunner(Node):
                 % (waypoint_index + 1, len(self._route["waypoints"]), waypoint.name)
             )
 
+        self._publish_status("STOPPING_BEFORE_EXIT")
+        self._publish_terminal_stop_hold()
         self._publish_status("SUCCEEDED")
         return True
 

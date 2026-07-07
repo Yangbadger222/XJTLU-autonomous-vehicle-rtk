@@ -74,19 +74,19 @@ def _make_corridor_nav2_params(source_file):
 
     follow_path = controller_params['FollowPath']
     follow_path['batch_size'] = 500
-    follow_path['vx_std'] = 0.16
+    follow_path['vx_std'] = 0.18
     follow_path['wz_std'] = 0.10
-    follow_path['vx_max'] = 0.55
+    follow_path['vx_max'] = 0.65
     follow_path['wz_max'] = 0.50
-    follow_path['ax_max'] = 0.55
-    follow_path['ax_min'] = -0.9
+    follow_path['ax_max'] = 0.70
+    follow_path['ax_min'] = -1.2
     follow_path['az_max'] = 1.0
 
     smoother_params = data['velocity_smoother']['ros__parameters']
-    smoother_params['max_velocity'] = [0.55, 0.0, 0.50]
+    smoother_params['max_velocity'] = [0.65, 0.0, 0.50]
     smoother_params['min_velocity'] = [0.0, 0.0, -0.50]
-    smoother_params['max_accel'] = [0.55, 0.0, 0.9]
-    smoother_params['max_decel'] = [-0.9, 0.0, -1.0]
+    smoother_params['max_accel'] = [0.70, 0.0, 0.9]
+    smoother_params['max_decel'] = [-1.2, 0.0, -1.0]
 
     behavior_params = data['behavior_server']['ros__parameters']
     behavior_params['behavior_plugins'] = ['wait']
@@ -203,6 +203,8 @@ def generate_launch_description():
                 'base_frame': 'base_link',
                 'fix_topic': '/fix',
                 'alignment_topic': '/gps_corridor/enu_to_map',
+                'terminal_stop_hold_s': 1.2,
+                'terminal_stop_publish_hz': 20.0,
             }
         ],
     )

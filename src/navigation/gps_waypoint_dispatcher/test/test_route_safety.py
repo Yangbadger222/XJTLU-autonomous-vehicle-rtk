@@ -73,6 +73,18 @@ def test_route_runner_uses_tf_freshness_gate_before_pose_use():
     assert "TF_STALE" in text
 
 
+def test_route_runner_holds_zero_cmd_before_success_status():
+    text = ROUTE_RUNNER.read_text(encoding="utf-8")
+    stop_index = text.index('self._publish_status("STOPPING_BEFORE_EXIT")')
+    hold_index = text.index("self._publish_terminal_stop_hold()", stop_index)
+    success_index = text.index('self._publish_status("SUCCEEDED")', hold_index)
+
+    assert 'self.declare_parameter("terminal_stop_hold_s", 1.2)' in text
+    assert 'self.declare_parameter("terminal_stop_publish_hz", 20.0)' in text
+    assert "def _publish_terminal_stop_hold(self) -> None:" in text
+    assert stop_index < hold_index < success_index
+
+
 def test_rcl_context_shutdown_error_is_not_reported_as_aligner_abort():
     text = GLOBAL_ALIGNER.read_text(encoding="utf-8")
     message = (

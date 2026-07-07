@@ -22,7 +22,7 @@
 - `max_accel: [1.2, 0.0, 6.0]`
 - Reason: Closed-loop integration has been confirmed unstable at this stage; continuing with open-loop is the current real configuration
 
-## 4. Explore / Corridor Main Mode Current Controller (Updated 2026-07-06)
+## 4. Explore / Corridor Main Mode Current Controller (Updated 2026-07-07)
 
 Explore mode uses the main MPPI configuration from `nav2_explore.yaml`:
 
@@ -37,17 +37,22 @@ Explore mode uses the main MPPI configuration from `nav2_explore.yaml`:
 - `yaw_goal_tolerance: 6.28` (effectively disables heading check)
 - The `5 Hz` global replanning, A* search, and 5-level recovery stack introduced on 2026-04-05 remain active
 
-Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py` generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and injects an RTK first-outdoor-acceptance low-speed profile:
+Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py` generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and injects an RTK small-speedup / yaw-oscillation suppression profile:
 
 - `controller_frequency: 20.0` (kept consistent with `model_dt=0.05s`; 15Hz makes MPPI configuration fail)
 - `batch_size: 500`
-- `vx_max: 0.45`, `wz_max: 0.65`, `ax_max: 0.45`, `ax_min: -0.8`, `az_max: 2.0`
-- `vx_std: 0.14`, `wz_std: 0.14`
-- `velocity_smoother.max_velocity: [0.45, 0.0, 0.65]`
-- `velocity_smoother.max_accel: [0.45, 0.0, 1.4]`
-- `velocity_smoother.max_decel: [-0.8, 0.0, -1.8]`
+- `vx_max: 0.65`, `wz_max: 0.50`, `ax_max: 0.70`, `ax_min: -1.2`, `az_max: 1.0`
+- `vx_std: 0.18`, `wz_std: 0.10`
+- `velocity_smoother.max_velocity: [0.65, 0.0, 0.50]`
+- `velocity_smoother.max_accel: [0.70, 0.0, 0.9]`
+- `velocity_smoother.max_decel: [-1.2, 0.0, -1.0]`
+- Before publishing terminal `SUCCEEDED`, `gps_route_runner` publishes `STOPPING_BEFORE_EXIT` and holds zero `/cmd_vel` for `terminal_stop_hold_s=1.2` at `20Hz`; this prevents the quiet monitor from killing the launch before the lower controller receives a visible zero-speed tail.
+- Corridor injects NavigateToPose and NavigateThroughPoses BTs without `Spin` / `BackUp` from launch; `nav2_explore.yaml` must keep both empty default rewrite slots, `default_nav_to_pose_bt_xml` and `default_nav_through_poses_bt_xml`, otherwise Nav2 falls back to the upstream recovery tree for the through-poses action
+- Corridor now uses `rtk_map_odom_corrector` to publish RTK-authoritative `map->odom`; PGO has `publish_tf` disabled in `pgo_corridor_no_gps.yaml`, keeping point-cloud/optimization outputs but no longer owning the corridor global TF
+- During startup, if external `/gps_corridor/enu_to_map` has not appeared yet, `rtk_map_odom_corrector` reuses bootstrap alignment and may publish `RTK_BOOTSTRAP` `map->odom` before RTK Fixed; this only gives Nav2 lifecycle a `map` frame, while route execution remains gated by `gps_route_runner` stable-fix / alignment checks
+- The RTK corrector allows `YAW_REACQUIRE` when RTK/heading/alignment are fresh and translation jump is still safe: `max_yaw_reacquire_jump_deg=45.0`, while the actual `map->odom` yaw release is limited to `0.5deg` per cycle so a 40-degree yaw target jump does not freeze TF for several seconds
 
-Reason: the 2026-07-06 RTK corridor vehicle log showed RTK stayed at `RTK Fixed q=4`, but the trajectory drifted right and `/fastlio2/lio_odom` jumped by about `1.18m/0.19s`. The low-speed profile reduces first-pass RTK acceptance risk from right drift, excessive angular velocity, and FAST-LIO2 degeneration. The 2026-07-06 20:06 field log proved `controller_frequency=15Hz` triggers MPPI's `Controller period more then model dt` configuration failure, so corridor keeps `20Hz` and reduces load through speed and sampling limits instead. Historical DWB configuration is no longer the Explore/Corridor mainline; `nav2_gps.yaml` and `nav2_travel.yaml` remain independent configurations.
+Reason: the 2026-07-06 RTK corridor vehicle log showed RTK stayed at `RTK Fixed q=4`, but the trajectory drifted right and `/fastlio2/lio_odom` jumped by about `1.18m/0.19s`. The low-speed profile reduced first-pass RTK acceptance risk from right drift, excessive angular velocity, and FAST-LIO2 degeneration. The 2026-07-06 20:06 field log proved `controller_frequency=15Hz` triggers MPPI's `Controller period more then model dt` configuration failure, so corridor keeps `20Hz` and reduces load through speed and sampling limits instead. The 2026-07-06 22:33 vehicle log also proved that without a `default_nav_through_poses_bt_xml` rewrite slot, `bt_navigator` continues loading Nav2's default `navigate_through_poses_w_replanning_and_recovery.xml`; after corridor limits `behavior_server` to `wait`, that default tree fails startup because the `spin` action server is absent. Follow-up field analysis confirmed that about 1 m of LIO drift is enough to move Nav2's `map->base_link` off the route and stop navigation, so corridor needs RTK-authoritative `map->odom` instead of letting PGO/LIO drift dominate the global pose. The successful `2026-07-07-08-48-14` bag showed moving `vx` median `0.428m/s` and p95/max already at the old `0.45m/s` limit, so the first small speedup to `0.55m/s` was justified; however, moving `|wz|` p95 was `0.537rad/s`, angular velocity changed sign about `0.53/s`, and a `TARGET_YAW_JUMP` window appeared, so yaw limits stayed conservative. The successful `2026-07-07-10-39-15` bag then showed RTK all `q=4`, moving `vx` median/p95/max all at the `0.55m/s` ceiling, and much smoother yaw commands (`|wz|` p95 `0.094rad/s`, max `0.137rad/s`). It also showed Nav2 reaching `SUCCEEDED` while the final nonzero commands were still decaying (`0.073m/s` 33ms before success, `0.028m/s` 17ms after success) and quiet launch exiting after only a short zero tail. This round therefore raises only the linear corridor ceiling to `0.65m/s`, increases linear acceleration/deceleration modestly, keeps angular limits conservative, and adds the terminal zero-cmd hold. Historical DWB configuration is no longer the Explore/Corridor mainline; `nav2_gps.yaml` and `nav2_travel.yaml` remain independent configurations.
 
 ## 4b. 2026-04-05 Corridor High-Speed Baseline (Historical Record)
 
@@ -151,11 +156,12 @@ Tuning principles:
 
 1. RViz fixed frame must be set to `map`.
 2. If `map -> odom` is not established, even with Livox and FAST-LIO2 running, RViz may appear blank or the costmap may not display.
-3. Explore uses the MPPI mainline baseline; Corridor uses a launch-time generated temporary Nav2 parameter file for the RTK low-speed acceptance profile.
-4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.45` in Corridor.
-5. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
-6. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-7. Corridor rosbags should record `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` so RTK quality, controller output, and LIO degeneration can be separated during debugging.
+3. Explore uses the MPPI mainline baseline; Corridor uses a launch-time generated temporary Nav2 parameter file for the RTK small-speedup / yaw-oscillation suppression profile.
+4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.55` in Corridor.
+5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
+6. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
+7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
+8. Corridor rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
 
 ## 8. Waypoint System
 

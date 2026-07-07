@@ -41,6 +41,8 @@
 
       # IMU 初始化样本数；调大更稳，但启动更慢。
       imu_init_num: 20
+      # 单帧 LiDAR 至少需要的 IMU 样本数；低于该值说明同步异常，直接丢帧避免 LIO 飞走。
+      min_imu_samples_per_lidar: 3
       # 近邻搜索点数；调大更稳但计算更重。
       near_search_num: 5
       # IESKF 最大迭代次数；调大更充分但算力更高。
@@ -200,6 +202,41 @@
     # aligner 发布 waypoint 校准结果的话题。
     calibration_status_topic: /gps_corridor/calibration_status
 
+/rtk_map_odom_corrector:
+  ros__parameters:
+    # RTK authoritative 模式发布 map->odom；corridor 中 PGO 必须关闭 publish_tf，避免 TF 抢占。
+    map_frame: map
+    odom_frame: odom
+    base_frame: base_link
+    fix_topic: /fix
+    heading_topic: /heading
+    rtk_status_topic: /rtk/status
+    alignment_topic: /gps_corridor/enu_to_map
+    mode_topic: /localization_authority/mode
+    status_topic: /localization_authority/status
+    diagnostics_topic: /localization_authority/diagnostics
+    # 与 corridor route / global aligner 使用同一固定 ENU 原点。
+    enu_origin_lat: 31.274927
+    enu_origin_lon: 120.737548
+    enu_origin_alt: 0.0
+    heading_quaternion_yaw_is_compass: true
+    require_rtk_fixed: true
+    max_fix_age_s: 1.0
+    max_heading_age_s: 1.0
+    max_alignment_age_s: 1.0
+    max_rtk_status_age_s: 2.0
+    # RTK target 突然跳变超过阈值时冻结 authority，不直接拉动 map->odom。
+    max_target_jump_m: 2.0
+    max_target_yaw_jump_deg: 20.0
+    # 仅 yaw target 跳变且平移仍安全时，允许小步重捕获，避免长时间冻结 map->odom。
+    allow_yaw_reacquire: true
+    max_yaw_reacquire_jump_deg: 45.0
+    # 正常 RTK 更新通过小步限幅释放，避免 Nav2 看到瞬时 TF 大跳。
+    max_translation_step_m: 0.20
+    max_yaw_step_deg: 0.5
+    publish_period_s: 0.05
+    tf_lookup_timeout_s: 0.05
+
 /gps_route_runner:
   ros__parameters:
     # GPS route runner 使用的固定 ENU 原点纬度；必须与 PGO 完全一致。
@@ -210,16 +247,24 @@
     enu_origin_alt: 0.0
     # 发布底盘速度控制的话题；watchdog abort 时发送零速度。
     cmd_vel_topic: /cmd_vel
+    # route runner 发布终止状态前持续发送零速度，避免 quiet monitor 过早杀 launch。
+    terminal_stop_hold_s: 1.2
+    # 终止零速度保持期间的发布频率。
+    terminal_stop_publish_hz: 20.0
     # odom watchdog 预警阈值：单步位移超过该值记一次 warning。
     odom_watchdog_step_warn_m: 0.5
     # odom watchdog 直接中止阈值：单步位移超过该值立即 abort。
     odom_watchdog_step_abort_m: 1.0
     # 连续多少次 warning 后直接 abort。
     odom_watchdog_warn_count_abort: 3
-    # 连续多少次 TF stale 后直接 abort。
+    # 连续多少次 TF stale 后进入 abort 判定。
     odom_watchdog_tf_stale_abort_count: 3
+    # TF stale 连续持续超过该时间才 abort，避免 LIO 短空窗导致刚发目标就失败。
+    odom_watchdog_tf_stale_abort_s: 3.0
     # watchdog 检查周期。
     odom_watchdog_monitor_period_s: 0.1
+    # TF pose 最大允许年龄；旧 TF 不用于 route_start / subgoal / watchdog，避免缓存旧位姿发目标。
+    tf_pose_max_age_s: 3.0
     # 已下发 subgoal 若因 live alignment 飘移而偏移超阈值，则 preempt 并重算。
     alignment_shift_cancel_threshold_m: 0.5
     # alignment shift 触发 preempt 后的冷却时间，避免 GPS 抖动导致高频重发 goal。

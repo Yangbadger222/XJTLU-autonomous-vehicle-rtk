@@ -130,7 +130,7 @@ void IESKF::predict(const Input &inp, double dt, const M12D &Q)
     m_P = m_F * m_P * m_F.transpose() + m_G * Q * m_G.transpose();
 }
 
-void IESKF::update()
+bool IESKF::update()
 {
     State predict_x = m_x;
     SharedState shared_data;
@@ -173,7 +173,7 @@ void IESKF::update()
     if (!have_valid_measurement)
     {
         clampCovarianceDiagonal(m_P);
-        return;
+        return false;
     }
 
     M21D L = M21D::Identity();
@@ -183,4 +183,5 @@ void IESKF::update()
     L.block<3, 3>(6, 6) = Jr(delta.segment<3>(6));
     m_P = L * H.inverse() * L.transpose();
     clampCovarianceDiagonal(m_P);
+    return have_valid_measurement;
 }

@@ -127,6 +127,19 @@ std::string getSessionId() {
     std::string name = p.filename().string();
     return name.empty() ? "unknown" : name;
 }
+
+bool pgoVerboseDiagEnabled() {
+    static const bool enabled = []() {
+        const char* value = std::getenv("PGO_VERBOSE_DIAG");
+        if (value == nullptr || value[0] == '\0') {
+            return false;
+        }
+        const std::string flag(value);
+        return flag == "1" || flag == "true" || flag == "TRUE" ||
+               flag == "yes" || flag == "YES" || flag == "on" || flag == "ON";
+    }();
+    return enabled;
+}
 }
 
 using namespace std::chrono_literals;
@@ -201,6 +214,11 @@ struct NodeState
     Eigen::Vector3d last_offset_t = Eigen::Vector3d::Zero();  // 上一次 smoothAndUpdate 后的 offsetT
     double last_jump_m = 0.0;                      // 最近一次超阈值跳变量（米）
     double correction_until = 0.0;                 // 修正窗口截止时刻（节点时钟秒）
+
+    // Keep the latest map->odom transform available at timer frequency even when LIO drops frames.
+    bool last_tf_valid = false;
+    Eigen::Quaterniond last_tf_rotation = Eigen::Quaterniond::Identity();
+    Eigen::Vector3d last_tf_translation = Eigen::Vector3d::Zero();
 };
 
 class PGONode : public rclcpp::Node
@@ -326,12 +344,12 @@ public:
                 return enable;
             }
             
-            RCLCPP_WARN(this->get_logger(), "No logging config found for '%s', enabling by default", node_key.c_str());
-            return true;
+            RCLCPP_WARN(this->get_logger(), "No logging config found for '%s', disabling by default", node_key.c_str());
+            return false;
             
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Failed to read log config: %s", e.what());
-            return true; // 配置文件读取失败，默认启用日志
+            return false; // 配置文件读取失败，默认关闭逐帧日志，避免现场运行刷爆 stdout
         }
     }
 
@@ -651,8 +669,8 @@ public:
         }
         m_state.last_message_time = cp.pose.second;
 
-        RCLCPP_INFO(this->get_logger(), "Received synced cloud and odom: cloud_time=%.6f, points=%u", 
-                    cp.pose.second, cloud_msg->width * cloud_msg->height);
+        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Received synced cloud and odom: cloud_time=%.6f, points=%u",
+                             cp.pose.second, cloud_msg->width * cloud_msg->height);
         
         if (m_log_file.is_open()) {
             auto ros_time = this->now();
@@ -707,7 +725,19 @@ public:
         m_state.cloud_buffer.push(cp);
     }
 
-    void sendBroadCastTF(builtin_interfaces::msg::Time &time)
+    builtin_interfaces::msg::Time currentTimeMsg()
+    {
+        const int64_t now_ns = this->get_clock()->now().nanoseconds();
+        builtin_interfaces::msg::Time cur_time;
+        cur_time.sec = static_cast<int32_t>(now_ns / 1000000000LL);
+        cur_time.nanosec = static_cast<uint32_t>(now_ns % 1000000000LL);
+        return cur_time;
+    }
+
+    void publishMapOdomTf(
+        const Eigen::Quaterniond &q,
+        const Eigen::Vector3d &t,
+        const builtin_interfaces::msg::Time &time)
     {
         if (!m_node_config.publish_tf)
             return;
@@ -716,8 +746,6 @@ public:
         transformStamped.header.frame_id = m_node_config.map_frame;
         transformStamped.child_frame_id = m_node_config.local_frame;
         transformStamped.header.stamp = time;
-        Eigen::Quaterniond q(m_pgo->offsetR());
-        V3D t = m_pgo->offsetT();
         transformStamped.transform.translation.x = t.x();
         transformStamped.transform.translation.y = t.y();
         transformStamped.transform.translation.z = t.z();
@@ -726,6 +754,24 @@ public:
         transformStamped.transform.rotation.z = q.z();
         transformStamped.transform.rotation.w = q.w();
         m_tf_broadcaster->sendTransform(transformStamped);
+    }
+
+    void sendBroadCastTF(builtin_interfaces::msg::Time &time)
+    {
+        Eigen::Quaterniond q(m_pgo->offsetR());
+        Eigen::Vector3d t = m_pgo->offsetT();
+        publishMapOdomTf(q, t, time);
+        m_state.last_tf_rotation = q;
+        m_state.last_tf_translation = t;
+        m_state.last_tf_valid = true;
+    }
+
+    void publishLastTfWithCurrentTime()
+    {
+        if (!m_state.last_tf_valid)
+            return;
+        builtin_interfaces::msg::Time cur_time = currentTimeMsg();
+        publishMapOdomTf(m_state.last_tf_rotation, m_state.last_tf_translation, cur_time);
     }
 
     void publishOptimizedOdom(const CloudWithPose &cp, builtin_interfaces::msg::Time &time)
@@ -1065,20 +1111,21 @@ public:
         CloudWithPose cp;
         {
             std::lock_guard<std::mutex> lock(m_state.message_mutex);
-            if (m_state.cloud_buffer.empty())
+            if (m_state.cloud_buffer.empty()) {
+                publishLastTfWithCurrentTime();
                 return;
+            }
             cp = m_state.cloud_buffer.front();
             m_state.cloud_buffer.pop();  // 只弹出一个元素
         }
         
         // Publish TF/odom with the current ROS time so Nav2 can look up fresh transforms
         // against live controller / costmap requests instead of stale sensor timestamps.
-        const int64_t now_ns = this->get_clock()->now().nanoseconds();
-        builtin_interfaces::msg::Time cur_time;
-        cur_time.sec = static_cast<int32_t>(now_ns / 1000000000LL);
-        cur_time.nanosec = static_cast<uint32_t>(now_ns % 1000000000LL);
+        builtin_interfaces::msg::Time cur_time = currentTimeMsg();
 
-        fprintf(stderr, "[DIAG] timerCB: pts=%zu time=%.6f kp=%zu\n", cp.cloud ? cp.cloud->size() : (size_t)0, cp.pose.second, m_pgo->keyPoses().size());
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] timerCB: pts=%zu time=%.6f kp=%zu\n", cp.cloud ? cp.cloud->size() : (size_t)0, cp.pose.second, m_pgo->keyPoses().size());
+        }
         bool is_key_pose = m_pgo->addKeyPose(cp);
         if (!is_key_pose)
         {
@@ -1103,17 +1150,25 @@ public:
 
         // ✅ GPS 融合修改开始 - 2025/12/01 - 在关键帧添加后尝试添加 GPS 因子
         if (m_node_config.enable_gps && m_state.gps_origin_set) {
-            fprintf(stderr, "[DIAG] calling tryAddGPSFactor\n");
+            if (pgoVerboseDiagEnabled()) {
+                fprintf(stderr, "[DIAG] calling tryAddGPSFactor\n");
+            }
             tryAddGPSFactor(cp.pose.second);
-            fprintf(stderr, "[DIAG] tryAddGPSFactor done\n");
+            if (pgoVerboseDiagEnabled()) {
+                fprintf(stderr, "[DIAG] tryAddGPSFactor done\n");
+            }
         }
         // ✅ GPS 融合修改结束 - GPS 因子触发逻辑添加完成
 
-        fprintf(stderr, "[DIAG] calling searchForLoopPairs, key_poses=%zu\n", m_pgo->keyPoses().size());
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] calling searchForLoopPairs, key_poses=%zu\n", m_pgo->keyPoses().size());
+        }
         size_t loop_pairs_before = m_pgo->historyPairs().size();
         m_pgo->searchForLoopPairs();
         size_t loop_pairs_after = m_pgo->historyPairs().size();
-        fprintf(stderr, "[DIAG] searchForLoopPairs done\n");
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] searchForLoopPairs done\n");
+        }
         
         if (loop_pairs_after > loop_pairs_before)
         {
@@ -1128,21 +1183,29 @@ public:
             }
         }
 
-        fprintf(stderr, "[DIAG] calling smoothAndUpdate\n");
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] calling smoothAndUpdate\n");
+        }
         m_pgo->smoothAndUpdate();
-        fprintf(stderr, "[DIAG] smoothAndUpdate done\n");
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] smoothAndUpdate done\n");
+        }
         updateCorrectionStatus();
         if (m_node_config.enable_gps) {
             recomputeAlignmentTransform();
         }
 
-        fprintf(stderr, "[DIAG] calling sendBroadCastTF + publish\n");
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] calling sendBroadCastTF + publish\n");
+        }
         sendBroadCastTF(cur_time);
         publishOptimizedOdom(cp, cur_time);
         publishLoopMarkers(cur_time);
         publishAlignmentTransform();
         publishCorrectionStatus();
-        fprintf(stderr, "[DIAG] timerCB complete for key pose\n");
+        if (pgoVerboseDiagEnabled()) {
+            fprintf(stderr, "[DIAG] timerCB complete for key pose\n");
+        }
     }
 
     // ✅ GPS 融合修改开始 - 2025/12/01 - 新增 tryAddGPSFactor 函数
@@ -1366,7 +1429,9 @@ int main(int argc, char **argv)
     signal(SIGABRT, crash_handler);
     signal(SIGFPE, crash_handler);
     signal(SIGBUS, crash_handler);
-    fprintf(stderr, "[DIAG] PGO crash handler installed\n");
+    if (pgoVerboseDiagEnabled()) {
+        fprintf(stderr, "[DIAG] PGO crash handler installed\n");
+    }
     rclcpp::spin(std::make_shared<PGONode>());
     rclcpp::shutdown();
     return 0;

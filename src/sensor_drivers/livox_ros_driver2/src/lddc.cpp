@@ -89,6 +89,20 @@ std::string getSessionLogPath(const std::string& filename) {
     }
     return "";
 }
+
+bool livoxVerbosePacketLogsEnabled() {
+    static const bool enabled = []() {
+        const char* value = std::getenv("LIVOX_VERBOSE_PACKET_LOGS");
+        if (value == nullptr || value[0] == '\0') {
+            // Default to quiet on the robot; packet-scale logs are opt-in.
+            return false;
+        }
+        const std::string flag(value);
+        return flag == "1" || flag == "true" || flag == "TRUE" ||
+               flag == "yes" || flag == "YES" || flag == "on" || flag == "ON";
+    }();
+    return enabled;
+}
 }
 
 #include "include/ros_headers.h"
@@ -135,7 +149,7 @@ Lddc::Lddc(int format, int multi_topic, int data_src, int output_type,
 #endif
 
   // 检查是否启用日志
-  bool enable_log = shouldEnableLogging("livox_ros_driver2");
+  bool enable_log = livoxVerbosePacketLogsEnabled() || shouldEnableLogging("livox_ros_driver2");
   
   if (enable_log) {
     std::string filename = getSessionLogPath("livox_imu.log");
@@ -247,13 +261,12 @@ bool Lddc::shouldEnableLogging(const std::string& node_key) {
       return enable;
     }
     
-    // 如果找不到配置，默认启用日志
-    std::cerr << "Warning: No logging config found for '" << node_key << "', enabling by default" << std::endl;
-    return true;
+    std::cerr << "Warning: No logging config found for '" << node_key << "', disabling by default" << std::endl;
+    return false;
     
   } catch (const std::exception& e) {
     std::cerr << "Error: Failed to read log config: " << e.what() << std::endl;
-    return true; // 配置文件读取失败，默认启用日志
+    return false; // 配置文件读取失败，默认关闭逐帧日志，避免现场运行刷爆 stdout
   }
 }
 
@@ -503,42 +516,44 @@ void Lddc::PublishPointcloud2Data(const uint8_t index, const uint64_t timestamp,
 #endif
 
   if (kOutputToRos == output_type_) {
-    // 输出点云基本信息到控制台
-    std::cout << "\n========== Publishing LIDAR Point Cloud ==========" << std::endl;
-    std::cout << "Total points: " << cloud.width << ", timestamp: " << timestamp << std::endl;
-    
-    // 将点云数据从ROS消息格式转换为LivoxPointXyzrtlt结构体数组
-    const LivoxPointXyzrtlt* points = reinterpret_cast<const LivoxPointXyzrtlt*>(cloud.data.data());
-    
-    // 在控制台输出前10个点的详细数据，用于调试验证
-    std::cout << "First 10 points detail (x, y, z, reflectivity, tag, line, timestamp):" << std::endl;
-    size_t display_count = std::min(static_cast<size_t>(10), static_cast<size_t>(cloud.width));
-    for (size_t i = 0; i < display_count; ++i) {
-      std::cout << "  Point[" << i << "]: "
-                << points[i].x << ", " << points[i].y << ", " << points[i].z << ", "
-                << points[i].reflectivity << ", " << static_cast<int>(points[i].tag) << ", "
-                << static_cast<int>(points[i].line) << ", " << points[i].timestamp << std::endl;
-    }
-    std::cout << "=================================================\n" << std::endl;
-    
-    // 记录点云数据到单独的点云日志文件（仅CSV格式，不包含IMU数据）
-    if (pointcloud_log_file_.is_open()) {
-      std::cout << "[LOG] Writing " << cloud.width << " points to pointcloud log file..." << std::endl;
-      
-      // 遍历所有点，将每个点的完整数据写入CSV文件
-      for (size_t i = 0; i < cloud.width; ++i) {
-        pointcloud_log_file_ << points[i].x << ","           // X坐标
-                  << points[i].y << ","                       // Y坐标
-                  << points[i].z << ","                       // Z坐标
-                  << points[i].reflectivity << ","            // 反射率
-                  << static_cast<int>(points[i].tag) << ","   // 标签
-                  << static_cast<int>(points[i].line) << ","  // 线号
-                  << points[i].timestamp << "\n";             // 时间戳
+    if (livoxVerbosePacketLogsEnabled()) {
+      // 输出点云基本信息到控制台
+      std::cout << "\n========== Publishing LIDAR Point Cloud ==========" << std::endl;
+      std::cout << "Total points: " << cloud.width << ", timestamp: " << timestamp << std::endl;
+
+      // 将点云数据从ROS消息格式转换为LivoxPointXyzrtlt结构体数组
+      const LivoxPointXyzrtlt* points = reinterpret_cast<const LivoxPointXyzrtlt*>(cloud.data.data());
+
+      // 在控制台输出前10个点的详细数据，用于调试验证
+      std::cout << "First 10 points detail (x, y, z, reflectivity, tag, line, timestamp):" << std::endl;
+      size_t display_count = std::min(static_cast<size_t>(10), static_cast<size_t>(cloud.width));
+      for (size_t i = 0; i < display_count; ++i) {
+        std::cout << "  Point[" << i << "]: "
+                  << points[i].x << ", " << points[i].y << ", " << points[i].z << ", "
+                  << points[i].reflectivity << ", " << static_cast<int>(points[i].tag) << ", "
+                  << static_cast<int>(points[i].line) << ", " << points[i].timestamp << std::endl;
       }
-      pointcloud_log_file_.flush();  // 立即刷新到磁盘
-      std::cout << "[LOG] Pointcloud data written successfully to file." << std::endl;
-    } else {
-      std::cerr << "[ERROR] Pointcloud log file is not open!" << std::endl;
+      std::cout << "=================================================\n" << std::endl;
+
+      // 记录点云数据到单独的点云日志文件（仅CSV格式，不包含IMU数据）
+      if (pointcloud_log_file_.is_open()) {
+        std::cout << "[LOG] Writing " << cloud.width << " points to pointcloud log file..." << std::endl;
+
+        // 遍历所有点，将每个点的完整数据写入CSV文件
+        for (size_t i = 0; i < cloud.width; ++i) {
+          pointcloud_log_file_ << points[i].x << ","           // X坐标
+                    << points[i].y << ","                       // Y坐标
+                    << points[i].z << ","                       // Z坐标
+                    << points[i].reflectivity << ","            // 反射率
+                    << static_cast<int>(points[i].tag) << ","   // 标签
+                    << static_cast<int>(points[i].line) << ","  // 线号
+                    << points[i].timestamp << "\n";             // 时间戳
+        }
+        pointcloud_log_file_.flush();  // 立即刷新到磁盘
+        std::cout << "[LOG] Pointcloud data written successfully to file." << std::endl;
+      } else {
+        std::cerr << "[ERROR] Pointcloud log file is not open!" << std::endl;
+      }
     }
     
     // 发布点云数据到ROS2话题
@@ -626,44 +641,46 @@ void Lddc::PublishCustomPointData(const CustomMsg& livox_msg, const uint8_t inde
     // 内容：添加了数据点云数据到 log 的代码块，也可以在控制台中输出点云的总点数和时间基准
     // 结果：在控制台显示点云基本信息，在给 fastlio 节点传输数据的同时给日志文件写入点云数据
 
-    // 输出点云基本信息到控制台
-    std::cout << "\n========== Publishing LIDAR Point Cloud (Custom Format) ==========" << std::endl;
-    std::cout << "Total points: " << livox_msg.point_num << ", timebase: " << livox_msg.timebase << std::endl;
-    
-    // 在控制台输出前10个点的详细数据，用于调试验证
-    std::cout << "First 10 points detail (x, y, z, reflectivity, tag, line, offset_time):" << std::endl;
-    size_t display_count = std::min(static_cast<size_t>(10), static_cast<size_t>(livox_msg.point_num));
-    for (size_t i = 0; i < display_count; ++i) {
-      const auto& point = livox_msg.points[i];
-      std::cout << "  Point[" << i << "]: "
-                << point.x << ", " << point.y << ", " << point.z << ", "
-                << static_cast<int>(point.reflectivity) << ", " << static_cast<int>(point.tag) << ", "
-                << static_cast<int>(point.line) << ", " << point.offset_time << std::endl;
-    }
-    std::cout << "=================================================\n" << std::endl;
-    
-    // 记录点云数据到单独的点云日志文件（仅CSV格式，不包含IMU数据）
-    if (pointcloud_log_file_.is_open()) {
-      std::cout << "[LOG] Writing " << livox_msg.point_num << " points to pointcloud log file..." << std::endl;
-      
-      // 遍历所有点，将每个点的完整数据写入CSV文件
-      for (size_t i = 0; i < livox_msg.point_num; ++i) {
+    if (livoxVerbosePacketLogsEnabled()) {
+      // 输出点云基本信息到控制台
+      std::cout << "\n========== Publishing LIDAR Point Cloud (Custom Format) ==========" << std::endl;
+      std::cout << "Total points: " << livox_msg.point_num << ", timebase: " << livox_msg.timebase << std::endl;
+
+      // 在控制台输出前10个点的详细数据，用于调试验证
+      std::cout << "First 10 points detail (x, y, z, reflectivity, tag, line, offset_time):" << std::endl;
+      size_t display_count = std::min(static_cast<size_t>(10), static_cast<size_t>(livox_msg.point_num));
+      for (size_t i = 0; i < display_count; ++i) {
         const auto& point = livox_msg.points[i];
-        // CustomMsg使用相对时间，需要加上timebase得到绝对时间戳
-        double absolute_timestamp = static_cast<double>(livox_msg.timebase) + static_cast<double>(point.offset_time);
-        
-        pointcloud_log_file_ << point.x << ","                      // X坐标
-                  << point.y << ","                                 // Y坐标
-                  << point.z << ","                                 // Z坐标
-                  << static_cast<int>(point.reflectivity) << ","    // 反射率
-                  << static_cast<int>(point.tag) << ","             // 标签
-                  << static_cast<int>(point.line) << ","            // 线号
-                  << absolute_timestamp << "\n";                    // 绝对时间戳
+        std::cout << "  Point[" << i << "]: "
+                  << point.x << ", " << point.y << ", " << point.z << ", "
+                  << static_cast<int>(point.reflectivity) << ", " << static_cast<int>(point.tag) << ", "
+                  << static_cast<int>(point.line) << ", " << point.offset_time << std::endl;
       }
-      pointcloud_log_file_.flush();  // 立即刷新到磁盘
-      std::cout << "[LOG] Pointcloud data written successfully to file." << std::endl;
-    } else {
-      std::cerr << "[ERROR] Pointcloud log file is not open!" << std::endl;
+      std::cout << "=================================================\n" << std::endl;
+
+      // 记录点云数据到单独的点云日志文件（仅CSV格式，不包含IMU数据）
+      if (pointcloud_log_file_.is_open()) {
+        std::cout << "[LOG] Writing " << livox_msg.point_num << " points to pointcloud log file..." << std::endl;
+
+        // 遍历所有点，将每个点的完整数据写入CSV文件
+        for (size_t i = 0; i < livox_msg.point_num; ++i) {
+          const auto& point = livox_msg.points[i];
+          // CustomMsg使用相对时间，需要加上timebase得到绝对时间戳
+          double absolute_timestamp = static_cast<double>(livox_msg.timebase) + static_cast<double>(point.offset_time);
+
+          pointcloud_log_file_ << point.x << ","                      // X坐标
+                    << point.y << ","                                 // Y坐标
+                    << point.z << ","                                 // Z坐标
+                    << static_cast<int>(point.reflectivity) << ","    // 反射率
+                    << static_cast<int>(point.tag) << ","             // 标签
+                    << static_cast<int>(point.line) << ","            // 线号
+                    << absolute_timestamp << "\n";                    // 绝对时间戳
+        }
+        pointcloud_log_file_.flush();  // 立即刷新到磁盘
+        std::cout << "[LOG] Pointcloud data written successfully to file." << std::endl;
+      } else {
+        std::cerr << "[ERROR] Pointcloud log file is not open!" << std::endl;
+      }
     }
     
     // 发布点云消息到话题
@@ -788,19 +805,21 @@ void Lddc::PublishImuData(LidarImuDataQueue& imu_data_queue, const uint8_t index
 #endif
 
   if (kOutputToRos == output_type_) {
-    // 输出IMU数据到控制台
-    std::cout << "Publishing IMU data: accel(" << imu_msg.linear_acceleration.x << ", " 
-              << imu_msg.linear_acceleration.y << ", " << imu_msg.linear_acceleration.z 
-              << "), gyro(" << imu_msg.angular_velocity.x << ", " << imu_msg.angular_velocity.y 
-              << ", " << imu_msg.angular_velocity.z << "), timestamp: " << timestamp << std::endl;
+    if (livoxVerbosePacketLogsEnabled()) {
+      // 输出IMU数据到控制台
+      std::cout << "Publishing IMU data: accel(" << imu_msg.linear_acceleration.x << ", "
+                << imu_msg.linear_acceleration.y << ", " << imu_msg.linear_acceleration.z
+                << "), gyro(" << imu_msg.angular_velocity.x << ", " << imu_msg.angular_velocity.y
+                << ", " << imu_msg.angular_velocity.z << "), timestamp: " << timestamp << std::endl;
 
-    // 记录IMU数据到日志
-    if (log_file_.is_open()) {
-      log_file_ << "Publishing IMU data: accel(" << imu_msg.linear_acceleration.x << ", " 
-                << imu_msg.linear_acceleration.y << ", " << imu_msg.linear_acceleration.z 
-                << "), gyro(" << imu_msg.angular_velocity.x << ", " << imu_msg.angular_velocity.y 
-                << ", " << imu_msg.angular_velocity.z << "), timestamp: " << timestamp << "\n";
-      log_file_.flush();
+      // 记录IMU数据到日志
+      if (log_file_.is_open()) {
+        log_file_ << "Publishing IMU data: accel(" << imu_msg.linear_acceleration.x << ", "
+                  << imu_msg.linear_acceleration.y << ", " << imu_msg.linear_acceleration.z
+                  << "), gyro(" << imu_msg.angular_velocity.x << ", " << imu_msg.angular_velocity.y
+                  << ", " << imu_msg.angular_velocity.z << "), timestamp: " << timestamp << "\n";
+        log_file_.flush();
+      }
     }
 
     publisher_ptr->publish(imu_msg);

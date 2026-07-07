@@ -531,10 +531,17 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-Check whether the automatic corridor bag contains RTK and FAST-LIO2 diagnostic topics:
+Check whether the default automatic corridor bag contains the lean RTK / FAST-LIO2 / Nav2 diagnostic topics:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/heading|/rtk/status|/rtk/nmea_sentence|/livox/lidar|/livox/imu|/fastlio2/body_cloud'
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
+```
+
+If raw Livox replay is needed, opt in to the heavier debug bag profile before launch:
+
+```bash
+FYP_CORRIDOR_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 Notes:
@@ -545,8 +552,10 @@ Notes:
 - Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- Corridor currently generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and applies the RTK-acceptance low-speed profile: `vx_max=0.45`, `wz_max=0.65`, `ax_max=0.45`, `controller_frequency=20Hz`, and `batch_size=500`, so first outdoor RTK validation does not run with Explore's aggressive `1.0m/s` control limit; MPPI keeps `model_dt=0.05s`, so the control period must not be larger than the model step and cannot be lowered to `15Hz`
-- The corridor bag records `/heading`, `/rtk/status`, `/rtk/nmea_sentence`, `/livox/lidar`, `/livox/imu`, and `/fastlio2/body_cloud` for reviewing dual-antenna heading, RTK quality, and FAST-LIO2 point-cloud/IMU synchronization
+- Corridor currently generates a temporary Nav2 parameter file from `nav2_explore.yaml` at launch time and applies the RTK-authoritative corridor profile: `vx_max=0.65`, `wz_max=0.50`, `ax_max=0.70`, `ax_min=-1.2`, `controller_frequency=20Hz`, and `batch_size=500`; MPPI keeps `model_dt=0.05s`, so the control period must not be larger than the model step and cannot be lowered to `15Hz`
+- After the final waypoint is reached, `gps_route_runner` publishes `STOPPING_BEFORE_EXIT`, holds zero `/cmd_vel` for 1.2s at 20Hz, then publishes `SUCCEEDED`; quiet mode exits only after this hold, so the bag should contain a visible zero-speed tail.
+- The default corridor bag uses the lean profile and records RTK, FAST-LIO2 odom, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`; raw Livox point cloud, Livox IMU, and `/fastlio2/body_cloud` are recorded only with `FYP_CORRIDOR_BAG_PROFILE=debug`
+- Livox packet-scale console/CSV logging is disabled during normal runs. Use `LIVOX_VERBOSE_PACKET_LOGS=1` only for short bench diagnostics because it prints and flushes per packet.
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`
 

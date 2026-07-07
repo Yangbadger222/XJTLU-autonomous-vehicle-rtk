@@ -26,7 +26,11 @@ from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
     normalize_lifecycle_node_names,
     summarize_lifecycle_states,
 )
-from gps_waypoint_dispatcher.route_safety import summarize_map_gps_consistency
+from gps_waypoint_dispatcher.route_safety import (
+    summarize_map_gps_consistency,
+    summarize_tf_freshness,
+    summarize_tf_watchdog_gap,
+)
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
     default_route_file,
@@ -92,6 +96,8 @@ class GPSRouteRunner(Node):
         self.declare_parameter("fix_topic", "/fix")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
         self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("terminal_stop_hold_s", 1.2)
+        self.declare_parameter("terminal_stop_publish_hz", 20.0)
         self.declare_parameter("startup_wait_timeout_s", 90.0)
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
@@ -100,7 +106,9 @@ class GPSRouteRunner(Node):
         self.declare_parameter("odom_watchdog_step_abort_m", 1.0)
         self.declare_parameter("odom_watchdog_warn_count_abort", 3)
         self.declare_parameter("odom_watchdog_tf_stale_abort_count", 3)
+        self.declare_parameter("odom_watchdog_tf_stale_abort_s", 3.0)
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
+        self.declare_parameter("tf_pose_max_age_s", 3.0)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
         self.declare_parameter("map_gps_divergence_warn_m", 2.0)
@@ -116,6 +124,12 @@ class GPSRouteRunner(Node):
         self._fix_topic = str(self.get_parameter("fix_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
         self._cmd_vel_topic = str(self.get_parameter("cmd_vel_topic").value)
+        self._terminal_stop_hold_s = max(
+            0.0, float(self.get_parameter("terminal_stop_hold_s").value)
+        )
+        self._terminal_stop_publish_hz = max(
+            1.0, float(self.get_parameter("terminal_stop_publish_hz").value)
+        )
         self._startup_wait_timeout_s = float(self.get_parameter("startup_wait_timeout_s").value)
         self._enu_origin_lat = float(self.get_parameter("enu_origin_lat").value)
         self._enu_origin_lon = float(self.get_parameter("enu_origin_lon").value)
@@ -132,9 +146,13 @@ class GPSRouteRunner(Node):
         self._odom_watchdog_tf_stale_abort_count = int(
             self.get_parameter("odom_watchdog_tf_stale_abort_count").value
         )
+        self._odom_watchdog_tf_stale_abort_s = float(
+            self.get_parameter("odom_watchdog_tf_stale_abort_s").value
+        )
         self._odom_watchdog_monitor_period_s = float(
             self.get_parameter("odom_watchdog_monitor_period_s").value
         )
+        self._tf_pose_max_age_s = float(self.get_parameter("tf_pose_max_age_s").value)
         self._alignment_shift_cancel_threshold_m = float(
             self.get_parameter("alignment_shift_cancel_threshold_m").value
         )
@@ -400,6 +418,7 @@ class GPSRouteRunner(Node):
         deadline = time.time() + self._startup_wait_timeout_s
         if announce_wait:
             self._publish_status("WAITING_FOR_MAP_TF")
+        last_stale_age_s: float | None = None
         while rclpy.ok() and time.time() < deadline:
             try:
                 transform = self._tf_buffer.lookup_transform(
@@ -408,12 +427,24 @@ class GPSRouteRunner(Node):
                     Time(),
                     timeout=Duration(seconds=0.5),
                 )
-                translation = transform.transform.translation
-                rotation = transform.transform.rotation
-                yaw = quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w)
-                return float(translation.x), float(translation.y), yaw
+                pose = self._pose_from_transform(transform)
+                if pose is not None:
+                    return pose
+                stamp_s = self._stamp_to_seconds(transform.header.stamp)
+                last_stale_age_s = self._now_seconds() - stamp_s
             except TransformException:
-                rclpy.spin_once(self, timeout_sec=0.2)
+                pass
+            rclpy.spin_once(self, timeout_sec=0.2)
+        if last_stale_age_s is not None:
+            raise RuntimeError(
+                "timed out waiting for fresh TF %s->%s (last age %.2fs, max %.2fs)"
+                % (
+                    self._route_frame,
+                    self._base_frame,
+                    last_stale_age_s,
+                    self._tf_pose_max_age_s,
+                )
+            )
         raise RuntimeError(f"timed out waiting for TF {self._route_frame}->{self._base_frame}")
 
     def _current_xy(self) -> tuple[float, float]:
@@ -431,6 +462,32 @@ class GPSRouteRunner(Node):
                 timeout=Duration(seconds=timeout_s),
             )
         except TransformException:
+            return None
+        return self._pose_from_transform(transform)
+
+    def _stamp_to_seconds(self, stamp) -> float:
+        return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+
+    def _now_seconds(self) -> float:
+        return float(self.get_clock().now().nanoseconds) * 1e-9
+
+    def _pose_from_transform(self, transform) -> tuple[float, float, float] | None:
+        stamp_s = self._stamp_to_seconds(transform.header.stamp)
+        freshness = summarize_tf_freshness(
+            now_s=self._now_seconds(),
+            stamp_s=stamp_s,
+            max_age_s=self._tf_pose_max_age_s,
+        )
+        if not freshness.ok:
+            self.get_logger().debug(
+                "Ignoring stale TF %s->%s age=%.2fs max=%.2fs"
+                % (
+                    self._route_frame,
+                    self._base_frame,
+                    freshness.age_s,
+                    self._tf_pose_max_age_s,
+                )
+            )
             return None
         translation = transform.transform.translation
         rotation = transform.transform.rotation
@@ -663,11 +720,20 @@ class GPSRouteRunner(Node):
         if path.poses:
             self._goal_pub.publish(path.poses[0])
 
-    def _publish_zero_cmd_vel(self, repeat: int = 3) -> None:
+    def _publish_zero_cmd_vel(self, repeat: int = 3, period_s: float = 0.05) -> None:
         zero = Twist()
         for _ in range(max(1, repeat)):
             self._cmd_vel_pub.publish(zero)
-            rclpy.spin_once(self, timeout_sec=0.05)
+            rclpy.spin_once(self, timeout_sec=max(0.0, period_s))
+
+    def _publish_terminal_stop_hold(self) -> None:
+        period_s = 1.0 / self._terminal_stop_publish_hz
+        repeat = max(1, int(math.ceil(self._terminal_stop_hold_s / period_s)))
+        self.get_logger().info(
+            "Holding zero cmd_vel for %.2fs before terminal status (%d samples @ %.1fHz)"
+            % (self._terminal_stop_hold_s, repeat, self._terminal_stop_publish_hz)
+        )
+        self._publish_zero_cmd_vel(repeat=repeat, period_s=period_s)
 
     def _abort_goal_with_watchdog(
         self,
@@ -708,6 +774,7 @@ class GPSRouteRunner(Node):
         last_pose_mono = time.monotonic()
         warning_count = 0
         tf_stale_count = 0
+        tf_stale_started_mono: float | None = None
 
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=self._odom_watchdog_monitor_period_s)
@@ -744,17 +811,27 @@ class GPSRouteRunner(Node):
             current_pose = self._try_lookup_current_pose(timeout_s=0.05)
             now_mono = time.monotonic()
             if current_pose is None:
+                if tf_stale_started_mono is None:
+                    tf_stale_started_mono = now_mono
                 tf_stale_count += 1
-                if tf_stale_count >= self._odom_watchdog_tf_stale_abort_count:
+                stale_elapsed_s = now_mono - tf_stale_started_mono
+                gap = summarize_tf_watchdog_gap(
+                    stale_count=tf_stale_count,
+                    stale_elapsed_s=stale_elapsed_s,
+                    abort_count=self._odom_watchdog_tf_stale_abort_count,
+                    abort_after_s=self._odom_watchdog_tf_stale_abort_s,
+                )
+                if gap.abort:
                     return self._abort_goal_with_watchdog(
                         goal_handle,
                         waypoint_name,
                         subgoal_index,
-                        "TF_STALE",
+                        gap.reason or "TF_STALE",
                     )
                 continue
 
             tf_stale_count = 0
+            tf_stale_started_mono = None
             if last_pose is None:
                 last_pose = current_pose
                 last_pose_mono = now_mono
@@ -898,12 +975,72 @@ class GPSRouteRunner(Node):
                 )
                 continue
             if status != GoalStatus.STATUS_SUCCEEDED:
+                self._publish_terminal_stop_hold()
                 self._publish_status(
                     f"FAILED_WAYPOINT_{waypoint.name}_SUBGOAL_{subgoal_index}_STATUS_{status}"
                 )
                 return False, current_xy
 
+            verified_ok, current_xy, current_progress_m = self._verify_nav2_success_progress(
+                segment=segment,
+                waypoint_name=waypoint.name,
+                subgoal_index=subgoal_index,
+                target_progress_m=next_progress_m,
+                current_progress_m=current_progress_m,
+                waypoint_tolerance_m=waypoint_tolerance_m,
+            )
+            if not verified_ok:
+                return False, current_xy
+
         return False, self._current_xy()
+
+    def _verify_nav2_success_progress(
+        self,
+        segment: SegmentPlan,
+        waypoint_name: str,
+        subgoal_index: int,
+        target_progress_m: float,
+        current_progress_m: float,
+        waypoint_tolerance_m: float,
+    ) -> tuple[bool, tuple[float, float], float]:
+        current_xy = self._current_xy()
+        live_alignment = self._latest_alignment
+        if live_alignment is None:
+            self.get_logger().error("Lost alignment after Nav2 success for %s" % waypoint_name)
+            self._publish_terminal_stop_hold()
+            self._publish_status(
+                "NAV2_FALSE_SUCCESS_ABORT|%s|%d|LOST_ALIGNMENT"
+                % (waypoint_name, subgoal_index)
+            )
+            return False, current_xy, current_progress_m
+        if not self._map_gps_consistent(
+            current_xy, live_alignment, "nav2_success_%s" % waypoint_name
+        ):
+            return False, current_xy, current_progress_m
+
+        current_enu = self._map_to_enu(current_xy[0], current_xy[1], live_alignment)
+        observed_progress_m, _ = self._progress_on_segment(segment, current_enu)
+        verified_progress_m = max(current_progress_m, observed_progress_m)
+        shortfall_m = target_progress_m - verified_progress_m
+        if shortfall_m <= waypoint_tolerance_m:
+            return True, current_xy, verified_progress_m
+
+        detail = (
+            "%s|%d|target=%.2f|progress=%.2f|shortfall=%.2f"
+            % (
+                waypoint_name,
+                subgoal_index,
+                target_progress_m,
+                verified_progress_m,
+                shortfall_m,
+            )
+        )
+        self.get_logger().error(
+            "Nav2 reported success without route progress: %s" % detail
+        )
+        self._publish_terminal_stop_hold()
+        self._publish_status("NAV2_FALSE_SUCCESS_ABORT|%s" % detail)
+        return False, current_xy, verified_progress_m
 
     def run(self) -> bool:
         self._publish_status("INITIALIZING")
@@ -945,6 +1082,8 @@ class GPSRouteRunner(Node):
                 % (waypoint_index + 1, len(self._route["waypoints"]), waypoint.name)
             )
 
+        self._publish_status("STOPPING_BEFORE_EXIT")
+        self._publish_terminal_stop_hold()
         self._publish_status("SUCCEEDED")
         return True
 

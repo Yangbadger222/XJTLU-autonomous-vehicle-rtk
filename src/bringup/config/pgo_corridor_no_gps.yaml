@@ -1,4 +1,5 @@
 /pgo/pgo_node:
   ros__parameters:
+    publish_tf: false
     "gps.enable": false
     "gps.alignment_topic": /gps_corridor/pgo_enu_to_map

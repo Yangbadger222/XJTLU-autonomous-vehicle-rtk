@@ -103,15 +103,15 @@ I have made some commands to keep things simple:
 
 - If there are no code changes to the LIDAR, run:
 ```bash
-make build-bringup
+mbuild build-bringup
 ```
 
 - If the LIDAR code has changed, run:
 ```bash
-make build-fastlio2
+mbuild build-fastlio2
 ```
 
-If you are unsure, just run `make build-fastlio2`. Then, you can use the robot as normal (like `make rtk-launch-basic`, `make launch-slam`, etc).
+If you are unsure, just run `mbuild build-fastlio2`. Then, you can use the robot as normal (like `make rtk-launch-basic`, `make launch-slam`, etc).
 
 ***
 

@@ -61,10 +61,11 @@ alias l='ls -CF'
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 # Additional Handy Aliases for Devs
-alias rc='nano ~/.bashrc'
+alias rc='vi ~/.bashrc'
 alias s1='source ~/.bashrc'
 alias gs='git status'
 alias cw='cd ~/XJTLU-autonomous-vehicle/'
+alias ss="if [ -f install/setup.bash ]; then source install/setup.bash; echo 'Workspace sourced!'; else echo 'No install/setup.bash found.'; fi"
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases
@@ -77,6 +78,15 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# Custom Make wrapper for ROS 2
+mbuild() {
+    make "$@"
+    if [ $? -eq 0 ] && [ -f install/setup.bash ]; then
+        source install/setup.bash
+        echo -e "\n\033[0;32m>>> Build successful! You may run 'make launch-...'\033[0m"
+    fi
+}
 
 # Environment Variables
 export PATH="$HOME/.local/bin:$PATH"

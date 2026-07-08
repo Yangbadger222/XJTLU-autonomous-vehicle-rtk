@@ -80,10 +80,10 @@ Optional RTK recording in pure SLAM mapping:
 
 ```bash
 # Default mapping run: build 2D/3D maps without starting RTK
-cd ~/XJTLU-autonomous-vehicle && bash scripts/launch_with_logs.sh slam
+bash scripts/launch_with_logs.sh slam
 
 # Enable RTK only when outdoor Fixed samples are needed for later indoor/outdoor geo-registration
-cd ~/XJTLU-autonomous-vehicle && ros2 launch bringup system_slam.launch.py use_rtk:=true
+ros2 launch bringup system_slam.launch.py use_rtk:=true
 ```
 
 One-line command for indoor click-to-go navigation without GPS:
@@ -91,7 +91,7 @@ One-line command for indoor click-to-go navigation without GPS:
 > Compatibility note: `FYP_*` names are legacy runtime interface variables still read by the current scripts. This documentation pass updates public project wording, not runtime interface names.
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
 ```
 
 Notes:
@@ -102,7 +102,7 @@ Notes:
 One-line command for prior-map Travel navigation:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
   map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
   pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
 ```
@@ -130,7 +130,7 @@ ros2 run tf2_ros tf2_monitor map odom
 One-line command for GPS Corridor v2:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh corridor
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh corridor
 ```
 
 Notes:
@@ -263,7 +263,7 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 
 ```bash
 # Save the current SLAM session's 2D + 3D maps and write a manifest
-cd ~/XJTLU-autonomous-vehicle && scripts/save_mapping_session.sh <map_name>
+scripts/save_mapping_session.sh <map_name>
 ```
 
 Output:
@@ -304,7 +304,7 @@ pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
 
 ```bash
 # Clean up after system shutdown to ensure a clean state for the next launch
-cd ~/XJTLU-autonomous-vehicle && make kill-runtime
+make kill
 ```
 
 Stop and emergency-stop priority:
@@ -370,12 +370,12 @@ nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --activ
 sudo -n true && echo sudo_ok
 
 # Switch Jetson WiFi and restart ToDesk on the Jetson side (execute directly on the Linux host)
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh --status
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh outdoor
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh indoor
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh Pixel
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh XJTLU
+bash scripts/switch_jetson_wifi.sh --status
+bash scripts/switch_jetson_wifi.sh
+bash scripts/switch_jetson_wifi.sh outdoor
+bash scripts/switch_jetson_wifi.sh indoor
+bash scripts/switch_jetson_wifi.sh Pixel
+bash scripts/switch_jetson_wifi.sh XJTLU
 
 # GPS dispatcher dependencies
 apt list --installed | grep ros-humble-geographic-msgs
@@ -393,14 +393,11 @@ Notes:
 Minimum two-line launch commands:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch nmea_navsat_driver nmea_serial_driver.launch.py params_file:=/home/jetson/XJTLU-autonomous-vehicle/src/bringup/config/master_params.yaml
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/collect_gps_scene.py
+ros2 launch nmea_navsat_driver nmea_serial_driver.launch.py params_file:=/home/jetson/XJTLU-autonomous-vehicle/src/bringup/config/master_params.yaml
+python3 scripts/collect_gps_scene.py
 ```
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/collect_gps_scene.py
 ```
 
@@ -428,9 +425,6 @@ Interactive commands:
 Compile runtime files after collection:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/build_scene_runtime.py
 ```
 
@@ -468,7 +462,7 @@ ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
 ros2 run gps_waypoint_dispatcher stop
 
 # One-command launch nav-gps, wait for NAV_READY, and select destination by number
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/nav_gps_menu.py
+python3 scripts/nav_gps_menu.py
 ```
 
 ## 14. Fixed-Launch GPS Corridor
@@ -476,7 +470,7 @@ cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source ins
 ### GPS Route Collection (Waypoint Survey)
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/collect_gps_route.py
+python3 scripts/collect_gps_route.py
 ```
 
 Interactive workflow:
@@ -493,33 +487,33 @@ Interactive workflow:
 ### Automatic Corridor Navigation
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh corridor
 ```
 
 One-line launch with RTK/CORS parameters for field testing:
 
-> Do not commit the real CORS password. `<CORS_PASSWORD>` is only a runtime placeholder to replace manually.
+> Do not commit the real CORS password. Use `make ntrip-login` in the Jetson to handle CORS credentials.
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml NTRIP_PASSWORD='<CORS_PASSWORD>' FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
 ```
 
 Confirm the route that will be used before launching:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && sed -n '1,120p' runtime-data/gnss/current_route.yaml
+sed -n '1,120p' runtime-data/gnss/current_route.yaml
 ```
 
 Clean up residual processes after completion:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && make kill-runtime
+make kill-runtime
 ```
 
 Makefile shortcut launch:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && make launch-corridor
+make launch-corridor
 ```
 
 Debug observation:
@@ -534,14 +528,14 @@ ros2 topic echo /gps_corridor/enu_to_map
 Check whether the default automatic corridor bag contains the lean RTK / FAST-LIO2 / Nav2 diagnostic topics:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
 ```
 
 If raw Livox replay is needed, opt in to the heavier debug bag profile before launch:
 
 ```bash
 FYP_CORRIDOR_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 Notes:
@@ -574,7 +568,6 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 Build:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make build-perception
 source install/setup.bash
 ```
@@ -582,7 +575,6 @@ source install/setup.bash
 Launch the experimental shadow mode:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make launch-tightly-coupled
 cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
@@ -639,7 +631,6 @@ Notes:
 To upload rosbags into Huggingface:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ```
 
@@ -709,9 +700,6 @@ On your personal computer:
 
 In the Jetson, download Foxglove:
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
@@ -720,9 +708,6 @@ sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 
 To start a connection, SSH into the Jetson and run:
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 ros2 run foxglove_bridge foxglove_bridge
 ```
 
@@ -777,11 +762,11 @@ The script is being tracked in [/scripts/bashrc.sh](/scripts/bashrc.sh). To set 
 2. Open a terminal in the Jetson (SSH or local are both ok)
 3. Type the following command to open `~/.bashrc` with Vim:
 ```bash
-vi ~/.bashrc
+rc
 ```
 4. After it opens, type `:%d` to delete all contents in the file
 5. Use `Ctrl + V` to paste the new script from your clipboard
 6. Press `Esc`, then `:wq` to write and quit (save and exit)
-7. To test it, open a new terminal or run: `source ~/.bashrc`
+7. To test it, open a new terminal or run: `s1`
 
 Whenever you want to update `~/.bashrc`, modify it first from [/scripts/bashrc.sh](/scripts/bashrc.sh), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.

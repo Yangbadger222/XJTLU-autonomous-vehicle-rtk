@@ -83,6 +83,7 @@ fi
 mbuild() {
     make "$@"
     if [ $? -eq 0 ] && [ -f install/setup.bash ]; then
+        source /opt/ros/humble/setup.bash
         source install/setup.bash
         echo -e "\n\033[0;32m>>> Build successful! You may run 'make launch-...'\033[0m"
     fi

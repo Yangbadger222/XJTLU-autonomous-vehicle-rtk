@@ -23,6 +23,13 @@ class TfWatchdogGapSummary:
     reason: str | None
 
 
+@dataclass(frozen=True)
+class Nav2SuccessProgressSummary:
+    ok: bool
+    shortfall_m: float
+    tolerance_m: float
+
+
 def summarize_map_gps_consistency(
     map_xy: tuple[float, float],
     gps_map_xy: tuple[float, float],
@@ -59,6 +66,26 @@ def summarize_tf_watchdog_gap(
     return TfWatchdogGapSummary(
         abort=should_abort,
         reason=("TF_STALE_%.2fs" % stale_elapsed_s) if should_abort else None,
+    )
+
+
+def summarize_nav2_success_progress(
+    target_progress_m: float,
+    verified_progress_m: float,
+    waypoint_tolerance_m: float,
+    success_shortfall_tolerance_m: float,
+) -> Nav2SuccessProgressSummary:
+    shortfall_m = target_progress_m - verified_progress_m
+    tolerance_m = max(waypoint_tolerance_m, success_shortfall_tolerance_m)
+    ok = (
+        math.isfinite(shortfall_m)
+        and math.isfinite(tolerance_m)
+        and shortfall_m <= tolerance_m
+    )
+    return Nav2SuccessProgressSummary(
+        ok=ok,
+        shortfall_m=shortfall_m,
+        tolerance_m=tolerance_m,
     )
 
 

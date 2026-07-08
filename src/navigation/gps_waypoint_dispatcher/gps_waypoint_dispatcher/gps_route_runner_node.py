@@ -27,6 +27,7 @@ from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
     summarize_lifecycle_states,
 )
 from gps_waypoint_dispatcher.route_safety import (
+    summarize_nav2_success_progress,
     summarize_map_gps_consistency,
     summarize_tf_freshness,
     summarize_tf_watchdog_gap,
@@ -898,6 +899,12 @@ class GPSRouteRunner(Node):
         waypoint = segment.waypoint
         segment_length_m = float(self._route.get("segment_length_m", 5.0))
         waypoint_tolerance_m = float(self._route.get("waypoint_xy_tolerance_m", 0.35))
+        success_shortfall_tolerance_m = float(
+            self._route.get(
+                "nav2_success_shortfall_tolerance_m",
+                max(0.75, waypoint_tolerance_m),
+            )
+        )
         current_xy = self._current_xy()
         starting_alignment, current_progress_m = self._choose_waypoint_alignment(
             waypoint_index, segment, current_xy
@@ -988,6 +995,7 @@ class GPSRouteRunner(Node):
                 target_progress_m=next_progress_m,
                 current_progress_m=current_progress_m,
                 waypoint_tolerance_m=waypoint_tolerance_m,
+                success_shortfall_tolerance_m=success_shortfall_tolerance_m,
             )
             if not verified_ok:
                 return False, current_xy
@@ -1002,6 +1010,7 @@ class GPSRouteRunner(Node):
         target_progress_m: float,
         current_progress_m: float,
         waypoint_tolerance_m: float,
+        success_shortfall_tolerance_m: float,
     ) -> tuple[bool, tuple[float, float], float]:
         current_xy = self._current_xy()
         live_alignment = self._latest_alignment
@@ -1021,18 +1030,24 @@ class GPSRouteRunner(Node):
         current_enu = self._map_to_enu(current_xy[0], current_xy[1], live_alignment)
         observed_progress_m, _ = self._progress_on_segment(segment, current_enu)
         verified_progress_m = max(current_progress_m, observed_progress_m)
-        shortfall_m = target_progress_m - verified_progress_m
-        if shortfall_m <= waypoint_tolerance_m:
+        progress_summary = summarize_nav2_success_progress(
+            target_progress_m=target_progress_m,
+            verified_progress_m=verified_progress_m,
+            waypoint_tolerance_m=waypoint_tolerance_m,
+            success_shortfall_tolerance_m=success_shortfall_tolerance_m,
+        )
+        if progress_summary.ok:
             return True, current_xy, verified_progress_m
 
         detail = (
-            "%s|%d|target=%.2f|progress=%.2f|shortfall=%.2f"
+            "%s|%d|target=%.2f|progress=%.2f|shortfall=%.2f|tolerance=%.2f"
             % (
                 waypoint_name,
                 subgoal_index,
                 target_progress_m,
                 verified_progress_m,
-                shortfall_m,
+                progress_summary.shortfall_m,
+                progress_summary.tolerance_m,
             )
         )
         self.get_logger().error(

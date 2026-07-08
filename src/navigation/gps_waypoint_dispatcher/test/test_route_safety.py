@@ -3,6 +3,7 @@ from pathlib import Path
 
 from gps_waypoint_dispatcher.route_safety import (
     is_rcl_context_shutdown_error_message,
+    summarize_nav2_success_progress,
     summarize_map_gps_consistency,
     summarize_tf_freshness,
     summarize_tf_watchdog_gap,
@@ -71,6 +72,38 @@ def test_route_runner_uses_tf_freshness_gate_before_pose_use():
     assert "NAV2_FALSE_SUCCESS_ABORT" in text
     assert "_verify_nav2_success_progress" in text
     assert "TF_STALE" in text
+
+
+def test_nav2_success_progress_allows_near_goal_shortfall_with_guard_tolerance():
+    summary = summarize_nav2_success_progress(
+        target_progress_m=15.77,
+        verified_progress_m=15.29,
+        waypoint_tolerance_m=0.35,
+        success_shortfall_tolerance_m=0.75,
+    )
+
+    assert summary.ok is True
+    assert summary.shortfall_m == pytest.approx(0.48, abs=0.01)
+    assert summary.tolerance_m == pytest.approx(0.75)
+
+
+def test_nav2_success_progress_rejects_no_progress_false_success():
+    summary = summarize_nav2_success_progress(
+        target_progress_m=13.71,
+        verified_progress_m=0.0,
+        waypoint_tolerance_m=0.35,
+        success_shortfall_tolerance_m=0.75,
+    )
+
+    assert summary.ok is False
+    assert summary.shortfall_m == pytest.approx(13.71)
+
+
+def test_route_runner_has_independent_nav2_success_shortfall_tolerance():
+    text = ROUTE_RUNNER.read_text(encoding="utf-8")
+
+    assert '"nav2_success_shortfall_tolerance_m"' in text
+    assert "summarize_nav2_success_progress" in text
 
 
 def test_route_runner_holds_zero_cmd_before_success_status():

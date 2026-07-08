@@ -80,10 +80,10 @@ SLAM 纯建图可选 RTK 记录：
 
 ```bash
 # 默认只建 2D/3D 地图，不启动 RTK
-cd ~/XJTLU-autonomous-vehicle && bash scripts/launch_with_logs.sh slam
+bash scripts/launch_with_logs.sh slam
 
 # 需要为后续室内外地理配准记录室外 Fixed RTK 样本时再打开
-cd ~/XJTLU-autonomous-vehicle && ros2 launch bringup system_slam.launch.py use_rtk:=true
+ros2 launch bringup system_slam.launch.py use_rtk:=true
 ```
 
 室内无 GPS 点击点导航的一整行命令：
@@ -91,7 +91,7 @@ cd ~/XJTLU-autonomous-vehicle && ros2 launch bringup system_slam.launch.py use_r
 > 兼容性说明：`FYP_*` 是当前脚本仍在读取的 legacy 运行接口变量名，本轮只更新公开项目称呼，不重命名运行接口。
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
 ```
 
 说明：
@@ -102,7 +102,7 @@ cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs
 先验地图 Travel 导航的一整行命令：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
   map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
   pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
 ```
@@ -130,7 +130,7 @@ ros2 run tf2_ros tf2_monitor map odom
 GPS Corridor v2 的一整行命令：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh corridor
+FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh corridor
 ```
 
 说明：
@@ -263,7 +263,7 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 
 ```bash
 # 一次保存当前 slam session 的 2D + 3D 地图，并生成 manifest
-cd ~/XJTLU-autonomous-vehicle && scripts/save_mapping_session.sh <map_name>
+scripts/save_mapping_session.sh <map_name>
 ```
 
 输出：
@@ -304,7 +304,7 @@ pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
 
 ```bash
 # 系统结束后做一次干净清理，确保下次从空状态启动
-cd ~/XJTLU-autonomous-vehicle && make kill-runtime
+make kill
 ```
 
 停止与急停优先级：
@@ -370,12 +370,12 @@ nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --activ
 sudo -n true && echo sudo_ok
 
 # 切换 Jetson WiFi，并在 Jetson 侧重启 ToDesk（Linux 本机直接执行）
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh --status
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh outdoor
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh indoor
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh Pixel
-cd ~/XJTLU-autonomous-vehicle && bash scripts/switch_jetson_wifi.sh XJTLU
+bash scripts/switch_jetson_wifi.sh --status
+bash scripts/switch_jetson_wifi.sh
+bash scripts/switch_jetson_wifi.sh outdoor
+bash scripts/switch_jetson_wifi.sh indoor
+bash scripts/switch_jetson_wifi.sh Pixel
+bash scripts/switch_jetson_wifi.sh XJTLU
 
 # GPS dispatcher 依赖
 apt list --installed | grep ros-humble-geographic-msgs
@@ -393,8 +393,8 @@ python3 -c "import pyproj; print(pyproj.__version__)"
 最短两行启动命令：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch nmea_navsat_driver nmea_serial_driver.launch.py params_file:=/home/jetson/XJTLU-autonomous-vehicle/src/bringup/config/master_params.yaml
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/collect_gps_scene.py
+ros2 launch nmea_navsat_driver nmea_serial_driver.launch.py params_file:=/home/jetson/XJTLU-autonomous-vehicle/src/bringup/config/master_params.yaml
+python3 scripts/collect_gps_scene.py
 ```
 
 ```bash
@@ -468,7 +468,7 @@ ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
 ros2 run gps_waypoint_dispatcher stop
 
 # 一键拉起 nav-gps，等待 NAV_READY，并按编号选择 destination
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/nav_gps_menu.py
+python3 scripts/nav_gps_menu.py
 ```
 
 ## 14. Fixed-Launch GPS Corridor
@@ -476,7 +476,7 @@ cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source ins
 ### GPS 路线采集（踩点）
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && python3 scripts/collect_gps_route.py
+python3 scripts/collect_gps_route.py
 ```
 
 交互流程：
@@ -493,33 +493,33 @@ cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source ins
 ### 自动 corridor 导航
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh corridor
 ```
 
 带 RTK/CORS 参数的一行启动（现场测试用）：
 
-> 不要把真实 CORS 密码写进仓库；`<CORS_PASSWORD>` 只表示运行时手动替换的占位符。
+> 不要把真实 CORS 密码写进仓库；所有 CORS 账号信息用 `make ntrip-login` 管理。
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && source /opt/ros/humble/setup.bash && source install/setup.bash && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml NTRIP_PASSWORD='<CORS_PASSWORD>' FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
+FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml NTRIP_PASSWORD='<CORS_PASSWORD>' FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
 ```
 
 启动前确认当前要跑的路线：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && sed -n '1,120p' runtime-data/gnss/current_route.yaml
+sed -n '1,120p' runtime-data/gnss/current_route.yaml
 ```
 
 结束后清理残留进程：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && make kill-runtime
+make kill
 ```
 
 Makefile 快捷启动：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && make launch-corridor
+make launch-corridor
 ```
 
 调试观察：
@@ -534,14 +534,14 @@ ros2 topic echo /gps_corridor/enu_to_map
 检查 corridor 默认自动录包里是否包含轻量 RTK / FAST-LIO2 / Nav2 诊断话题：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
 ```
 
 如果需要回放原始 Livox 数据，启动前显式切到更重的 debug bag profile：
 
 ```bash
 FYP_CORRIDOR_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
-cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
 ```
 
 说明：

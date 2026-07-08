@@ -109,15 +109,20 @@ git fetch
 
 * 如果激光雷达（LIDAR）的代码没有更改，请运行：
 ```bash
-make build-bringup
+mbuild build-bringup
 ```
 
 * 如果激光雷达的代码发生了更改，请运行：
 ```bash
-make build-fastlio2
+mbuild build-fastlio2
 ```
 
 如果你不确定，直接运行 `make build-fastlio2` 即可。之后，你就可以像往常一样使用机器人了（比如运行 `make rtk-launch-basic`，`make launch-slam` 等）。
+
+* 注意：如果你已打开别的终端，需要在所有终端跑一下这个命令：
+```bash
+ss
+```
 
 ***
 

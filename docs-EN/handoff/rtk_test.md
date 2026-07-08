@@ -113,6 +113,11 @@ mbuild build-fastlio2
 
 If you are unsure, just run `mbuild build-fastlio2`. Then, you can use the robot as normal (like `make rtk-launch-basic`, `make launch-slam`, etc).
 
+* Note: if you have more than 1 terminal, run this command on all of them:
+```bash
+ss
+```
+
 ***
 
 ## RTK offset test script

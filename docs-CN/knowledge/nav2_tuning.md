@@ -50,7 +50,7 @@ Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` �
 - Corridor 的实时安全边界仍由 local costmap 承担：保留 `stvl_layer`、`frc_layer` 和 `inflation_layer`，继续使用 `robot_radius=0.38625` 与 `inflation_radius=0.43` 处理 Livox 障碍。
 - `gps_route_runner` 的默认 `segment_length_m` 从 `30.0m` 缩短到 `5.0m`；长 RTK 线段会被拆成更短子目标，降低 rolling costmap 边缘、局部路径和全局规划之间的耦合风险。
 - 发布终止 `SUCCEEDED` 前，`gps_route_runner` 会先发布 `STOPPING_BEFORE_EXIT`，并按 `20Hz` 保持 `terminal_stop_hold_s=1.2` 的零 `/cmd_vel`；这样 quiet monitor 不会在下位机收到明显零速度尾巴前杀掉 launch。
-- corridor 通过 launch 注入无 `Spin` / `BackUp` 的 NavigateToPose 与 NavigateThroughPoses BT；`nav2_explore.yaml` 必须同时保留 `default_nav_to_pose_bt_xml` 和 `default_nav_through_poses_bt_xml` 两个空默认槽位，否则 Nav2 会对 through-poses action 回退到上游 recovery 树
+- corridor 通过 launch 注入无 `Spin` / `BackUp` 的 NavigateToPose 与 NavigateThroughPoses BT；`nav2_explore.yaml` 与 `nav2_corridor_rtk.yaml` 必须同时保留 `default_nav_to_pose_bt_xml` 和 `default_nav_through_poses_bt_xml` 两个空默认槽位，否则 Nav2 会对 through-poses action 回退到上游 recovery 树
 - corridor 由 `rtk_map_odom_corrector` 发布 RTK authoritative `map→odom`；PGO 在 `pgo_corridor_no_gps.yaml` 中关闭 `publish_tf`，只保留点云/优化输出，不再作为 corridor 的全局 TF owner
 - 启动阶段若 external `/gps_corridor/enu_to_map` 尚未出现，`rtk_map_odom_corrector` 会复用 bootstrap alignment，并允许在 RTK Fixed 前先发布 `RTK_BOOTSTRAP` 的 `map→odom`；这只用于让 Nav2 lifecycle 获得 `map` frame，路线执行仍由 `gps_route_runner` 的 stable-fix / alignment gate 控制
 - RTK corrector 在 RTK/heading/alignment 新鲜且平移跳变仍安全时允许 `YAW_REACQUIRE`：`max_yaw_reacquire_jump_deg=45.0`，但实际 `map→odom` yaw 每周期只释放 `0.5deg`，避免 40 度级别 yaw target jump 长时间冻结 TF

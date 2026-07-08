@@ -151,6 +151,9 @@ bt_navigator:
     # 默认 NavigateToPose 行为树 XML；由 launch 在运行时注入 corridor 专用 BT。
     # 不注入时回退默认空字符串，由 Nav2 使用上游默认树。
     default_nav_to_pose_bt_xml: ""
+    # 默认 NavigateThroughPoses 行为树 XML；由 launch 在运行时注入 corridor 专用 BT。
+    # 缺少该键时 RewrittenYaml 不会注入，Nav2 会回退上游 recovery 树。
+    default_nav_through_poses_bt_xml: ""
     # 行为树插件库列表；决定导航行为树能加载哪些 BT 节点。
     # 增删插件库：会改变可用行为或导致某些节点加载失败。
     plugin_lib_names:

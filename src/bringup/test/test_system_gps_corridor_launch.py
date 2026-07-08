@@ -116,11 +116,13 @@ def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
     assert rate_controller.attrib["hz"] == "5.0"
 
 
-def test_nav2_explore_exposes_both_bt_xml_rewrite_slots():
-    params_text = NAV2_EXPLORE_PARAMS.read_text(encoding="utf-8")
+def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
+    for params_file in [NAV2_EXPLORE_PARAMS, CORRIDOR_NAV2_PARAMS]:
+        params = yaml.safe_load(params_file.read_text(encoding="utf-8"))
+        bt_params = params["bt_navigator"]["ros__parameters"]
 
-    assert "default_nav_to_pose_bt_xml: \"\"" in params_text
-    assert "default_nav_through_poses_bt_xml: \"\"" in params_text
+        assert bt_params["default_nav_to_pose_bt_xml"] == ""
+        assert bt_params["default_nav_through_poses_bt_xml"] == ""
 
 
 def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():

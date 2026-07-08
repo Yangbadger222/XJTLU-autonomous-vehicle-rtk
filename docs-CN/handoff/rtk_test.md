@@ -66,6 +66,59 @@ hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 
 然后等待上传完成。你可以在这里查看文件：https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main （联系我获取访问权限）
 
+---
+
+# Git 命令
+
+我们总是在自己的电脑上修改机器人代码，而不是直接在 Jetson 上修改。我们通常各自在自己的分支（branch）上工作，然后将它们合并（merge）到主分支（目前是 `frc`）。
+
+你需要用到的最常用的命令如下：
+
+1. 查看分支列表
+
+```bash
+git branch
+```
+这会显示当前活动分支的列表，并高亮显示当前选中的分支。
+
+2. 切换分支
+```bash
+git switch <branch_name>
+```
+例如，`git switch frc` 会切换到 `frc` 分支（我们的主分支）。你需要输入想要切换到的分支的全名。你可以输入前几个字母，然后按 `Tab` 键自动补全。
+
+3. 更新 Jetson 上的当前分支
+```bash
+git pull
+```
+每当我们修改了电脑上的代码，我们会使用 `git push` 将其推送到 Github 的线上仓库（repo）。然后，我们使用 `git pull` 将这些更改下载到 Jetson 中。记住，这只会更新当前分支。
+
+4. 更新 Jetson 上的分支列表
+```bash
+git fetch
+```
+如果有一个新分支在运行 `git branch` 时没有显示出来，那么你必须使用 `git fetch` 来更新分支列表。
+
+## 编译 (Build)
+
+每当你 `git pull` 获取了新的更新时，你可能需要重新编译机器人的文件。
+
+只有在 `src/` 目录内有更改时才需要进行编译。其他的更改（如在 `scripts/` 中的更改）不需要重新编译。
+
+我编写了一些命令来简化操作：
+
+* 如果激光雷达（LIDAR）的代码没有更改，请运行：
+```bash
+make build-bringup
+```
+
+* 如果激光雷达的代码发生了更改，请运行：
+```bash
+make build-fastlio2
+```
+
+如果你不确定，直接运行 `make build-fastlio2` 即可。之后，你就可以像往常一样使用机器人了（比如运行 `make rtk-launch-basic`，`make launch-slam` 等）。
+
 ***
 
 ## RTK offset test script

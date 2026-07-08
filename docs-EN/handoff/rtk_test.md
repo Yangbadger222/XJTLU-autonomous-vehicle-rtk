@@ -62,6 +62,59 @@ Then wait until it uploads. You can see the files here: https://huggingface.co/d
 
 ***
 
+# Git commands
+
+We always change the robot code from our computers, not from the jetson directly. Each one of us is usually working on our own branches, which we then merge onto the main branch (currently `frc`).
+
+The most common commands you will need are:
+
+1. Branch list
+```bash
+git branch
+```
+This shows a list of the current active branches, highlighting the currently selected branch.
+
+2. Change branch
+```bash
+git switch <branch_name>
+```
+For example, `git switch frc` will change to the branch `frc` (our main branch). You need to type the full name of the branch you want to switch. You can write the first few letters, then press `Tab` to autofill.
+
+3. Update the Jetson current branch
+```bash
+git pull
+```
+Whenever we change any code in our computers, we `git push` into the online repo in Github. Then, we download these changes into the Jetson with `git pull`. Remember, this only updates the current branch.
+
+4. Update the Jetson branch list
+```bash
+git fetch
+```
+If there is a new branch that doesn't show up when running `git branch`, then you have to update the branch list using `git fetch`.
+
+
+## Build
+
+Whenever you `git pull` new updates, you may need to build the robot files again.
+
+You only build if there are any changes inside `src/`. Other changes such as in `scripts/` do not need to be rebuilt.
+
+I have made some commands to keep things simple:
+
+- If there are no code changes to the LIDAR, run:
+```bash
+make build-bringup
+```
+
+- If the LIDAR code has changed, run:
+```bash
+make build-fastlio2
+```
+
+If you are unsure, just run `make build-fastlio2`. Then, you can use the robot as normal (like `make rtk-launch-basic`, `make launch-slam`, etc).
+
+***
+
 ## RTK offset test script
 
 ```bash

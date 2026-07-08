@@ -1,6 +1,21 @@
 SHELL := /bin/bash
 
-.PHONY: setup build build-rtk-basic build-sensor build-perception build-planning build-navigation build-frc frc-daily test launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel kill kill-runtime clean ntrip-login ntrip-logout ntrip-status ntrip-setup
+# ==============================================================================
+# Variables & Configuration
+# ==============================================================================
+
+# ROS 2 Environment and Build Flags
+ROS_SETUP    := source /opt/ros/humble/setup.bash
+COLCON_BUILD := $(ROS_SETUP) && colcon build --symlink-install --parallel-workers 1
+
+# Massive regex for killing processes
+KILL_PATTERN := '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner'
+
+.PHONY: setup build build-% launch-% kill kill-runtime clean ntrip-% frc-daily test
+
+# ==============================================================================
+# Setup & Clean
+# ==============================================================================
 
 setup:
 	@echo ">>> 拉取第三方依赖..."
@@ -11,47 +26,61 @@ setup:
 	rosdep install --from-paths src --ignore-src -y --skip-keys "slam_toolbox navigation2"
 	@echo ">>> 环境配置完成"
 
+clean:
+	rm -rf build/ install/ log/
+
+# ==============================================================================
+# Build Targets
+# ==============================================================================
+
 build:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1
+	$(COLCON_BUILD)
+
+build-bringup:
+	$(COLCON_BUILD) --packages-select bringup
+
+build-fastlio2:
+	$(COLCON_BUILD) --packages-select bringup fastlio2
 
 build-rtk-basic:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		serial nmea_msgs um982_rtk_driver
+	$(COLCON_BUILD) --packages-select serial nmea_msgs um982_rtk_driver
 
 build-sensor:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		frc_msgs \
-		livox_ros_driver2 wit_ros2_imu wit_imu_traj \
+	$(COLCON_BUILD) --packages-select \
+		frc_msgs livox_ros_driver2 wit_ros2_imu wit_imu_traj \
 		serial serial_reader serial_twistctl gyro_odometry \
 		nmea_msgs nmea_navsat_driver um982_rtk_driver gnss_calibration wheeltec_gps_path
 
 build-perception:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		frc_msgs \
-		fastlio2 hba localizer interface pgo pgo_original \
+	$(COLCON_BUILD) --packages-select \
+		frc_msgs fastlio2 hba localizer interface pgo pgo_original \
 		pointcloud_to_laserscan pointcloud_to_grid rtk_fgo_localizer
 
 build-planning:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		global2local_tf gnss_global_path_planner global_path_planning
+	$(COLCON_BUILD) --packages-select global2local_tf gnss_global_path_planner global_path_planning
 
 build-navigation:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		waypoint_collector waypoint_nav_tool gps_waypoint_dispatcher
+	$(COLCON_BUILD) --packages-select waypoint_collector waypoint_nav_tool gps_waypoint_dispatcher
 
 build-frc:
-	source /opt/ros/humble/setup.bash && \
-	colcon build --symlink-install --parallel-workers 1 --packages-select \
-		frc_msgs frc_bev frc_nodes_cpp frc_nodes frc_costmap_layer frc_bringup
+	$(COLCON_BUILD) --packages-select frc_msgs frc_bev frc_nodes_cpp frc_nodes frc_costmap_layer frc_bringup
 
-# 工作站每日数据闭环（设计文档 §5.6）：miner -> contact_sheet -> 人工复核 ->
-# auto_label。用法: make frc-daily BAG=<rosbag2目录>
+# ==============================================================================
+# Launch & Test Targets
+# ==============================================================================
+
+# Pattern rule: captures 'launch-slam', 'launch-explore', etc. and passes the suffix to the script.
+launch-%:
+	bash scripts/launch_with_logs.sh $*
+
+test:
+	$(ROS_SETUP) && colcon test && colcon test-result --verbose
+
+# ==============================================================================
+# Operations & Scripts
+# ==============================================================================
+
+# 用法: make frc-daily BAG=<rosbag2目录>
 frc-daily:
 	@test -n "$(BAG)" || (echo "用法: make frc-daily BAG=<rosbag2目录>"; exit 1)
 	python3 -m frc_offline.failure_miner --bag $(BAG)
@@ -59,44 +88,24 @@ frc-daily:
 	@echo ">>> 人工复核 $(BAG)/review/review.csv 后执行:"
 	@echo ">>> python3 -m frc_offline.auto_label_from_events --events $(BAG)/events.jsonl --review $(BAG)/review/review.csv"
 
-test:
-	source /opt/ros/humble/setup.bash && \
-	colcon test && colcon test-result --verbose
+# Pattern rule for ntrip commands.
+# Exception for ntrip-login which has no flag.
+ntrip-login:
+	@python3 scripts/setup_ntrip.py
 
-launch-slam:
-	bash scripts/launch_with_logs.sh slam
+ntrip-%:
+	@python3 scripts/setup_ntrip.py --$*
 
-launch-explore:
-	bash scripts/launch_with_logs.sh explore
+# ==============================================================================
+# Process Management
+# ==============================================================================
 
-launch-indoor-nav:
-	bash scripts/launch_with_logs.sh indoor-nav
-
-launch-corridor:
-	bash scripts/launch_with_logs.sh corridor
-
-launch-explore-gps:
-	bash scripts/launch_with_logs.sh explore-gps
-
-launch-nav-gps:
-	bash scripts/launch_with_logs.sh nav-gps
-
-launch-rtk-basic:
-	bash scripts/launch_with_logs.sh rtk-basic
-
-launch-tightly-coupled:
-	bash scripts/launch_with_logs.sh tightly-coupled
-
-launch-travel:
-	bash scripts/launch_with_logs.sh travel
-
-kill:
-	@$(MAKE) kill-runtime
+kill: kill-runtime
 
 kill-runtime:
-	pkill -INT -f '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
+	pkill -INT -f $(KILL_PATTERN) || true
 	sleep 2
-	pkill -KILL -f '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[s]erial_twistctl_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[r]obot_state_publisher|[p]ointcloud_to_laserscan|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' || true
+	pkill -KILL -f $(KILL_PATTERN) || true
 	ros2 daemon stop >/dev/null 2>&1 || true
 	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do \
 		if [ -e "$$dev" ] && fuser "$$dev" >/dev/null 2>&1; then \
@@ -104,18 +113,3 @@ kill-runtime:
 		fi; \
 	done
 	@echo ">>> 导航相关残留进程已清理，ROS 2 daemon 已停止"
-
-clean:
-	rm -rf build/ install/ log/
-
-ntrip-login:
-	@python3 scripts/setup_ntrip.py
-
-ntrip-logout:
-	@python3 scripts/setup_ntrip.py --logout
-
-ntrip-status:
-	@python3 scripts/setup_ntrip.py --status
-
-ntrip-setup:
-	@python3 scripts/setup_ntrip.py --setup

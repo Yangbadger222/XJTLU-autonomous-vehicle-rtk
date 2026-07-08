@@ -14,6 +14,8 @@ make setup
 make build
 
 # Layered build
+make build-bringup
+make build-fastlio2
 make build-sensor
 make build-perception
 make build-planning
@@ -23,8 +25,7 @@ make build-navigation
 colcon build --packages-select <pkg> --symlink-install --parallel-workers 1
 
 # Must re-source after every build
-source /opt/ros/humble/setup.bash
-source ~/XJTLU-autonomous-vehicle/install/setup.bash
+ss
 ```
 
 ## 2. Initialize Runtime Data

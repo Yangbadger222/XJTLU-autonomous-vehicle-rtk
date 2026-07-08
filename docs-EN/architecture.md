@@ -304,6 +304,7 @@ Key architectural decisions for this mode:
 - **Nav2 action timeout**: Corridor raises the BT `default_server_timeout` to 1000ms so a slow FollowPath acknowledgement under Jetson load does not falsely trigger recovery
 - **RTK-authoritative `map->odom`**: In corridor mode, `pgo_corridor_no_gps.yaml` disables PGO `publish_tf`; `rtk_map_odom_corrector` becomes the only `map->odom` owner and computes it from RTK fix, dual-antenna heading, `ENU->map`, and current `odom->base_link`
 - **RTK bootstrap**: Before `gps_global_aligner` publishes `ENU->map`, `rtk_map_odom_corrector` uses the current RTK fix, heading, and `odom->base_link` to publish a temporary `map->odom`, breaking the startup loop where the aligner waits for map TF
+- **RTK degraded hold**: When RTK fix, heading, or target-jump gating rejects the latest input, `rtk_map_odom_corrector` freezes the global pose update but keeps rebroadcasting the last trusted `map->odom` with a fresh timestamp, so Nav2 does not fail only because the TF tree expired
 - **Indoor/outdoor handoff interface**: `rtk_map_odom_corrector` publishes `/localization_authority/mode`, `/localization_authority/status`, and `/localization_authority/diagnostics`; a later prior-map relocalizer can become another authority source on the same `map->odom` interface
 
 Data plane for this mode:

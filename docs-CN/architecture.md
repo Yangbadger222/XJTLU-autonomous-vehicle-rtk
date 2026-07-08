@@ -304,6 +304,7 @@ current_route.yaml
 - **Nav2 action 超时**: corridor 运行时将 BT `default_server_timeout` 提高到 1000ms，避免 Jetson 负载下 FollowPath ack 稍慢就误触发 recovery
 - **RTK authoritative `map→odom`**: corridor 中 PGO 通过 `pgo_corridor_no_gps.yaml` 关闭 `publish_tf`，由 `rtk_map_odom_corrector` 根据 RTK fix、双天线 heading、`ENU→map` 和当前 `odom→base_link` 计算唯一的 `map→odom`
 - **RTK bootstrap**: 在 `gps_global_aligner` 尚未发布 `ENU→map` 前，`rtk_map_odom_corrector` 会用当前 RTK fix、heading 和 `odom→base_link` 先发布临时 `map→odom`，打破启动时 aligner 等待 map TF 的闭环
+- **RTK degraded hold**: 当 RTK fix、heading 或目标跳变被 gating 拒绝时，`rtk_map_odom_corrector` 不更新全局位姿，但会继续用最后一次可信输出刷新 `map→odom` 时间戳，避免 Nav2 因 TF 过期误判导航失败
 - **室内外切换接口**: `rtk_map_odom_corrector` 发布 `/localization_authority/mode`、`/localization_authority/status` 和 `/localization_authority/diagnostics`；后续室内先验地图 relocalization 可作为新的 authority source 接管同一 `map→odom` 接口
 
 该模式的数据面：

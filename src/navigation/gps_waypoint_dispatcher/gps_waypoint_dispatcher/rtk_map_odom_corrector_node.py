@@ -297,6 +297,12 @@ class RtkMapOdomCorrector(Node):
         msg.transform.rotation.w = qw
         self._safe_send_transform(msg)
 
+    def _rebroadcast_last_output(self) -> bool:
+        if self._last_output is None:
+            return False
+        self._publish_tf(self._last_output)
+        return True
+
     def _timer_callback(self) -> None:
         if not rclpy.ok():
             return
@@ -361,6 +367,7 @@ class RtkMapOdomCorrector(Node):
         )
         if not summary.ok:
             self._publish_mode_status(summary.mode, summary.reason or "RTK_DEGRADED")
+            self._rebroadcast_last_output()
             self._publish_diagnostics(
                 ok=False,
                 fix_age_s=fix_age_s,
@@ -383,6 +390,7 @@ class RtkMapOdomCorrector(Node):
         )
         if not rtk_fixed_ok and not publish_bootstrap_without_fixed:
             self._publish_mode_status("RTK_DEGRADED", "NOT_RTK_FIXED")
+            self._rebroadcast_last_output()
             self._publish_diagnostics(
                 ok=False,
                 fix_age_s=fix_age_s,
@@ -396,6 +404,7 @@ class RtkMapOdomCorrector(Node):
 
         if not valid_fix(self._latest_fix) or self._latest_heading_enu_yaw is None:
             self._publish_mode_status("RTK_DEGRADED", "INVALID_RTK_INPUT")
+            self._rebroadcast_last_output()
             return
 
         alignment_theta, alignment_tx, alignment_ty, _ = alignment
@@ -443,6 +452,7 @@ class RtkMapOdomCorrector(Node):
                     jump_summary.mode,
                     jump_summary.reason or "RTK_DEGRADED",
                 )
+                self._rebroadcast_last_output()
                 self._publish_diagnostics(
                     ok=False,
                     fix_age_s=fix_age_s,

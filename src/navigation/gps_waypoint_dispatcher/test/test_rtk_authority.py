@@ -239,6 +239,29 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"YAW_REACQUIRE"' in node_text
 
 
+def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "def _rebroadcast_last_output(self) -> bool:" in node_text
+    assert "self._publish_tf(self._last_output)" in node_text
+
+    degraded_exit_markers = [
+        "if not summary.ok:",
+        "if not rtk_fixed_ok and not publish_bootstrap_without_fixed:",
+        "if not valid_fix(self._latest_fix) or self._latest_heading_enu_yaw is None:",
+        "if not jump_summary.ok:",
+    ]
+    for marker in degraded_exit_markers:
+        marker_index = node_text.index(marker)
+        return_index = node_text.index("return", marker_index)
+        degraded_branch = node_text[marker_index:return_index]
+        assert "_rebroadcast_last_output()" in degraded_branch
+
+
 def test_rtk_map_odom_corrector_is_shutdown_safe():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"

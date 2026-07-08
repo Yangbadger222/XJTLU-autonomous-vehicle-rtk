@@ -25,6 +25,8 @@ PGO_CORRIDOR_LEGACY_PARAMS = Path("src/bringup/config/pgo_corridor_no_tf.yaml")
 ROUTE_RUNNER = Path(
     "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/gps_route_runner_node.py"
 )
+MAKEFILE = Path("Makefile")
+LAUNCH_WITH_LOGS = Path("scripts/launch_with_logs.sh")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -176,6 +178,14 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "allow_yaw_reacquire: true" in master_params_text
     assert "max_yaw_reacquire_jump_deg: 45.0" in master_params_text
     assert "max_yaw_step_deg: 0.5" in master_params_text
+
+
+def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
+    makefile_text = MAKEFILE.read_text(encoding="utf-8")
+    launch_script_text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
+
+    assert "[r]tk_map_odom_corrector" in makefile_text
+    assert "[r]tk_map_odom_corrector" in launch_script_text
 
 
 def test_livox_packet_logging_is_explicitly_opt_in():

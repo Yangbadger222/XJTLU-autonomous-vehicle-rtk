@@ -65,7 +65,7 @@ alias rc='vi ~/.bashrc'
 alias s1='source ~/.bashrc'
 alias gs='git status'
 alias cw='cd ~/XJTLU-autonomous-vehicle/'
-alias ss="if [ -f install/setup.bash ]; then source install/setup.bash; echo 'Workspace sourced!'; else echo 'No install/setup.bash found.'; fi"
+alias ss="source /opt/ros/humble/setup.bash; if [ -f install/setup.bash ]; then source install/setup.bash; echo 'ROS 2 Humble and Workspace sourced!'; else echo 'ROS 2 Humble sourced. No install/setup.bash found.'; fi"
 
 if [ -f ~/.bash_aliases ]; then
     . ~/.bash_aliases

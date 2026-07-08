@@ -255,12 +255,6 @@ def generate_launch_description():
     delayed_rtk_authority = TimerAction(period=3.0, actions=[rtk_authority])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
-    urdf_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
-        )
-    )
-
     return LaunchDescription([
         route_file_arg,
         rtk_params_file_arg,
@@ -273,5 +267,4 @@ def generate_launch_description():
         delayed_aligner,
         delayed_rtk_authority,
         delayed_runner,
-        urdf_launch,
     ])

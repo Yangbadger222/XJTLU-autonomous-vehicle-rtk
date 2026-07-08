@@ -118,6 +118,15 @@ def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
     assert rate_controller.attrib["hz"] == "5.0"
 
 
+def test_corridor_relies_on_explore_for_robot_description_once():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
+    corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+
+    assert "robot_description.launch.py" in explore_text
+    assert "system_explore.launch.py" in corridor_text
+    assert "robot_description.launch.py" not in corridor_text
+
+
 def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
     for params_file in [NAV2_EXPLORE_PARAMS, CORRIDOR_NAV2_PARAMS]:
         params = yaml.safe_load(params_file.read_text(encoding="utf-8"))
@@ -188,6 +197,22 @@ def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
         "[r]tk_map_odom_corrector",
         "[s]erial_reader_node",
         "[j]oint_state_publisher",
+    ]
+    for pattern in required_cleanup_patterns:
+        assert pattern in makefile_text
+        assert pattern in launch_script_text
+
+
+def test_runtime_cleanup_kills_stateful_navigation_mode_nodes():
+    makefile_text = MAKEFILE.read_text(encoding="utf-8")
+    launch_script_text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
+
+    required_cleanup_patterns = [
+        "[g]ps_anchor_localizer",
+        "[r]oute_server",
+        "[g]oal_manager_node",
+        "[a]sync_slam_toolbox_node",
+        "[m]ap_saver_server",
     ]
     for pattern in required_cleanup_patterns:
         assert pattern in makefile_text

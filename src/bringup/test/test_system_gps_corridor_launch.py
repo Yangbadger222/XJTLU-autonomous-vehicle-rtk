@@ -184,8 +184,14 @@ def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
     makefile_text = MAKEFILE.read_text(encoding="utf-8")
     launch_script_text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
 
-    assert "[r]tk_map_odom_corrector" in makefile_text
-    assert "[r]tk_map_odom_corrector" in launch_script_text
+    required_cleanup_patterns = [
+        "[r]tk_map_odom_corrector",
+        "[s]erial_reader_node",
+        "[j]oint_state_publisher",
+    ]
+    for pattern in required_cleanup_patterns:
+        assert pattern in makefile_text
+        assert pattern in launch_script_text
 
 
 def test_livox_packet_logging_is_explicitly_opt_in():

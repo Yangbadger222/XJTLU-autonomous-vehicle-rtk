@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 
+import yaml
+
 
 EXPLORE_LAUNCH = Path("src/bringup/launch/system_explore.launch.py")
 CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
@@ -17,8 +19,12 @@ PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
 PGO_LAUNCH = Path("src/perception/pgo_gps_fusion/launch/pgo_launch.py")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
+CORRIDOR_NAV2_PARAMS = Path("src/bringup/config/nav2_corridor_rtk.yaml")
 PGO_CORRIDOR_PARAMS = Path("src/bringup/config/pgo_corridor_no_gps.yaml")
 PGO_CORRIDOR_LEGACY_PARAMS = Path("src/bringup/config/pgo_corridor_no_tf.yaml")
+ROUTE_RUNNER = Path(
+    "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/gps_route_runner_node.py"
+)
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -31,6 +37,7 @@ def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
 def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
+    assert "nav2_corridor_rtk.yaml" in text
     assert "corridor_nav2_params = _make_corridor_nav2_params" in text
     assert "bt_params = data['bt_navigator']['ros__parameters']" in text
     assert "bt_params['bt_loop_duration'] = 50" in text
@@ -51,6 +58,37 @@ def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
     assert "behavior_params['behavior_plugins'] = ['wait']" in text
     assert "'nav2_params_file': corridor_nav2_params" in text
     assert "'terminal_stop_hold_s': 1.2" in text
+
+
+def test_corridor_nav2_global_costmap_is_route_planning_only():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    global_costmap = config["global_costmap"]["global_costmap"]["ros__parameters"]
+    planner = config["planner_server"]["ros__parameters"]["GridBased"]
+
+    assert global_costmap["track_unknown_space"] is False
+    assert global_costmap["plugins"] == ["inflation_layer"]
+    assert global_costmap["robot_radius"] <= 0.25
+    assert global_costmap["inflation_layer"]["inflation_radius"] <= 0.35
+    assert planner["allow_unknown"] is True
+    assert planner["tolerance"] >= 1.0
+
+
+def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+
+    assert "stvl_layer" in local_costmap["plugins"]
+    assert "frc_layer" in local_costmap["plugins"]
+    assert local_costmap["robot_radius"] >= 0.38
+    assert local_costmap["stvl_layer"]["enabled"] is True
+    assert local_costmap["inflation_layer"]["inflation_radius"] >= 0.4
+
+
+def test_corridor_route_runner_defaults_to_short_rtk_subgoals():
+    text = ROUTE_RUNNER.read_text(encoding="utf-8")
+
+    assert 'self._route.get("segment_length_m", 5.0)' in text
+    assert 'self._route.get("segment_length_m", 30.0)' not in text
 
 
 def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():

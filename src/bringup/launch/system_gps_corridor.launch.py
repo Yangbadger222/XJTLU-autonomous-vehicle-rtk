@@ -111,8 +111,8 @@ def generate_launch_description():
     pgo_corridor_override_file = os.path.join(
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
-    nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
-    corridor_nav2_params = _make_corridor_nav2_params(nav2_explore_params_file)
+    nav2_corridor_params_file = os.path.join(bringup_share, 'config', 'nav2_corridor_rtk.yaml')
+    corridor_nav2_params = _make_corridor_nav2_params(nav2_corridor_params_file)
     corridor_no_recovery_bt_xml = os.path.join(
         bringup_share,
         'behavior_trees',

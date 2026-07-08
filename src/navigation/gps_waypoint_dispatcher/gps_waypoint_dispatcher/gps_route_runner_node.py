@@ -582,7 +582,7 @@ class GPSRouteRunner(Node):
                 dir_x=1.0,
                 dir_y=0.0,
             )
-        segment_length_m = float(self._route.get("segment_length_m", 30.0))
+        segment_length_m = float(self._route.get("segment_length_m", 5.0))
         total_subgoals = max(1, int(math.ceil(total_length_m / max(0.5, segment_length_m))))
         return SegmentPlan(
             waypoint=waypoint,
@@ -694,7 +694,7 @@ class GPSRouteRunner(Node):
         path = NavPath()
         path.header.frame_id = self._route_frame
         path.header.stamp = self.get_clock().now().to_msg()
-        segment_length_m = float(self._route.get("segment_length_m", 30.0))
+        segment_length_m = float(self._route.get("segment_length_m", 5.0))
 
         segment = self._segment_plan(waypoint_index)
         current_enu = self._point_on_segment(segment, current_progress_m)
@@ -896,7 +896,7 @@ class GPSRouteRunner(Node):
     def _run_waypoint(self, waypoint_index: int) -> tuple[bool, tuple[float, float]]:
         segment = self._segment_plan(waypoint_index)
         waypoint = segment.waypoint
-        segment_length_m = float(self._route.get("segment_length_m", 30.0))
+        segment_length_m = float(self._route.get("segment_length_m", 5.0))
         waypoint_tolerance_m = float(self._route.get("waypoint_xy_tolerance_m", 0.35))
         current_xy = self._current_xy()
         starting_alignment, current_progress_m = self._choose_waypoint_alignment(

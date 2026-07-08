@@ -18,6 +18,7 @@ FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
 PGO_LAUNCH = Path("src/perception/pgo_gps_fusion/launch/pgo_launch.py")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
+FASTLIO_LEGACY_PARAMS = Path("src/perception/fastlio2/config/lio.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
 CORRIDOR_NAV2_PARAMS = Path("src/bringup/config/nav2_corridor_rtk.yaml")
 PGO_CORRIDOR_PARAMS = Path("src/bringup/config/pgo_corridor_no_gps.yaml")
@@ -243,6 +244,18 @@ def test_corridor_runtime_rejects_low_imu_fastlio_packages():
         "m_builder->process(m_package)"
     )
     assert "min_imu_samples_per_lidar: 3" in params_text
+
+
+def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    profiles = [
+        master_params["/fastlio2"]["lio_node"]["ros__parameters"],
+        yaml.safe_load(FASTLIO_LEGACY_PARAMS.read_text(encoding="utf-8")),
+    ]
+
+    for lio_params in profiles:
+        assert lio_params["lidar_filter_num"] <= 4
+        assert lio_params["lidar_max_range"] >= 25.0
 
 
 def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():

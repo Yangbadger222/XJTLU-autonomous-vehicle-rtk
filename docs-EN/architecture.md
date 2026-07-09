@@ -133,7 +133,7 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-This mode is launched with `make launch-tightly-coupled`. The first version is shadow mode:
+This mode can be launched standalone with `make launch-tightly-coupled`; `corridor` also starts the same shadow node by default for bag-based evaluation only:
 - `publish_tf=false` by default; it does not broadcast production `map -> odom`
 - Nav2 is not remapped to FGO output, and existing `corridor`, `explore-gps`, and `nav-gps` modes are not replaced
 - Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation

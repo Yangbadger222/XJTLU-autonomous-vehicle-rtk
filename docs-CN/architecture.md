@@ -133,7 +133,7 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-该模式通过 `make launch-tightly-coupled` 启动，第一版是 shadow mode：
+该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 也会默认启动同一个 shadow node 仅用于录包评估：
 - 默认 `publish_tf=false`，不广播生产 `map -> odom`
 - 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证

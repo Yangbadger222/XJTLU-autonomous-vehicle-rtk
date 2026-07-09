@@ -164,7 +164,7 @@ def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
         assert bt_params["default_nav_through_poses_bt_xml"] == ""
 
 
-def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
+def test_corridor_bag_defaults_to_fgo_shadow_evidence_without_raw_lidar():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     base_topics = re.search(
@@ -181,13 +181,30 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
     assert "FYP_CORRIDOR_BAG_PROFILE" in text
     assert "def _corridor_bag_topics" in text
     assert "'/fastlio2/lio_odom'," in base_topics
+    assert "'/odom_CBoar'," in base_topics
+    assert "'/livox/imu'," in base_topics
+    assert "'/rtk_fgo/odom'," in base_topics
+    assert "'/rtk_fgo/status'," in base_topics
+    assert "'/rtk_fgo/factor_diagnostics'," in base_topics
     assert "'/livox/lidar'," not in base_topics
-    assert "'/livox/imu'," not in base_topics
     assert "'/fastlio2/body_cloud'," not in base_topics
     assert "'/livox/lidar'," in debug_topics
-    assert "'/livox/imu'," in debug_topics
     assert "'/fastlio2/body_cloud'," in debug_topics
     assert "'/fastlio2/body_cloud_nav2_obstacles'," in debug_topics
+
+
+def test_corridor_launch_starts_fgo_shadow_without_owning_tf_or_nav2():
+    text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+
+    assert "rtk_fgo_params_file" in text
+    assert "enable_fgo_shadow_arg" in text
+    assert "FYP_CORRIDOR_ENABLE_FGO_SHADOW" in text
+    assert "rtk_fgo_localizer" in text
+    assert "rtk_fgo_node" in text
+    assert "'publish_tf': False" in text
+    assert "'nav2_use_fgo': False" in text
+    assert "delayed_fgo_shadow" in text
+    assert "IfCondition(LaunchConfiguration('enable_fgo_shadow'))" in text
 
 
 def test_corridor_uses_rtk_authoritative_map_odom_owner():

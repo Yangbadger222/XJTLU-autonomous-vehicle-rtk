@@ -167,7 +167,7 @@ Tuning principles:
 5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
 6. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
 7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-8. Corridor rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/livox/imu`, `/fastlio2/body_cloud`, or `/fastlio2/body_cloud_nav2_obstacles` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
+8. Corridor starts the RTK FGO shadow node by default with `publish_tf=false` and `nav2_use_fgo=false`, so it does not own `map->odom` or feed Nav2; rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, `/livox/imu`, `/odom_CBoar`, `/rtk_fgo/*`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/fastlio2/body_cloud`, or `/fastlio2/body_cloud_nav2_obstacles` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
 
 ## 8. Waypoint System
 

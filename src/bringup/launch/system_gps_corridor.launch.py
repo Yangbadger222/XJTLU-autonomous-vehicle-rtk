@@ -76,19 +76,19 @@ def _make_corridor_nav2_params(source_file):
 
     follow_path = controller_params['FollowPath']
     follow_path['batch_size'] = 500
-    follow_path['vx_std'] = 0.20
-    follow_path['wz_std'] = 0.24
-    follow_path['vx_max'] = 0.75
-    follow_path['wz_max'] = 0.90
-    follow_path['ax_max'] = 0.75
+    follow_path['vx_std'] = 0.18
+    follow_path['wz_std'] = 0.16
+    follow_path['vx_max'] = 0.70
+    follow_path['wz_max'] = 0.70
+    follow_path['ax_max'] = 0.70
     follow_path['ax_min'] = -1.2
-    follow_path['az_max'] = 2.6
+    follow_path['az_max'] = 1.8
 
     smoother_params = data['velocity_smoother']['ros__parameters']
-    smoother_params['max_velocity'] = [0.75, 0.0, 0.90]
-    smoother_params['min_velocity'] = [0.0, 0.0, -0.90]
-    smoother_params['max_accel'] = [0.75, 0.0, 2.0]
-    smoother_params['max_decel'] = [-1.2, 0.0, -2.2]
+    smoother_params['max_velocity'] = [0.70, 0.0, 0.70]
+    smoother_params['min_velocity'] = [0.0, 0.0, -0.70]
+    smoother_params['max_accel'] = [0.70, 0.0, 1.4]
+    smoother_params['max_decel'] = [-1.2, 0.0, -1.8]
 
     behavior_params = data['behavior_server']['ros__parameters']
     behavior_params['behavior_plugins'] = ['wait']

@@ -49,18 +49,18 @@ def test_corridor_launch_uses_corner_turn_nav2_profile_for_rtk_corridor():
     assert "controller_params['controller_frequency'] = 15.0" not in text
     assert "controller_params['progress_checker']['required_movement_radius'] = 0.10" in text
     assert "controller_params['progress_checker']['movement_time_allowance'] = 15.0" in text
-    assert "follow_path['vx_std'] = 0.20" in text
-    assert "follow_path['wz_std'] = 0.24" in text
-    assert "follow_path['vx_max'] = 0.75" in text
-    assert "follow_path['wz_max'] = 0.90" in text
-    assert "follow_path['ax_max'] = 0.75" in text
+    assert "follow_path['vx_std'] = 0.18" in text
+    assert "follow_path['wz_std'] = 0.16" in text
+    assert "follow_path['vx_max'] = 0.70" in text
+    assert "follow_path['wz_max'] = 0.70" in text
+    assert "follow_path['ax_max'] = 0.70" in text
     assert "follow_path['ax_min'] = -1.2" in text
-    assert "follow_path['az_max'] = 2.6" in text
+    assert "follow_path['az_max'] = 1.8" in text
     assert "controller_params['general_goal_checker']['stateful'] = False" in text
-    assert "smoother_params['max_velocity'] = [0.75, 0.0, 0.90]" in text
-    assert "smoother_params['min_velocity'] = [0.0, 0.0, -0.90]" in text
-    assert "smoother_params['max_accel'] = [0.75, 0.0, 2.0]" in text
-    assert "smoother_params['max_decel'] = [-1.2, 0.0, -2.2]" in text
+    assert "smoother_params['max_velocity'] = [0.70, 0.0, 0.70]" in text
+    assert "smoother_params['min_velocity'] = [0.0, 0.0, -0.70]" in text
+    assert "smoother_params['max_accel'] = [0.70, 0.0, 1.4]" in text
+    assert "smoother_params['max_decel'] = [-1.2, 0.0, -1.8]" in text
     assert "behavior_params['behavior_plugins'] = ['wait']" in text
     assert "'nav2_params_file': corridor_nav2_params" in text
     assert "'terminal_stop_hold_s': 1.2" in text

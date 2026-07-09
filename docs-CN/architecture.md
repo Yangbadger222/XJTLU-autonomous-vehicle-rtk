@@ -133,7 +133,7 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-该模式通过 `make launch-tightly-coupled` 启动，第一版是 shadow mode：
+该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 也会默认启动同一个 shadow node 仅用于录包评估：
 - 默认 `publish_tf=false`，不广播生产 `map -> odom`
 - 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
@@ -303,13 +303,15 @@ current_route.yaml
 - **Bootstrap 启动**: 用 `yaw0 - radians(launch_yaw_deg)` 立即计算初始对齐，不等 GPS
 - **Corridor 专用 Nav2 BT**: corridor 使用无 `Spin` / `BackUp` 的 NavigateToPose / NavigateThroughPoses 行为树；规划或跟踪失败时由 `gps_route_runner` 停车并上报进度，不执行物理 recovery 动作
 - **Nav2 action 超时**: corridor 运行时将 BT `default_server_timeout` 提高到 1000ms，避免 Jetson 负载下 FollowPath ack 稍慢就误触发 recovery
+- **Nav2 专用障碍点云**: corridor local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，高度窗为 `[-0.20, 1.20]m`；PGO/LIO 仍使用低窗 `/fastlio2/body_cloud`，避免为了建图稳定而裁掉的高障碍同时让 Nav2 失明
 - **RTK authoritative `map→odom`**: corridor 中 PGO 通过 `pgo_corridor_no_gps.yaml` 关闭 `publish_tf`，由 `rtk_map_odom_corrector` 根据 RTK fix、双天线 heading、`ENU→map` 和当前 `odom→base_link` 计算唯一的 `map→odom`
 - **RTK bootstrap**: 在 `gps_global_aligner` 尚未发布 `ENU→map` 前，`rtk_map_odom_corrector` 会用当前 RTK fix、heading 和 `odom→base_link` 先发布临时 `map→odom`，打破启动时 aligner 等待 map TF 的闭环
 - **RTK degraded hold**: 当 RTK fix、heading 或目标跳变被 gating 拒绝时，`rtk_map_odom_corrector` 不更新全局位姿，但会继续用最后一次可信输出刷新 `map→odom` 时间戳，避免 Nav2 因 TF 过期误判导航失败
+- **RTK target 平滑与跳变门控**: `rtk_map_odom_corrector` 在 raw `map→odom` target 和最终单步限幅之间加入 target deadband + 低通，抑制 RTK/heading 微抖持续写入 `map→odom` 后造成后段“画龙”；target-jump gate 的平移/yaw 安全判断比较当前 raw RTK `map_base` 与上一帧可信 raw RTK `map_base`，避免把 `odom` 原点杠杆放大的 `map→odom` target 平移误判为 RTK 跳变
 - **室内外切换接口**: `rtk_map_odom_corrector` 发布 `/localization_authority/mode`、`/localization_authority/status` 和 `/localization_authority/diagnostics`；后续室内先验地图 relocalization 可作为新的 authority source 接管同一 `map→odom` 接口
 
 该模式的数据面：
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）
 - `start_ref` + 多个 `waypoints[]` 的 GPS 坐标
 - `launch_yaw_deg` 为必填字段
-- `/localization_authority/*` 记录当前 `map→odom` authority 来源、拒绝原因和限幅后的输出
+- `/localization_authority/*` 记录当前 `map→odom` authority 来源、拒绝原因、raw RTK `map_base` jump、raw `map→odom` target/output gap 和限幅后的输出

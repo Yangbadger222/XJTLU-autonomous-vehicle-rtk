@@ -562,17 +562,17 @@ ros2 topic echo /gps_corridor/path_map
 ros2 topic echo /gps_corridor/enu_to_map
 ```
 
-Check whether the default automatic corridor bag contains the lean RTK / FAST-LIO2 / Nav2 diagnostic topics:
+Check whether the default automatic corridor bag contains the lean RTK / FAST-LIO2 / FGO shadow / Nav2 diagnostic topics:
 
 ```bash
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/cmd_vel|/plan'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/fastlio2/lio_odom|/livox/imu|/odom_CBoar|/rtk_fgo|/cmd_vel|/plan'
 ```
 
 If raw Livox replay is needed, opt in to the heavier debug bag profile before launch:
 
 ```bash
 FYP_CORRIDOR_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_CORRIDOR_CONSOLE_MODE=quiet bash scripts/launch_with_logs.sh corridor
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/livox/imu|/fastlio2/body_cloud'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/fastlio2/body_cloud'
 ```
 
 Notes:
@@ -580,12 +580,13 @@ Notes:
 - `collect_gps_route.py` collects `start_ref + multiple key waypoints` and generates `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`
 - If `collect_gps_route.py` does not detect `/fix`, it automatically launches `nmea_navsat_driver` in the background and stops it after collection
 - The collection process explicitly confirms `launch_yaw_deg`; if the start point is too close to the first waypoint, manual input is required
-- Default subgoal spacing is 30 m (based on global costmap radius 35 m - 5 m buffer), automatically written to the route file during collection
+- Default subgoal spacing is 5 m, automatically written to the route file during collection; long RTK route legs are split into short subgoals to reduce rolling-costmap and local-tracking coupling risk
 - At runtime, no menu appears and no additional commands are awaited
 - The wrapper writes logs and bags to `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- Corridor currently generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml` at launch time and applies the RTK-authoritative corridor profile: `vx_max=0.85`, `wz_max=0.70`, `ax_max=0.85`, `ax_min=-1.2`, `az_max=1.4`, `temperature=0.45`, `regenerate_noises=true`, `controller_frequency=20Hz`, and `batch_size=500`; MPPI keeps `model_dt=0.05s`, so the control period must not be larger than the model step and cannot be lowered to `15Hz`
+- Corridor currently generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml` at launch time and applies the RTK-authoritative corridor profile: `vx_max=0.85`, `wz_max=0.70`, `ax_max=0.85`, `ax_min=-1.2`, `az_max=1.4`, `temperature=0.45`, `regenerate_noises=true`, `failure_tolerance=1.5s`, `controller_frequency=20Hz`, and `batch_size=500`; the local costmap is near-field `12m x 12m`, STVL marking uses `obstacle_range=5m`, and `CostCritic.cost_weight=7.0`; MPPI keeps `model_dt=0.05s`, so the control period must not be larger than the model step and cannot be lowered to `15Hz`
 - After the final waypoint is reached, `gps_route_runner` publishes `STOPPING_BEFORE_EXIT`, holds zero `/cmd_vel` for 1.2s at 20Hz, then publishes `SUCCEEDED`; quiet mode exits only after this hold, so the bag should contain a visible zero-speed tail.
-- The default corridor bag uses the lean profile and records RTK, FAST-LIO2 odom, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`; raw Livox point cloud, Livox IMU, and `/fastlio2/body_cloud` are recorded only with `FYP_CORRIDOR_BAG_PROFILE=debug`
+- Corridor starts the RTK FGO shadow node by default, with `publish_tf=false` and `nav2_use_fgo=false`, so it does not own `map->odom` or feed Nav2; set `FYP_CORRIDOR_ENABLE_FGO_SHADOW=false` to disable it
+- The default corridor bag uses the lean profile and records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`; raw Livox point cloud, `/fastlio2/body_cloud`, and `/fastlio2/body_cloud_nav2_obstacles` are recorded only with `FYP_CORRIDOR_BAG_PROFILE=debug`
 - Livox packet-scale console/CSV logging is disabled during normal runs. Use `LIVOX_VERBOSE_PACKET_LOGS=1` only for short bench diagnostics because it prints and flushes per packet.
 - During startup, if the current `/fix` deviates from `start_ref` beyond tolerance, `gps_route_runner` will abort immediately without moving the vehicle
 - **Ctrl+C automatically cleans up all nodes, ros2 daemon, and serial port occupancy** -- no need for manual `make kill-runtime`

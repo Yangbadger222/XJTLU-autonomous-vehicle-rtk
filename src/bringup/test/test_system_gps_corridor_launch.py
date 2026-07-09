@@ -47,6 +47,7 @@ def test_corridor_launch_uses_corner_turn_nav2_profile_for_rtk_corridor():
     assert "bt_params['default_server_timeout'] = 1000" in text
     assert "controller_params['controller_frequency'] = 20.0" in text
     assert "controller_params['controller_frequency'] = 15.0" not in text
+    assert "controller_params['failure_tolerance'] = 1.5" in text
     assert "controller_params['progress_checker']['required_movement_radius'] = 0.10" in text
     assert "controller_params['progress_checker']['movement_time_allowance'] = 15.0" in text
     assert "follow_path['vx_std'] = 0.20" in text
@@ -84,12 +85,33 @@ def test_corridor_nav2_global_costmap_is_route_planning_only():
 def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
     config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
     local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+    stvl = local_costmap["stvl_layer"]
 
     assert "stvl_layer" in local_costmap["plugins"]
     assert "frc_layer" in local_costmap["plugins"]
     assert local_costmap["robot_radius"] >= 0.38
-    assert local_costmap["stvl_layer"]["enabled"] is True
+    assert stvl["enabled"] is True
     assert local_costmap["inflation_layer"]["inflation_radius"] >= 0.4
+    assert stvl["pointcloud_mark"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
+    assert stvl["pointcloud_clear"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
+    assert stvl["pointcloud_mark"]["min_obstacle_height"] <= -0.20
+    assert stvl["pointcloud_mark"]["max_obstacle_height"] >= 1.20
+    assert stvl["pointcloud_clear"]["min_z"] <= -0.20
+    assert stvl["pointcloud_clear"]["max_z"] >= 1.20
+
+
+def test_corridor_local_costmap_is_near_field_for_mppi_stability():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    controller = config["controller_server"]["ros__parameters"]
+    local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+    stvl = local_costmap["stvl_layer"]
+    cost_critic = controller["FollowPath"]["CostCritic"]
+
+    assert controller["failure_tolerance"] >= 1.5
+    assert local_costmap["width"] <= 12
+    assert local_costmap["height"] <= 12
+    assert stvl["pointcloud_mark"]["obstacle_range"] <= 5.0
+    assert cost_critic["cost_weight"] >= 7.0
 
 
 def test_corridor_route_runner_defaults_to_short_rtk_subgoals():
@@ -142,7 +164,7 @@ def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
         assert bt_params["default_nav_through_poses_bt_xml"] == ""
 
 
-def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
+def test_corridor_bag_defaults_to_fgo_shadow_evidence_without_raw_lidar():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     base_topics = re.search(
@@ -159,12 +181,30 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
     assert "FYP_CORRIDOR_BAG_PROFILE" in text
     assert "def _corridor_bag_topics" in text
     assert "'/fastlio2/lio_odom'," in base_topics
+    assert "'/odom_CBoar'," in base_topics
+    assert "'/livox/imu'," in base_topics
+    assert "'/rtk_fgo/odom'," in base_topics
+    assert "'/rtk_fgo/status'," in base_topics
+    assert "'/rtk_fgo/factor_diagnostics'," in base_topics
     assert "'/livox/lidar'," not in base_topics
-    assert "'/livox/imu'," not in base_topics
     assert "'/fastlio2/body_cloud'," not in base_topics
     assert "'/livox/lidar'," in debug_topics
-    assert "'/livox/imu'," in debug_topics
     assert "'/fastlio2/body_cloud'," in debug_topics
+    assert "'/fastlio2/body_cloud_nav2_obstacles'," in debug_topics
+
+
+def test_corridor_launch_starts_fgo_shadow_without_owning_tf_or_nav2():
+    text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+
+    assert "rtk_fgo_params_file" in text
+    assert "enable_fgo_shadow_arg" in text
+    assert "FYP_CORRIDOR_ENABLE_FGO_SHADOW" in text
+    assert "rtk_fgo_localizer" in text
+    assert "rtk_fgo_node" in text
+    assert "'publish_tf': False" in text
+    assert "'nav2_use_fgo': False" in text
+    assert "delayed_fgo_shadow" in text
+    assert "IfCondition(LaunchConfiguration('enable_fgo_shadow'))" in text
 
 
 def test_corridor_uses_rtk_authoritative_map_odom_owner():
@@ -261,6 +301,22 @@ def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
     for lio_params in profiles:
         assert lio_params["lidar_filter_num"] <= 4
         assert lio_params["lidar_max_range"] >= 25.0
+
+
+def test_fastlio_publishes_a_separate_wide_nav2_obstacle_cloud():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    lio_params = master_params["/fastlio2"]["lio_node"]["ros__parameters"]
+    legacy_text = FASTLIO_LEGACY_PARAMS.read_text(encoding="utf-8")
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+
+    assert lio_params["publish_cloud_height_filter_enabled"] is True
+    assert lio_params["publish_cloud_max_z"] <= 0.30
+    assert lio_params["nav2_obstacle_cloud_enabled"] is True
+    assert lio_params["nav2_obstacle_cloud_min_z"] <= -0.20
+    assert lio_params["nav2_obstacle_cloud_max_z"] >= 1.20
+    assert "nav2_obstacle_cloud_max_z: 1.20" in legacy_text
+    assert 'create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_nav2_obstacles"' in lio_text
+    assert "publishNav2ObstacleCloud(body_cloud, world_cloud" in lio_text
 
 
 def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():

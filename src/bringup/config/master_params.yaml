@@ -68,6 +68,12 @@
       # FAST-LIO2 输出点云的最大相对高度窗口（相对车体原点，沿重力方向）。
       # 当前值用于剔除车体高度以上的高点，减少顶棚/高处杂点进入下游。
       publish_cloud_max_z: 0.30
+      # 是否额外发布 Nav2 专用障碍点云；该云不进入 PGO/LIO，仅供 costmap 感知活障碍。
+      nav2_obstacle_cloud_enabled: true
+      # Nav2 专用障碍点云的最小相对高度；保留低矮障碍和路沿附近点。
+      nav2_obstacle_cloud_min_z: -0.20
+      # Nav2 专用障碍点云的最大相对高度；覆盖站立行人和常见户外路障。
+      nav2_obstacle_cloud_max_z: 1.20
 
 /pgo:
   pgo_node:
@@ -236,6 +242,12 @@
     max_yaw_step_deg: 0.5
     # map->odom yaw 在远离 odom 原点时会放大成 map->base 平移；限制单次 yaw release 对 base 的等效位移。
     max_base_yaw_step_m: 0.12
+    # RTK target 进入单步限幅前的低通系数；越小越平滑但追踪 RTK correction 越慢。
+    target_smoothing_alpha: 0.20
+    # RTK target 平移死区；小于该值的 map->odom 微抖保持上一可信 target。
+    target_translation_deadband_m: 0.05
+    # RTK target yaw 死区；小于该值的 heading 微抖保持上一可信 target。
+    target_yaw_deadband_deg: 0.25
     publish_period_s: 0.05
     tf_lookup_timeout_s: 0.05
 

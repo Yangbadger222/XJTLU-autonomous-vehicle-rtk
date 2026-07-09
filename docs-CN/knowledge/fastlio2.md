@@ -29,6 +29,17 @@ FAST-LIO2 在 `lio_node.cpp` 中新增了发布前点云高度过滤功能（com
 - 效果：地面低点和车体高度以上的杂点（顶棚/高处结构）在源头被剔除，下游 costmap 不再需要重复过滤
 - 该过滤不影响 FAST-LIO2 内部的 SLAM 建图和状态估计，仅影响发布给外部的点云
 
+## Nav2 专用障碍点云（2026-07-09）
+
+RTK corridor 现在从 FAST-LIO2 发布层额外分叉一条 `/fastlio2/body_cloud_nav2_obstacles`，只给 Nav2 local costmap 使用：
+
+- `/fastlio2/body_cloud` 继续保留 `[-0.33, 0.30]m` 的低窗发布，供 PGO / LIO 下游保持原来的轻量结构点输入
+- `/fastlio2/body_cloud_nav2_obstacles` 使用更宽的 `[-0.20, 1.20]m` 高度窗，覆盖站立行人、身体上半部分和常见户外路障
+- 这条 Nav2 专用云不进入 PGO，也不改变 FAST-LIO2 内部状态估计；它只解决“PGO/LIO 为稳定调低高度窗后，Nav2 看不到高障碍”的感知隔离问题
+- 过滤只在该 topic 有订阅者时执行，避免非 corridor / 无 Nav2 场景额外消耗 CPU
+
+如果后续实车发现行人仍进入 costmap 不稳定，应优先检查 `/fastlio2/body_cloud_nav2_obstacles` 是否有点、local costmap 的 STVL voxel map 是否被标记，以及 Livox 近距离盲区/安装角度，而不是再放宽 PGO 使用的 `/fastlio2/body_cloud`。
+
 ## LiDAR / IMU 同步保护（2026-07-06）
 
 FAST-LIO2 现在会在进入 IESKF 更新前检查同步包中的 IMU 样本数；若少于 `min_imu_samples_per_lidar`，直接丢弃该 LiDAR 帧。当前 corridor 验收值为：

@@ -13,6 +13,7 @@ from launch.actions import (
     Shutdown,
     TimerAction,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -25,6 +26,8 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/rtk/status',
     '/rtk/nmea_sentence',
     '/fastlio2/lio_odom',
+    '/livox/imu',
+    '/odom_CBoar',
     '/tf',
     '/tf_static',
     '/gps_corridor/status',
@@ -37,6 +40,12 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/localization_authority/mode',
     '/localization_authority/status',
     '/localization_authority/diagnostics',
+    '/rtk_fgo/odom',
+    '/rtk_fgo/path',
+    '/rtk_fgo/status',
+    '/rtk_fgo/rtk_gate',
+    '/rtk_fgo/correction_status',
+    '/rtk_fgo/factor_diagnostics',
     '/gps_corridor/goal_map',
     '/gps_corridor/path_map',
     '/cmd_vel',
@@ -47,8 +56,8 @@ _CORRIDOR_BAG_BASE_TOPICS = [
 
 _CORRIDOR_BAG_DEBUG_TOPICS = [
     '/livox/lidar',
-    '/livox/imu',
     '/fastlio2/body_cloud',
+    '/fastlio2/body_cloud_nav2_obstacles',
 ]
 
 
@@ -70,6 +79,7 @@ def _make_corridor_nav2_params(source_file):
 
     controller_params = data['controller_server']['ros__parameters']
     controller_params['controller_frequency'] = 20.0
+    controller_params['failure_tolerance'] = 1.5
     controller_params['progress_checker']['required_movement_radius'] = 0.10
     controller_params['progress_checker']['movement_time_allowance'] = 15.0
     controller_params['general_goal_checker']['stateful'] = False
@@ -116,6 +126,7 @@ def generate_launch_description():
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
     nav2_corridor_params_file = os.path.join(bringup_share, 'config', 'nav2_corridor_rtk.yaml')
+    rtk_fgo_params_file = os.path.join(bringup_share, 'config', 'rtk_fgo.yaml')
     corridor_nav2_params = _make_corridor_nav2_params(nav2_corridor_params_file)
     corridor_no_recovery_bt_xml = os.path.join(
         bringup_share,
@@ -147,6 +158,11 @@ def generate_launch_description():
         'use_rviz',
         default_value='false',
         description='Whether to launch RViz together with the corridor stack',
+    )
+    enable_fgo_shadow_arg = DeclareLaunchArgument(
+        'enable_fgo_shadow',
+        default_value=os.environ.get('FYP_CORRIDOR_ENABLE_FGO_SHADOW', 'true'),
+        description='Start RTK FGO in shadow mode for default corridor rosbag evidence',
     )
 
     explore_launch = IncludeLaunchDescription(
@@ -233,6 +249,21 @@ def generate_launch_description():
         ],
     )
 
+    fgo_shadow = Node(
+        package='rtk_fgo_localizer',
+        executable='rtk_fgo_node',
+        name='rtk_fgo_localizer',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('enable_fgo_shadow')),
+        parameters=[
+            rtk_fgo_params_file,
+            {
+                'publish_tf': False,
+                'nav2_use_fgo': False,
+            },
+        ],
+    )
+
     session_data_dir = os.environ.get('FYP_LOG_SESSION_DIR', '')
     if session_data_dir:
         session_root = os.path.dirname(session_data_dir)
@@ -257,6 +288,7 @@ def generate_launch_description():
 
     delayed_aligner = TimerAction(period=2.0, actions=[global_aligner])
     delayed_rtk_authority = TimerAction(period=3.0, actions=[rtk_authority])
+    delayed_fgo_shadow = TimerAction(period=6.0, actions=[fgo_shadow])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
     return LaunchDescription([
@@ -264,11 +296,13 @@ def generate_launch_description():
         rtk_params_file_arg,
         startup_wait_timeout_arg,
         use_rviz_arg,
+        enable_fgo_shadow_arg,
         explore_launch,
         rtk_launch,
         LogInfo(msg=f'Corridor bag profile: {bag_profile}'),
         bag_record,
         delayed_aligner,
         delayed_rtk_authority,
+        delayed_fgo_shadow,
         delayed_runner,
     ])

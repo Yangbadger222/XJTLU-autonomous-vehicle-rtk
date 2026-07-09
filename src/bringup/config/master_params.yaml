@@ -234,6 +234,8 @@
     # 正常 RTK 更新通过小步限幅释放，避免 Nav2 看到瞬时 TF 大跳。
     max_translation_step_m: 0.20
     max_yaw_step_deg: 0.5
+    # map->odom yaw 在远离 odom 原点时会放大成 map->base 平移；限制单次 yaw release 对 base 的等效位移。
+    max_base_yaw_step_m: 0.12
     publish_period_s: 0.05
     tf_lookup_timeout_s: 0.05
 

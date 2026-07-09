@@ -19,7 +19,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
     compute_rtk_map_base,
-    limit_pose_step,
+    limit_map_to_odom_step_for_base,
     normalize_angle,
     select_authority_alignment,
     should_publish_bootstrap_without_fixed,
@@ -68,6 +68,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_yaw_reacquire_jump_deg", 45.0)
         self.declare_parameter("max_translation_step_m", 0.20)
         self.declare_parameter("max_yaw_step_deg", 1.0)
+        self.declare_parameter("max_base_yaw_step_m", 0.12)
         self.declare_parameter("publish_period_s", 0.05)
         self.declare_parameter("tf_lookup_timeout_s", 0.05)
 
@@ -106,6 +107,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._max_yaw_step_rad = math.radians(
             float(self.get_parameter("max_yaw_step_deg").value)
+        )
+        self._max_base_yaw_step_m = float(
+            self.get_parameter("max_base_yaw_step_m").value
         )
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
         self._tf_lookup_timeout_s = float(self.get_parameter("tf_lookup_timeout_s").value)
@@ -465,11 +469,13 @@ class RtkMapOdomCorrector(Node):
                 return
 
             authority_status = jump_summary.reason
-            output = limit_pose_step(
+            output = limit_map_to_odom_step_for_base(
                 self._last_output,
                 target,
+                odom_base=odom_base,
                 max_translation_step_m=self._max_translation_step_m,
                 max_yaw_step_rad=self._max_yaw_step_rad,
+                max_base_yaw_step_m=self._max_base_yaw_step_m,
             ).pose
 
         self._last_output = output

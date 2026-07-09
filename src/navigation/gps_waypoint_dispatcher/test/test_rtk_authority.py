@@ -4,9 +4,11 @@ import pytest
 
 from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
+    compose_pose,
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
     compute_rtk_map_base,
+    limit_map_to_odom_step_for_base,
     limit_pose_step,
     select_authority_alignment,
     should_publish_bootstrap_without_fixed,
@@ -115,6 +117,32 @@ def test_limit_pose_step_caps_translation_and_yaw():
     assert limited.limited is True
     assert limited.translation_step_m == pytest.approx(1.0)
     assert math.degrees(limited.yaw_step_rad) == pytest.approx(5.0)
+
+
+def test_limit_map_to_odom_step_caps_base_motion_from_far_yaw_lever_arm():
+    previous_map_odom = Pose2D(x=0.0, y=0.0, yaw=0.0)
+    target_map_odom = Pose2D(x=0.0, y=0.0, yaw=math.radians(5.0))
+    odom_base = Pose2D(x=9.0, y=67.0, yaw=0.0)
+
+    limited = limit_map_to_odom_step_for_base(
+        previous_map_odom,
+        target_map_odom,
+        odom_base=odom_base,
+        max_translation_step_m=1.0,
+        max_yaw_step_rad=math.radians(0.5),
+        max_base_yaw_step_m=0.12,
+    )
+
+    previous_map_base = compose_pose(previous_map_odom, odom_base)
+    limited_map_base = compose_pose(limited.pose, odom_base)
+    base_shift_m = math.hypot(
+        limited_map_base.x - previous_map_base.x,
+        limited_map_base.y - previous_map_base.y,
+    )
+
+    assert base_shift_m <= 0.12 + 1e-6
+    assert math.degrees(limited.yaw_step_rad) < 0.5
+    assert limited.limited is True
 
 
 def test_authority_inputs_accept_current_rtk_authority_source():
@@ -237,6 +265,8 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert "compute_rtk_map_base" in node_text
     assert '"allow_yaw_reacquire"' in node_text
     assert '"YAW_REACQUIRE"' in node_text
+    assert '"max_base_yaw_step_m"' in node_text
+    assert "limit_map_to_odom_step_for_base" in node_text
 
 
 def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():

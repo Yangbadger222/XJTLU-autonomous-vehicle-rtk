@@ -72,10 +72,11 @@ make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-travel
 make launch-explore-gps
 make launch-nav-gps
+make launch-rtk-basic
 make launch-tightly-coupled
-make launch-travel
 ```
 
 Equivalent wrapper direct invocation:
@@ -85,10 +86,11 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh tightly-coupled
-bash scripts/launch_with_logs.sh travel
 ```
 
 Equivalent `ros2 launch` invocation:

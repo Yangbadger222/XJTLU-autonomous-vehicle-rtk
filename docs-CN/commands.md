@@ -61,7 +61,6 @@ ss
 ## 2. 初始化运行时数据
 
 ```bash
-
 bash scripts/init_runtime_data.sh
 
 ls ~/XJTLU-autonomous-vehicle/runtime-data
@@ -74,10 +73,11 @@ make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-travel
 make launch-explore-gps
 make launch-nav-gps
+make launch-rtk-basic
 make launch-tightly-coupled
-make launch-travel
 ```
 
 等效的 wrapper 直调方式：
@@ -87,10 +87,11 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh tightly-coupled
-bash scripts/launch_with_logs.sh travel
 ```
 
 等效的 `ros2 launch` 方式：

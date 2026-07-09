@@ -286,6 +286,22 @@ def build_master_params_scene(scene_points: dict) -> dict:
         }
     }
 
+    params["/rtk_map_odom_corrector"] = params.get(
+        "/rtk_map_odom_corrector",
+        {"ros__parameters": {}},
+    )
+    rtk_authority_params = params["/rtk_map_odom_corrector"].setdefault("ros__parameters", {})
+    rtk_authority_params.update(
+        {
+            "scene_points_file": str(SCENE_POINTS_FILE),
+            "use_scene_identity_alignment": True,
+            "alignment_topic": "/gps_scene/enu_to_map",
+            "enu_origin_lat": origin["lat"],
+            "enu_origin_lon": origin["lon"],
+            "enu_origin_alt": origin["alt"],
+        }
+    )
+
     return params
 
 

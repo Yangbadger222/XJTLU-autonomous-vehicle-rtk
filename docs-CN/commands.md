@@ -503,6 +503,14 @@ ros2 run gps_waypoint_dispatcher stop
 python3 scripts/nav_gps_menu.py
 ```
 
+运行说明：
+- 修改或导入新的 QGIS/scene 地图后，必须先重新执行 `python3 scripts/build_scene_runtime.py`，让 `master_params_scene.yaml` 写入 scene fixed origin、`rtk_map_odom_corrector` 的 `scene_points_file` 和 `use_scene_identity_alignment=true`。
+- `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
+- Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
+- 默认会启动 RTK FGO shadow node，但固定 `publish_tf=false`、`nav2_use_fgo=false`；如需关闭可设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false`。
+- 默认 lean bag 记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、GPS/goal 状态、costmap、`/cmd_vel` 和 `/plan`；需要原始点云回放时再设置 `FYP_NAV_GPS_BAG_PROFILE=debug`。
+- 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
+
 ## 14. Fixed-Launch GPS Corridor
 
 ### GPS 路线采集（踩点）

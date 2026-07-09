@@ -502,6 +502,14 @@ ros2 run gps_waypoint_dispatcher stop
 python3 scripts/nav_gps_menu.py
 ```
 
+Runtime notes:
+- After modifying or importing a new QGIS/scene map, rerun `python3 scripts/build_scene_runtime.py` so `master_params_scene.yaml` records the scene fixed origin plus `rtk_map_odom_corrector`'s `scene_points_file` and `use_scene_identity_alignment=true`.
+- `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
+- Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
+- The RTK FGO shadow node starts by default with `publish_tf=false` and `nav2_use_fgo=false`; set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false` to disable it.
+- The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, GPS/goal status, costmaps, `/cmd_vel`, and `/plan`; use `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw point-cloud replay is needed.
+- On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
+
 ## 14. Fixed-Launch GPS Corridor
 
 ### GPS Route Collection (Waypoint Survey)

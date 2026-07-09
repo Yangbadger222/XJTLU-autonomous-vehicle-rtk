@@ -29,6 +29,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
+    load_scene_points,
     quaternion_to_yaw,
     yaw_to_quaternion,
 )
@@ -52,6 +53,8 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("heading_topic", "/heading")
         self.declare_parameter("rtk_status_topic", "/rtk/status")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
+        self.declare_parameter("scene_points_file", "")
+        self.declare_parameter("use_scene_identity_alignment", False)
         self.declare_parameter("mode_topic", "/localization_authority/mode")
         self.declare_parameter("status_topic", "/localization_authority/status")
         self.declare_parameter("diagnostics_topic", "/localization_authority/diagnostics")
@@ -84,6 +87,10 @@ class RtkMapOdomCorrector(Node):
         self._heading_topic = str(self.get_parameter("heading_topic").value)
         self._rtk_status_topic = str(self.get_parameter("rtk_status_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
+        self._scene_points_file = str(self.get_parameter("scene_points_file").value).strip()
+        self._use_scene_identity_alignment = bool(
+            self.get_parameter("use_scene_identity_alignment").value
+        )
         self._mode_topic = str(self.get_parameter("mode_topic").value)
         self._status_topic = str(self.get_parameter("status_topic").value)
         self._diagnostics_topic = str(self.get_parameter("diagnostics_topic").value)
@@ -128,10 +135,24 @@ class RtkMapOdomCorrector(Node):
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
         self._tf_lookup_timeout_s = float(self.get_parameter("tf_lookup_timeout_s").value)
 
-        self._projector = FixedENUProjector(
-            float(self.get_parameter("enu_origin_lat").value),
-            float(self.get_parameter("enu_origin_lon").value),
-            float(self.get_parameter("enu_origin_alt").value),
+        origin_lat = float(self.get_parameter("enu_origin_lat").value)
+        origin_lon = float(self.get_parameter("enu_origin_lon").value)
+        origin_alt = float(self.get_parameter("enu_origin_alt").value)
+        if self._scene_points_file:
+            scene = load_scene_points(self._scene_points_file)
+            fixed_origin = scene.get("fixed_origin", {})
+            try:
+                origin_lat = float(fixed_origin["lat"])
+                origin_lon = float(fixed_origin["lon"])
+                origin_alt = float(fixed_origin.get("alt", 0.0))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"scene_points_file has no valid fixed_origin: {self._scene_points_file}"
+                ) from exc
+
+        self._projector = FixedENUProjector(origin_lat, origin_lon, origin_alt)
+        self._scene_identity_alignment = (
+            (0.0, 0.0, 0.0, True) if self._use_scene_identity_alignment else None
         )
 
         self._mode_pub = self.create_publisher(String, self._mode_topic, 10)
@@ -344,11 +365,18 @@ class RtkMapOdomCorrector(Node):
             and self._latest_alignment[3]
             and alignment_age_s <= self._max_alignment_age_s
         )
+        bootstrap_alignment = (
+            None if self._scene_identity_alignment is not None else self._bootstrap_alignment
+        )
         alignment, using_external_alignment = select_authority_alignment(
             latest_alignment=self._latest_alignment,
             external_alignment_valid=external_alignment_valid,
-            bootstrap_alignment=self._bootstrap_alignment,
+            bootstrap_alignment=bootstrap_alignment,
         )
+        if self._scene_identity_alignment is not None and not external_alignment_valid:
+            alignment = self._scene_identity_alignment
+            alignment_age_s = 0.0
+            using_external_alignment = True
         if (
             alignment is None
             and odom_base is not None

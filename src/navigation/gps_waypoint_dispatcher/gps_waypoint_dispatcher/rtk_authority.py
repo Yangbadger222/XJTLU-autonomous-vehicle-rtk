@@ -73,6 +73,17 @@ def compute_pose_delta(previous: Pose2D | None, current: Pose2D) -> tuple[float,
     )
 
 
+def compute_authority_target_delta(
+    *,
+    previous_map_base: Pose2D | None,
+    current_map_base: Pose2D,
+    previous_map_odom: Pose2D | None,
+    current_map_odom: Pose2D,
+) -> tuple[float, float]:
+    del previous_map_odom, current_map_odom
+    return compute_pose_delta(previous_map_base, current_map_base)
+
+
 def compute_rtk_map_base(
     *,
     enu_x: float,

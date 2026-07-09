@@ -17,6 +17,7 @@ from gps_waypoint_dispatcher.alignment_math import heading_quaternion_yaw_to_enu
 from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
     blend_pose_target,
+    compute_authority_target_delta,
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
     compute_pose_delta,
@@ -168,6 +169,7 @@ class RtkMapOdomCorrector(Node):
         self._latest_rtk_status_mono: float | None = None
         self._last_output: Pose2D | None = None
         self._last_raw_target: Pose2D | None = None
+        self._last_raw_map_base: Pose2D | None = None
         self._smoothed_target: Pose2D | None = None
         self._last_mode = ""
         self._last_status = ""
@@ -457,9 +459,11 @@ class RtkMapOdomCorrector(Node):
             output = target
             authority_status = None
         else:
-            target_jump_m, target_yaw_jump_rad = compute_pose_delta(
-                self._last_raw_target,
-                raw_target,
+            target_jump_m, target_yaw_jump_rad = compute_authority_target_delta(
+                previous_map_base=self._last_raw_map_base,
+                current_map_base=rtk_map_base,
+                previous_map_odom=self._last_raw_target,
+                current_map_odom=raw_target,
             )
             jump_summary = summarize_authority_inputs(
                 alignment_valid=True,
@@ -514,6 +518,7 @@ class RtkMapOdomCorrector(Node):
 
         self._last_output = output
         self._last_raw_target = raw_target
+        self._last_raw_map_base = rtk_map_base
         self._publish_tf(output)
         if authority_status == "YAW_REACQUIRE":
             self._publish_mode_status("RTK_AUTHORITATIVE", "YAW_REACQUIRE")

@@ -192,6 +192,37 @@ def test_target_jump_uses_last_trusted_raw_target_not_smoothed_output():
     assert lagged_translation_m > 10.0
 
 
+def test_target_jump_translation_uses_rtk_map_base_not_map_odom_lever_arm():
+    previous_map_base = Pose2D(x=80.0, y=-10.0, yaw=math.radians(80.0))
+    current_map_base = Pose2D(x=80.3, y=-9.9, yaw=math.radians(86.0))
+    previous_odom_base = Pose2D(x=67.0, y=0.0, yaw=math.radians(0.0))
+    current_odom_base = Pose2D(x=67.0, y=0.0, yaw=math.radians(0.0))
+
+    previous_map_odom = compute_map_to_odom(previous_map_base, previous_odom_base)
+    current_map_odom = compute_map_to_odom(current_map_base, current_odom_base)
+
+    map_base_translation_m, map_base_yaw_rad = authority.compute_pose_delta(
+        previous_map_base,
+        current_map_base,
+    )
+    map_odom_translation_m, _ = authority.compute_pose_delta(
+        previous_map_odom,
+        current_map_odom,
+    )
+    gate_translation_m, gate_yaw_rad = authority.compute_authority_target_delta(
+        previous_map_base=previous_map_base,
+        current_map_base=current_map_base,
+        previous_map_odom=previous_map_odom,
+        current_map_odom=current_map_odom,
+    )
+
+    assert map_base_translation_m == pytest.approx(math.hypot(0.3, 0.1))
+    assert math.degrees(map_base_yaw_rad) == pytest.approx(6.0)
+    assert map_odom_translation_m > 6.0
+    assert gate_translation_m == pytest.approx(map_base_translation_m)
+    assert gate_yaw_rad == pytest.approx(map_base_yaw_rad)
+
+
 def test_authority_inputs_accept_current_rtk_authority_source():
     summary = summarize_authority_inputs(
         alignment_valid=True,
@@ -315,7 +346,10 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"max_base_yaw_step_m"' in node_text
     assert "limit_map_to_odom_step_for_base" in node_text
     assert "self._last_raw_target: Pose2D | None = None" in node_text
-    assert "compute_pose_delta(\n                self._last_raw_target," in node_text
+    assert "self._last_raw_map_base: Pose2D | None = None" in node_text
+    assert "compute_authority_target_delta(" in node_text
+    assert "previous_map_base=self._last_raw_map_base" in node_text
+    assert "previous_map_odom=self._last_raw_target" in node_text
     assert "raw_output_gap_m" in node_text
 
 

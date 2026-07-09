@@ -40,8 +40,6 @@ ls ~/XJTLU-autonomous-vehicle/runtime-data
 ## 3. Launch Operating Modes
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 make launch-slam
 make launch-explore
 make launch-indoor-nav
@@ -323,7 +321,7 @@ git checkout main
 git pull --ff-only
 
 # Create branch
-git checkout -b docs/sync-current-state
+git checkout -b <BRANCH_NAME>
 
 # Check status
 git status
@@ -331,7 +329,7 @@ git branch -v
 git log --oneline -5
 
 # Push branch
-git push -u origin docs/sync-current-state
+git push -u origin <BRANCH_NAME>
 ```
 
 GitHub CLI:
@@ -358,6 +356,9 @@ df -h /
 free -h
 htop
 
+# Disk usage per folder
+sudo du -h --max-depth=1 / | sort -hr
+
 # JetPack / model
 cat /etc/nv_tegra_release
 cat /proc/device-tree/model
@@ -366,6 +367,11 @@ cat /proc/device-tree/model
 systemctl is-enabled NetworkManager
 systemctl is-active NetworkManager
 nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --active
+
+# Set network autoconnection settings
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect yes
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-priority 100
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-retries 3
 
 # Check if current machine has passwordless sudo
 sudo -n true && echo sudo_ok
@@ -508,7 +514,7 @@ sed -n '1,120p' runtime-data/gnss/current_route.yaml
 Clean up residual processes after completion:
 
 ```bash
-make kill-runtime
+make kill
 ```
 
 Makefile shortcut launch:
@@ -570,20 +576,20 @@ Build:
 
 ```bash
 make build-perception
-source install/setup.bash
+ss
 ```
 
 Launch the experimental shadow mode:
 
 ```bash
 make launch-tightly-coupled
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 Launch with field RTK/CORS parameters:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 Observe shadow outputs:
@@ -757,9 +763,9 @@ Topics not rendering properly (URDF or point cloud missing):
 
 This script runs whenever a terminal is opened in the jetson (including SSH). We have modified it to include common commands and give us an overview of the robot's current state.
 
-The script is being tracked in [/scripts/bashrc.sh](/scripts/bashrc.sh). To set it up in the Jetson:
+The script is being tracked in [/scripts/.bashrc](/scripts/.bashrc). To set it up in the Jetson:
 
-1. Copy the script in [/scripts/bashrc.sh](/scripts/bashrc.sh) into your clipboard
+1. Copy the script in [/scripts/.bashrc](/scripts/.bashrc) into your clipboard
 2. Open a terminal in the Jetson (SSH or local are both ok)
 3. Type the following command to open `~/.bashrc` with Vim:
 ```bash
@@ -768,6 +774,6 @@ rc
 4. After it opens, type `:%d` to delete all contents in the file
 5. Use `Ctrl + V` to paste the new script from your clipboard
 6. Press `Esc`, then `:wq` to write and quit (save and exit)
-7. To test it, open a new terminal or run: `s1`
+7. To test it, open a new terminal or run: `source ~/.bashrc`
 
-Whenever you want to update `~/.bashrc`, modify it first from [/scripts/bashrc.sh](/scripts/bashrc.sh), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.
+Whenever you want to update `~/.bashrc`, modify it first from [/scripts/.bashrc](/scripts/.bashrc), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.

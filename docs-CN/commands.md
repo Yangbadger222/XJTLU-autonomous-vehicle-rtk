@@ -23,8 +23,7 @@ make build-navigation
 colcon build --packages-select <pkg> --symlink-install --parallel-workers 1
 
 # 每次构建后必须重新 source
-source /opt/ros/humble/setup.bash
-source ~/XJTLU-autonomous-vehicle/install/setup.bash
+ss
 ```
 
 ## 2. 初始化运行时数据
@@ -39,8 +38,6 @@ ls ~/XJTLU-autonomous-vehicle/runtime-data
 ## 3. 启动运行模式
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 make launch-slam
 make launch-explore
 make launch-indoor-nav
@@ -322,7 +319,7 @@ git checkout main
 git pull --ff-only
 
 # 创建分支
-git checkout -b docs/sync-current-state
+git checkout -b <BRANCH_NAME>
 
 # 检查状态
 git status
@@ -330,7 +327,7 @@ git branch -v
 git log --oneline -5
 
 # 推送分支
-git push -u origin docs/sync-current-state
+git push -u origin <BRANCH_NAME>
 ```
 
 GitHub CLI：
@@ -357,6 +354,9 @@ df -h /
 free -h
 htop
 
+# 每个文件夹大小
+sudo du -h --max-depth=1 / | sort -hr
+
 # JetPack / 机型
 cat /etc/nv_tegra_release
 cat /proc/device-tree/model
@@ -365,6 +365,11 @@ cat /proc/device-tree/model
 systemctl is-enabled NetworkManager
 systemctl is-active NetworkManager
 nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --active
+
+# 设置网络自动连接设置
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect yes
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-priority 100
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-retries 3
 
 # 检查当前机器是否具备无密码 sudo
 sudo -n true && echo sudo_ok
@@ -574,23 +579,21 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 构建：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make build-perception
-source install/setup.bash
+ss
 ```
 
 启动实验旁路模式：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make launch-tightly-coupled
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 带现场 RTK/CORS 参数启动：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 观察 shadow 输出：
@@ -639,7 +642,6 @@ ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_u
 把rosbags上转到Huggingface:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ```
 
@@ -775,9 +777,9 @@ ros2 run foxglove_bridge foxglove_bridge
 
 每当在 Jetson 中打开终端（包括 SSH 连接）时，该脚本都会运行。我们对其进行了修改，以包含常用命令并提供机器人当前状态的概述。
 
-该脚本正在 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中进行版本追踪。如需在 Jetson 中进行设置：
+该脚本正在 [/scripts/.bashrc](/scripts/.bashrc) 中进行版本追踪。如需在 Jetson 中进行设置：
 
-1. 将 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中的脚本内容复制到剪贴板中
+1. 将 [/scripts/.bashrc](/scripts/.bashrc) 中的脚本内容复制到剪贴板中
 2. 在 Jetson 中打开一个终端（SSH 或本地终端均可）
 3. 输入以下命令以使用 Vim 打开 `~/.bashrc`：
 ```bash
@@ -788,4 +790,4 @@ vi ~/.bashrc
 6. 按 `Esc`，然后输入 `:wq` 保存并退出
 7. 如需进行测试，请打开一个新终端或运行：`source ~/.bashrc`
 
-每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/bashrc.sh](https://www.google.com/search?q=/scripts/bashrc.sh) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。
+每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/.bashrc](/scripts/.bashrc) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。

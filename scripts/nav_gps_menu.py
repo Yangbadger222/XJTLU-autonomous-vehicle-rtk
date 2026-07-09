@@ -23,7 +23,7 @@ import time
 from pathlib import Path
 
 import rclpy
-from nav2_msgs.action import ComputeRoute, FollowPath, NavigateToPose
+from nav2_msgs.action import ComputeRoute, FollowPath
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from std_msgs.msg import Empty, String
@@ -58,24 +58,29 @@ class NavGPSMenu(Node):
 
         self.system_status = "UNKNOWN"
         self.goal_status = "UNKNOWN"
+        self.localization_authority_mode = "UNKNOWN"
         self._last_system_status_printed: str | None = None
         self._last_goal_status_printed: str | None = None
+        self._last_localization_authority_printed: str | None = None
 
         self.goto_pub = self.create_publisher(String, "/gps_waypoint_dispatcher/goto_name", 10)
         self.stop_pub = self.create_publisher(Empty, "/gps_waypoint_dispatcher/stop", 10)
 
         self.create_subscription(String, "/gps_system/status", self._system_status_callback, 10)
         self.create_subscription(String, "/gps_goal_manager/status", self._goal_status_callback, 10)
+        self.create_subscription(String, "/localization_authority/mode", self._localization_authority_callback, 10)
 
         self.compute_route_client = ActionClient(self, ComputeRoute, "compute_route")
         self.follow_path_client = ActionClient(self, FollowPath, "follow_path")
-        self.navigate_to_pose_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
     def _system_status_callback(self, msg: String) -> None:
         self.system_status = msg.data.strip() or "UNKNOWN"
 
     def _goal_status_callback(self, msg: String) -> None:
         self.goal_status = msg.data.strip() or "UNKNOWN"
+
+    def _localization_authority_callback(self, msg: String) -> None:
+        self.localization_authority_mode = msg.data.strip() or "UNKNOWN"
 
     def print_status_changes(self) -> None:
         if self.system_status != self._last_system_status_printed:
@@ -84,12 +89,14 @@ class NavGPSMenu(Node):
         if self.goal_status != self._last_goal_status_printed:
             print(f"[goal_manager] {self.goal_status}")
             self._last_goal_status_printed = self.goal_status
+        if self.localization_authority_mode != self._last_localization_authority_printed:
+            print(f"[localization_authority] {self.localization_authority_mode}")
+            self._last_localization_authority_printed = self.localization_authority_mode
 
     def action_servers_ready(self) -> bool:
         checks = [
             self.compute_route_client.wait_for_server(timeout_sec=0.1),
             self.follow_path_client.wait_for_server(timeout_sec=0.1),
-            self.navigate_to_pose_client.wait_for_server(timeout_sec=0.1),
         ]
         return all(checks)
 
@@ -120,11 +127,21 @@ class NavGPSMenu(Node):
             if launch_proc is not None and launch_proc.poll() is not None:
                 raise RuntimeError(f"nav-gps launch exited early with code {launch_proc.returncode}")
 
-            if self.system_status == "NAV_READY" and self.action_servers_ready():
-                print("[nav_gps_menu] NAV_READY reached and action servers are online.")
+            if (
+                self.system_status == "NAV_READY"
+                or self.localization_authority_mode == "RTK_AUTHORITATIVE"
+            ) and self.action_servers_ready():
+                if self.localization_authority_mode == "RTK_AUTHORITATIVE":
+                    print("[nav_gps_menu] RTK_AUTHORITATIVE reached and action servers are online.")
+                else:
+                    print("[nav_gps_menu] NAV_READY reached and action servers are online.")
                 return
 
-        detail = f"last gps_system={self.system_status}, goal_manager={self.goal_status}"
+        detail = (
+            f"last gps_system={self.system_status}, "
+            f"localization_authority={self.localization_authority_mode}, "
+            f"goal_manager={self.goal_status}"
+        )
         if self.system_status == "NO_FIX":
             detail += "; raw GPS still has no valid fix"
         elif self.system_status == "NO_ANCHOR":

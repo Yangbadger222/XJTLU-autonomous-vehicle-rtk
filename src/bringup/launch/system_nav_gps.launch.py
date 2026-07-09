@@ -213,7 +213,7 @@ def generate_launch_description():
                 "global_frame": "map",
                 "base_frame": "base_link",
                 "graph_filepath": route_graph_file,
-                "enable_nn_search": False,
+                "enable_nn_search": True,
                 "path_density": 0.2,
                 "smooth_corners": False,
             }
@@ -238,7 +238,14 @@ def generate_launch_description():
         executable="goal_manager_node",
         name="gps_waypoint_dispatcher",
         output="screen",
-        parameters=[params_file, {"scene_points_file": scene_points_file}],
+        parameters=[
+            params_file,
+            {
+                "scene_points_file": scene_points_file,
+                "use_route_pose_start": True,
+                "require_nav_ready": False,
+            },
+        ],
     )
 
     rtk_authority = Node(

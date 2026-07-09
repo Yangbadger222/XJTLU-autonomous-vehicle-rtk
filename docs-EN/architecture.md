@@ -113,10 +113,9 @@ scene_points.yaml + route_graph.geojson ------------------------+
                                                                |
 goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
             |  reads scene_points.yaml
-            |  checks NAV_READY
-            |  locks startup anchor
-            |  Stage A: navigate_to_pose (when needed)
-            |  Stage B: ComputeRoute(start_id, goal_id)
+            |  reads current map->base_link pose
+            |  Stage A: route_server nearest traversable graph-node search
+            |  Stage B: ComputeRoute(use_poses=true)
             v
      dense graph path -> FollowPath -> Nav2 -> /cmd_vel
 ```
@@ -126,6 +125,7 @@ The core of `nav-gps` is:
 - `map -> odom` is no longer published by PGO in this mode; PGO uses the corridor no-TF/no-GPS configuration and remains a point-cloud / optimization side channel only
 - `rtk_map_odom_corrector` reads the scene fixed origin and uses a fixed ENU-to-map identity alignment to compute the RTK-authoritative `map -> odom`
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud instead of the old DWB-based `nav2_gps.yaml` profile
+- route server runs with `enable_nn_search=true`, and the goal manager starts from the current pose, so the vehicle no longer has to be near a small set of anchors before navigating
 - `scene_gps_bundle.yaml` is the single source of truth
 - At runtime, only compiled artifacts under `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` are read
 - `goto_name` is the main entry point; users input only English destination names
@@ -264,7 +264,7 @@ Notes:
 - Livox SDK2
 - GTSAM
 - GeographicLib
-- pyproj
+- pyproj (recommended for exact GPS projection; QGIS scene compilation and nav-gps scene loading have a local-ENU fallback)
 - `ros-humble-geographic-msgs`
 
 

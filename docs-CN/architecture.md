@@ -113,10 +113,9 @@ scene_points.yaml + route_graph.geojson ------------------------+
                                                                |
 goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
             |  读取 scene_points.yaml
-            |  检查 NAV_READY
-            |  锁定 startup anchor
-            |  Stage A: navigate_to_pose (需要时)
-            |  Stage B: ComputeRoute(start_id, goal_id)
+            |  读取当前 map->base_link pose
+            |  Stage A: route_server 最近可通行图节点搜索
+            |  Stage B: ComputeRoute(use_poses=true)
             v
      dense graph path -> FollowPath -> Nav2 -> /cmd_vel
 ```
@@ -126,6 +125,7 @@ goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
 - `map -> odom` 不再由 PGO 抢发布；PGO 使用 corridor no-TF/no-GPS 配置，仅保留点云/优化旁路能力
 - `rtk_map_odom_corrector` 读取 scene fixed origin，并使用固定 ENU→map identity alignment 计算 RTK authoritative `map -> odom`
 - Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
+- route server 开启 `enable_nn_search=true`，goal manager 使用当前 pose 起算，不再要求车辆靠近少数 anchor 才能导航
 - `scene_gps_bundle.yaml` 是唯一 source of truth
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
 - `goto_name` 是主入口；用户只输入英文目标名
@@ -264,7 +264,7 @@ src/
 - Livox SDK2
 - GTSAM
 - GeographicLib
-- pyproj
+- pyproj（推荐用于精确 GPS 投影；QGIS scene 编译和 nav-gps 读取有本地 ENU fallback）
 - `ros-humble-geographic-msgs`
 
 

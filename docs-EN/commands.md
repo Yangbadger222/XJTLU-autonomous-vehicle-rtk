@@ -422,6 +422,7 @@ python3 -c "import pyproj; print(pyproj.__version__)"
 Notes:
 - Without arguments, the script toggles between `XJTLU` and `Pixel` by default
 - The commands above are complete one-line commands to run directly on the Jetson / Linux host
+- `pyproj` remains the recommended dependency; if it is temporarily missing, QGIS scene compilation and nav-gps scene loading fall back to a local ENU approximation instead of failing at startup
 - When the script runs locally on the Jetson, it automatically switches to local mode; if the current shell is SSH/Tailscale, the session may disconnect during the network switch
 - Each network switch restarts `todeskd` on the Jetson side, with logs written to `/tmp/wifi-switch.log`
 
@@ -465,6 +466,20 @@ Compile runtime files after collection:
 python3 scripts/build_scene_runtime.py
 ```
 
+QGIS route-network import flow, for example `/Users/badger/Desktop/maps/qgis_4_package/3.geojson`:
+
+```bash
+python3 scripts/compile_qgis_scene.py \
+  --input /Users/badger/Desktop/maps/qgis_4_package/3.geojson \
+  --scene-name qgis_4 \
+  --densify-step-m 5.0 \
+  --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
+
+python3 scripts/build_scene_runtime.py
+```
+
+`compile_qgis_scene.py` converts `feature_type=route` LineStrings into a scene graph, densifies route edges to at most 5m, and writes usable destinations into `scene_gps_bundle.yaml`. For the current `qgis_4_package/3.geojson`, the default output is about `557` route nodes, `558` edges, and these initial destination families: `math_building`, `environment_building`, `route_end_*`, and `junction_*`.
+
 Collection guidelines:
 - All turns, intersections, and destination entrances must have waypoints
 - Areas where the system may be powered on must have nearby `anchor` points
@@ -493,17 +508,19 @@ ros2 topic echo /gps_goal_manager/status
 ros2 run gps_waypoint_dispatcher goto_name anchor_a
 
 # Check if route / local planner actions are online
-ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
+ros2 action list | grep -E 'compute_route|follow_path'
 
 # Stop current task
 ros2 run gps_waypoint_dispatcher stop
 
-# One-command launch nav-gps, wait for NAV_READY, and select destination by number
+# One-command launch nav-gps, wait for NAV_READY or RTK_AUTHORITATIVE, and select destination by number
 python3 scripts/nav_gps_menu.py
 ```
 
 Runtime notes:
 - After modifying or importing a new QGIS/scene map, rerun `python3 scripts/build_scene_runtime.py` so `master_params_scene.yaml` records the scene fixed origin plus `rtk_map_odom_corrector`'s `scene_points_file` and `use_scene_identity_alignment=true`.
+- `nav-gps` does not require the vehicle to start near an anchor before accepting a destination; the goal manager reads the current `map->base_link` pose and sends `ComputeRoute(use_poses=true)` so the route server starts from the nearest traversable graph node.
+- `route_server` runs with `enable_nn_search=true` in `nav-gps`, so as long as the vehicle is near the route network, the start pose is snapped to the nearest traversable graph node and the route follows the graph to the destination.
 - `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
 - The RTK FGO shadow node starts by default with `publish_tf=false` and `nav2_use_fgo=false`; set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false` to disable it.

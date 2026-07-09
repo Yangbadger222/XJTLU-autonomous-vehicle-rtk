@@ -149,11 +149,13 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。
 - global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
+- `route_server.enable_nn_search=true`，goal manager 用当前 pose 发 `ComputeRoute(use_poses=true)`；只要车辆靠近路网，起点会吸附到最近可通行图节点，而不是依赖少数 anchor。
 
 定位语义：
 - PGO 关闭 `publish_tf` 和 GPS 因子，不再抢 `map→odom`。
 - `rtk_map_odom_corrector` 使用 scene fixed origin 和 ENU→map identity alignment，成为唯一 `map→odom` owner。
 - `gps_anchor_localizer` 仍负责 `NAV_READY`、最近 anchor 和 `/gnss` 发布；goal manager 仍通过 `goto_name` 调 route graph。
+- 在 RTK `nav-gps` 实车入口中，goal manager 不再把 `NAV_READY`/anchor 作为发目标硬门槛；RTK authoritative `map→odom` 和当前 TF 可用才是实际起跑条件。
 
 ## 7. 当前运行注意事项（2026-07）
 

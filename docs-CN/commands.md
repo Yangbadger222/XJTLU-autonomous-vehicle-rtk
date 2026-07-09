@@ -423,6 +423,7 @@ python3 -c "import pyproj; print(pyproj.__version__)"
 说明：
 - 不带参数时默认在 `XJTLU` 和 `Pixel` 之间 toggle
 - 上面这几条就是在 Jetson / Linux 本机直接运行的完整一行命令
+- `pyproj` 仍是推荐依赖；若临时缺失，QGIS scene 编译和 nav-gps scene 读取会退回本地 ENU 近似，不应直接启动失败
 - 脚本在 Jetson 本机执行时会自动切到本地模式；如果当前 shell 是 SSH/Tailscale，会话可能在切网过程中断开
 - 每次切网都会在 Jetson 侧重启 `todeskd`，日志写入 `/tmp/wifi-switch.log`
 
@@ -466,6 +467,20 @@ python3 scripts/collect_gps_scene.py
 python3 scripts/build_scene_runtime.py
 ```
 
+QGIS 路网包导入流程（例如 `/Users/badger/Desktop/maps/qgis_4_package/3.geojson`）：
+
+```bash
+python3 scripts/compile_qgis_scene.py \
+  --input /Users/badger/Desktop/maps/qgis_4_package/3.geojson \
+  --scene-name qgis_4 \
+  --densify-step-m 5.0 \
+  --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
+
+python3 scripts/build_scene_runtime.py
+```
+
+`compile_qgis_scene.py` 会把 `feature_type=route` 的 LineString 转成 scene graph，按 5m 最大边长补点，并把可用终点写入 `scene_gps_bundle.yaml`。对当前 `qgis_4_package/3.geojson`，默认生成约 `557` 个路网节点、`558` 条边和这些初始 destination：`math_building`、`environment_building`、`route_end_*`、`junction_*`。
+
 采集规范：
 - 所有转弯、路口、目的地入口必须踩点
 - 允许系统上电启动的区域附近必须布 `anchor`
@@ -494,17 +509,19 @@ ros2 topic echo /gps_goal_manager/status
 ros2 run gps_waypoint_dispatcher goto_name anchor_a
 
 # 检查 route / local planner action 是否在线
-ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
+ros2 action list | grep -E 'compute_route|follow_path'
 
 # 停止当前任务
 ros2 run gps_waypoint_dispatcher stop
 
-# 一键拉起 nav-gps，等待 NAV_READY，并按编号选择 destination
+# 一键拉起 nav-gps，等待 NAV_READY 或 RTK_AUTHORITATIVE，并按编号选择 destination
 python3 scripts/nav_gps_menu.py
 ```
 
 运行说明：
 - 修改或导入新的 QGIS/scene 地图后，必须先重新执行 `python3 scripts/build_scene_runtime.py`，让 `master_params_scene.yaml` 写入 scene fixed origin、`rtk_map_odom_corrector` 的 `scene_points_file` 和 `use_scene_identity_alignment=true`。
+- `nav-gps` 不要求车辆在 anchor 附近才能发目标；goal manager 会读取当前 `map→base_link` pose，并用 `ComputeRoute(use_poses=true)` 让 route server 从最近可通行路网节点开始规划。
+- `route_server` 在 `nav-gps` 下开启 `enable_nn_search=true`，因此只要车辆在路网附近，起点会被吸附到最近可通行 graph node，再沿路网规划到 destination。
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
 - 默认会启动 RTK FGO shadow node，但固定 `publish_tf=false`、`nav2_use_fgo=false`；如需关闭可设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false`。

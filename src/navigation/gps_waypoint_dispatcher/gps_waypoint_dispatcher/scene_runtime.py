@@ -3,8 +3,19 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from pyproj import CRS, Transformer
 import yaml
+
+try:
+    from pyproj import CRS, Transformer
+
+    PYPROJ_AVAILABLE = True
+except ImportError:
+    CRS = None
+    Transformer = None
+    PYPROJ_AVAILABLE = False
+
+
+EARTH_RADIUS_M = 6378137.0
 
 
 def default_runtime_root() -> Path:
@@ -94,17 +105,36 @@ def compass_heading_to_enu_yaw_deg(heading_deg: float) -> float:
     return (90.0 - float(heading_deg)) % 360.0
 
 
+class LocalENUProjector:
+    def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float = 0.0) -> None:
+        self.origin_lat = float(origin_lat)
+        self.origin_lon = float(origin_lon)
+        self.origin_alt = float(origin_alt)
+        self._origin_lat_rad = math.radians(self.origin_lat)
+
+    def forward(self, lat: float, lon: float) -> tuple[float, float]:
+        x = math.radians(float(lon) - self.origin_lon) * EARTH_RADIUS_M * math.cos(self._origin_lat_rad)
+        y = math.radians(float(lat) - self.origin_lat) * EARTH_RADIUS_M
+        return float(x), float(y)
+
+
 class FixedENUProjector:
     def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float = 0.0) -> None:
         self.origin_lat = float(origin_lat)
         self.origin_lon = float(origin_lon)
         self.origin_alt = float(origin_alt)
-        local_crs = CRS.from_proj4(
-            f"+proj=aeqd +lat_0={self.origin_lat} +lon_0={self.origin_lon} "
-            "+datum=WGS84 +units=m +no_defs"
-        )
-        self._forward = Transformer.from_crs("EPSG:4326", local_crs, always_xy=True)
+        if PYPROJ_AVAILABLE:
+            local_crs = CRS.from_proj4(
+                f"+proj=aeqd +lat_0={self.origin_lat} +lon_0={self.origin_lon} "
+                "+datum=WGS84 +units=m +no_defs"
+            )
+            self._forward = Transformer.from_crs("EPSG:4326", local_crs, always_xy=True)
+        else:
+            self._forward = LocalENUProjector(self.origin_lat, self.origin_lon, self.origin_alt)
 
     def forward(self, lat: float, lon: float) -> tuple[float, float]:
-        x, y = self._forward.transform(float(lon), float(lat))
+        if PYPROJ_AVAILABLE:
+            x, y = self._forward.transform(float(lon), float(lat))
+            return float(x), float(y)
+        x, y = self._forward.forward(float(lat), float(lon))
         return float(x), float(y)

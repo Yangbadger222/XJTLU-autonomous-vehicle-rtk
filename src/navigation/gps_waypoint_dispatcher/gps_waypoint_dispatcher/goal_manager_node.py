@@ -26,6 +26,8 @@ class GPSGoalManager(Node):
         self.declare_parameter("route_frame", "map")
         self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("navigate_to_anchor_tolerance_m", 2.5)
+        self.declare_parameter("use_route_pose_start", False)
+        self.declare_parameter("require_nav_ready", True)
         self.declare_parameter("controller_id", "FollowPath")
         self.declare_parameter("goal_checker_id", "general_goal_checker")
 
@@ -35,6 +37,8 @@ class GPSGoalManager(Node):
         self.navigate_to_anchor_tolerance_m = float(
             self.get_parameter("navigate_to_anchor_tolerance_m").value
         )
+        self.use_route_pose_start = bool(self.get_parameter("use_route_pose_start").value)
+        self.require_nav_ready = bool(self.get_parameter("require_nav_ready").value)
         self.controller_id = str(self.get_parameter("controller_id").value)
         self.goal_checker_id = str(self.get_parameter("goal_checker_id").value)
 
@@ -92,23 +96,51 @@ class GPSGoalManager(Node):
             return
         self.nearest_anchor_id = int(msg.data)
 
-    def _lookup_current_xy(self) -> tuple[float, float] | None:
+    def _lookup_current_pose(self) -> PoseStamped | None:
         try:
             transform = self.tf_buffer.lookup_transform(self.route_frame, self.base_frame, Time())
         except TransformException:
             return None
 
+        pose = PoseStamped()
+        pose.header.frame_id = self.route_frame
+        pose.header.stamp = self.get_clock().now().to_msg()
+        pose.pose.position.x = float(transform.transform.translation.x)
+        pose.pose.position.y = float(transform.transform.translation.y)
+        pose.pose.position.z = float(transform.transform.translation.z)
+        pose.pose.orientation = transform.transform.rotation
+        return pose
+
+    def _lookup_current_xy(self) -> tuple[float, float] | None:
+        pose = self._lookup_current_pose()
+        if pose is None:
+            return None
         return (
-            float(transform.transform.translation.x),
-            float(transform.transform.translation.y),
+            float(pose.pose.position.x),
+            float(pose.pose.position.y),
         )
+
+    def _node_pose(self, node: dict) -> PoseStamped:
+        pose = PoseStamped()
+        pose.header.frame_id = self.route_frame
+        pose.header.stamp = self.get_clock().now().to_msg()
+        pose.pose.position.x = float(node["x"])
+        pose.pose.position.y = float(node["y"])
+        pose.pose.position.z = 0.0
+        qx, qy, qz, qw = yaw_to_quaternion(0.0)
+        pose.pose.orientation.x = qx
+        pose.pose.orientation.y = qy
+        pose.pose.orientation.z = qz
+        pose.pose.orientation.w = qw
+        return pose
 
     def _action_servers_ready(self) -> bool:
         checks = [
             (self.compute_route_client, "compute_route"),
             (self.follow_path_client, "follow_path"),
-            (self.navigate_to_pose_client, "navigate_to_pose"),
         ]
+        if not self.use_route_pose_start:
+            checks.append((self.navigate_to_pose_client, "navigate_to_pose"))
         for client, name in checks:
             if not client.wait_for_server(timeout_sec=2.0):
                 self._publish_status("FAILED", f"missing_action_server={name}")
@@ -128,11 +160,11 @@ class GPSGoalManager(Node):
             self._publish_status("REJECTED", "manager_busy")
             return
 
-        if self.system_status != "NAV_READY":
+        if self.require_nav_ready and self.system_status != "NAV_READY":
             self._publish_status("REJECTED", f"system_status={self.system_status}")
             return
 
-        if self.nearest_anchor_id is None:
+        if not self.use_route_pose_start and self.nearest_anchor_id is None:
             self._publish_status("REJECTED", "no_anchor_matched")
             return
 
@@ -148,18 +180,33 @@ class GPSGoalManager(Node):
         self.cancel_requested = False
         self.current_target_name = target_name
         self.current_dest_id = int(self.destination_names[target_name])
-        self.current_anchor_id = int(self.nearest_anchor_id)
+        self.current_anchor_id = int(self.nearest_anchor_id) if self.nearest_anchor_id is not None else None
         self.pending_path = None
 
-        self._publish_status(
-            "COMPUTING_ROUTE",
-            f"target={target_name}; anchor={self.current_anchor_id}; dest={self.current_dest_id}",
-        )
-
         route_goal = ComputeRoute.Goal()
-        route_goal.use_poses = False
-        route_goal.start_id = int(self.current_anchor_id)
-        route_goal.goal_id = int(self.current_dest_id)
+        if self.use_route_pose_start:
+            start_pose = self._lookup_current_pose()
+            if start_pose is None:
+                self._finish_failure("missing_current_pose_for_pose_start")
+                return
+            dest_pose = self._node_pose(self.nodes[self.current_dest_id])
+            self.goal_pub.publish(dest_pose)
+            route_goal.use_poses = True
+            route_goal.use_start = True
+            route_goal.start = start_pose
+            route_goal.goal = dest_pose
+            self._publish_status(
+                "COMPUTING_ROUTE",
+                f"target={target_name}; start=pose_start; dest={self.current_dest_id}",
+            )
+        else:
+            route_goal.use_poses = False
+            route_goal.start_id = int(self.current_anchor_id)
+            route_goal.goal_id = int(self.current_dest_id)
+            self._publish_status(
+                "COMPUTING_ROUTE",
+                f"target={target_name}; anchor={self.current_anchor_id}; dest={self.current_dest_id}",
+            )
 
         future = self.compute_route_client.send_goal_async(route_goal)
         future.add_done_callback(self._on_compute_route_goal_response)
@@ -201,6 +248,10 @@ class GPSGoalManager(Node):
 
         self.pending_path = result.path
         self.path_pub.publish(result.path)
+
+        if self.use_route_pose_start:
+            self._send_follow_path()
+            return
 
         anchor_node = self.nodes[int(self.current_anchor_id)]
         current_xy = self._lookup_current_xy()

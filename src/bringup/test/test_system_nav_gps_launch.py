@@ -32,6 +32,21 @@ def test_nav_gps_starts_rtk_map_odom_corrector_from_scene_identity_alignment():
     assert '"/localization_authority/diagnostics",' in text
 
 
+def test_nav_gps_route_server_uses_nearest_graph_search_for_pose_requests():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"enable_nn_search": True' in text
+    assert '"path_density": 0.2' in text
+    assert '"smooth_corners": False' in text
+
+
+def test_nav_gps_goal_manager_uses_pose_start_without_anchor_gate():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"use_route_pose_start": True' in text
+    assert '"require_nav_ready": False' in text
+
+
 def test_nav_gps_keeps_fgo_shadow_side_effect_free():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
 

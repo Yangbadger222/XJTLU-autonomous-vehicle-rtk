@@ -149,11 +149,13 @@ The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-
 - The local costmap uses `/fastlio2/body_cloud_nav2_obstacles`, preserving the high-window obstacle cloud around `[-0.20, 1.20]m`.
 - The global costmap keeps the route-planning-only semantics so realtime point clouds / unknown space do not block route-graph goals.
 - `general_goal_checker.stateful=false`, preventing a reached-state latch from one destination from carrying into the next route-graph goal.
+- `route_server.enable_nn_search=true`, and the goal manager sends `ComputeRoute(use_poses=true)` from the current pose; as long as the vehicle is close to the route graph, the start is snapped to the nearest traversable graph node instead of depending on a small anchor set.
 
 Localization semantics:
 - PGO disables `publish_tf` and GPS factors, so it no longer competes for `map->odom`.
 - `rtk_map_odom_corrector` uses the scene fixed origin plus ENU-to-map identity alignment and becomes the only `map->odom` owner.
 - `gps_anchor_localizer` still owns `NAV_READY`, nearest-anchor reporting, and `/gnss`; the goal manager still sends route-graph goals through `goto_name`.
+- In the RTK vehicle `nav-gps` entry point, the goal manager no longer treats `NAV_READY` / anchors as hard gates for sending a goal; the practical start condition is RTK-authoritative `map->odom` plus an available current TF.
 
 ## 7. Current Operational Notes (2026-07)
 

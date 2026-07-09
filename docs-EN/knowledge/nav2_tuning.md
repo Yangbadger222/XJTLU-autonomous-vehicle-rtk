@@ -42,10 +42,10 @@ Corridor mode keeps the same MPPI structure, but `system_gps_corridor.launch.py`
 - `controller_frequency: 20.0` (kept consistent with `model_dt=0.05s`; 15Hz makes MPPI configuration fail)
 - `batch_size: 500`
 - `progress_checker: 0.10m / 15.0s`, allowing short in-place heading alignment at right-angle turns without immediate translational progress.
-- `vx_max: 0.70`, `wz_max: 0.70`, `ax_max: 0.70`, `ax_min: -1.2`, `az_max: 1.8`
-- `vx_std: 0.18`, `wz_std: 0.16`
-- `velocity_smoother.max_velocity: [0.70, 0.0, 0.70]`
-- `velocity_smoother.max_accel: [0.70, 0.0, 1.4]`
+- `vx_max: 0.85`, `wz_max: 0.70`, `ax_max: 0.85`, `ax_min: -1.2`, `az_max: 1.4`
+- `vx_std: 0.20`, `wz_std: 0.15`, `temperature: 0.45`, `regenerate_noises: true`
+- `velocity_smoother.max_velocity: [0.85, 0.0, 0.70]`
+- `velocity_smoother.max_accel: [0.85, 0.0, 1.4]`
 - `velocity_smoother.max_decel: [-1.2, 0.0, -1.8]`
 - `nav2_corridor_rtk.yaml` narrows the global costmap to route-level planning: it enables only `inflation_layer`, sets `track_unknown_space=false`, uses `robot_radius=0.22`, and uses `inflation_radius=0.30` so NavFn can keep producing global paths to RTK subgoals.
 - Corridor live safety remains owned by the local costmap: `stvl_layer`, `frc_layer`, and `inflation_layer` stay enabled with `robot_radius=0.38625` and `inflation_radius=0.43` for Livox obstacle handling.
@@ -161,7 +161,7 @@ Tuning principles:
 1. RViz fixed frame must be set to `map`.
 2. If `map -> odom` is not established, even with Livox and FAST-LIO2 running, RViz may appear blank or the costmap may not display.
 3. Explore uses the MPPI mainline baseline; Corridor generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml` for the RTK small-speedup, moderate in-place turn, global/local costmap split, and yaw-oscillation suppression profile.
-4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.70` in Corridor; Corridor's angular limit is `0.70rad/s`, but it still uses the `vcx,wc` command chain and does not publish lateral `vcy`.
+4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.85` in Corridor; Corridor's angular limit is `0.70rad/s`, but it still uses the `vcx,wc` command chain and does not publish lateral `vcy`.
 5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
 6. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
 7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.

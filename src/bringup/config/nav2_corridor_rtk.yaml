@@ -294,27 +294,27 @@ controller_server:
       time_steps: 48
       model_dt: 0.05
       batch_size: 1000
-      vx_std: 0.28
+      vx_std: 0.20
       vy_std: 0.0
-      wz_std: 0.22
-      vx_max: 1.0
+      wz_std: 0.15
+      vx_max: 0.85
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 1.2
-      ax_max: 1.2
-      ax_min: -3.0
-      az_max: 6.0
+      wz_max: 0.70
+      ax_max: 0.85
+      ax_min: -1.2
+      az_max: 1.4
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
-      temperature: 0.3
+      temperature: 0.45
       gamma: 0.015
       motion_model: "DiffDrive"
       publish_critics_stats: true
       open_loop: true
       visualize: false
       reset_period: 1.0
-      regenerate_noises: false
+      regenerate_noises: true
 
       TrajectoryVisualizer:
         trajectory_step: 5
@@ -849,16 +849,16 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_velocity: [1.0, 0.0, 1.2]
+    max_velocity: [0.85, 0.0, 0.70]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    min_velocity: [0.0, 0.0, -1.0]
+    min_velocity: [0.0, 0.0, -0.70]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_accel: [1.2, 0.0, 6.0]
+    max_accel: [0.85, 0.0, 1.4]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_decel: [-3.0, 0.0, -6.0]
+    max_decel: [-1.2, 0.0, -1.8]
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
     # 改错话题：上下游节点会直接断链。
     odom_topic: "odom_CBoar"

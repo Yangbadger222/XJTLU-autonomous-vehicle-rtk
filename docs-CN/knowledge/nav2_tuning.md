@@ -42,10 +42,10 @@ Corridor 模式沿用同一 MPPI 结构，但 `system_gps_corridor.launch.py` �
 - `controller_frequency: 20.0`（保持与 `model_dt=0.05s` 一致；15Hz 会让 MPPI 配置失败）
 - `batch_size: 500`
 - `progress_checker: 0.10m / 15.0s`，允许直角弯原地调车头时短时间没有平移进展。
-- `vx_max: 0.70`，`wz_max: 0.70`，`ax_max: 0.70`，`ax_min: -1.2`，`az_max: 1.8`
-- `vx_std: 0.18`，`wz_std: 0.16`
-- `velocity_smoother.max_velocity: [0.70, 0.0, 0.70]`
-- `velocity_smoother.max_accel: [0.70, 0.0, 1.4]`
+- `vx_max: 0.85`，`wz_max: 0.70`，`ax_max: 0.85`，`ax_min: -1.2`，`az_max: 1.4`
+- `vx_std: 0.20`，`wz_std: 0.15`，`temperature: 0.45`，`regenerate_noises: true`
+- `velocity_smoother.max_velocity: [0.85, 0.0, 0.70]`
+- `velocity_smoother.max_accel: [0.85, 0.0, 1.4]`
 - `velocity_smoother.max_decel: [-1.2, 0.0, -1.8]`
 - `nav2_corridor_rtk.yaml` 将 global costmap 收敛为路线级规划画布：只启用 `inflation_layer`，`track_unknown_space=false`，`robot_radius=0.22`，`inflation_radius=0.30`，让 NavFn 可以持续给 RTK 子目标生成全局路径。
 - Corridor 的实时安全边界仍由 local costmap 承担：保留 `stvl_layer`、`frc_layer` 和 `inflation_layer`，继续使用 `robot_radius=0.38625` 与 `inflation_radius=0.43` 处理 Livox 障碍。
@@ -161,7 +161,7 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 1. RViz 的 fixed frame 必须设为 `map`。
 2. 如果 `map -> odom` 没建立，即使 Livox 和 FAST-LIO2 在跑，RViz 也可能表现为空白或 costmap 不显示。
 3. Explore 使用 MPPI 主线 baseline；Corridor 启动时从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件来使用 RTK 小步提速、中等原地转头、全局/局部代价地图分离与横摆抑制 profile。
-4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.70`；Corridor 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
+4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.85`；Corridor 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
 6. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。

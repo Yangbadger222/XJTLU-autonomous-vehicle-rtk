@@ -552,7 +552,7 @@ cd ~/XJTLU-autonomous-vehicle && ros2 bag info runtime-data/logs/latest/bag | gr
 - 子目标间距默认 30m（基于 global costmap 半径 35m - 5m buffer），采集时自动写入路线文件
 - 运行时不会再弹出 menu，也不会等待额外命令
 - wrapper 会把日志和 bag 写入 `~/XJTLU-autonomous-vehicle/runtime-data/logs/<session>/`
-- corridor 当前启动时会从 `nav2_explore.yaml` 生成临时 Nav2 参数文件并使用 RTK authoritative corridor 档：`vx_max=0.65`、`wz_max=0.50`、`ax_max=0.70`、`ax_min=-1.2`、`controller_frequency=20Hz`、`batch_size=500`；MPPI 的 `model_dt=0.05s` 要求控制周期不能大于模型步长，因此不能降到 `15Hz`
+- corridor 当前启动时会从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件并使用 RTK authoritative corridor 档：`vx_max=0.85`、`wz_max=0.70`、`ax_max=0.85`、`ax_min=-1.2`、`az_max=1.4`、`temperature=0.45`、`regenerate_noises=true`、`controller_frequency=20Hz`、`batch_size=500`；MPPI 的 `model_dt=0.05s` 要求控制周期不能大于模型步长，因此不能降到 `15Hz`
 - 到达最后一个 waypoint 后，`gps_route_runner` 会先发布 `STOPPING_BEFORE_EXIT`，以 20Hz 保持 1.2s 的零 `/cmd_vel`，然后再发布 `SUCCEEDED`；quiet 模式只会在该保持结束后退出，因此 bag 中应能看到明显的零速度尾巴。
 - corridor 默认使用 lean bag profile，记录 RTK、FAST-LIO2 odom、TF、corridor 状态、目标、costmap、`/cmd_vel` 和 `/plan`；原始 Livox 点云、Livox IMU 与 `/fastlio2/body_cloud` 仅在 `FYP_CORRIDOR_BAG_PROFILE=debug` 时记录
 - Livox 逐包 console/CSV 日志默认关闭。只有短时间台架诊断时才使用 `LIVOX_VERBOSE_PACKET_LOGS=1`，因为它会逐包打印并 flush。

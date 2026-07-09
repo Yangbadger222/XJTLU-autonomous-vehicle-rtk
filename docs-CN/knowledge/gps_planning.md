@@ -288,6 +288,7 @@ source install/setup.bash
    - 将 corridor 按 `segment_length_m`（默认 30m，基于 global costmap 半径 35m - 5m buffer）切成多个 subgoals
    - 串行执行 `NavigateToPose`
    - Nav2 返回 `SUCCEEDED` 后重新读取 live `map -> base_link` 并复核路线进度；如果 Nav2 报成功但物理进度没有接近目标，则发布 `NAV2_FALSE_SUCCESS_ABORT` 并停住，而不是反复重发同一个 subgoal
+   - `nav2_success_shortfall_tolerance_m`（默认 `max(0.75, waypoint_xy_tolerance_m)`）只用于 Nav2 成功后的路线进度复核；它比 `waypoint_xy_tolerance_m` 更宽，吸收 RTK/aligner 小幅跳变、圆形 goal checker 半径和沿线投影误差，但仍会拦截十几米级的假成功
    - 最后一个 waypoint 复核通过后，先发布 `STOPPING_BEFORE_EXIT`，以 20Hz 保持 1.2s 的零 `/cmd_vel`，再发布终止 `SUCCEEDED`，避免 quiet 模式在下位机收到刹停尾巴前拆掉整套 launch
 
 ### 11.4 当前 v1 约束
@@ -419,3 +420,14 @@ v2 部署后经多轮实车微调收敛：
 | 终点精度 | ~4m（受 yaw0 影响） | 理论更高（取决于 aligner 质量） |
 | PGO 角色 | 提供 map→odom | 仅 loop closure，不参与 corridor 对齐 |
 | 实车状态 | baseline 保留 | 已部署，Nav2 调参已收口，主瓶颈为 GPS 锚定 + odom 发散 |
+
+### 12.7 RTK authoritative 的 TF owner 约束（2026-07-07）
+
+Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_corrector`。PGO 在该模式下保留点云/keyframe/调试能力，但不能再广播 `map -> odom`，否则 Nav2 看到的 `map -> base_link` 会在两个全局解之间来回跳。
+
+当前 corridor 会同时给 PGO 传两层 override：
+
+- `pgo_corridor_no_tf.yaml`：legacy 扁平 `config_path`，显式 `publish_tf: false`、`gps.enable: false`。
+- `pgo_corridor_no_gps.yaml`：ROS 参数 override，继续关闭 `publish_tf` / GPS 因子，并把 PGO 对齐调试话题隔离到 `/gps_corridor/pgo_enu_to_map`。
+
+现场判断规则：如果 `/rtk/status` 全程 `q=4`、`/fastlio2/lio_odom` 没有大步跳变，但 `/tf` 里的 `map -> odom` 在 30ms 内出现 0.15m 以上的互相冲突跳变，优先检查是否有重复 TF owner，或 Jetson 的 `install/` 是否还是旧 launch/config。

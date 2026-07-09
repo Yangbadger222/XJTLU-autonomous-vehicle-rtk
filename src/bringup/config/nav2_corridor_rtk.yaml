@@ -1,0 +1,873 @@
+# Nav2 Corridor RTK 模式参数文件。
+# 从 Explore MPPI 基线派生，但把全局规划语义收窄为 RTK route planning：
+# global costmap 不再加载实时点云 STVL 层，近场避障仍由 local costmap + MPPI 负责。
+# AMCL 节点参数块；负责静态地图定位和粒子滤波。
+# 改错节点名或层级：AMCL 会读不到参数并回退默认值。
+amcl:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: true
+    # alpha1 表示机器人转动时的转角噪声系数；决定 AMCL 对转角里程计的信任程度。
+    # 调大：更不相信转角里程计、粒子更分散；调小：更相信转角里程计、收敛更紧。
+    alpha1: 0.2
+    # alpha2 表示直行引起的转角噪声系数；决定平移误差如何映射到朝向误差。
+    # 调大：更容易把直行误差解释成角度漂移；调小：更相信直行时朝向稳定。
+    alpha2: 0.2
+    # alpha3 表示机器人平移时的平移噪声系数；决定 AMCL 对位移里程计的信任程度。
+    # 调大：更不相信平移里程计、粒子更分散；调小：更相信平移里程计、定位更紧。
+    alpha3: 0.2
+    # alpha4 表示转动引起的平移噪声系数；决定转弯误差如何扩散到位置估计。
+    # 调大：转弯时位置更容易发散；调小：转弯时更相信位置估计。
+    alpha4: 0.2
+    # alpha5 表示额外运动噪声系数；用于补偿模型未覆盖的随机扰动。
+    # 调大：鲁棒性更强但粒子更散；调小：估计更集中但更依赖模型正确。
+    alpha5: 0.2
+    # 机器人基坐标系；AMCL 会把定位结果对齐到该机体坐标。
+    # 改成错误坐标系：定位姿态会与真实车体不一致。
+    base_frame_id: "base_footprint"
+    # beam skip 距离阈值；用于判断哪些激光束可以被视作异常并跳过。
+    # 调大：更容易忽略偏离模型的量测；调小：更严格地要求每束参与匹配。
+    beam_skip_distance: 0.5
+    # beam skip 误差比例阈值；决定异常束占多大比例才触发跳束。
+    # 调大：更宽松、不易触发跳束；调小：更敏感、更容易启用跳束。
+    beam_skip_error_threshold: 0.9
+    # beam skip 通过阈值；决定多少束一致时才接受当前扫描。
+    # 调大：更保守、更强调一致性；调小：更激进、更容易接受当前扫描。
+    beam_skip_threshold: 0.3
+    # 是否启用 beam skip；用于处理局部遮挡或动态障碍导致的异常激光束。
+    # 改为 true：对异常束更宽容；改为 false：所有束都严格参与匹配。
+    do_beamskip: false
+    # AMCL 输出的全局坐标系；通常与地图坐标系一致。
+    # 改成其它坐标系：下游导航的 TF 链会对不上。
+    global_frame_id: "map"
+    # 短量测分布参数；决定激光被近距离遮挡时的概率衰减速度。
+    # 调大：更容易把短量测视作合理遮挡；调小：更容易把短量测视作异常。
+    lambda_short: 0.1
+    # 似然场最大匹配距离；决定离地图障碍多远仍能贡献激光匹配分。
+    # 调大：远离障碍的量测也能参与评分；调小：只有更贴近障碍的量测才有高分。
+    laser_likelihood_max_dist: 2.0
+    # 定位时接受的最大激光距离；超过该值的量测不会参与 AMCL。
+    # 调大：可利用更远量测但噪声也更多；调小：更保守但远距信息更少。
+    laser_max_range: 100.0
+    # 定位时接受的最小激光距离；用于过滤本体附近或近场噪声。
+    # 调大：更能滤掉近场噪声；调小：会保留更多近距离量测。
+    laser_min_range: -1.0
+    # 激光观测模型类型；决定 AMCL 如何计算扫描与地图的匹配分。
+    # 改成其它模型：定位收敛特性和容错性都会变化。
+    laser_model_type: "likelihood_field"
+    # 单次参与 AMCL 匹配的最大激光束数量；用于平衡定位信息量和算力开销。
+    # 调大：匹配更细致但 CPU 更高；调小：计算更省但匹配信息更少。
+    max_beams: 60
+    # 最大粒子数；决定 AMCL 最多可以保留多少候选位姿。
+    # 调大：定位更稳但算力和内存更高；调小：更省资源但复杂场景更易丢定位。
+    max_particles: 2000
+    # 最小粒子数；决定 AMCL 至少保留多少候选位姿。
+    # 调大：低不确定性时也保持更稳但更耗资源；调小：更省资源但抗突发误差更弱。
+    min_particles: 500
+    # 里程计坐标系；AMCL 会基于该坐标系接收运动信息。
+    # 改成错误坐标系：定位更新会与里程计链路错位。
+    odom_frame_id: "odom"
+    # 自适应粒子滤波误差上界；用于估算需要多少粒子才能满足当前精度。
+    # 调大：更容易减少粒子数、算力更省；调小：更严格地要求粒子数量。
+    pf_err: 0.05
+    # 自适应粒子滤波置信度；决定希望以多高置信度覆盖真实位姿。
+    # 调大：更追求高置信度、粒子数倾向增多；调小：更容易接受较少粒子。
+    pf_z: 0.99
+    # 快速恢复系数；控制异常时向粒子群快速注入随机粒子的速度。
+    # 调大：恢复更积极但更容易抖动；调小：恢复更慢但状态更稳。
+    recovery_alpha_fast: 0.0
+    # 慢速恢复系数；控制长期失配时随机粒子的注入速度。
+    # 调大：长期偏移时更快扩散搜索；调小：更保守但恢复更慢。
+    recovery_alpha_slow: 0.0
+    # 重采样间隔；决定 AMCL 每做多少次更新后执行一次粒子重采样。
+    # 调大：重采样更少、效率更高；调小：重采样更频繁、收敛更快但更耗算力。
+    resample_interval: 1
+    # 运动模型类型；决定 AMCL 如何把里程计运动映射到粒子。
+    # 改成不匹配的模型：定位响应和误差传播会失真。
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    # 定位结果保存频率；决定 AMCL 多久把当前位姿写回参数。
+    # 调大：保存更频繁、恢复更及时；调小：写入更少但重启后恢复更慢。
+    save_pose_rate: 0.5
+    # 命中模型标准差；决定激光命中障碍时的误差容忍范围。
+    # 调大：对偏差更宽容；调小：更强调精确命中。
+    sigma_hit: 0.2
+    # 是否广播 map 到 odom 的 TF；决定 AMCL 是否直接输出定位变换。
+    # 改为 true：由 AMCL 提供 TF；改为 false：需要外部链路自行维护该 TF。
+    tf_broadcast: true
+    # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
+    # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
+    transform_tolerance: 1.0
+    # 最小更新或进展阈值；低于它时系统通常认为变化不够明显。
+    # 调大：更不敏感；调小：更敏感。
+    update_min_a: 0.2
+    # 最小更新或进展阈值；低于它时系统通常认为变化不够明显。
+    # 调大：更不敏感；调小：更敏感。
+    update_min_d: 0.25
+    # 命中项权重；决定与地图精确对齐的量测在总评分中的影响。
+    # 调大：更强调精确命中；调小：命中项影响减弱。
+    z_hit: 0.5
+    # 超量程项权重；决定远距或无返回量测在评分中的影响。
+    # 调大：更重视超量程量测；调小：更弱化这类量测。
+    z_max: 0.05
+    # 随机量测项权重；决定异常量测在评分中的影响。
+    # 调大：对异常量测更宽容；调小：更依赖模型解释量测。
+    z_rand: 0.5
+    # 短量测项权重；决定近距离遮挡量测在评分中的影响。
+    # 调大：更容易把短量测视作合理；调小：更容易把它视作异常。
+    z_short: 0.05
+    # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
+    # 改错话题：上下游节点会直接断链。
+    scan_topic: scan
+# BT Navigator 节点参数块；负责组织规划、控制和恢复动作。
+# 改错节点名或层级：导航行为树会读不到参数或启动失败。
+bt_navigator:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
+    # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
+    global_frame: map
+    # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
+    # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
+    robot_base_frame: base_link
+    # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
+    # 改错话题：上下游节点会直接断链。
+    odom_topic: /fastlio2/lio_odom
+    # 行为树循环周期毫秒数；决定导航行为树 tick 的频率。
+    # 调大：行为树响应更慢但更省 CPU；调小：响应更快但线程负载更高。
+    bt_loop_duration: 10
+    # 动作和服务默认超时；用于判定下游节点是否失联。
+    # 调大：对慢节点更宽容；调小：更快暴露超时但更容易误判。
+    default_server_timeout: 20
+    # 等待服务就绪的超时；决定启动阶段等待下游组件多久。
+    # 调大：更能容忍慢启动；调小：启动失败会更快暴露。
+    wait_for_service_timeout: 1000
+    # 默认 NavigateToPose 行为树 XML；由 launch 在运行时注入 corridor 专用 BT。
+    # 不注入时回退默认空字符串，由 Nav2 使用上游默认树。
+    default_nav_to_pose_bt_xml: ""
+    # 默认 NavigateThroughPoses 行为树 XML；由 launch 在运行时注入 corridor 专用 BT。
+    # 缺少该键时 RewrittenYaml 不会注入，Nav2 会回退上游 recovery 树。
+    default_nav_through_poses_bt_xml: ""
+    # 行为树插件库列表；决定导航行为树能加载哪些 BT 节点。
+    # 增删插件库：会改变可用行为或导致某些节点加载失败。
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_compute_path_through_poses_action_bt_node
+      - nav2_smooth_path_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_spin_action_bt_node
+      - nav2_wait_action_bt_node
+      - nav2_assisted_teleop_action_bt_node
+      - nav2_back_up_action_bt_node
+      - nav2_drive_on_heading_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_goal_updated_condition_bt_node
+      - nav2_globally_updated_goal_condition_bt_node
+      - nav2_is_path_valid_condition_bt_node
+      - nav2_initial_pose_received_condition_bt_node
+      - nav2_reinitialize_global_localization_service_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_truncate_path_local_action_bt_node
+      - nav2_goal_updater_node_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+      - nav2_transform_available_condition_bt_node
+      - nav2_time_expired_condition_bt_node
+      - nav2_path_expiring_timer_condition
+      - nav2_distance_traveled_condition_bt_node
+      - nav2_single_trigger_bt_node
+      - nav2_goal_updated_controller_bt_node
+      - nav2_is_battery_low_condition_bt_node
+      - nav2_navigate_through_poses_action_bt_node
+      - nav2_navigate_to_pose_action_bt_node
+      - nav2_remove_passed_goals_action_bt_node
+      - nav2_planner_selector_bt_node
+      - nav2_controller_selector_bt_node
+      - nav2_goal_checker_selector_bt_node
+      - nav2_controller_cancel_bt_node
+      - nav2_path_longer_on_approach_bt_node
+      - nav2_wait_cancel_bt_node
+      - nav2_spin_cancel_bt_node
+      - nav2_back_up_cancel_bt_node
+      - nav2_assisted_teleop_cancel_bt_node
+      - nav2_drive_on_heading_cancel_bt_node
+      - nav2_is_battery_charging_condition_bt_node
+# Navigate Through Poses 辅助节点参数块；负责该动作接口的基础 ROS 参数。
+# 改错节点名或层级：对应动作接口会读不到参数。
+bt_navigator_navigate_through_poses_rclcpp_node:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+# Navigate To Pose 辅助节点参数块；负责该动作接口的基础 ROS 参数。
+# 改错节点名或层级：对应动作接口会读不到参数。
+bt_navigator_navigate_to_pose_rclcpp_node:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+# Controller Server 节点参数块；负责局部轨迹跟踪与速度控制。
+# 改错节点名或层级：局部控制器会回退默认值或启动失败。
+controller_server:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
+    # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
+    transform_tolerance: 0.5
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 控制循环频率；决定局部控制器每秒更新多少次速度指令。
+    # 调大：响应更快但 CPU 更高；调小：负载更低但控制更迟缓。
+    controller_frequency: 20.0
+    # 前向速度死区阈值；低于该值的前向速度会被视为零。
+    # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
+    min_x_velocity_threshold: 0.001
+    # 侧向速度死区阈值；低于该值的横向速度会被视为零。
+    # 调大：更能压制横向噪声；调小：更容易保留微小侧移。
+    min_y_velocity_threshold: 0.5
+    # 角速度死区阈值；低于该值的角速度会被视为零。
+    # 调大：更能抑制原地抖头；调小：更容易保留细小转向。
+    min_theta_velocity_threshold: 0.001
+    # 控制失败容忍度；决定局部控制短时失败时还能容忍多大误差。
+    # 调大：系统更宽容、不易立刻失败；调小：更严格、更快进入恢复。
+    failure_tolerance: 0.6
+    # 进度检查器名称；用于选择 controller server 里启用哪一个卡住判定器。
+    # 改错名称：控制器会找不到对应检查器并启动失败。
+    progress_checker_plugin: "progress_checker"
+    # 目标检查器列表；决定局部控制器可选择哪些到点判定器。
+    # 增删检查器：会改变到点判定能力或导致引用失败。
+    goal_checker_plugins: ["general_goal_checker"]
+    # 控制器插件列表；决定当前局部控制使用哪些控制器实现。
+    # 增删控制器：会改变局部跟踪能力或导致启动失败。
+    controller_plugins: ["FollowPath"]
+    # 进度检查器参数块；负责判断机器人是否长时间原地不动。
+    # 改成其它结构或缺少子参数：卡住检测会异常。
+    progress_checker:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_controller::SimpleProgressChecker"
+      # 最小有效移动半径；在该时间窗内位移小于此值会被视为没前进。
+      # 调大：更容易判定卡住；调小：更不容易触发卡住。
+      required_movement_radius: 0.15
+      # 移动超时时间；决定多久没有明显进展就判定为卡住。
+      # 调大：更宽容、更晚判定卡住；调小：更严格、更早进入恢复。
+      movement_time_allowance: 10.0
+    # 目标检查器参数块；负责位置和朝向的到点判定。
+    # 改成其它结构或缺少子参数：到点判断会失真。
+    general_goal_checker:
+      # 状态保持开关；决定模块是否保留上一时刻内部状态。
+      # 改为 true：连续性更好；改为 false：每次都独立处理。
+      stateful: true
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_controller::SimpleGoalChecker"
+      # 平面位置到点容差；进入该半径内可视为位置达到目标。
+      # 调大：更容易判定到点；调小：更严格、更接近目标才算到点。
+      xy_goal_tolerance: 0.35
+      # 朝向到点容差；角度误差小于该值可视为方向对正。
+      # 调大：更容易判定朝向达标；调小：更严格、更要求精确对正。
+      yaw_goal_tolerance: 6.28
+    # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。
+    # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。
+    FollowPath:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_mppi_controller::MPPIController"
+      time_steps: 48
+      model_dt: 0.05
+      batch_size: 1000
+      vx_std: 0.20
+      vy_std: 0.0
+      wz_std: 0.15
+      vx_max: 0.85
+      vx_min: 0.0
+      vy_max: 0.0
+      wz_max: 0.70
+      ax_max: 0.85
+      ax_min: -1.2
+      az_max: 1.4
+      iteration_count: 1
+      prune_distance: 4.0
+      transform_tolerance: 0.5
+      temperature: 0.45
+      gamma: 0.015
+      motion_model: "DiffDrive"
+      publish_critics_stats: true
+      open_loop: true
+      visualize: false
+      reset_period: 1.0
+      regenerate_noises: true
+
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+
+      critics:
+        - "ConstraintCritic"
+        - "CostCritic"
+        - "GoalCritic"
+        - "GoalAngleCritic"
+        - "PathAlignCritic"
+        - "PathFollowCritic"
+        - "PathAngleCritic"
+        - "PreferForwardCritic"
+
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+
+      CostCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.5
+        critical_cost: 300.0
+        consider_footprint: false
+        collision_cost: 1000000.0
+        near_goal_distance: 1.0
+        trajectory_point_step: 2
+
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.6
+
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.0
+        threshold_to_consider: 0.5
+
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 5.0
+        threshold_to_consider: 0.5
+
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 12.0
+        max_path_occupancy_ratio: 0.05
+        trajectory_point_step: 4
+        threshold_to_consider: 0.5
+        offset_from_furthest: 6
+        use_path_orientations: false
+
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 16.0
+        offset_from_furthest: 5
+        threshold_to_consider: 1.4
+
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+        max_angle_to_furthest: 1.0
+        mode: 0
+# 局部代价地图参数块；负责近场避障和局部环境表达。
+# 改错节点名或层级：局部代价地图会读不到参数。
+local_costmap:
+  # 代价地图命名空间参数块；用于承载该 costmap 的具体 ROS 参数。
+  # 改错这一层级：costmap 可能不会读取到下方配置。
+  local_costmap:
+    # ROS 参数入口；下方配置会直接注入对应节点。
+    # 改错这一层级：节点可能完全读不到这些参数。
+    ros__parameters:
+      # 代价地图更新频率；决定障碍信息每秒刷新多少次。
+      # 调大：环境更新更及时但 CPU 更高；调小：更省资源但环境变化反映更慢。
+      update_frequency: 12.0
+      # 代价地图发布频率；决定对外发布地图消息的频率。
+      # 调大：下游拿到新地图更快；调小：带宽和 CPU 开销更低。
+      publish_frequency: 6.0
+      # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
+      # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
+      global_frame: odom
+      # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
+      # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
+      robot_base_frame: base_link
+      # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+      # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+      use_sim_time: false
+      # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。
+      # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。
+      rolling_window: true
+      # 地图宽度；决定 costmap 在 X 方向覆盖的物理范围。
+      # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
+      width: 30
+      # 地图高度；决定 costmap 在 Y 方向覆盖的物理范围。
+      # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
+      height: 30
+      # 地图分辨率；决定每个栅格代表的物理尺寸。
+      # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
+      resolution: 0.05
+      # 机器人安全半径；用于碰撞检查和膨胀边界计算。
+      # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
+      robot_radius: 0.38625
+      # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
+      # 增删地图层：会直接改变障碍信息来源和代价图行为。
+      # P4（FRC）：frc_layer 放 denoise 之后（风险不被去噪层抹掉）、
+      # inflation 之前（风险场本身已是高斯衰减，不再二次膨胀过度保守）。
+      plugins: ["stvl_layer", "denoise_layer", "frc_layer", "inflation_layer"]
+      denoise_layer:
+        plugin: "nav2_costmap_2d::DenoiseLayer"
+        enabled: true
+        minimal_group_size: 4
+        group_connectivity_type: 8
+      # FRC 残差风险注入层；默认 enabled=false（装载但旁路，行为与未装插件一致）。
+      # 闭环实验经 /frc/enable 服务或动态参数开启；改动须在 devlog 记录理由。
+      frc_layer:
+        # 插件类名；frc_costmap_layer 包提供。
+        plugin: "frc_costmap_layer/FrcLayer"
+        # 默认旁路：单一 YAML 不分叉，shadow 期与基线行为逐字节一致。
+        enabled: false
+        # 置信度门；低于该值的风险像素不注入。调大更保守（注入更少）。
+        tau: 0.6
+        # 注入 cost 上限（<=253）；200 保证风险区仍可通行不被堵死。
+        max_cost: 200
+        # 风险栅格话题；odom 系，由 frc_risk_pipeline 发布。
+        risk_topic: /frc/risk_grid
+        # RiskGrid 超时旁路秒数；risk_pipeline 停发后本层自动等价于没装。
+        watchdog_timeout_s: 0.5
+      # 膨胀层参数块；负责给障碍物外围增加安全缓冲。
+      # 改错结构或参数：障碍安全边界会偏大或偏小。
+      inflation_layer:
+        # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+        # 改成不存在或不兼容的插件：对应功能块会加载失败。
+        plugin: "nav2_costmap_2d::InflationLayer"
+        # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
+        # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
+        cost_scaling_factor: 2.0
+        # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
+        # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
+        inflation_radius: 0.43
+      # STVL 参数块；负责把 3D 点云写入体素层，并通过时间衰减清除陈旧障碍。
+      stvl_layer:
+        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+        enabled: true
+        voxel_decay: 0.8
+        decay_model: 0
+        voxel_size: 0.05
+        track_unknown_space: false
+        mark_threshold: 0
+        update_footprint_enabled: true
+        combination_method: 1
+        origin_z: -0.45
+        publish_voxel_map: false
+        transform_tolerance: 0.5
+        mapping_mode: false
+        map_save_duration: 60.0
+        observation_sources: pointcloud_mark pointcloud_clear
+        pointcloud_mark:
+          data_type: "PointCloud2"
+          topic: /fastlio2/body_cloud
+          marking: true
+          clearing: false
+          obstacle_range: 15.0
+          min_obstacle_height: -0.33
+          max_obstacle_height: 0.30
+          expected_update_rate: 0.0
+          observation_persistence: 0.0
+          inf_is_valid: false
+          filter: "voxel"
+          voxel_min_points: 0
+          clear_after_reading: false
+        pointcloud_clear:
+          enabled: true
+          data_type: "PointCloud2"
+          topic: /fastlio2/body_cloud
+          marking: false
+          clearing: true
+          max_z: 0.30
+          min_z: -0.33
+          vertical_fov_angle: 1.03
+          vertical_fov_padding: 0.05
+          horizontal_fov_angle: 6.29
+          decay_acceleration: 5.0
+          model_type: 1
+      # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
+      # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
+      always_send_full_costmap: false
+# 全局代价地图参数块；负责全局规划使用的障碍表达。
+# 改错节点名或层级：全局代价地图会读不到参数。
+global_costmap:
+  # 代价地图命名空间参数块；用于承载该 costmap 的具体 ROS 参数。
+  # 改错这一层级：costmap 可能不会读取到下方配置。
+  global_costmap:
+    # ROS 参数入口；下方配置会直接注入对应节点。
+    # 改错这一层级：节点可能完全读不到这些参数。
+    ros__parameters:
+      # 代价地图更新频率；决定障碍信息每秒刷新多少次。
+      # 调大：环境更新更及时但 CPU 更高；调小：更省资源但环境变化反映更慢。
+      update_frequency: 5.0
+      # 代价地图发布频率；决定对外发布地图消息的频率。
+      # 调大：下游拿到新地图更快；调小：带宽和 CPU 开销更低。
+      publish_frequency: 2.0
+      # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
+      # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
+      global_frame: map
+      # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
+      # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
+      robot_base_frame: base_link
+      # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+      # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+      use_sim_time: false
+      # 机器人安全半径；用于碰撞检查和膨胀边界计算。
+      # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
+      robot_radius: 0.22
+      # 地图分辨率；决定每个栅格代表的物理尺寸。
+      # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
+      resolution: 0.10
+      # 是否追踪未知区域；决定全局规划是否把未知空间单独表达出来。
+      # 改为 true：未知区域更明确；改为 false：未知区域更容易被当作可通行。
+      track_unknown_space: false
+      # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。
+      # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。
+      rolling_window: true
+      # 地图宽度；决定 costmap 在 X 方向覆盖的物理范围。
+      # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
+      width: 100
+      # 地图高度；决定 costmap 在 Y 方向覆盖的物理范围。
+      # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
+      height: 100
+      # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
+      # 增删地图层：会直接改变障碍信息来源和代价图行为。
+      plugins: ["inflation_layer"]
+      # 膨胀层参数块；负责给障碍物外围增加安全缓冲。
+      # 改错结构或参数：障碍安全边界会偏大或偏小。
+      inflation_layer:
+        # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+        # 改成不存在或不兼容的插件：对应功能块会加载失败。
+        plugin: "nav2_costmap_2d::InflationLayer"
+        # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
+        # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
+        cost_scaling_factor: 2.5
+        # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
+        # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
+        inflation_radius: 0.30
+      # STVL 参数块；负责让全局图中的近场动态障碍自动衰减，避免人走开后仍残留。
+      stvl_layer:
+        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+        enabled: false
+        voxel_decay: 1.5
+        decay_model: 0
+        voxel_size: 0.05
+        track_unknown_space: true
+        mark_threshold: 0
+        update_footprint_enabled: true
+        combination_method: 1
+        origin_z: -0.45
+        publish_voxel_map: false
+        transform_tolerance: 0.5
+        mapping_mode: false
+        map_save_duration: 60.0
+        observation_sources: pointcloud_mark pointcloud_clear
+        pointcloud_mark:
+          data_type: "PointCloud2"
+          topic: /fastlio2/body_cloud
+          marking: true
+          clearing: false
+          obstacle_range: 15.0
+          min_obstacle_height: -0.33
+          max_obstacle_height: 0.30
+          expected_update_rate: 0.0
+          observation_persistence: 0.0
+          inf_is_valid: false
+          filter: "voxel"
+          voxel_min_points: 0
+          clear_after_reading: false
+        pointcloud_clear:
+          enabled: true
+          data_type: "PointCloud2"
+          topic: /fastlio2/body_cloud
+          marking: false
+          clearing: true
+          max_z: 0.30
+          min_z: -0.33
+          vertical_fov_angle: 1.03
+          vertical_fov_padding: 0.05
+          horizontal_fov_angle: 6.29
+          decay_acceleration: 5.0
+          model_type: 1
+      # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
+      # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
+      always_send_full_costmap: false
+# Map Server 节点参数块；负责加载静态地图。
+# 改错节点名或层级：地图服务器会读不到参数或地图加载失败。
+map_server:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 地图文件路径；决定运行时加载哪张静态地图。
+    # 改成错误路径：地图加载失败；改成其它地图：整个导航环境都会变化。
+    yaml_filename: ""
+# Map Saver 节点参数块；负责导出地图。
+# 改错节点名或层级：地图保存服务会读不到参数。
+map_saver:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 地图保存超时；决定导出地图时等待磁盘写入多久。
+    # 调大：更能容忍慢写盘；调小：失败暴露更快。
+    save_map_timeout: 5.0
+    # 默认空闲阈值；决定导出地图时多大概率以下会写成空闲格。
+    # 调大：更容易把区域判为空闲；调小：更保守。
+    free_thresh_default: 0.25
+    # 默认占用阈值；决定导出地图时多大概率以上会写成障碍格。
+    # 调大：更难判成障碍；调小：更容易判成障碍。
+    occupied_thresh_default: 0.65
+    # 是否使用 transient local 订阅地图；决定晚加入节点能否拿到已发布地图。
+    # 改为 true：更能接收到历史地图；改为 false：更依赖地图重新发布。
+    map_subscribe_transient_local: true
+# Planner Server 节点参数块；负责生成全局路径。
+# 改错节点名或层级：全局规划器会回退默认值或启动失败。
+planner_server:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
+    # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
+    transform_tolerance: 0.8
+    # 期望规划频率；用于监控全局规划线程是否跟上预期节奏。
+    # 调大：更强调高频规划；调小：监控更宽松。
+    expected_planner_frequency: 5.0
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 全局规划器列表；决定 planner server 可调用哪些规划器。
+    # 增删规划器：会改变路径生成能力或导致引用失败。
+    planner_plugins: ["GridBased"]
+    # 全局规划器参数块；负责配置 NavFn 的搜索行为。
+    # 改错结构或参数：全局路径质量和可达性会变化。
+    GridBased:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_navfn_planner/NavfnPlanner"
+      # 容差参数；决定当前算法接受多大误差仍视为有效。
+      # 调大：更宽松；调小：更严格。
+      tolerance: 1.5
+      # 是否使用 A* 搜索；决定 NavFn 走 A* 还是更传统的搜索策略。
+      # 改为 true：通常更偏向启发式搜索；改为 false：更接近传统全图搜索。
+      use_astar: true
+      # 是否允许穿越未知区域；决定规划器能否把未知空间当作可通行。
+      # 改为 true：更容易找到穿越未知区的路；改为 false：路径更保守。
+      allow_unknown: true
+# Smoother Server 节点参数块；负责对全局路径做平滑处理。
+# 改错节点名或层级：路径平滑器会读不到参数。
+smoother_server:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 平滑器列表；决定 smoother server 提供哪些路径平滑器。
+    # 增删平滑器：会改变路径后处理能力或导致引用失败。
+    costmap_topic: global_costmap/costmap_raw
+    footprint_topic: global_costmap/published_footprint
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
+    smoother_plugins: ["savitzky_golay_smoother"]
+    # Savitzky-Golay 参数块；用于去掉 NavFn 路径中的细小锯齿和微小折线。
+    # 改错结构或参数：平滑器可能加载失败或平滑效果不稳定。
+    savitzky_golay_smoother:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_smoother::SavitzkyGolaySmoother"
+      # 平滑窗口大小；必须为奇数，窗口更大时更能抑制路径细碎噪声。
+      # 调大：更平滑；调小：更贴近原始路径。
+      window_size: 7
+      # 拟合多项式阶数；决定每个窗口内如何逼近原始路径。
+      # 调大：更灵活但更容易保留细碎变化；调小：更保守更稳。
+      poly_order: 3
+      # 是否递归细化平滑结果；可进一步消除微小折线。
+      # 改为 true：更平滑；改为 false：更接近原始路径。
+      do_refinement: true
+      # 递归细化次数；决定额外平滑迭代轮数。
+      # 调大：更平滑但更可能抹掉细节；调小：更保守。
+      refinement_num: 2
+      # 是否保留输入路径中的反转/断裂；NavFn 路径一般不需要强制保留。
+      # 改为 false：更利于抹掉 NavFn 小 artifacts；改为 true：更尊重原路径断点。
+      enforce_path_inversion: false
+# Behavior Server 节点参数块；负责恢复行为和辅助动作。
+# 改错节点名或层级：恢复行为会读不到参数或不可用。
+behavior_server:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
+    # 改错话题：上下游节点会直接断链。
+    costmap_topic: local_costmap/costmap_raw
+    # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
+    # 改错话题：上下游节点会直接断链。
+    footprint_topic: local_costmap/published_footprint
+    # 恢复行为循环频率；决定行为服务每秒更新多少次。
+    # 调大：响应更快但 CPU 更高；调小：更省资源但动作更新更慢。
+    cycle_frequency: 10.0
+    # 恢复行为列表；决定 behavior server 可提供哪些动作。
+    # 增删行为：会直接改变恢复和辅助动作集合。
+    behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
+    # Spin 恢复行为参数块；负责原地转向动作。
+    # 改错结构或参数：原地转向行为可能不可用。
+    spin:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_behaviors/Spin"
+    # BackUp 恢复行为参数块；负责后退脱困动作。
+    # 改错结构或参数：后退行为可能不可用。
+    backup:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_behaviors/BackUp"
+    # DriveOnHeading 恢复行为参数块；负责定向直行动作。
+    # 改错结构或参数：定向直行行为可能不可用。
+    drive_on_heading:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_behaviors/DriveOnHeading"
+    # Wait 恢复行为参数块；负责等待动作。
+    # 改错结构或参数：等待行为可能不可用。
+    wait:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_behaviors/Wait"
+    # AssistedTeleop 恢复行为参数块；负责辅助遥控动作。
+    # 改错结构或参数：辅助遥控行为可能不可用。
+    assisted_teleop:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_behaviors/AssistedTeleop"
+    # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
+    # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
+    global_frame: odom
+    # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。
+    # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。
+    robot_base_frame: base_link
+    # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
+    # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
+    transform_tolerance: 0.1
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 前向模拟时长；决定恢复行为碰撞预判向前看多远。
+    # 调大：更保守、更看远；调小：更灵敏但前瞻更短。
+    simulate_ahead_time: 2.0
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    max_rotational_vel: 1.75
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    min_rotational_vel: 0.55
+    # 恢复行为角加速度上限；限制转向提速的快慢。
+    # 调大：转向响应更快但更猛；调小：更柔和但更慢。
+    rotational_acc_lim: 6.0
+# Robot State Publisher 参数块；负责基础状态发布的 ROS 参数。
+# 改错节点名或层级：节点会读不到参数。
+robot_state_publisher:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+# Waypoint Follower 节点参数块；负责航点任务执行。
+# 改错节点名或层级：航点任务器会读不到参数。
+waypoint_follower:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 航点任务循环频率；决定 waypoint follower 多快检查一次任务状态。
+    # 调大：响应更快但线程负载更高；调小：更省资源但响应更慢。
+    loop_rate: 20
+    # 是否遇错即停；决定某个航点失败后是否中止整条任务。
+    # 改为 true：更保守、失败即停；改为 false：失败后会继续后续航点。
+    stop_on_failure: false
+    # 航点任务执行器名称；决定到达航点后调用哪个附加动作模块。
+    # 改错名称：航点执行器会找不到对应任务模块。
+    waypoint_task_executor_plugin: "wait_at_waypoint"
+    # 航点等待任务参数块；负责到点后的停留动作。
+    # 改错结构或参数：到点等待行为会异常。
+    wait_at_waypoint:
+      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
+      # 改成不存在或不兼容的插件：对应功能块会加载失败。
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      # 功能开关；决定当前参数块对应的能力是否真正参与运行。
+      # 改为 true：该能力生效；改为 false：该能力被关闭。
+      enabled: true
+      # 航点停留时长；决定机器人在每个航点等待多久。
+      # 调大：停留更久、更稳；调小：通过更快。
+      waypoint_pause_duration: 200
+# Velocity Smoother 节点参数块；负责平滑速度指令。
+# 改错节点名或层级：速度平滑器会读不到参数。
+velocity_smoother:
+  # ROS 参数入口；下方配置会直接注入对应节点。
+  # 改错这一层级：节点可能完全读不到这些参数。
+  ros__parameters:
+    # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
+    # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
+    use_sim_time: false
+    # 速度平滑频率；决定速度平滑器每秒输出多少次平滑指令。
+    # 调大：响应更快但更敏感；调小：更平缓但响应更慢。
+    smoothing_frequency: 20.0
+    # 是否按比例缩放速度向量；决定三轴速度是否整体联动压缩。
+    # 改为 true：更强调整体比例一致；改为 false：各轴按各自限幅处理。
+    scale_velocities: false
+    # 工作模式参数；决定模块按哪种反馈方式运行。
+    # 改成更依赖反馈的模式：对传感器更敏感；改成更简单的模式：链路更直接但闭环更弱。
+    feedback: "OPEN_LOOP"
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    max_velocity: [0.85, 0.0, 0.70]
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    min_velocity: [0.0, 0.0, -0.70]
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    max_accel: [0.85, 0.0, 1.4]
+    # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
+    # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
+    max_decel: [-1.2, 0.0, -1.8]
+    # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
+    # 改错话题：上下游节点会直接断链。
+    odom_topic: "odom_CBoar"
+    # 里程计有效时长；超过该时间的反馈会被视为过期。
+    # 调大：更能容忍慢反馈；调小：更严格但更容易判为过期。
+    odom_duration: 0.1
+    # 向量限制参数；分别约束 x、y、theta 三个方向的速度或加速度。
+    # 调大：响应更快或限制更宽；调小：更稳更保守。
+    deadband_velocity: [0.0, 0.0, 0.0]
+    # 速度指令超时；超过该时间未收到新指令就会停下。
+    # 调大：更宽容但风险更高；调小：更安全但更容易因抖动停住。
+    velocity_timeout: 1.0

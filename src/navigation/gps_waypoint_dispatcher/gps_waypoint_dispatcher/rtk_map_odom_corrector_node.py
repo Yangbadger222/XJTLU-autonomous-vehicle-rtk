@@ -19,7 +19,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
     compute_rtk_map_base,
-    limit_pose_step,
+    limit_map_to_odom_step_for_base,
     normalize_angle,
     select_authority_alignment,
     should_publish_bootstrap_without_fixed,
@@ -68,6 +68,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_yaw_reacquire_jump_deg", 45.0)
         self.declare_parameter("max_translation_step_m", 0.20)
         self.declare_parameter("max_yaw_step_deg", 1.0)
+        self.declare_parameter("max_base_yaw_step_m", 0.12)
         self.declare_parameter("publish_period_s", 0.05)
         self.declare_parameter("tf_lookup_timeout_s", 0.05)
 
@@ -106,6 +107,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._max_yaw_step_rad = math.radians(
             float(self.get_parameter("max_yaw_step_deg").value)
+        )
+        self._max_base_yaw_step_m = float(
+            self.get_parameter("max_base_yaw_step_m").value
         )
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
         self._tf_lookup_timeout_s = float(self.get_parameter("tf_lookup_timeout_s").value)
@@ -297,6 +301,12 @@ class RtkMapOdomCorrector(Node):
         msg.transform.rotation.w = qw
         self._safe_send_transform(msg)
 
+    def _rebroadcast_last_output(self) -> bool:
+        if self._last_output is None:
+            return False
+        self._publish_tf(self._last_output)
+        return True
+
     def _timer_callback(self) -> None:
         if not rclpy.ok():
             return
@@ -361,6 +371,7 @@ class RtkMapOdomCorrector(Node):
         )
         if not summary.ok:
             self._publish_mode_status(summary.mode, summary.reason or "RTK_DEGRADED")
+            self._rebroadcast_last_output()
             self._publish_diagnostics(
                 ok=False,
                 fix_age_s=fix_age_s,
@@ -383,6 +394,7 @@ class RtkMapOdomCorrector(Node):
         )
         if not rtk_fixed_ok and not publish_bootstrap_without_fixed:
             self._publish_mode_status("RTK_DEGRADED", "NOT_RTK_FIXED")
+            self._rebroadcast_last_output()
             self._publish_diagnostics(
                 ok=False,
                 fix_age_s=fix_age_s,
@@ -396,6 +408,7 @@ class RtkMapOdomCorrector(Node):
 
         if not valid_fix(self._latest_fix) or self._latest_heading_enu_yaw is None:
             self._publish_mode_status("RTK_DEGRADED", "INVALID_RTK_INPUT")
+            self._rebroadcast_last_output()
             return
 
         alignment_theta, alignment_tx, alignment_ty, _ = alignment
@@ -443,6 +456,7 @@ class RtkMapOdomCorrector(Node):
                     jump_summary.mode,
                     jump_summary.reason or "RTK_DEGRADED",
                 )
+                self._rebroadcast_last_output()
                 self._publish_diagnostics(
                     ok=False,
                     fix_age_s=fix_age_s,
@@ -455,11 +469,13 @@ class RtkMapOdomCorrector(Node):
                 return
 
             authority_status = jump_summary.reason
-            output = limit_pose_step(
+            output = limit_map_to_odom_step_for_base(
                 self._last_output,
                 target,
+                odom_base=odom_base,
                 max_translation_step_m=self._max_translation_step_m,
                 max_yaw_step_rad=self._max_yaw_step_rad,
+                max_base_yaw_step_m=self._max_base_yaw_step_m,
             ).pose
 
         self._last_output = output

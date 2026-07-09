@@ -160,6 +160,35 @@ def limit_pose_step(
     )
 
 
+def limit_map_to_odom_step_for_base(
+    previous: Pose2D,
+    target: Pose2D,
+    *,
+    odom_base: Pose2D,
+    max_translation_step_m: float,
+    max_yaw_step_rad: float,
+    max_base_yaw_step_m: float,
+) -> LimitedPoseStep:
+    effective_yaw_step_rad = max_yaw_step_rad
+    odom_radius_m = math.hypot(odom_base.x, odom_base.y)
+    if (
+        math.isfinite(max_base_yaw_step_m)
+        and max_base_yaw_step_m > 0.0
+        and math.isfinite(odom_radius_m)
+        and odom_radius_m > 1e-9
+    ):
+        ratio = min(1.0, max_base_yaw_step_m / (2.0 * odom_radius_m))
+        base_limited_yaw_step_rad = 2.0 * math.asin(ratio)
+        effective_yaw_step_rad = min(max_yaw_step_rad, base_limited_yaw_step_rad)
+
+    return limit_pose_step(
+        previous,
+        target,
+        max_translation_step_m=max_translation_step_m,
+        max_yaw_step_rad=effective_yaw_step_rad,
+    )
+
+
 def summarize_authority_inputs(
     *,
     alignment_valid: bool,

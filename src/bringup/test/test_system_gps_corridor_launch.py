@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 
+import yaml
+
 
 EXPLORE_LAUNCH = Path("src/bringup/launch/system_explore.launch.py")
 CORRIDOR_LAUNCH = Path("src/bringup/launch/system_gps_corridor.launch.py")
@@ -14,9 +16,18 @@ CORRIDOR_NO_RECOVERY_THROUGH_BT = Path(
 LIVOX_LDDC = Path("src/sensor_drivers/livox_ros_driver2/src/lddc.cpp")
 FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
+PGO_LAUNCH = Path("src/perception/pgo_gps_fusion/launch/pgo_launch.py")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
+FASTLIO_LEGACY_PARAMS = Path("src/perception/fastlio2/config/lio.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
+CORRIDOR_NAV2_PARAMS = Path("src/bringup/config/nav2_corridor_rtk.yaml")
 PGO_CORRIDOR_PARAMS = Path("src/bringup/config/pgo_corridor_no_gps.yaml")
+PGO_CORRIDOR_LEGACY_PARAMS = Path("src/bringup/config/pgo_corridor_no_tf.yaml")
+ROUTE_RUNNER = Path(
+    "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/gps_route_runner_node.py"
+)
+MAKEFILE = Path("Makefile")
+LAUNCH_WITH_LOGS = Path("scripts/launch_with_logs.sh")
 
 
 def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
@@ -26,29 +37,66 @@ def test_explore_launch_exposes_nav2_params_file_for_mode_specific_profiles():
     assert 'source_file=LaunchConfiguration("nav2_params_file")' in text
 
 
-def test_corridor_launch_uses_slow_nav2_rewrites_for_rtk_acceptance():
+def test_corridor_launch_uses_corner_turn_nav2_profile_for_rtk_corridor():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
+    assert "nav2_corridor_rtk.yaml" in text
     assert "corridor_nav2_params = _make_corridor_nav2_params" in text
     assert "bt_params = data['bt_navigator']['ros__parameters']" in text
     assert "bt_params['bt_loop_duration'] = 50" in text
     assert "bt_params['default_server_timeout'] = 1000" in text
     assert "controller_params['controller_frequency'] = 20.0" in text
     assert "controller_params['controller_frequency'] = 15.0" not in text
-    assert "follow_path['vx_std'] = 0.18" in text
-    assert "follow_path['wz_std'] = 0.10" in text
-    assert "follow_path['vx_max'] = 0.65" in text
-    assert "follow_path['wz_max'] = 0.50" in text
-    assert "follow_path['ax_max'] = 0.70" in text
+    assert "controller_params['progress_checker']['required_movement_radius'] = 0.10" in text
+    assert "controller_params['progress_checker']['movement_time_allowance'] = 15.0" in text
+    assert "follow_path['vx_std'] = 0.20" in text
+    assert "follow_path['wz_std'] = 0.15" in text
+    assert "follow_path['vx_max'] = 0.85" in text
+    assert "follow_path['wz_max'] = 0.70" in text
+    assert "follow_path['ax_max'] = 0.85" in text
     assert "follow_path['ax_min'] = -1.2" in text
-    assert "follow_path['az_max'] = 1.0" in text
+    assert "follow_path['az_max'] = 1.4" in text
+    assert "follow_path['temperature'] = 0.45" in text
+    assert "follow_path['regenerate_noises'] = True" in text
     assert "controller_params['general_goal_checker']['stateful'] = False" in text
-    assert "smoother_params['max_velocity'] = [0.65, 0.0, 0.50]" in text
-    assert "smoother_params['max_accel'] = [0.70, 0.0, 0.9]" in text
-    assert "smoother_params['max_decel'] = [-1.2, 0.0, -1.0]" in text
+    assert "smoother_params['max_velocity'] = [0.85, 0.0, 0.70]" in text
+    assert "smoother_params['min_velocity'] = [0.0, 0.0, -0.70]" in text
+    assert "smoother_params['max_accel'] = [0.85, 0.0, 1.4]" in text
+    assert "smoother_params['max_decel'] = [-1.2, 0.0, -1.8]" in text
     assert "behavior_params['behavior_plugins'] = ['wait']" in text
     assert "'nav2_params_file': corridor_nav2_params" in text
     assert "'terminal_stop_hold_s': 1.2" in text
+
+
+def test_corridor_nav2_global_costmap_is_route_planning_only():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    global_costmap = config["global_costmap"]["global_costmap"]["ros__parameters"]
+    planner = config["planner_server"]["ros__parameters"]["GridBased"]
+
+    assert global_costmap["track_unknown_space"] is False
+    assert global_costmap["plugins"] == ["inflation_layer"]
+    assert global_costmap["robot_radius"] <= 0.25
+    assert global_costmap["inflation_layer"]["inflation_radius"] <= 0.35
+    assert planner["allow_unknown"] is True
+    assert planner["tolerance"] >= 1.0
+
+
+def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+
+    assert "stvl_layer" in local_costmap["plugins"]
+    assert "frc_layer" in local_costmap["plugins"]
+    assert local_costmap["robot_radius"] >= 0.38
+    assert local_costmap["stvl_layer"]["enabled"] is True
+    assert local_costmap["inflation_layer"]["inflation_radius"] >= 0.4
+
+
+def test_corridor_route_runner_defaults_to_short_rtk_subgoals():
+    text = ROUTE_RUNNER.read_text(encoding="utf-8")
+
+    assert 'self._route.get("segment_length_m", 5.0)' in text
+    assert 'self._route.get("segment_length_m", 30.0)' not in text
 
 
 def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
@@ -76,11 +124,22 @@ def test_corridor_uses_no_motion_recovery_bt_for_rtk_acceptance():
     assert rate_controller.attrib["hz"] == "5.0"
 
 
-def test_nav2_explore_exposes_both_bt_xml_rewrite_slots():
-    params_text = NAV2_EXPLORE_PARAMS.read_text(encoding="utf-8")
+def test_corridor_relies_on_explore_for_robot_description_once():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
+    corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
-    assert "default_nav_to_pose_bt_xml: \"\"" in params_text
-    assert "default_nav_through_poses_bt_xml: \"\"" in params_text
+    assert "robot_description.launch.py" in explore_text
+    assert "system_explore.launch.py" in corridor_text
+    assert "robot_description.launch.py" not in corridor_text
+
+
+def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
+    for params_file in [NAV2_EXPLORE_PARAMS, CORRIDOR_NAV2_PARAMS]:
+        params = yaml.safe_load(params_file.read_text(encoding="utf-8"))
+        bt_params = params["bt_navigator"]["ros__parameters"]
+
+        assert bt_params["default_nav_to_pose_bt_xml"] == ""
+        assert bt_params["default_nav_through_poses_bt_xml"] == ""
 
 
 def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
@@ -109,8 +168,11 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
 
 
 def test_corridor_uses_rtk_authoritative_map_odom_owner():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
     corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+    pgo_launch_text = PGO_LAUNCH.read_text(encoding="utf-8")
     pgo_override_text = PGO_CORRIDOR_PARAMS.read_text(encoding="utf-8")
+    pgo_legacy_override_text = PGO_CORRIDOR_LEGACY_PARAMS.read_text(encoding="utf-8")
     master_params_text = MASTER_PARAMS.read_text(encoding="utf-8")
 
     assert "rtk_map_odom_corrector_node" in corridor_text
@@ -118,11 +180,49 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "'/localization_authority/mode'," in corridor_text
     assert "'/localization_authority/status'," in corridor_text
     assert "'/localization_authority/diagnostics'," in corridor_text
+    assert '"pgo_config": LaunchConfiguration("pgo_config_file")' in explore_text
+    assert "'pgo_config_file': pgo_corridor_config_file" in corridor_text
+    assert 'pgo_config = LaunchConfiguration("pgo_config").perform(context).strip()' in pgo_launch_text
+    assert 'pgo_params.append({"config_path": legacy_pgo_config})' in pgo_launch_text
+    assert "extra_params_file = LaunchConfiguration(\"extra_params_file\")" in pgo_launch_text
+    assert "pgo_params.append(extra_params_file)" in pgo_launch_text
     assert "publish_tf: false" in pgo_override_text
+    assert "publish_tf: false" in pgo_legacy_override_text
+    assert "enable: false" in pgo_legacy_override_text
     assert '"gps.enable": false' in pgo_override_text
     assert "allow_yaw_reacquire: true" in master_params_text
     assert "max_yaw_reacquire_jump_deg: 45.0" in master_params_text
     assert "max_yaw_step_deg: 0.5" in master_params_text
+
+
+def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
+    makefile_text = MAKEFILE.read_text(encoding="utf-8")
+    launch_script_text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
+
+    required_cleanup_patterns = [
+        "[r]tk_map_odom_corrector",
+        "[s]erial_reader_node",
+        "[j]oint_state_publisher",
+    ]
+    for pattern in required_cleanup_patterns:
+        assert pattern in makefile_text
+        assert pattern in launch_script_text
+
+
+def test_runtime_cleanup_kills_stateful_navigation_mode_nodes():
+    makefile_text = MAKEFILE.read_text(encoding="utf-8")
+    launch_script_text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
+
+    required_cleanup_patterns = [
+        "[g]ps_anchor_localizer",
+        "[r]oute_server",
+        "[g]oal_manager_node",
+        "[a]sync_slam_toolbox_node",
+        "[m]ap_saver_server",
+    ]
+    for pattern in required_cleanup_patterns:
+        assert pattern in makefile_text
+        assert pattern in launch_script_text
 
 
 def test_livox_packet_logging_is_explicitly_opt_in():
@@ -149,6 +249,18 @@ def test_corridor_runtime_rejects_low_imu_fastlio_packages():
         "m_builder->process(m_package)"
     )
     assert "min_imu_samples_per_lidar: 3" in params_text
+
+
+def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    profiles = [
+        master_params["/fastlio2"]["lio_node"]["ros__parameters"],
+        yaml.safe_load(FASTLIO_LEGACY_PARAMS.read_text(encoding="utf-8")),
+    ]
+
+    for lio_params in profiles:
+        assert lio_params["lidar_filter_num"] <= 4
+        assert lio_params["lidar_max_range"] >= 25.0
 
 
 def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():

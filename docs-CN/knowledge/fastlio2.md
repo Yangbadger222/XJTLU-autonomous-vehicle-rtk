@@ -39,6 +39,17 @@ FAST-LIO2 现在会在进入 IESKF 更新前检查同步包中的 IMU 样本数�
 
 这个保护还有第二层，用于低特征户外启动：如果 IESKF 更新没有有效 LiDAR 修正，FAST-LIO2 会恢复到预测前状态，跳过增量建图，并且不发布该帧 TF/odom。这样当 LiDAR 匹配报告 `NO Effective Points` 时，IMU-only 预测不会被下游当作有效定位。
 
+## 户外点云结构保留配置（2026-07-08）
+
+RTK corridor 当前采用 CPU 友好的户外增强档：
+
+- `lidar_filter_num: 4`
+- `lidar_max_range: 25.0`
+
+旧配置 `lidar_filter_num: 6`、`lidar_max_range: 15.0` 更省算力，但在广场等远处结构稀疏的区域会过早丢掉墙、树、柱等可匹配结构，增加 `NO Effective Points` 和退化正则化的概率。`4/25m` 是折中档：比旧配置保留更多结构点，但先不直接降到 `3`，避免在 Jetson 上把 CPU 压力一次性翻倍。
+
+如果后续 rosbag 证明 CPU 仍有余量且 `/fastlio2/degeneracy` 仍频繁退化，可以再试 `lidar_filter_num: 3`；如果出现 IMU/LiDAR 同步窗口掉样或 FAST-LIO2 处理延迟上升，则优先回到 `4` 或缩短 `lidar_max_range`。
+
 ## 1. odom 里程计数据解读
 
 FASTLIO2 输出的 odom（`nav_msgs/Odometry`）包含两部分核心数据：

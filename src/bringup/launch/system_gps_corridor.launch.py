@@ -70,23 +70,27 @@ def _make_corridor_nav2_params(source_file):
 
     controller_params = data['controller_server']['ros__parameters']
     controller_params['controller_frequency'] = 20.0
+    controller_params['progress_checker']['required_movement_radius'] = 0.10
+    controller_params['progress_checker']['movement_time_allowance'] = 15.0
     controller_params['general_goal_checker']['stateful'] = False
 
     follow_path = controller_params['FollowPath']
     follow_path['batch_size'] = 500
-    follow_path['vx_std'] = 0.18
-    follow_path['wz_std'] = 0.10
-    follow_path['vx_max'] = 0.65
-    follow_path['wz_max'] = 0.50
-    follow_path['ax_max'] = 0.70
+    follow_path['vx_std'] = 0.20
+    follow_path['wz_std'] = 0.15
+    follow_path['vx_max'] = 0.85
+    follow_path['wz_max'] = 0.70
+    follow_path['ax_max'] = 0.85
     follow_path['ax_min'] = -1.2
-    follow_path['az_max'] = 1.0
+    follow_path['az_max'] = 1.4
+    follow_path['temperature'] = 0.45
+    follow_path['regenerate_noises'] = True
 
     smoother_params = data['velocity_smoother']['ros__parameters']
-    smoother_params['max_velocity'] = [0.65, 0.0, 0.50]
-    smoother_params['min_velocity'] = [0.0, 0.0, -0.50]
-    smoother_params['max_accel'] = [0.70, 0.0, 0.9]
-    smoother_params['max_decel'] = [-1.2, 0.0, -1.0]
+    smoother_params['max_velocity'] = [0.85, 0.0, 0.70]
+    smoother_params['min_velocity'] = [0.0, 0.0, -0.70]
+    smoother_params['max_accel'] = [0.85, 0.0, 1.4]
+    smoother_params['max_decel'] = [-1.2, 0.0, -1.8]
 
     behavior_params = data['behavior_server']['ros__parameters']
     behavior_params['behavior_plugins'] = ['wait']
@@ -105,11 +109,14 @@ def _make_corridor_nav2_params(source_file):
 def generate_launch_description():
     bringup_share = get_package_share_directory('bringup')
     master_params_file = os.path.join(bringup_share, 'config', 'master_params.yaml')
+    pgo_corridor_config_file = os.path.join(
+        bringup_share, 'config', 'pgo_corridor_no_tf.yaml'
+    )
     pgo_corridor_override_file = os.path.join(
         bringup_share, 'config', 'pgo_corridor_no_gps.yaml'
     )
-    nav2_explore_params_file = os.path.join(bringup_share, 'config', 'nav2_explore.yaml')
-    corridor_nav2_params = _make_corridor_nav2_params(nav2_explore_params_file)
+    nav2_corridor_params_file = os.path.join(bringup_share, 'config', 'nav2_corridor_rtk.yaml')
+    corridor_nav2_params = _make_corridor_nav2_params(nav2_corridor_params_file)
     corridor_no_recovery_bt_xml = os.path.join(
         bringup_share,
         'behavior_trees',
@@ -149,6 +156,7 @@ def generate_launch_description():
         launch_arguments={
             'use_rviz': LaunchConfiguration('use_rviz'),
             'master_params_file': master_params_file,
+            'pgo_config_file': pgo_corridor_config_file,
             'pgo_extra_params_file': pgo_corridor_override_file,
             'nav2_params_file': corridor_nav2_params,
             'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml,
@@ -251,12 +259,6 @@ def generate_launch_description():
     delayed_rtk_authority = TimerAction(period=3.0, actions=[rtk_authority])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
-    urdf_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
-        )
-    )
-
     return LaunchDescription([
         route_file_arg,
         rtk_params_file_arg,
@@ -269,5 +271,4 @@ def generate_launch_description():
         delayed_aligner,
         delayed_rtk_authority,
         delayed_runner,
-        urdf_launch,
     ])

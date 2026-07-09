@@ -51,6 +51,11 @@ def generate_launch_description():
         default_value="",
         description="Optional ROS2 parameter file appended only to the PGO node",
     )
+    pgo_config_arg = DeclareLaunchArgument(
+        "pgo_config_file",
+        default_value="",
+        description="Optional legacy flat PGO config file passed as config_path",
+    )
     nav2_params_arg = DeclareLaunchArgument(
         "nav2_params_file",
         default_value=default_nav2_params_file,
@@ -114,6 +119,7 @@ def generate_launch_description():
         ),
         launch_arguments={
             "params_file": LaunchConfiguration("master_params_file"),
+            "pgo_config": LaunchConfiguration("pgo_config_file"),
             "extra_params_file": LaunchConfiguration("pgo_extra_params_file"),
             "use_rviz": LaunchConfiguration("use_rviz"),
             "rviz_config": LaunchConfiguration("rviz_config"),
@@ -186,6 +192,7 @@ def generate_launch_description():
             use_rviz_arg,
             master_params_arg,
             pgo_extra_params_arg,
+            pgo_config_arg,
             nav2_params_arg,
             nav_to_pose_bt_xml_arg,
             nav_through_poses_bt_xml_arg,

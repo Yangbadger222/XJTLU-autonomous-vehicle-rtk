@@ -39,6 +39,17 @@ Reason: the 2026-07-06 21:02 corridor bag showed the robot stationary while FAST
 
 The guard has a second layer for low-feature outdoor startup: if the IESKF update has no valid LiDAR correction, FAST-LIO2 restores the pre-prediction state, skips incremental map insertion, and does not publish TF/odom for that frame. This prevents IMU-only prediction from being exposed as a valid localization estimate when the LiDAR matcher reports `NO Effective Points`.
 
+## Outdoor Point-Structure Retention Profile (2026-07-08)
+
+RTK corridor currently uses a CPU-conscious outdoor structure-retention profile:
+
+- `lidar_filter_num: 4`
+- `lidar_max_range: 25.0`
+
+The old `lidar_filter_num: 6` and `lidar_max_range: 15.0` profile was cheaper, but in plaza-like areas it can discard distant walls, trees, poles, and other matchable structure too early, increasing the chance of `NO Effective Points` and degeneracy regularization. The `4/25m` profile is a compromise: it keeps more structure than the old profile without immediately dropping to `3`, which could roughly double the point-processing load on the Jetson.
+
+If future bags show CPU headroom while `/fastlio2/degeneracy` still reports frequent degeneracy, try `lidar_filter_num: 3`; if IMU/LiDAR sync windows start dropping samples or FAST-LIO2 latency rises, prefer returning to `4` or reducing `lidar_max_range`.
+
 ## 1. Odom (Odometry) Data Interpretation
 
 The odom output from FASTLIO2 (`nav_msgs/Odometry`) contains two core data components:

@@ -1,0 +1,5 @@
+# Legacy flat PGO override for corridor RTK-authoritative mode.
+# RTK corrector owns map->odom; PGO remains available for clouds/keyframes only.
+publish_tf: false
+gps:
+  enable: false

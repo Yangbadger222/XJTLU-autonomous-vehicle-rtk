@@ -288,6 +288,7 @@ Therefore:
    - Split the corridor into multiple subgoals by `segment_length_m` (default 30m, based on global costmap radius 35m - 5m buffer)
    - Execute `NavigateToPose` sequentially
    - After Nav2 reports `SUCCEEDED`, re-read live `map -> base_link` and verify route progress; if Nav2 reports success without physical progress, publish `NAV2_FALSE_SUCCESS_ABORT` and stop instead of resending the same subgoal
+   - `nav2_success_shortfall_tolerance_m` (default `max(0.75, waypoint_xy_tolerance_m)`) is used only for the post-success route-progress check; it is intentionally wider than `waypoint_xy_tolerance_m` to absorb small RTK/aligner jumps, circular goal-checker radius, and along-track projection error while still rejecting false successes with meter-scale shortfall
    - After the final waypoint is verified, publish `STOPPING_BEFORE_EXIT`, hold zero `/cmd_vel` for 1.2s at 20Hz, then publish terminal `SUCCEEDED` so quiet mode does not tear down the stack before the lower controller receives the stop tail
 
 ### 11.4 Current v1 Constraints
@@ -419,3 +420,14 @@ To address the insufficiency of single-point `start_ref` anchoring, a waypoint p
 | Endpoint accuracy | ~4m (affected by yaw0) | Theoretically higher (depends on aligner quality) |
 | PGO role | Provides map->odom | Loop closure only, no participation in corridor alignment |
 | Real-vehicle status | Baseline retained | Deployed; Nav2 tuning converged; main bottleneck is GPS anchoring + odom divergence |
+
+### 12.7 RTK-Authoritative TF Owner Constraint (2026-07-07)
+
+Corridor runtime must have exactly one `map -> odom` publisher: `rtk_map_odom_corrector`. In this mode PGO may still provide point clouds, keyframes, and diagnostics, but it must not broadcast `map -> odom`; otherwise Nav2 sees `map -> base_link` jumping between two global solutions.
+
+Corridor now passes two PGO overrides:
+
+- `pgo_corridor_no_tf.yaml`: a legacy flat `config_path` override with `publish_tf: false` and `gps.enable: false`.
+- `pgo_corridor_no_gps.yaml`: a ROS parameter override that also disables `publish_tf` / GPS factors and isolates PGO alignment diagnostics on `/gps_corridor/pgo_enu_to_map`.
+
+Field diagnostic rule: if `/rtk/status` stays `q=4` and `/fastlio2/lio_odom` has no large step, but `/tf` shows conflicting `map -> odom` jumps above 0.15m within 30ms, first check for duplicate TF owners or a stale Jetson `install/` tree.

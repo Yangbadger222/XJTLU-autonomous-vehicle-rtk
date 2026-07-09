@@ -18,7 +18,7 @@ ROS 2 Humble monorepo for the XJTLU autonomous vehicle platform. The repository 
 |------|------------------------|
 | Compute | Jetson Orin NX, Ubuntu 22.04, ROS 2 Humble |
 | LiDAR / IMU | Livox MID360 and WIT/BMI088-related IMU support |
-| GNSS | Basic NMEA GNSS receiver, no RTK in the current stack |
+| GNSS | T-RTK UM982 Dual Antenna Mobile Kit |
 | Lower controller | STM32 RM C Board over serial command bridge |
 | Localization | FAST-LIO2 front end + PGO back end |
 | Navigation | Nav2 MPPI with project-specific bringup and behavior trees |
@@ -29,15 +29,13 @@ ROS 2 Humble monorepo for the XJTLU autonomous vehicle platform. The repository 
 Run these commands on the Jetson workspace:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 make setup
 make build
-source install/setup.bash
+ss
 bash scripts/init_runtime_data.sh
 ```
 
-Build commands must keep `--parallel-workers 1` on Jetson because of memory limits. The `Makefile` already follows that rule.
+Colcon build commands must keep `--parallel-workers 1` on Jetson because of memory limits. The `Makefile` already follows that rule.
 
 ## Operating Modes
 
@@ -46,9 +44,11 @@ make launch-slam         # FAST-LIO2 + PGO + SLAM Toolbox mapping workflow
 make launch-explore      # FAST-LIO2 + PGO + Nav2 local navigation
 make launch-indoor-nav   # Explore stack without GNSS, for RViz click-to-go testing
 make launch-corridor     # GPS Corridor runtime on the MPPI baseline
+make launch-travel       # Static-map navigation workflow, currently paused
 make launch-explore-gps  # Explore mode with GNSS bringup and PGO GPS factor
 make launch-nav-gps      # Scene-bundle + route-graph GPS goal navigation workflow
-make launch-travel       # Static-map navigation workflow, currently paused
+make launch-rtk-basic    # RTK signal testing with CORS account
+make launch-tightly-coupled # Tightly-coupled system using FGO, currently in validation
 ```
 
 All `make launch-*` targets go through `scripts/launch_with_logs.sh`, which creates a per-session directory under `runtime-data/logs/`.
@@ -56,7 +56,7 @@ All `make launch-*` targets go through `scripts/launch_with_logs.sh`, which crea
 Stop runtime processes with:
 
 ```bash
-make kill-runtime
+make kill
 ```
 
 ## Repository Layout
@@ -82,6 +82,8 @@ Common build targets:
 
 ```bash
 make build
+make build-bringup
+make build-fastlio2
 make build-sensor
 make build-perception
 make build-planning
@@ -92,7 +94,7 @@ make test
 After every build:
 
 ```bash
-source install/setup.bash
+ss
 ```
 
 Package-level builds follow this form:
@@ -130,7 +132,7 @@ Some code still uses legacy `FYP_*` environment variables as runtime interface n
 - Contributing guide (EN): [`CONTRIBUTING-EN.md`](CONTRIBUTING-EN.md)
 - STM32 firmware snapshot: [`src/firmware/rm_c_board/README.md`](src/firmware/rm_c_board/README.md)
 
-The `docs-CN/` and `docs-EN/` trees are maintained as paired documentation. Update both when a user-facing engineering fact changes.
+The `docs-CN/` and `docs-EN/` trees are maintained as paired documentation. Update both whenever submitting changes.
 
 ## Firmware Snapshot
 
@@ -148,5 +150,4 @@ It is kept as a repository-local snapshot for inspection and vehicle integration
 - Do not modify imported upstream/vendor code casually.
 - Keep Jetson builds at `--parallel-workers 1`.
 - Keep runtime interfaces such as `FYP_LOG_SESSION_DIR`, `FYP_RUNTIME_ROOT`, and `FYP_USE_RVIZ` compatible unless a separate migration plan is approved.
-- Use specific-file `git add` commands; do not use `git add -A` or `git add .` in this repository.
 - Follow [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening or merging changes.

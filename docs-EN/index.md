@@ -1,6 +1,6 @@
 # XJTLU Autonomous Vehicle Documentation Index
 
-> Last updated: 2026-05-20
+> Last updated: 2026-07-09
 
 ## Current System Summary
 
@@ -52,21 +52,7 @@
 
 ## Development Log
 
-| Period | File |
-|--------|------|
-| 2025-11 | [devlog/2025-11.md](devlog/2025-11.md) |
-| 2025-12 | [devlog/2025-12.md](devlog/2025-12.md) |
-| 2026-03 | [devlog/2026-03.md](devlog/2026-03.md) |
-| 2026-04 | [devlog/2026-04.md](devlog/2026-04.md) |
-| 2026-05 | [devlog/2026-05.md](devlog/2026-05.md) |
-
-## Repository-Level Auxiliary Documentation
-
-| File | Purpose |
-|------|---------|
-| [`../README.md`](../README.md) | Repository overview and quick start |
-| [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | Contributing guide (CN) |
-| [`../CONTRIBUTING-EN.md`](../CONTRIBUTING-EN.md) | Contributing guide (EN) |
+- Found in `devlog/YYYY-MM.md`
 
 ## Firmware Snapshot
 

@@ -2,12 +2,6 @@
 
 ## Current Blockers
 
-36. **[Fatal] Jetson Board Out of storage**
-    - Description: During the LiDAR on-vehicle tests in 2026-06-25, the rosbag record failed and a "Low Disk Space" warning appeared, pointing there is only 733.9 MB of storage left.
-    - Direct evidence: `OSError: I/O error: I/O error: No space left on device (os error 28)`
-   - Status: Recorded on 2026-06-25. Memory sitting at 733.9 MB available.
-   - Impact: Cannot record rosbags, cannot upload to Huggingface, slow response time.
-
 34. **[Important] GPS Corridor v3 ordinary GNSS accuracy is insufficient; Nav2 targets do not match physical points**
    - Description: During the 2026-05-08 v3 on-vehicle tests, the system passed the startup guard and entered `RUNNING_ROUTE`, but the user observed that GPS-converted coordinates in Nav2 did not correspond to the intended physical points.
    - Direct evidence:
@@ -65,12 +59,6 @@
     - Solution: 2026-04-02 introduced Savitzky-Golay path smoothing (inserted SmoothPath in BT) + MPPI critic tuning (PathAlignCritic earlier intervention, PathFollowCritic delayed exit)
     - Status: Resolved, user on-vehicle test evaluation "perfectly successful" (commit `15d4cac`)
 
-9. **[Fixed] Costmap obstacle residuals / slow clearing**
-   - Description: After obstacles are removed, cost values on the costmap clear too slowly.
-   - Status: 2026-03-26, STVL `clear_after_reading` changed from `true` to `false` (local + global); obstacles are now managed naturally by `voxel_decay` instead of being cleared every cycle
-   - 2026-03-31 update (`gps-mppi`): Height window narrowed to `-0.33~0.30m` (vehicle body height range), inflation radius local `0.43` / global `0.63`, obstacle map expanded to 15m. Indoor testing confirmed false obstacles eliminated
-   - Impact: No longer an issue
-
 ## Medium Issues
 
 35. **[Medium] GPS Noise parameters outdated**
@@ -89,10 +77,6 @@
     - Description: During long-distance unidirectional runs, loop closures alone are insufficient to constrain global drift, so the system still relies on GPS factor quality, valid offsets, and outdoor data quality.
     - Status: GPS factor is online; insufficient field data
 
-13. **[Medium] No URDF**
-    - Description: A complete URDF / simulation chain is currently missing, so parameter validation primarily relies on the physical vehicle.
-    - Status: Not started
-
 14. **[Medium] In-place rotation trajectory is not circular**
     - Description: Mechanical asymmetry in left/right wheel output creates higher risk during rotation in tight spaces.
     - Status: Hardware limitation
@@ -102,10 +86,6 @@
     - Status: Recorded, root cause TBD
 
 ## Low Priority / Toolchain Issues
-
-15. **[Low] Risk of `gh` token expiration on Jetson**
-    - Description: Jetson-side `gh` has previously experienced login expiration; if it recurs, `gh pr create` / `gh pr merge` can be run on the logged-in Windows workstation as a workaround.
-    - Status: Currently functional, but worth monitoring
 
 16. **[Low] PGO global point cloud RViz visualization still incomplete**
     - Description: The current main chain emphasizes `map -> odom` and `/pgo/optimized_odom`, but the global point cloud display experience is not a primary maintenance target.
@@ -120,6 +100,20 @@
     - Status: Updated further on 2026-06-14 to separate stop semantics: KEY/X/gamepad-loss keep sustained zero-current coast-stop output, while `B` now performs damped active braking with a high-speed current limit, low-speed current tapering, current-rate limiting, and zero-current release near stop; the `B` latch initializes only on the first trigger, holding `B` no longer resets the current ramp, and the indicator is now non-blocking solid pink; bench and vehicle validation are still required.
 
 ## Recently Fixed
+15. **[Low] Risk of `gh` token expiration on Jetson**
+    - Description: Jetson-side `gh` has previously experienced login expiration; if it recurs, `gh pr create` / `gh pr merge` can be run on the logged-in Windows workstation as a workaround.
+    - Status: Changed to a non-expiring token (2026-07-09)
+
+13. **[Fixed] No URDF**
+    - Description: A complete URDF / simulation chain is currently missing, so parameter validation primarily relies on the physical vehicle.
+    - Fix: Added simplified URDF to identify the estimated robot dimensions and direction
+    - Status: Fixed and verified on the Jetson (2026-07-07)
+
+36. **[Fixed] Jetson Board Out of storage**
+    - Description: During the LiDAR on-vehicle tests in 2026-06-25, the rosbag record failed and a "Low Disk Space" warning appeared, pointing there is only 733.9 MB of storage left.
+    - Direct evidence: `OSError: I/O error: I/O error: No space left on device (os error 28)`
+    - Fix: Some logs were storing cloudpoints that consumed most of the space, over 30 GB per log. Removing them has solved the problem.
+    - Status: Fixed, over 64 Gb available
 
 37. **[Fixed] make launch-nav-gps not launching URDF properly**
    - Description: Launching the robot with `make launch-nav-gps` would not render properly in Foxglove, with missing grid and frame connections.
@@ -182,6 +176,12 @@
      - Created an organization repo with `hf repos create my-rtk-data --type dataset`
      - Can now properly upload rosbags with `hf upload frogcar/rtk-data-2026-surf ./runtime-data/ --repo-type dataset` and access the data in the shared database at https://huggingface.co/datasets/frogcar/rtk-data-2026-surf/tree/main (only team members)
    - Status: Fixed and verified on Jetson (2026-06-25)
+
+9. **[Fixed] Costmap obstacle residuals / slow clearing**
+   - Description: After obstacles are removed, cost values on the costmap clear too slowly.
+   - Status: 2026-03-26, STVL `clear_after_reading` changed from `true` to `false` (local + global); obstacles are now managed naturally by `voxel_decay` instead of being cleared every cycle
+   - 2026-03-31 update (`gps-mppi`): Height window narrowed to `-0.33~0.30m` (vehicle body height range), inflation radius local `0.43` / global `0.63`, obstacle map expanded to 15m. Indoor testing confirmed false obstacles eliminated
+   - Impact: No longer an issue
 
 33. **[Fixed] Missing optional directories caused bringup build failure**
     - Symptom: During a full build on Jetson, the `bringup` package failed, reporting that `maps/` or `urdf/` directories were not found.

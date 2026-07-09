@@ -92,7 +92,6 @@ git fetch
 ```
 If there is a new branch that doesn't show up when running `git branch`, then you have to update the branch list using `git fetch`.
 
-
 ## Build
 
 Whenever you `git pull` new updates, you may need to build the robot files again.

@@ -2,11 +2,43 @@
 
 本文档只记录当前仓库和当前 Jetson 环境下确认可执行的命令。
 
+## 初始设置
+
+以下所有命令均基于以下条件：
+
+1. 机器人仓库已克隆到 `~/XJTLU-autonomous-vehicle` 文件夹中
+2. 机器人已安装 ROS2 Humble
+3. `~/.bashrc` 与 [/scripts/.bashrc](/scripts/.bashrc) 中的版本完全一致
+
+要创建该目录，请运行：
+
+```bash
+cd ~/
+mkdir XJTLU-autonomous-vehicle
+cd ~/XJTLU-autonomous-vehicle
+```
+
+要安装 ROS2 Humble，请参考其[官方文档](https://docs.ros.org/en/humble/Installation/Alternatives/Ubuntu-Development-Setup.html)。
+
+首次设置 `~/.bashrc`：
+
+* 将 [/scripts/.bashrc](/scripts/.bashrc) 的内容复制到剪贴板
+* 通过 SSH 连接到 Jetson
+* 运行：
+```bash
+vi ~/.bashrc
+```
+* 然后，输入 `:%d`，按 `Enter` 键
+* 接着，粘贴你剪贴板中的内容
+* 之后，按 `Esc` 键，然后输入 `:wq`，按 `Enter` 键
+* 此时你应该已经返回终端。运行：
+```bash
+source ~/.bashrc
+```
+
 ## 1. 构建与 Source
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 # 首次依赖初始化
 make setup
 
@@ -23,14 +55,12 @@ make build-navigation
 colcon build --packages-select <pkg> --symlink-install --parallel-workers 1
 
 # 每次构建后必须重新 source
-source /opt/ros/humble/setup.bash
-source ~/XJTLU-autonomous-vehicle/install/setup.bash
+ss
 ```
 
 ## 2. 初始化运行时数据
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 bash scripts/init_runtime_data.sh
 
 ls ~/XJTLU-autonomous-vehicle/runtime-data
@@ -39,16 +69,15 @@ ls ~/XJTLU-autonomous-vehicle/runtime-data
 ## 3. 启动运行模式
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-travel
 make launch-explore-gps
 make launch-nav-gps
+make launch-rtk-basic
 make launch-tightly-coupled
-make launch-travel
 ```
 
 等效的 wrapper 直调方式：
@@ -58,10 +87,11 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh tightly-coupled
-bash scripts/launch_with_logs.sh travel
 ```
 
 等效的 `ros2 launch` 方式：
@@ -322,7 +352,7 @@ git checkout main
 git pull --ff-only
 
 # 创建分支
-git checkout -b docs/sync-current-state
+git checkout -b <BRANCH_NAME>
 
 # 检查状态
 git status
@@ -330,7 +360,7 @@ git branch -v
 git log --oneline -5
 
 # 推送分支
-git push -u origin docs/sync-current-state
+git push -u origin <BRANCH_NAME>
 ```
 
 GitHub CLI：
@@ -357,6 +387,9 @@ df -h /
 free -h
 htop
 
+# 每个文件夹大小
+sudo du -h --max-depth=1 / | sort -hr
+
 # JetPack / 机型
 cat /etc/nv_tegra_release
 cat /proc/device-tree/model
@@ -365,6 +398,11 @@ cat /proc/device-tree/model
 systemctl is-enabled NetworkManager
 systemctl is-active NetworkManager
 nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --active
+
+# 设置网络自动连接设置
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect yes
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-priority 100
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-retries 3
 
 # 检查当前机器是否具备无密码 sudo
 sudo -n true && echo sudo_ok
@@ -398,9 +436,6 @@ python3 scripts/collect_gps_scene.py
 ```
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/collect_gps_scene.py
 ```
 
@@ -428,9 +463,6 @@ python3 scripts/collect_gps_scene.py
 采集后编译运行时文件：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/build_scene_runtime.py
 ```
 
@@ -574,23 +606,21 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 构建：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make build-perception
-source install/setup.bash
+ss
 ```
 
 启动实验旁路模式：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 make launch-tightly-coupled
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 带现场 RTK/CORS 参数启动：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 观察 shadow 输出：
@@ -639,7 +669,6 @@ ros2 launch bringup system_tightly_coupled.launch.py publish_fgo_tf:=true nav2_u
 把rosbags上转到Huggingface:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 hf upload frogcar/rtk-data-2026-surf ./runtime-data --repo-type dataset
 ```
 
@@ -709,9 +738,6 @@ make ntrip-logout
 
 在 Jetson 上下载并安装 Foxglove：
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
@@ -721,9 +747,6 @@ sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 要建立连接，请通过 SSH 登录到 Jetson 并运行：
 
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 ros2 run foxglove_bridge foxglove_bridge
 ```
 
@@ -775,17 +798,17 @@ ros2 run foxglove_bridge foxglove_bridge
 
 每当在 Jetson 中打开终端（包括 SSH 连接）时，该脚本都会运行。我们对其进行了修改，以包含常用命令并提供机器人当前状态的概述。
 
-该脚本正在 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中进行版本追踪。如需在 Jetson 中进行设置：
+该脚本正在 [/scripts/.bashrc](/scripts/.bashrc) 中进行版本追踪。如需在 Jetson 中进行设置：
 
-1. 将 [/scripts/bashrc.sh](/scripts/bashrc.sh) 中的脚本内容复制到剪贴板中
+1. 将 [/scripts/.bashrc](/scripts/.bashrc) 中的脚本内容复制到剪贴板中
 2. 在 Jetson 中打开一个终端（SSH 或本地终端均可）
 3. 输入以下命令以使用 Vim 打开 `~/.bashrc`：
 ```bash
-vi ~/.bashrc
+rc
 ```
 4. 打开后，输入 `:%d` 以删除文件中的所有内容
 5. 使用 `Ctrl + V` 将剪贴板中的新脚本粘贴进去
 6. 按 `Esc`，然后输入 `:wq` 保存并退出
-7. 如需进行测试，请打开一个新终端或运行：`source ~/.bashrc`
+7. 如需进行测试，请打开一个新终端或运行：`s1`
 
-每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/bashrc.sh](https://www.google.com/search?q=/scripts/bashrc.sh) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。
+每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/.bashrc](/scripts/.bashrc) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。

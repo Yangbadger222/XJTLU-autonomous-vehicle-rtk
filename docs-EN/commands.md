@@ -2,11 +2,40 @@
 
 This document only records commands confirmed to be executable in the current repository and current Jetson environment.
 
+## Initial Setup
+
+All commands below rely on the following conditions:
+1. The robot repository is cloned into a folder `~/XJTLU-autonomous-vehicle`
+2. The robot has ROS2 Humble installed
+3. `~/.bashrc` matches exactly the version in [/scripts/.bashrc](/scripts/.bashrc)
+
+To create the directory, run:
+```bash
+cd ~/
+mkdir XJTLU-autonomous-vehicle
+cd ~/XJTLU-autonomous-vehicle
+```
+
+To install ROS2 Humble, follow their [official documentation](https://docs.ros.org/en/humble/Installation/Alternatives/Ubuntu-Development-Setup.html).
+
+To set `~/.bashrc` for the first time:
+- Copy the contents of [/scripts/.bashrc](/scripts/.bashrc) into your clipboard
+- SSH into the Jetson
+- Run:
+```bash
+vi ~/.bashrc
+```
+- Then, type `:%d`, press `Enter`
+- Then, paste your clipboard contents
+- After, press `Esc`, then type `:wq`, press `Enter`
+- You should be back to the terminal. Run:
+```bash
+source ~/.bashrc
+```
+
 ## 1. Build and Source
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 # Initial dependency setup
 make setup
 
@@ -14,6 +43,8 @@ make setup
 make build
 
 # Layered build
+make build-bringup
+make build-fastlio2
 make build-sensor
 make build-perception
 make build-planning
@@ -23,14 +54,12 @@ make build-navigation
 colcon build --packages-select <pkg> --symlink-install --parallel-workers 1
 
 # Must re-source after every build
-source /opt/ros/humble/setup.bash
-source ~/XJTLU-autonomous-vehicle/install/setup.bash
+ss
 ```
 
 ## 2. Initialize Runtime Data
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 bash scripts/init_runtime_data.sh
 
 ls ~/XJTLU-autonomous-vehicle/runtime-data
@@ -39,16 +68,15 @@ ls ~/XJTLU-autonomous-vehicle/runtime-data
 ## 3. Launch Operating Modes
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-travel
 make launch-explore-gps
 make launch-nav-gps
+make launch-rtk-basic
 make launch-tightly-coupled
-make launch-travel
 ```
 
 Equivalent wrapper direct invocation:
@@ -58,10 +86,11 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh tightly-coupled
-bash scripts/launch_with_logs.sh travel
 ```
 
 Equivalent `ros2 launch` invocation:
@@ -322,7 +351,7 @@ git checkout main
 git pull --ff-only
 
 # Create branch
-git checkout -b docs/sync-current-state
+git checkout -b <BRANCH_NAME>
 
 # Check status
 git status
@@ -330,7 +359,7 @@ git branch -v
 git log --oneline -5
 
 # Push branch
-git push -u origin docs/sync-current-state
+git push -u origin <BRANCH_NAME>
 ```
 
 GitHub CLI:
@@ -357,6 +386,9 @@ df -h /
 free -h
 htop
 
+# Disk usage per folder
+sudo du -h --max-depth=1 / | sort -hr
+
 # JetPack / model
 cat /etc/nv_tegra_release
 cat /proc/device-tree/model
@@ -365,6 +397,11 @@ cat /proc/device-tree/model
 systemctl is-enabled NetworkManager
 systemctl is-active NetworkManager
 nmcli -t -f NAME,AUTOCONNECT,AUTOCONNECT-PRIORITY,DEVICE connection show --active
+
+# Set network autoconnection settings
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect yes
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-priority 100
+sudo nmcli connection modify "WiFi-Name" connection.autoconnect-retries 3
 
 # Check if current machine has passwordless sudo
 sudo -n true && echo sudo_ok
@@ -507,7 +544,7 @@ sed -n '1,120p' runtime-data/gnss/current_route.yaml
 Clean up residual processes after completion:
 
 ```bash
-make kill-runtime
+make kill
 ```
 
 Makefile shortcut launch:
@@ -569,20 +606,20 @@ Build:
 
 ```bash
 make build-perception
-source install/setup.bash
+ss
 ```
 
 Launch the experimental shadow mode:
 
 ```bash
 make launch-tightly-coupled
-cd ~/XJTLU-autonomous-vehicle && FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 Launch with field RTK/CORS parameters:
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle && FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
+FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
 Observe shadow outputs:
@@ -756,9 +793,9 @@ Topics not rendering properly (URDF or point cloud missing):
 
 This script runs whenever a terminal is opened in the jetson (including SSH). We have modified it to include common commands and give us an overview of the robot's current state.
 
-The script is being tracked in [/scripts/bashrc.sh](/scripts/bashrc.sh). To set it up in the Jetson:
+The script is being tracked in [/scripts/.bashrc](/scripts/.bashrc). To set it up in the Jetson:
 
-1. Copy the script in [/scripts/bashrc.sh](/scripts/bashrc.sh) into your clipboard
+1. Copy the script in [/scripts/.bashrc](/scripts/.bashrc) into your clipboard
 2. Open a terminal in the Jetson (SSH or local are both ok)
 3. Type the following command to open `~/.bashrc` with Vim:
 ```bash
@@ -767,6 +804,6 @@ rc
 4. After it opens, type `:%d` to delete all contents in the file
 5. Use `Ctrl + V` to paste the new script from your clipboard
 6. Press `Esc`, then `:wq` to write and quit (save and exit)
-7. To test it, open a new terminal or run: `s1`
+7. To test it, run: `s1`
 
-Whenever you want to update `~/.bashrc`, modify it first from [/scripts/bashrc.sh](/scripts/bashrc.sh), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.
+Whenever you want to update `~/.bashrc`, modify it first from [/scripts/.bashrc](/scripts/.bashrc), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.

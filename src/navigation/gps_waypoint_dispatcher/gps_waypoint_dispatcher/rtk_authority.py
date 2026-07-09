@@ -64,6 +64,15 @@ def compute_map_to_odom(map_base: Pose2D, odom_base: Pose2D) -> Pose2D:
     return compose_pose(map_base, invert_pose(odom_base))
 
 
+def compute_pose_delta(previous: Pose2D | None, current: Pose2D) -> tuple[float, float]:
+    if previous is None:
+        return 0.0, 0.0
+    return (
+        math.hypot(current.x - previous.x, current.y - previous.y),
+        normalize_angle(current.yaw - previous.yaw),
+    )
+
+
 def compute_rtk_map_base(
     *,
     enu_x: float,

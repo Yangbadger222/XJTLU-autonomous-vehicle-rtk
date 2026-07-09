@@ -248,7 +248,7 @@ controller_server:
     min_theta_velocity_threshold: 0.001
     # 控制失败容忍度；决定局部控制短时失败时还能容忍多大误差。
     # 调大：系统更宽容、不易立刻失败；调小：更严格、更快进入恢复。
-    failure_tolerance: 0.6
+    failure_tolerance: 1.5
     # 进度检查器名称；用于选择 controller server 里启用哪一个卡住判定器。
     # 改错名称：控制器会找不到对应检查器并启动失败。
     progress_checker_plugin: "progress_checker"
@@ -338,7 +338,7 @@ controller_server:
       CostCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 4.5
+        cost_weight: 7.0
         critical_cost: 300.0
         consider_footprint: false
         collision_cost: 1000000.0
@@ -417,10 +417,10 @@ local_costmap:
       rolling_window: true
       # 地图宽度；决定 costmap 在 X 方向覆盖的物理范围。
       # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
-      width: 30
+      width: 12
       # 地图高度；决定 costmap 在 Y 方向覆盖的物理范围。
       # 调大：覆盖更广但内存和更新开销更高；调小：更省资源但看不到更远区域。
-      height: 30
+      height: 12
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.05
@@ -486,7 +486,7 @@ local_costmap:
           topic: /fastlio2/body_cloud_nav2_obstacles
           marking: true
           clearing: false
-          obstacle_range: 15.0
+          obstacle_range: 5.0
           min_obstacle_height: -0.20
           max_obstacle_height: 1.20
           expected_update_rate: 0.0

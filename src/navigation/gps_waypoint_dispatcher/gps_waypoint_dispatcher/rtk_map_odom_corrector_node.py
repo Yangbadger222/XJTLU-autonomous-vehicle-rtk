@@ -19,9 +19,9 @@ from gps_waypoint_dispatcher.rtk_authority import (
     blend_pose_target,
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
+    compute_pose_delta,
     compute_rtk_map_base,
     limit_map_to_odom_step_for_base,
-    normalize_angle,
     select_authority_alignment,
     should_publish_bootstrap_without_fixed,
     summarize_authority_inputs,
@@ -167,6 +167,7 @@ class RtkMapOdomCorrector(Node):
         self._latest_rtk_fixed = False
         self._latest_rtk_status_mono: float | None = None
         self._last_output: Pose2D | None = None
+        self._last_raw_target: Pose2D | None = None
         self._smoothed_target: Pose2D | None = None
         self._last_mode = ""
         self._last_status = ""
@@ -284,6 +285,8 @@ class RtkMapOdomCorrector(Node):
         target_jump_m: float,
         target_yaw_jump_rad: float,
         output: Pose2D | None,
+        raw_output_gap_m: float = 0.0,
+        raw_output_yaw_gap_rad: float = 0.0,
     ) -> None:
         msg = Float64MultiArray()
         msg.data = [
@@ -297,6 +300,8 @@ class RtkMapOdomCorrector(Node):
             output.y if output is not None else 0.0,
             math.degrees(output.yaw) if output is not None else 0.0,
             1.0 if self._latest_rtk_fixed else 0.0,
+            raw_output_gap_m,
+            math.degrees(raw_output_yaw_gap_rad),
         ]
         self._safe_publish(self._diagnostics_pub, msg)
 
@@ -439,6 +444,10 @@ class RtkMapOdomCorrector(Node):
             alignment_ty=alignment_ty,
         )
         raw_target = compute_map_to_odom(rtk_map_base, odom_base)
+        raw_output_gap_m, raw_output_yaw_gap_rad = compute_pose_delta(
+            self._last_output,
+            raw_target,
+        )
 
         if self._last_output is None:
             target_jump_m = 0.0
@@ -448,11 +457,10 @@ class RtkMapOdomCorrector(Node):
             output = target
             authority_status = None
         else:
-            target_jump_m = math.hypot(
-                raw_target.x - self._last_output.x,
-                raw_target.y - self._last_output.y,
+            target_jump_m, target_yaw_jump_rad = compute_pose_delta(
+                self._last_raw_target,
+                raw_target,
             )
-            target_yaw_jump_rad = normalize_angle(raw_target.yaw - self._last_output.yaw)
             jump_summary = summarize_authority_inputs(
                 alignment_valid=True,
                 odom_available=True,
@@ -481,6 +489,8 @@ class RtkMapOdomCorrector(Node):
                     target_jump_m=target_jump_m,
                     target_yaw_jump_rad=target_yaw_jump_rad,
                     output=self._last_output,
+                    raw_output_gap_m=raw_output_gap_m,
+                    raw_output_yaw_gap_rad=raw_output_yaw_gap_rad,
                 )
                 return
 
@@ -503,6 +513,7 @@ class RtkMapOdomCorrector(Node):
             ).pose
 
         self._last_output = output
+        self._last_raw_target = raw_target
         self._publish_tf(output)
         if authority_status == "YAW_REACQUIRE":
             self._publish_mode_status("RTK_AUTHORITATIVE", "YAW_REACQUIRE")
@@ -518,6 +529,8 @@ class RtkMapOdomCorrector(Node):
             target_jump_m=target_jump_m,
             target_yaw_jump_rad=target_yaw_jump_rad,
             output=output,
+            raw_output_gap_m=raw_output_gap_m,
+            raw_output_yaw_gap_rad=raw_output_yaw_gap_rad,
         )
 
 

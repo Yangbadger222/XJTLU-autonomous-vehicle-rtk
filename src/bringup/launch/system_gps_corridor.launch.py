@@ -71,6 +71,7 @@ def _make_corridor_nav2_params(source_file):
 
     controller_params = data['controller_server']['ros__parameters']
     controller_params['controller_frequency'] = 20.0
+    controller_params['failure_tolerance'] = 1.5
     controller_params['progress_checker']['required_movement_radius'] = 0.10
     controller_params['progress_checker']['movement_time_allowance'] = 15.0
     controller_params['general_goal_checker']['stateful'] = False

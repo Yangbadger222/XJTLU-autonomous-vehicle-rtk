@@ -2,6 +2,7 @@ import math
 
 import pytest
 
+import gps_waypoint_dispatcher.rtk_authority as authority
 from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
     blend_pose_target,
@@ -178,6 +179,19 @@ def test_blend_pose_target_low_passes_larger_map_odom_target_changes():
     assert math.degrees(blended.yaw) == pytest.approx(5.0)
 
 
+def test_target_jump_uses_last_trusted_raw_target_not_smoothed_output():
+    last_trusted_raw = Pose2D(x=10.0, y=0.0, yaw=math.radians(2.0))
+    current_raw = Pose2D(x=10.3, y=0.1, yaw=math.radians(2.4))
+    lagged_output = Pose2D(x=0.0, y=0.0, yaw=0.0)
+
+    translation_m, yaw_rad = authority.compute_pose_delta(last_trusted_raw, current_raw)
+    lagged_translation_m, _ = authority.compute_pose_delta(lagged_output, current_raw)
+
+    assert translation_m == pytest.approx(math.hypot(0.3, 0.1))
+    assert math.degrees(yaw_rad) == pytest.approx(0.4)
+    assert lagged_translation_m > 10.0
+
+
 def test_authority_inputs_accept_current_rtk_authority_source():
     summary = summarize_authority_inputs(
         alignment_valid=True,
@@ -300,6 +314,9 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"YAW_REACQUIRE"' in node_text
     assert '"max_base_yaw_step_m"' in node_text
     assert "limit_map_to_odom_step_for_base" in node_text
+    assert "self._last_raw_target: Pose2D | None = None" in node_text
+    assert "compute_pose_delta(\n                self._last_raw_target," in node_text
+    assert "raw_output_gap_m" in node_text
 
 
 def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():

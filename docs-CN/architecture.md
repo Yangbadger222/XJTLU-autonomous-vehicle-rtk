@@ -307,11 +307,11 @@ current_route.yaml
 - **RTK authoritative `map→odom`**: corridor 中 PGO 通过 `pgo_corridor_no_gps.yaml` 关闭 `publish_tf`，由 `rtk_map_odom_corrector` 根据 RTK fix、双天线 heading、`ENU→map` 和当前 `odom→base_link` 计算唯一的 `map→odom`
 - **RTK bootstrap**: 在 `gps_global_aligner` 尚未发布 `ENU→map` 前，`rtk_map_odom_corrector` 会用当前 RTK fix、heading 和 `odom→base_link` 先发布临时 `map→odom`，打破启动时 aligner 等待 map TF 的闭环
 - **RTK degraded hold**: 当 RTK fix、heading 或目标跳变被 gating 拒绝时，`rtk_map_odom_corrector` 不更新全局位姿，但会继续用最后一次可信输出刷新 `map→odom` 时间戳，避免 Nav2 因 TF 过期误判导航失败
-- **RTK target 平滑**: `rtk_map_odom_corrector` 在 raw RTK target 和最终单步限幅之间加入 target deadband + 低通，抑制 RTK/heading 微抖持续写入 `map→odom` 后造成后段“画龙”
+- **RTK target 平滑与跳变门控**: `rtk_map_odom_corrector` 在 raw RTK target 和最终单步限幅之间加入 target deadband + 低通，抑制 RTK/heading 微抖持续写入 `map→odom` 后造成后段“画龙”；target-jump gate 只比较当前 raw target 与上一帧可信 raw target，避免把平滑输出滞后误判为 RTK 跳变
 - **室内外切换接口**: `rtk_map_odom_corrector` 发布 `/localization_authority/mode`、`/localization_authority/status` 和 `/localization_authority/diagnostics`；后续室内先验地图 relocalization 可作为新的 authority source 接管同一 `map→odom` 接口
 
 该模式的数据面：
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml`（`collect_gps_route.py` 生成）
 - `start_ref` + 多个 `waypoints[]` 的 GPS 坐标
 - `launch_yaw_deg` 为必填字段
-- `/localization_authority/*` 记录当前 `map→odom` authority 来源、拒绝原因和限幅后的输出
+- `/localization_authority/*` 记录当前 `map→odom` authority 来源、拒绝原因、raw target jump、raw/output gap 和限幅后的输出

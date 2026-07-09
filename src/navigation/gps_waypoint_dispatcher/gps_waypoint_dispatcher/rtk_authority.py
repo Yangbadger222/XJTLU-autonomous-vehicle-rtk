@@ -189,6 +189,35 @@ def limit_map_to_odom_step_for_base(
     )
 
 
+def blend_pose_target(
+    previous: Pose2D | None,
+    target: Pose2D,
+    *,
+    alpha: float,
+    translation_deadband_m: float,
+    yaw_deadband_rad: float,
+) -> Pose2D:
+    if previous is None:
+        return target
+
+    dx = target.x - previous.x
+    dy = target.y - previous.y
+    distance = math.hypot(dx, dy)
+    yaw_delta = normalize_angle(target.yaw - previous.yaw)
+    if (
+        distance <= max(0.0, translation_deadband_m)
+        and abs(yaw_delta) <= max(0.0, yaw_deadband_rad)
+    ):
+        return previous
+
+    bounded_alpha = min(1.0, max(0.0, alpha))
+    return Pose2D(
+        x=previous.x + dx * bounded_alpha,
+        y=previous.y + dy * bounded_alpha,
+        yaw=normalize_angle(previous.yaw + yaw_delta * bounded_alpha),
+    )
+
+
 def summarize_authority_inputs(
     *,
     alignment_valid: bool,

@@ -57,6 +57,9 @@ struct Config
     bool publish_cloud_height_filter_enabled = false;
     double publish_cloud_min_z = -0.33;
     double publish_cloud_max_z = 0.30;
+    bool nav2_obstacle_cloud_enabled = true;
+    double nav2_obstacle_cloud_min_z = -0.20;
+    double nav2_obstacle_cloud_max_z = 1.20;
 };
 
 struct IMUData

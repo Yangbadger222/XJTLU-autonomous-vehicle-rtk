@@ -29,6 +29,17 @@ FAST-LIO2 now includes publish-time point cloud height filtering in `lio_node.cp
 - Effect: ground-level low points and above-vehicle-height noise (ceiling, elevated structures) are eliminated at the source; downstream costmaps no longer need redundant height filtering
 - This filter does not affect FAST-LIO2's internal SLAM mapping and state estimation; it only affects the point clouds published to external consumers
 
+## Nav2-Dedicated Obstacle Cloud (2026-07-09)
+
+RTK corridor now branches an additional `/fastlio2/body_cloud_nav2_obstacles` stream at the FAST-LIO2 publish layer, used only by the Nav2 local costmap:
+
+- `/fastlio2/body_cloud` keeps the low `[-0.33, 0.30]m` publish window so PGO / LIO downstream consumers retain the existing lightweight structure-point input
+- `/fastlio2/body_cloud_nav2_obstacles` uses a wider `[-0.20, 1.20]m` height window, covering standing pedestrians, upper-body returns, and common outdoor barriers
+- This Nav2-only cloud does not feed PGO and does not change FAST-LIO2 internal state estimation; it isolates obstacle perception from the PGO/LIO cloud tune
+- Filtering runs only when the topic has subscribers, avoiding extra CPU cost outside corridor / Nav2 runs
+
+If future field tests still show unstable pedestrian marking, inspect whether `/fastlio2/body_cloud_nav2_obstacles` contains points, whether the local costmap STVL voxel map marks them, and whether the Livox blind zone / mounting angle is the limiting factor before widening the PGO-facing `/fastlio2/body_cloud`.
+
 ## LiDAR / IMU Sync Guard (2026-07-06)
 
 FAST-LIO2 now drops a LiDAR frame before the IESKF update when its synchronized package contains fewer than `min_imu_samples_per_lidar` IMU samples. The current corridor acceptance value is:

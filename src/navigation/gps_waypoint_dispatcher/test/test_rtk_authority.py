@@ -4,6 +4,7 @@ import pytest
 
 from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
+    blend_pose_target,
     compose_pose,
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
@@ -143,6 +144,38 @@ def test_limit_map_to_odom_step_caps_base_motion_from_far_yaw_lever_arm():
     assert base_shift_m <= 0.12 + 1e-6
     assert math.degrees(limited.yaw_step_rad) < 0.5
     assert limited.limited is True
+
+
+def test_blend_pose_target_holds_small_map_odom_target_jitter():
+    previous = Pose2D(x=10.0, y=-2.0, yaw=math.radians(5.0))
+    jitter = Pose2D(x=10.03, y=-2.02, yaw=math.radians(5.15))
+
+    held = blend_pose_target(
+        previous,
+        jitter,
+        alpha=0.20,
+        translation_deadband_m=0.05,
+        yaw_deadband_rad=math.radians(0.25),
+    )
+
+    assert held == previous
+
+
+def test_blend_pose_target_low_passes_larger_map_odom_target_changes():
+    previous = Pose2D(x=0.0, y=0.0, yaw=0.0)
+    target = Pose2D(x=1.0, y=0.0, yaw=math.radians(20.0))
+
+    blended = blend_pose_target(
+        previous,
+        target,
+        alpha=0.25,
+        translation_deadband_m=0.05,
+        yaw_deadband_rad=math.radians(0.25),
+    )
+
+    assert blended.x == pytest.approx(0.25)
+    assert blended.y == pytest.approx(0.0)
+    assert math.degrees(blended.yaw) == pytest.approx(5.0)
 
 
 def test_authority_inputs_accept_current_rtk_authority_source():

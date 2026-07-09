@@ -84,12 +84,19 @@ def test_corridor_nav2_global_costmap_is_route_planning_only():
 def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
     config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
     local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+    stvl = local_costmap["stvl_layer"]
 
     assert "stvl_layer" in local_costmap["plugins"]
     assert "frc_layer" in local_costmap["plugins"]
     assert local_costmap["robot_radius"] >= 0.38
-    assert local_costmap["stvl_layer"]["enabled"] is True
+    assert stvl["enabled"] is True
     assert local_costmap["inflation_layer"]["inflation_radius"] >= 0.4
+    assert stvl["pointcloud_mark"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
+    assert stvl["pointcloud_clear"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
+    assert stvl["pointcloud_mark"]["min_obstacle_height"] <= -0.20
+    assert stvl["pointcloud_mark"]["max_obstacle_height"] >= 1.20
+    assert stvl["pointcloud_clear"]["min_z"] <= -0.20
+    assert stvl["pointcloud_clear"]["max_z"] >= 1.20
 
 
 def test_corridor_route_runner_defaults_to_short_rtk_subgoals():
@@ -165,6 +172,7 @@ def test_corridor_bag_defaults_to_lean_profile_with_debug_raw_topics_opt_in():
     assert "'/livox/lidar'," in debug_topics
     assert "'/livox/imu'," in debug_topics
     assert "'/fastlio2/body_cloud'," in debug_topics
+    assert "'/fastlio2/body_cloud_nav2_obstacles'," in debug_topics
 
 
 def test_corridor_uses_rtk_authoritative_map_odom_owner():
@@ -261,6 +269,22 @@ def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
     for lio_params in profiles:
         assert lio_params["lidar_filter_num"] <= 4
         assert lio_params["lidar_max_range"] >= 25.0
+
+
+def test_fastlio_publishes_a_separate_wide_nav2_obstacle_cloud():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    lio_params = master_params["/fastlio2"]["lio_node"]["ros__parameters"]
+    legacy_text = FASTLIO_LEGACY_PARAMS.read_text(encoding="utf-8")
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+
+    assert lio_params["publish_cloud_height_filter_enabled"] is True
+    assert lio_params["publish_cloud_max_z"] <= 0.30
+    assert lio_params["nav2_obstacle_cloud_enabled"] is True
+    assert lio_params["nav2_obstacle_cloud_min_z"] <= -0.20
+    assert lio_params["nav2_obstacle_cloud_max_z"] >= 1.20
+    assert "nav2_obstacle_cloud_max_z: 1.20" in legacy_text
+    assert 'create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_nav2_obstacles"' in lio_text
+    assert "publishNav2ObstacleCloud(body_cloud, world_cloud" in lio_text
 
 
 def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():

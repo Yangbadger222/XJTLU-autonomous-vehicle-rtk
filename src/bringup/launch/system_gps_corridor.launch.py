@@ -49,6 +49,7 @@ _CORRIDOR_BAG_DEBUG_TOPICS = [
     '/livox/lidar',
     '/livox/imu',
     '/fastlio2/body_cloud',
+    '/fastlio2/body_cloud_nav2_obstacles',
 ]
 
 

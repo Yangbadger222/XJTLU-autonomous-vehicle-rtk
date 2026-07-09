@@ -303,9 +303,11 @@ Key architectural decisions for this mode:
 - **Bootstrap startup**: Immediately computes initial alignment using `yaw0 - radians(launch_yaw_deg)`, without waiting for GPS
 - **Corridor-specific Nav2 BT**: Corridor uses NavigateToPose / NavigateThroughPoses trees without `Spin` / `BackUp`; planning or tracking failures are stopped and reported by `gps_route_runner` with route-progress context instead of physical recovery actions
 - **Nav2 action timeout**: Corridor raises the BT `default_server_timeout` to 1000ms so a slow FollowPath acknowledgement under Jetson load does not falsely trigger recovery
+- **Nav2-dedicated obstacle cloud**: The corridor local costmap uses `/fastlio2/body_cloud_nav2_obstacles` with a `[-0.20, 1.20]m` height window; PGO/LIO still use the low-window `/fastlio2/body_cloud`, so structure-cloud tuning does not make Nav2 blind to taller obstacles
 - **RTK-authoritative `map->odom`**: In corridor mode, `pgo_corridor_no_gps.yaml` disables PGO `publish_tf`; `rtk_map_odom_corrector` becomes the only `map->odom` owner and computes it from RTK fix, dual-antenna heading, `ENU->map`, and current `odom->base_link`
 - **RTK bootstrap**: Before `gps_global_aligner` publishes `ENU->map`, `rtk_map_odom_corrector` uses the current RTK fix, heading, and `odom->base_link` to publish a temporary `map->odom`, breaking the startup loop where the aligner waits for map TF
 - **RTK degraded hold**: When RTK fix, heading, or target-jump gating rejects the latest input, `rtk_map_odom_corrector` freezes the global pose update but keeps rebroadcasting the last trusted `map->odom` with a fresh timestamp, so Nav2 does not fail only because the TF tree expired
+- **RTK target smoothing**: `rtk_map_odom_corrector` adds target deadband + low-pass filtering between the raw RTK target and final per-step limiting, reducing small RTK/heading jitter before it can continuously enter `map->odom`
 - **Indoor/outdoor handoff interface**: `rtk_map_odom_corrector` publishes `/localization_authority/mode`, `/localization_authority/status`, and `/localization_authority/diagnostics`; a later prior-map relocalizer can become another authority source on the same `map->odom` interface
 
 Data plane for this mode:

@@ -16,6 +16,7 @@ from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformL
 from gps_waypoint_dispatcher.alignment_math import heading_quaternion_yaw_to_enu_yaw
 from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
+    blend_pose_target,
     compute_bootstrap_alignment_from_current_pose,
     compute_map_to_odom,
     compute_rtk_map_base,
@@ -69,6 +70,9 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_translation_step_m", 0.20)
         self.declare_parameter("max_yaw_step_deg", 1.0)
         self.declare_parameter("max_base_yaw_step_m", 0.12)
+        self.declare_parameter("target_smoothing_alpha", 0.20)
+        self.declare_parameter("target_translation_deadband_m", 0.05)
+        self.declare_parameter("target_yaw_deadband_deg", 0.25)
         self.declare_parameter("publish_period_s", 0.05)
         self.declare_parameter("tf_lookup_timeout_s", 0.05)
 
@@ -110,6 +114,15 @@ class RtkMapOdomCorrector(Node):
         )
         self._max_base_yaw_step_m = float(
             self.get_parameter("max_base_yaw_step_m").value
+        )
+        self._target_smoothing_alpha = float(
+            self.get_parameter("target_smoothing_alpha").value
+        )
+        self._target_translation_deadband_m = float(
+            self.get_parameter("target_translation_deadband_m").value
+        )
+        self._target_yaw_deadband_rad = math.radians(
+            float(self.get_parameter("target_yaw_deadband_deg").value)
         )
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
         self._tf_lookup_timeout_s = float(self.get_parameter("tf_lookup_timeout_s").value)
@@ -154,6 +167,7 @@ class RtkMapOdomCorrector(Node):
         self._latest_rtk_fixed = False
         self._latest_rtk_status_mono: float | None = None
         self._last_output: Pose2D | None = None
+        self._smoothed_target: Pose2D | None = None
         self._last_mode = ""
         self._last_status = ""
 
@@ -424,19 +438,21 @@ class RtkMapOdomCorrector(Node):
             alignment_tx=alignment_tx,
             alignment_ty=alignment_ty,
         )
-        target = compute_map_to_odom(rtk_map_base, odom_base)
+        raw_target = compute_map_to_odom(rtk_map_base, odom_base)
 
         if self._last_output is None:
             target_jump_m = 0.0
             target_yaw_jump_rad = 0.0
+            target = raw_target
+            self._smoothed_target = target
             output = target
             authority_status = None
         else:
             target_jump_m = math.hypot(
-                target.x - self._last_output.x,
-                target.y - self._last_output.y,
+                raw_target.x - self._last_output.x,
+                raw_target.y - self._last_output.y,
             )
-            target_yaw_jump_rad = normalize_angle(target.yaw - self._last_output.yaw)
+            target_yaw_jump_rad = normalize_angle(raw_target.yaw - self._last_output.yaw)
             jump_summary = summarize_authority_inputs(
                 alignment_valid=True,
                 odom_available=True,
@@ -469,6 +485,14 @@ class RtkMapOdomCorrector(Node):
                 return
 
             authority_status = jump_summary.reason
+            target = blend_pose_target(
+                self._smoothed_target if self._smoothed_target is not None else self._last_output,
+                raw_target,
+                alpha=self._target_smoothing_alpha,
+                translation_deadband_m=self._target_translation_deadband_m,
+                yaw_deadband_rad=self._target_yaw_deadband_rad,
+            )
+            self._smoothed_target = target
             output = limit_map_to_odom_step_for_base(
                 self._last_output,
                 target,

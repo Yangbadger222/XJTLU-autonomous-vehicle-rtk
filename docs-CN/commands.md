@@ -2,11 +2,43 @@
 
 本文档只记录当前仓库和当前 Jetson 环境下确认可执行的命令。
 
+## 初始设置
+
+以下所有命令均基于以下条件：
+
+1. 机器人仓库已克隆到 `~/XJTLU-autonomous-vehicle` 文件夹中
+2. 机器人已安装 ROS2 Humble
+3. `~/.bashrc` 与 [/scripts/.bashrc](/scripts/.bashrc) 中的版本完全一致
+
+要创建该目录，请运行：
+
+```bash
+cd ~/
+mkdir XJTLU-autonomous-vehicle
+cd ~/XJTLU-autonomous-vehicle
+```
+
+要安装 ROS2 Humble，请参考其[官方文档](https://docs.ros.org/en/humble/Installation/Alternatives/Ubuntu-Development-Setup.html)。
+
+首次设置 `~/.bashrc`：
+
+* 将 [/scripts/.bashrc](/scripts/.bashrc) 的内容复制到剪贴板
+* 通过 SSH 连接到 Jetson
+* 运行：
+```bash
+vi ~/.bashrc
+```
+* 然后，输入 `:%d`，按 `Enter` 键
+* 接着，粘贴你剪贴板中的内容
+* 之后，按 `Esc` 键，然后输入 `:wq`，按 `Enter` 键
+* 此时你应该已经返回终端。运行：
+```bash
+source ~/.bashrc
+```
+
 ## 1. 构建与 Source
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 # 首次依赖初始化
 make setup
 
@@ -29,7 +61,7 @@ ss
 ## 2. 初始化运行时数据
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
+
 bash scripts/init_runtime_data.sh
 
 ls ~/XJTLU-autonomous-vehicle/runtime-data
@@ -403,9 +435,6 @@ python3 scripts/collect_gps_scene.py
 ```
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/collect_gps_scene.py
 ```
 
@@ -433,9 +462,6 @@ python3 scripts/collect_gps_scene.py
 采集后编译运行时文件：
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-source /opt/ros/humble/setup.bash
-source install/setup.bash
 python3 scripts/build_scene_runtime.py
 ```
 
@@ -711,9 +737,6 @@ make ntrip-logout
 
 在 Jetson 上下载并安装 Foxglove：
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
@@ -723,9 +746,6 @@ sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 要建立连接，请通过 SSH 登录到 Jetson 并运行：
 
 ```bash
-cd XJTLU-autonomous-vehicle
-source install/setup.bash
-source /opt/ros/humble/setup.bash
 ros2 run foxglove_bridge foxglove_bridge
 ```
 
@@ -783,11 +803,11 @@ ros2 run foxglove_bridge foxglove_bridge
 2. 在 Jetson 中打开一个终端（SSH 或本地终端均可）
 3. 输入以下命令以使用 Vim 打开 `~/.bashrc`：
 ```bash
-vi ~/.bashrc
+rc
 ```
 4. 打开后，输入 `:%d` 以删除文件中的所有内容
 5. 使用 `Ctrl + V` 将剪贴板中的新脚本粘贴进去
 6. 按 `Esc`，然后输入 `:wq` 保存并退出
-7. 如需进行测试，请打开一个新终端或运行：`source ~/.bashrc`
+7. 如需进行测试，请打开一个新终端或运行：`s1`
 
 每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/.bashrc](/scripts/.bashrc) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。

@@ -2,11 +2,40 @@
 
 This document only records commands confirmed to be executable in the current repository and current Jetson environment.
 
+## Initial Setup
+
+All commands below rely on the following conditions:
+1. The robot repository is cloned into a folder `~/XJTLU-autonomous-vehicle`
+2. The robot has ROS2 Humble installed
+3. `~/.bashrc` matches exactly the version in [/scripts/.bashrc](/scripts/.bashrc)
+
+To create the directory, run:
+```bash
+cd ~/
+mkdir XJTLU-autonomous-vehicle
+cd ~/XJTLU-autonomous-vehicle
+```
+
+To install ROS2 Humble, follow their [official documentation](https://docs.ros.org/en/humble/Installation/Alternatives/Ubuntu-Development-Setup.html).
+
+To set `~/.bashrc` for the first time:
+- Copy the contents of [/scripts/.bashrc](/scripts/.bashrc) into your clipboard
+- SSH into the Jetson
+- Run:
+```bash
+vi ~/.bashrc
+```
+- Then, type `:%d`, press `Enter`
+- Then, paste your clipboard contents
+- After, press `Esc`, then type `:wq`, press `Enter`
+- You should be back to the terminal. Run:
+```bash
+source ~/.bashrc
+```
+
 ## 1. Build and Source
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
-
 # Initial dependency setup
 make setup
 
@@ -31,7 +60,6 @@ ss
 ## 2. Initialize Runtime Data
 
 ```bash
-cd ~/XJTLU-autonomous-vehicle
 bash scripts/init_runtime_data.sh
 
 ls ~/XJTLU-autonomous-vehicle/runtime-data
@@ -774,6 +802,6 @@ rc
 4. After it opens, type `:%d` to delete all contents in the file
 5. Use `Ctrl + V` to paste the new script from your clipboard
 6. Press `Esc`, then `:wq` to write and quit (save and exit)
-7. To test it, open a new terminal or run: `source ~/.bashrc`
+7. To test it, run: `s1`
 
 Whenever you want to update `~/.bashrc`, modify it first from [/scripts/.bashrc](/scripts/.bashrc), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.

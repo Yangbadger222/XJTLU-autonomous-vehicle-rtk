@@ -4,7 +4,7 @@
 
 - Jetson code repository: `~/XJTLU-autonomous-vehicle`
 - Runtime data root directory: `~/XJTLU-autonomous-vehicle/runtime-data`
-- GitHub remote: `kevinlasnh/XJTLU-autonomous-vehicle`
+- GitHub remote: `Yangbadger222/XJTLU-autonomous-vehicle-rtk`
 - AI collaboration control plane: located in a separate PC repository, not within this code repository
 
 ## 2. Hardware Platform
@@ -12,7 +12,7 @@
 - Jetson Orin NX, 16 GB RAM, Ubuntu 22.04, ROS 2 Humble
 - Livox MID360 LiDAR
 - WIT IMU
-- Basic GNSS module, currently used at approximately 2.5 m accuracy level, not an RTK workflow
+- T-RTK UM982 Dual Antenna Mobile Kit + 4G Module (Rover End)
 - Serial connection to STM32 lower-level controller
 - PS2 gamepad as the highest-priority manual override
 
@@ -24,10 +24,11 @@
 | Explore | `make launch-explore` | Current primary operating mode, local obstacle avoidance navigation |
 | Indoor Nav | `make launch-indoor-nav` | RViz click-to-go navigation without GNSS |
 | Corridor | `make launch-corridor` | GPS Corridor v2 main runtime on the MPPI controller |
+| Travel | `make launch-travel` | Experimental prior-map navigation: 2D-map global planning + PCD point-cloud relocalization |
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
+| RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
-| Travel | `make launch-travel` | Experimental prior-map navigation: 2D-map global planning + PCD point-cloud relocalization |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
 

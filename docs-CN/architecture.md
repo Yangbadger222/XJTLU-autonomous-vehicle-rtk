@@ -4,7 +4,7 @@
 
 - Jetson 代码仓: `~/XJTLU-autonomous-vehicle`
 - 运行时数据根目录: `~/XJTLU-autonomous-vehicle/runtime-data`
-- GitHub 远端: `kevinlasnh/XJTLU-autonomous-vehicle`
+- GitHub 远端: `Yangbadger222/XJTLU-autonomous-vehicle-rtk`
 - AI 协作控制面: 位于独立 PC 仓库，不在本代码仓内
 
 ## 2. 硬件平台
@@ -12,7 +12,7 @@
 - Jetson Orin NX, 16 GB RAM, Ubuntu 22.04, ROS 2 Humble
 - Livox MID360 LiDAR
 - WIT IMU
-- 基础 GNSS 模块，当前按约 2.5 m 级精度使用，不是 RTK 工作流
+- T-RTK UM982 双天线 Mobile 套装 + 4G 模块 (移动端)
 - 串口连接到 STM32 下位机
 - PS2 手柄作为最高优先级人工接管
 
@@ -24,10 +24,11 @@
 | Explore | `make launch-explore` | 当前主运行模式，局部避障导航 |
 | Indoor Nav | `make launch-indoor-nav` | 不启 GNSS 的 RViz 点击点导航 |
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
+| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
+| RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
-| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
 

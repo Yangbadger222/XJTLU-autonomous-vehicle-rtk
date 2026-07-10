@@ -75,6 +75,15 @@ def _release_update(
     )
 
 
+def _assert_release_poses_finite(result):
+    for pose in (
+        result.output_map_odom,
+        result.output_map_base,
+        result.target_map_base,
+    ):
+        assert all(math.isfinite(value) for value in (pose.x, pose.y, pose.yaw))
+
+
 @pytest.mark.parametrize(
     ("frames", "reason"),
     [
@@ -1041,6 +1050,254 @@ def test_correction_release_stale_or_invalid_lio_fails_closed(
     assert result.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
     assert result.reason is CorrectionReleaseReason.LOCAL_ODOM_STALE
     assert result.motion_allowed is False
+
+
+@pytest.mark.parametrize(
+    "local",
+    [
+        _pose(x=math.nan),
+        _pose(x=math.inf),
+        _pose(y=math.nan),
+        _pose(y=-math.inf),
+        _pose(yaw=math.nan),
+        _pose(yaw=math.inf),
+    ],
+)
+def test_correction_release_rejects_nonfinite_local_pose_on_fresh_lio(local):
+    state = CorrectionReleaseState()
+    previous = _pose(x=0.1, y=-0.2, yaw=0.1)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.2, y=-0.1, yaw=0.2),
+        local=local,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
+    assert result.reason is CorrectionReleaseReason.LOCAL_ODOM_INVALID
+    assert result.motion_allowed is False
+    _assert_release_poses_finite(result)
+
+
+@pytest.mark.parametrize(
+    "previous",
+    [
+        _pose(x=math.nan),
+        _pose(y=math.inf),
+        _pose(yaw=-math.inf),
+    ],
+)
+def test_correction_release_rejects_nonfinite_previous_output(previous):
+    state = CorrectionReleaseState()
+    trusted = _pose(x=0.2, y=-0.1, yaw=0.05)
+    _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.3),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.output_map_odom == trusted
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert result.reason is CorrectionReleaseReason.INVALID_OUTPUT_POSE
+    assert result.motion_allowed is False
+    _assert_release_poses_finite(result)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        _pose(x=math.nan),
+        _pose(y=-math.inf),
+        _pose(yaw=math.inf),
+    ],
+)
+def test_correction_release_rejects_nonfinite_target_without_evaluating_it(target):
+    state = CorrectionReleaseState()
+    previous = _pose(x=0.2, y=-0.1, yaw=0.05)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert result.reason is CorrectionReleaseReason.INVALID_TARGET_POSE
+    assert result.motion_allowed is False
+    _assert_release_poses_finite(result)
+
+
+def test_correction_release_first_invalid_output_still_returns_finite_hold():
+    state = CorrectionReleaseState()
+
+    result = _release_update(
+        state,
+        previous=_pose(x=math.nan),
+        target=_pose(x=0.1),
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert result.reason is CorrectionReleaseReason.INVALID_OUTPUT_POSE
+    assert result.motion_allowed is False
+    _assert_release_poses_finite(result)
+
+
+def test_correction_release_finite_pose_composition_overflow_fails_closed():
+    state = CorrectionReleaseState()
+
+    result = _release_update(
+        state,
+        previous=_pose(x=1e308),
+        target=_pose(x=1e308),
+        local=_pose(x=1e308),
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+
+    assert result.output_map_odom == _pose(x=1e308)
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert result.reason is CorrectionReleaseReason.INVALID_POSE_COMPOSITION
+    assert result.motion_allowed is False
+    _assert_release_poses_finite(result)
+
+
+def test_correction_release_invalid_local_pose_clears_stopped_confirmation():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.8,
+        lio_stamp_s=1.2,
+    )
+
+    invalid = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        local=_pose(x=math.nan),
+        now_s=10.9,
+        lio_stamp_s=1.3,
+    )
+    restarted = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.0,
+        lio_stamp_s=1.4,
+    )
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.9,
+        lio_stamp_s=1.5,
+    )
+
+    assert invalid.reason is CorrectionReleaseReason.LOCAL_ODOM_INVALID
+    assert invalid.stopped_duration_s == 0.0
+    assert restarted.stopped_duration_s == 0.0
+    assert pending.stopped_duration_s == pytest.approx(0.9)
+    assert pending.output_map_odom == previous
+
+
+def test_correction_release_invalid_local_pose_clears_recovery_continuity():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    released = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=11.1,
+        lio_stamp_s=1.2,
+    )
+    previous = released.output_map_odom
+    target = _pose(x=0.1)
+    started = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.2,
+        lio_stamp_s=1.3,
+    )
+    previous = started.output_map_odom
+    accumulated = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.7,
+        lio_stamp_s=1.4,
+    )
+    previous = accumulated.output_map_odom
+    invalid = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        local=_pose(yaw=math.nan),
+        now_s=11.8,
+        lio_stamp_s=1.5,
+    )
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.9,
+        lio_stamp_s=1.6,
+    )
+    restarted = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.9,
+        lio_stamp_s=1.7,
+    )
+    previous = restarted.output_map_odom
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=13.8,
+        lio_stamp_s=1.8,
+    )
+
+    assert accumulated.recovery_duration_s == pytest.approx(0.5)
+    assert invalid.recovery_duration_s == 0.0
+    assert restarted.recovery_duration_s == 0.0
+    assert pending.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert pending.recovery_duration_s == pytest.approx(0.9)
 
 
 @pytest.mark.parametrize("now_s", [math.nan, math.inf, -math.inf])

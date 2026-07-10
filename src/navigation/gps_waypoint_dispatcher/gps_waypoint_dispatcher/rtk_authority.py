@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from dataclasses import dataclass
+from enum import Enum, IntEnum
+from typing import Union
 
 
 @dataclass(frozen=True)
@@ -9,6 +12,504 @@ class Pose2D:
     x: float
     y: float
     yaw: float
+
+
+@dataclass(frozen=True)
+class StampedPose:
+    stamp_s: float
+    pose: Pose2D
+
+
+@dataclass(frozen=True)
+class HistoryAppendResult:
+    accepted: bool
+    reason: str | None
+    sample_count: int
+
+
+@dataclass(frozen=True)
+class PoseInterpolationResult:
+    ok: bool
+    pose: Pose2D | None
+    reason: str | None
+    lower_stamp_s: float | None = None
+    upper_stamp_s: float | None = None
+
+
+class StampedPoseHistory:
+    def __init__(
+        self,
+        max_age_s: float = 2.0,
+        max_samples: int = 200,
+        *,
+        frame_id: str = "odom",
+        child_frame_id: str = "base_footprint",
+    ) -> None:
+        if not math.isfinite(max_age_s) or max_age_s <= 0.0:
+            raise ValueError("max_age_s must be finite and positive")
+        if not isinstance(max_samples, int) or isinstance(max_samples, bool) or max_samples <= 0:
+            raise ValueError("max_samples must be a positive integer")
+        if not frame_id or not child_frame_id:
+            raise ValueError("expected frame IDs must not be empty")
+
+        self.max_age_s = max_age_s
+        self.max_samples = max_samples
+        self.frame_id = frame_id
+        self.child_frame_id = child_frame_id
+        self._samples: list[StampedPose] = []
+
+    def __len__(self) -> int:
+        return len(self._samples)
+
+    @property
+    def samples(self) -> tuple[StampedPose, ...]:
+        return tuple(self._samples)
+
+    def append(
+        self,
+        stamp_s: float,
+        pose: Pose2D,
+        *,
+        frame_id: str,
+        child_frame_id: str,
+    ) -> HistoryAppendResult:
+        if frame_id != self.frame_id:
+            return self._append_result(False, "INVALID_FRAME")
+        if child_frame_id != self.child_frame_id:
+            return self._append_result(False, "INVALID_CHILD_FRAME")
+        if not math.isfinite(stamp_s) or stamp_s <= 0.0:
+            return self._append_result(False, "INVALID_STAMP")
+        if not isinstance(pose, Pose2D) or not all(
+            math.isfinite(value) for value in (pose.x, pose.y, pose.yaw)
+        ):
+            return self._append_result(False, "NONFINITE_POSE")
+
+        if self._samples:
+            latest_stamp_s = self._samples[-1].stamp_s
+            if stamp_s == latest_stamp_s:
+                return self._append_result(False, "DUPLICATE_STAMP")
+            if stamp_s < latest_stamp_s:
+                return self._append_result(False, "REGRESSING_STAMP")
+
+        self._samples.append(StampedPose(stamp_s=stamp_s, pose=pose))
+        oldest_allowed_s = stamp_s - self.max_age_s
+        while self._samples and self._samples[0].stamp_s < oldest_allowed_s:
+            del self._samples[0]
+        if len(self._samples) > self.max_samples:
+            del self._samples[: len(self._samples) - self.max_samples]
+        return self._append_result(True, None)
+
+    def interpolate(
+        self,
+        stamp_s: float,
+        max_bracket_s: float = 0.20,
+    ) -> PoseInterpolationResult:
+        if not math.isfinite(stamp_s) or stamp_s <= 0.0:
+            return PoseInterpolationResult(False, None, "INVALID_STAMP")
+        if not math.isfinite(max_bracket_s) or max_bracket_s < 0.0:
+            return PoseInterpolationResult(False, None, "INVALID_BRACKET_LIMIT")
+        if not self._samples:
+            return PoseInterpolationResult(False, None, "ODOM_AT_STAMP_UNAVAILABLE")
+        if stamp_s < self._samples[0].stamp_s or stamp_s > self._samples[-1].stamp_s:
+            return PoseInterpolationResult(False, None, "ODOM_AT_STAMP_UNAVAILABLE")
+
+        stamps = [sample.stamp_s for sample in self._samples]
+        upper_index = bisect_left(stamps, stamp_s)
+        if upper_index < len(self._samples) and self._samples[upper_index].stamp_s == stamp_s:
+            sample = self._samples[upper_index]
+            return PoseInterpolationResult(
+                True,
+                sample.pose,
+                None,
+                lower_stamp_s=sample.stamp_s,
+                upper_stamp_s=sample.stamp_s,
+            )
+
+        lower = self._samples[upper_index - 1]
+        upper = self._samples[upper_index]
+        bracket_s = upper.stamp_s - lower.stamp_s
+        if bracket_s > max_bracket_s:
+            return PoseInterpolationResult(
+                False,
+                None,
+                "ODOM_BRACKET_TOO_WIDE",
+                lower_stamp_s=lower.stamp_s,
+                upper_stamp_s=upper.stamp_s,
+            )
+
+        fraction = (stamp_s - lower.stamp_s) / bracket_s
+        yaw_delta = normalize_angle(upper.pose.yaw - lower.pose.yaw)
+        return PoseInterpolationResult(
+            True,
+            Pose2D(
+                x=lower.pose.x + fraction * (upper.pose.x - lower.pose.x),
+                y=lower.pose.y + fraction * (upper.pose.y - lower.pose.y),
+                yaw=normalize_angle(lower.pose.yaw + fraction * yaw_delta),
+            ),
+            None,
+            lower_stamp_s=lower.stamp_s,
+            upper_stamp_s=upper.stamp_s,
+        )
+
+    def _append_result(self, accepted: bool, reason: str | None) -> HistoryAppendResult:
+        return HistoryAppendResult(
+            accepted=accepted,
+            reason=reason,
+            sample_count=len(self._samples),
+        )
+
+
+class CorrectionGateState(IntEnum):
+    UNINITIALIZED = 0
+    LOCKED = 1
+    SUSPECT = 2
+    REACQUIRING = 3
+    DEGRADED = 4
+
+
+class CorrectionGateKind(Enum):
+    YAW = "yaw"
+    TRANSLATION = "translation"
+
+
+GateValue = Union[float, tuple[float, float]]
+
+
+@dataclass(frozen=True)
+class CorrectionGateResult:
+    processed: bool
+    accepted: bool
+    state: CorrectionGateState
+    reason: str | None
+    target: GateValue | None
+    innovation: float | None
+    candidate_count: int
+    candidate_span_s: float
+    consecutive_failures: int
+
+
+@dataclass(frozen=True)
+class CorrectionGateSnapshot:
+    state: CorrectionGateState
+    target: GateValue | None
+    candidate_stamps: tuple[float, ...]
+    candidate_values: tuple[GateValue, ...]
+    last_observation_stamp_s: float | None
+    last_processable_time_s: float | None
+    consecutive_failures: int
+
+
+@dataclass(frozen=True)
+class _GateCandidate:
+    stamp_s: float
+    value: GateValue
+
+
+class CorrectionGate:
+    def __init__(
+        self,
+        kind: CorrectionGateKind | str,
+        *,
+        locked_threshold: float | None = None,
+        recovery_threshold: float | None = None,
+        min_candidates: int = 5,
+        min_span_s: float = 0.30,
+        max_candidates: int = 20,
+        max_consecutive_failures: int = 5,
+        processable_timeout_s: float = 1.0,
+    ) -> None:
+        self.kind = CorrectionGateKind(kind)
+        default_locked = math.radians(15.0) if self.kind is CorrectionGateKind.YAW else 1.0
+        default_recovery = math.radians(5.0) if self.kind is CorrectionGateKind.YAW else 0.30
+        self.locked_threshold = default_locked if locked_threshold is None else locked_threshold
+        self.recovery_threshold = (
+            default_recovery if recovery_threshold is None else recovery_threshold
+        )
+        self.min_candidates = min_candidates
+        self.min_span_s = min_span_s
+        self.max_candidates = max_candidates
+        self.max_consecutive_failures = max_consecutive_failures
+        self.processable_timeout_s = processable_timeout_s
+        self._validate_configuration()
+
+        self.state = CorrectionGateState.UNINITIALIZED
+        self._target: GateValue | None = None
+        self._candidates: list[_GateCandidate] = []
+        self._last_observation_stamp_s: float | None = None
+        self._last_processable_time_s: float | None = None
+        self._unavailable_since_s: float | None = None
+        self._consecutive_failures = 0
+
+    @classmethod
+    def yaw(cls, **kwargs) -> CorrectionGate:
+        return cls(CorrectionGateKind.YAW, **kwargs)
+
+    @classmethod
+    def translation(cls, **kwargs) -> CorrectionGate:
+        return cls(CorrectionGateKind.TRANSLATION, **kwargs)
+
+    @property
+    def target(self) -> GateValue | None:
+        return self._target
+
+    @property
+    def last_trusted_target(self) -> GateValue | None:
+        return self._target
+
+    @property
+    def candidate_values(self) -> tuple[GateValue, ...]:
+        return tuple(candidate.value for candidate in self._candidates)
+
+    @property
+    def candidate_stamps(self) -> tuple[float, ...]:
+        return tuple(candidate.stamp_s for candidate in self._candidates)
+
+    def snapshot(self) -> CorrectionGateSnapshot:
+        return CorrectionGateSnapshot(
+            state=self.state,
+            target=self._target,
+            candidate_stamps=self.candidate_stamps,
+            candidate_values=self.candidate_values,
+            last_observation_stamp_s=self._last_observation_stamp_s,
+            last_processable_time_s=self._last_processable_time_s,
+            consecutive_failures=self._consecutive_failures,
+        )
+
+    def observe(
+        self,
+        stamp_s: float,
+        value: GateValue,
+        *,
+        now_s: float | None = None,
+    ) -> CorrectionGateResult:
+        if not math.isfinite(stamp_s) or stamp_s <= 0.0:
+            return self._result(False, False, "INVALID_STAMP")
+        stamp_reason = self._stamp_order_reason(stamp_s)
+        if stamp_reason is not None:
+            return self._result(False, False, stamp_reason)
+        normalized_value = self._validated_value(value)
+        if normalized_value is None:
+            return self._result(False, False, "NONFINITE_CANDIDATE")
+
+        process_time_s = stamp_s if now_s is None else now_s
+        if not math.isfinite(process_time_s):
+            return self._result(False, False, "INVALID_PROCESS_TIME")
+
+        self._last_observation_stamp_s = stamp_s
+        self._last_processable_time_s = process_time_s
+        self._unavailable_since_s = None
+        self._consecutive_failures = 0
+
+        if self.state is CorrectionGateState.LOCKED:
+            innovation = self._distance(self._target, normalized_value)
+            if innovation <= self.locked_threshold:
+                self._target = normalized_value
+                return self._result(True, True, None, innovation=innovation)
+
+            self.state = CorrectionGateState.SUSPECT
+            self._candidates.clear()
+            return self._result(
+                True,
+                False,
+                "INNOVATION_REJECTED",
+                innovation=innovation,
+            )
+
+        candidate = _GateCandidate(stamp_s=stamp_s, value=normalized_value)
+        replaced = False
+        if self.state is not CorrectionGateState.REACQUIRING or not self._candidates:
+            self._candidates = [candidate]
+        elif self._candidates_consistent([*self._candidates, candidate]):
+            self._candidates.append(candidate)
+            if len(self._candidates) > self.max_candidates:
+                del self._candidates[: len(self._candidates) - self.max_candidates]
+        else:
+            self._candidates = [candidate]
+            replaced = True
+
+        self.state = CorrectionGateState.REACQUIRING
+        if (
+            len(self._candidates) >= self.min_candidates
+            and self._candidate_span_s() >= self.min_span_s
+        ):
+            self._target = self._candidate_mean()
+            self.state = CorrectionGateState.LOCKED
+            return self._result(True, True, "RECOVERY_LOCKED")
+
+        reason = "RECOVERY_WINDOW_REPLACED" if replaced else "RECOVERY_PENDING"
+        return self._result(True, False, reason)
+
+    def odom_timeout(self, stamp_s: float, *, now_s: float) -> CorrectionGateResult:
+        if not math.isfinite(stamp_s) or stamp_s <= 0.0:
+            return self._result(False, False, "INVALID_STAMP")
+        if not math.isfinite(now_s):
+            return self._result(False, False, "INVALID_PROCESS_TIME")
+        stamp_reason = self._stamp_order_reason(stamp_s)
+        if stamp_reason is not None:
+            return self._result(False, False, stamp_reason)
+        self._last_observation_stamp_s = stamp_s
+        return self.prerequisite_failure(
+            now_s=now_s,
+            reason="ODOM_AT_STAMP_UNAVAILABLE",
+        )
+
+    def prerequisite_failure(
+        self,
+        *,
+        now_s: float,
+        reason: str,
+    ) -> CorrectionGateResult:
+        if not math.isfinite(now_s):
+            return self._result(False, False, "INVALID_PROCESS_TIME")
+
+        self._consecutive_failures += 1
+        if self._unavailable_since_s is None:
+            self._unavailable_since_s = (
+                self._last_processable_time_s
+                if self._last_processable_time_s is not None
+                else now_s
+            )
+        if self.state is CorrectionGateState.LOCKED:
+            self.state = CorrectionGateState.SUSPECT
+            self._candidates.clear()
+
+        timed_out = now_s - self._unavailable_since_s >= self.processable_timeout_s
+        if self._consecutive_failures >= self.max_consecutive_failures or timed_out:
+            self.state = CorrectionGateState.DEGRADED
+            self._candidates.clear()
+        return self._result(True, False, reason)
+
+    def check_timeout(self, *, now_s: float) -> CorrectionGateResult:
+        if not math.isfinite(now_s):
+            return self._result(False, False, "INVALID_PROCESS_TIME")
+        reference_s = self._last_processable_time_s
+        if reference_s is None:
+            reference_s = self._unavailable_since_s
+        if reference_s is None or now_s - reference_s < self.processable_timeout_s:
+            return self._result(False, False, None)
+
+        self.state = CorrectionGateState.DEGRADED
+        self._candidates.clear()
+        return self._result(True, False, "NO_PROCESSABLE_OBSERVATION")
+
+    def _validate_configuration(self) -> None:
+        for name, value in (
+            ("locked_threshold", self.locked_threshold),
+            ("recovery_threshold", self.recovery_threshold),
+            ("min_span_s", self.min_span_s),
+            ("processable_timeout_s", self.processable_timeout_s),
+        ):
+            if not math.isfinite(value) or value < 0.0:
+                raise ValueError(f"{name} must be finite and nonnegative")
+        for name, value in (
+            ("min_candidates", self.min_candidates),
+            ("max_candidates", self.max_candidates),
+            ("max_consecutive_failures", self.max_consecutive_failures),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer")
+        if self.max_candidates < self.min_candidates:
+            raise ValueError("max_candidates must be at least min_candidates")
+
+    def _validated_value(self, value: GateValue) -> GateValue | None:
+        if self.kind is CorrectionGateKind.YAW:
+            if not isinstance(value, (int, float)) or not math.isfinite(value):
+                return None
+            return normalize_angle(float(value))
+
+        if not isinstance(value, (tuple, list)) or len(value) != 2:
+            return None
+        x, y = value
+        if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+            return None
+        if not math.isfinite(x) or not math.isfinite(y):
+            return None
+        return (float(x), float(y))
+
+    def _stamp_order_reason(self, stamp_s: float) -> str | None:
+        if self._last_observation_stamp_s is None:
+            return None
+        if stamp_s == self._last_observation_stamp_s:
+            return "DUPLICATE_STAMP"
+        if stamp_s < self._last_observation_stamp_s:
+            return "REGRESSING_STAMP"
+        return None
+
+    def _distance(self, first: GateValue | None, second: GateValue) -> float:
+        if first is None:
+            return math.inf
+        if self.kind is CorrectionGateKind.YAW:
+            return abs(normalize_angle(float(second) - float(first)))
+        first_xy = first
+        second_xy = second
+        return math.hypot(second_xy[0] - first_xy[0], second_xy[1] - first_xy[1])
+
+    def _candidates_consistent(self, candidates: list[_GateCandidate]) -> bool:
+        if self.kind is CorrectionGateKind.YAW:
+            spread = self._circular_spread(
+                [float(candidate.value) for candidate in candidates]
+            )
+            return spread <= self.recovery_threshold
+
+        values = [candidate.value for candidate in candidates]
+        diameter = max(
+            (
+                math.hypot(second[0] - first[0], second[1] - first[1])
+                for index, first in enumerate(values)
+                for second in values[index + 1 :]
+            ),
+            default=0.0,
+        )
+        return diameter <= self.recovery_threshold
+
+    @staticmethod
+    def _circular_spread(values: list[float]) -> float:
+        if len(values) < 2:
+            return 0.0
+        wrapped = sorted(value % math.tau for value in values)
+        gaps = [
+            wrapped[index + 1] - wrapped[index]
+            for index in range(len(wrapped) - 1)
+        ]
+        gaps.append(wrapped[0] + math.tau - wrapped[-1])
+        return math.tau - max(gaps)
+
+    def _candidate_mean(self) -> GateValue:
+        if self.kind is CorrectionGateKind.YAW:
+            sin_sum = sum(math.sin(float(candidate.value)) for candidate in self._candidates)
+            cos_sum = sum(math.cos(float(candidate.value)) for candidate in self._candidates)
+            return math.atan2(sin_sum, cos_sum)
+
+        count = len(self._candidates)
+        return (
+            sum(candidate.value[0] for candidate in self._candidates) / count,
+            sum(candidate.value[1] for candidate in self._candidates) / count,
+        )
+
+    def _candidate_span_s(self) -> float:
+        if len(self._candidates) < 2:
+            return 0.0
+        return self._candidates[-1].stamp_s - self._candidates[0].stamp_s
+
+    def _result(
+        self,
+        processed: bool,
+        accepted: bool,
+        reason: str | None,
+        *,
+        innovation: float | None = None,
+    ) -> CorrectionGateResult:
+        return CorrectionGateResult(
+            processed=processed,
+            accepted=accepted,
+            state=self.state,
+            reason=reason,
+            target=self._target,
+            innovation=innovation,
+            candidate_count=len(self._candidates),
+            candidate_span_s=self._candidate_span_s(),
+            consecutive_failures=self._consecutive_failures,
+        )
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,10 @@ import pytest
 
 import gps_waypoint_dispatcher.rtk_authority as authority
 from gps_waypoint_dispatcher.rtk_authority import (
+    CorrectionGate,
+    CorrectionGateState,
     Pose2D,
+    StampedPoseHistory,
     blend_pose_target,
     compose_pose,
     compute_bootstrap_alignment_from_current_pose,
@@ -16,6 +19,392 @@ from gps_waypoint_dispatcher.rtk_authority import (
     should_publish_bootstrap_without_fixed,
     summarize_authority_inputs,
 )
+
+
+def _pose(x=0.0, y=0.0, yaw=0.0):
+    return Pose2D(x=x, y=y, yaw=yaw)
+
+
+def _append_history(history, stamp_s, pose=None, **frames):
+    return history.append(
+        stamp_s=stamp_s,
+        pose=pose or _pose(),
+        frame_id=frames.get("frame_id", "odom"),
+        child_frame_id=frames.get("child_frame_id", "base_footprint"),
+    )
+
+
+def _lock_yaw_gate(gate, *, start_stamp_s=1.0, now_s=10.0, values=None):
+    values = values or [0.0] * 5
+    result = None
+    for index, value in enumerate(values):
+        result = gate.observe(
+            stamp_s=start_stamp_s + 0.1 * index,
+            value=value,
+            now_s=now_s + 0.1 * index,
+        )
+    return result
+
+
+@pytest.mark.parametrize(
+    ("frames", "reason"),
+    [
+        ({"frame_id": "map"}, "INVALID_FRAME"),
+        ({"child_frame_id": "base_link"}, "INVALID_CHILD_FRAME"),
+    ],
+)
+def test_stamped_pose_history_rejects_wrong_frames(frames, reason):
+    history = StampedPoseHistory()
+
+    result = _append_history(history, 1.0, **frames)
+
+    assert result.accepted is False
+    assert result.reason == reason
+    assert len(history) == 0
+
+
+@pytest.mark.parametrize("stamp_s", [0.0, -1.0, math.inf, math.nan])
+def test_stamped_pose_history_rejects_zero_or_nonfinite_stamp(stamp_s):
+    history = StampedPoseHistory()
+
+    result = _append_history(history, stamp_s)
+
+    assert result.accepted is False
+    assert result.reason == "INVALID_STAMP"
+    assert len(history) == 0
+
+
+@pytest.mark.parametrize(
+    "pose",
+    [
+        _pose(x=math.nan),
+        _pose(y=math.inf),
+        _pose(yaw=-math.inf),
+    ],
+)
+def test_stamped_pose_history_rejects_nonfinite_pose(pose):
+    history = StampedPoseHistory()
+
+    result = _append_history(history, 1.0, pose)
+
+    assert result.accepted is False
+    assert result.reason == "NONFINITE_POSE"
+    assert len(history) == 0
+
+
+def test_stamped_pose_history_rejects_duplicate_and_regressing_stamps():
+    history = StampedPoseHistory()
+    assert _append_history(history, 2.0).accepted
+
+    duplicate = _append_history(history, 2.0, _pose(x=1.0))
+    regressing = _append_history(history, 1.5, _pose(x=2.0))
+
+    assert duplicate.reason == "DUPLICATE_STAMP"
+    assert regressing.reason == "REGRESSING_STAMP"
+    assert [sample.stamp_s for sample in history.samples] == [2.0]
+
+
+def test_stamped_pose_history_bounds_samples_by_time():
+    history = StampedPoseHistory(max_age_s=2.0)
+    for stamp_s in [1.0, 2.0, 3.0, 3.01]:
+        assert _append_history(history, stamp_s).accepted
+
+    assert [sample.stamp_s for sample in history.samples] == [2.0, 3.0, 3.01]
+
+
+def test_stamped_pose_history_bounds_samples_by_count():
+    history = StampedPoseHistory(max_samples=3)
+    for stamp_s in [1.0, 2.0, 3.0, 4.0]:
+        assert _append_history(history, stamp_s).accepted
+
+    assert [sample.stamp_s for sample in history.samples] == [2.0, 3.0, 4.0]
+
+
+def test_stamped_pose_history_allows_exact_samples_without_extrapolation():
+    history = StampedPoseHistory()
+    exact_pose = _pose(x=2.0, y=-3.0, yaw=0.4)
+    _append_history(history, 1.0, _pose())
+    _append_history(history, 1.1, exact_pose)
+
+    exact = history.interpolate(1.1)
+    before = history.interpolate(0.9)
+    after = history.interpolate(1.2)
+
+    assert exact.ok is True
+    assert exact.pose == exact_pose
+    assert exact.reason is None
+    assert before.reason == "ODOM_AT_STAMP_UNAVAILABLE"
+    assert after.reason == "ODOM_AT_STAMP_UNAVAILABLE"
+
+
+def test_stamped_pose_history_interpolates_translation_linearly():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0, _pose(x=1.0, y=-2.0, yaw=0.0))
+    _append_history(history, 1.2, _pose(x=3.0, y=4.0, yaw=0.0))
+
+    result = history.interpolate(1.05)
+
+    assert result.ok is True
+    assert result.pose.x == pytest.approx(1.5)
+    assert result.pose.y == pytest.approx(-0.5)
+
+
+def test_stamped_pose_history_interpolates_yaw_across_wrap_on_shortest_arc():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0, _pose(yaw=math.radians(179.0)))
+    _append_history(history, 1.2, _pose(yaw=math.radians(-179.0)))
+
+    result = history.interpolate(1.1)
+
+    assert result.ok is True
+    assert abs(math.degrees(result.pose.yaw)) == pytest.approx(180.0)
+
+
+def test_stamped_pose_history_enforces_inclusive_bracket_limit():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0)
+    _append_history(history, 1.2, _pose(x=1.0))
+    _append_history(history, 1.41, _pose(x=2.0))
+
+    inclusive = history.interpolate(1.1, max_bracket_s=0.20)
+    too_wide = history.interpolate(1.3, max_bracket_s=0.20)
+
+    assert inclusive.ok is True
+    assert too_wide.ok is False
+    assert too_wide.reason == "ODOM_BRACKET_TOO_WIDE"
+
+
+def test_correction_gate_state_values_match_diagnostic_contract():
+    assert list(CorrectionGateState) == [
+        CorrectionGateState.UNINITIALIZED,
+        CorrectionGateState.LOCKED,
+        CorrectionGateState.SUSPECT,
+        CorrectionGateState.REACQUIRING,
+        CorrectionGateState.DEGRADED,
+    ]
+    assert [state.value for state in CorrectionGateState] == list(range(5))
+
+
+def test_first_eligible_observation_seeds_reacquisition():
+    gate = CorrectionGate.yaw()
+
+    result = gate.observe(stamp_s=1.0, value=0.2, now_s=5.0)
+
+    assert result.processed is True
+    assert result.accepted is False
+    assert result.state is CorrectionGateState.REACQUIRING
+    assert result.reason == "RECOVERY_PENDING"
+    assert result.candidate_count == 1
+    assert gate.target is None
+
+
+def test_yaw_gate_locks_on_count_and_span_with_circular_mean():
+    gate = CorrectionGate.yaw()
+    values = [
+        math.radians(178.0),
+        math.radians(179.0),
+        math.radians(-179.0),
+        math.radians(-178.0),
+        math.radians(180.0),
+    ]
+
+    result = _lock_yaw_gate(gate, values=values)
+
+    assert result.accepted is True
+    assert result.state is CorrectionGateState.LOCKED
+    assert result.candidate_count == 5
+    assert result.candidate_span_s == pytest.approx(0.4)
+    assert abs(math.degrees(result.target)) == pytest.approx(180.0)
+
+
+def test_translation_gate_locks_to_component_arithmetic_mean():
+    gate = CorrectionGate.translation()
+    values = [(0.0, 0.0), (0.1, 0.0), (0.2, 0.0), (0.1, 0.05), (0.1, -0.05)]
+    result = None
+    for index, value in enumerate(values):
+        result = gate.observe(
+            stamp_s=1.0 + 0.1 * index,
+            value=value,
+            now_s=10.0 + 0.1 * index,
+        )
+
+    assert result.state is CorrectionGateState.LOCKED
+    assert result.target == pytest.approx((0.1, 0.0))
+
+
+def test_high_rate_fifth_candidate_stays_reacquiring_until_span_passes():
+    gate = CorrectionGate.yaw()
+    result = None
+    for index in range(5):
+        result = gate.observe(
+            stamp_s=1.0 + 0.05 * index,
+            value=0.0,
+            now_s=2.0 + 0.05 * index,
+        )
+
+    assert result.candidate_count == 5
+    assert result.candidate_span_s == pytest.approx(0.2)
+    assert result.state is CorrectionGateState.REACQUIRING
+
+    locked = gate.observe(stamp_s=1.3, value=0.0, now_s=2.3)
+    assert locked.state is CorrectionGateState.LOCKED
+
+
+def test_inconsistent_candidate_replaces_the_whole_window():
+    gate = CorrectionGate.yaw()
+    gate.observe(stamp_s=1.0, value=math.radians(0.0), now_s=2.0)
+    gate.observe(stamp_s=1.1, value=math.radians(1.0), now_s=2.1)
+
+    result = gate.observe(stamp_s=1.2, value=math.radians(8.0), now_s=2.2)
+
+    assert result.state is CorrectionGateState.REACQUIRING
+    assert result.reason == "RECOVERY_WINDOW_REPLACED"
+    assert result.candidate_count == 1
+    assert gate.candidate_values == (math.radians(8.0),)
+
+
+def test_recovery_candidate_window_is_capped_at_twenty():
+    gate = CorrectionGate.yaw()
+    for index in range(25):
+        result = gate.observe(
+            stamp_s=1.0 + 0.01 * index,
+            value=0.0,
+            now_s=2.0 + 0.01 * index,
+        )
+
+    assert result.state is CorrectionGateState.REACQUIRING
+    assert result.candidate_count == 20
+    assert gate.candidate_stamps[0] == pytest.approx(1.05)
+
+
+def test_locked_gate_accepts_an_in_gate_innovation():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate)
+
+    result = gate.observe(
+        stamp_s=1.5,
+        value=math.radians(14.9),
+        now_s=10.5,
+    )
+
+    assert result.accepted is True
+    assert result.state is CorrectionGateState.LOCKED
+    assert math.degrees(result.innovation) == pytest.approx(14.9)
+    assert gate.target == pytest.approx(math.radians(14.9))
+
+
+def test_one_locked_innovation_rejection_freezes_target_and_enters_suspect():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate)
+    trusted = gate.target
+
+    result = gate.observe(
+        stamp_s=1.5,
+        value=math.radians(15.1),
+        now_s=10.5,
+    )
+
+    assert result.accepted is False
+    assert result.state is CorrectionGateState.SUSPECT
+    assert result.reason == "INNOVATION_REJECTED"
+    assert result.candidate_count == 0
+    assert result.target == trusted
+    assert gate.last_trusted_target == trusted
+
+
+def test_suspect_and_degraded_gates_seed_reacquisition_without_moving_target():
+    suspect = CorrectionGate.yaw()
+    _lock_yaw_gate(suspect)
+    suspect.observe(stamp_s=1.5, value=math.radians(20.0), now_s=10.5)
+    trusted = suspect.target
+
+    suspect_result = suspect.observe(stamp_s=1.6, value=math.radians(20.0), now_s=10.6)
+
+    degraded = CorrectionGate.translation()
+    for index in range(5):
+        degraded.prerequisite_failure(now_s=float(index), reason="NO_ODOM")
+    degraded_result = degraded.observe(
+        stamp_s=2.0,
+        value=(3.0, 4.0),
+        now_s=5.0,
+    )
+
+    assert suspect_result.state is CorrectionGateState.REACQUIRING
+    assert suspect_result.target == trusted
+    assert degraded_result.state is CorrectionGateState.REACQUIRING
+    assert degraded_result.candidate_count == 1
+    assert degraded_result.target is None
+
+
+def test_duplicate_or_older_gate_observation_does_not_change_state():
+    gate = CorrectionGate.translation()
+    gate.observe(stamp_s=2.0, value=(1.0, 1.0), now_s=4.0)
+    before = gate.snapshot()
+
+    duplicate = gate.observe(stamp_s=2.0, value=(2.0, 2.0), now_s=4.1)
+    older = gate.observe(stamp_s=1.9, value=(3.0, 3.0), now_s=4.2)
+
+    assert duplicate.processed is False
+    assert duplicate.reason == "DUPLICATE_STAMP"
+    assert older.processed is False
+    assert older.reason == "REGRESSING_STAMP"
+    assert gate.snapshot() == before
+
+
+def test_one_odom_timeout_moves_locked_gate_to_suspect_and_freezes_target():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate)
+    trusted = gate.target
+
+    result = gate.odom_timeout(stamp_s=2.0, now_s=11.0)
+
+    assert result.state is CorrectionGateState.SUSPECT
+    assert result.reason == "ODOM_AT_STAMP_UNAVAILABLE"
+    assert result.target == trusted
+    assert result.candidate_count == 0
+
+
+def test_invalid_odom_timeout_process_time_does_not_advance_gate_stamp():
+    gate = CorrectionGate.yaw()
+    gate.observe(stamp_s=1.0, value=0.0, now_s=2.0)
+    before = gate.snapshot()
+
+    result = gate.odom_timeout(stamp_s=1.1, now_s=math.nan)
+
+    assert result.processed is False
+    assert result.reason == "INVALID_PROCESS_TIME"
+    assert gate.snapshot() == before
+
+
+def test_five_consecutive_prerequisite_failures_degrade_and_clear_candidates():
+    gate = CorrectionGate.translation()
+    gate.observe(stamp_s=1.0, value=(0.0, 0.0), now_s=10.0)
+
+    for index in range(4):
+        result = gate.prerequisite_failure(
+            now_s=10.1 + index * 0.1,
+            reason="NO_ODOM",
+        )
+        assert result.state is CorrectionGateState.REACQUIRING
+
+    degraded = gate.prerequisite_failure(now_s=10.5, reason="NO_ODOM")
+
+    assert degraded.state is CorrectionGateState.DEGRADED
+    assert degraded.reason == "NO_ODOM"
+    assert degraded.candidate_count == 0
+
+
+def test_one_second_without_processable_observation_degrades_gate():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate, now_s=10.0)
+
+    still_locked = gate.check_timeout(now_s=11.399)
+    degraded = gate.check_timeout(now_s=11.4)
+
+    assert still_locked.state is CorrectionGateState.LOCKED
+    assert degraded.state is CorrectionGateState.DEGRADED
+    assert degraded.reason == "NO_PROCESSABLE_OBSERVATION"
+    assert degraded.target == pytest.approx(0.0)
 
 
 def test_compute_map_to_odom_maps_local_base_to_rtk_map_pose():

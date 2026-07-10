@@ -7,7 +7,9 @@ from enum import Enum, IntEnum
 from typing import Union
 
 
-_TIME_COMPARISON_EPSILON_S = 1e-9
+def _time_comparison_epsilon_s(*values: float) -> float:
+    finite_ulps = [math.ulp(value) for value in values if math.isfinite(value)]
+    return max(1e-9, 4.0 * max(finite_ulps, default=0.0))
 
 
 @dataclass(frozen=True)
@@ -131,7 +133,12 @@ class StampedPoseHistory:
         lower = self._samples[upper_index - 1]
         upper = self._samples[upper_index]
         bracket_s = upper.stamp_s - lower.stamp_s
-        if bracket_s > max_bracket_s + _TIME_COMPARISON_EPSILON_S:
+        bracket_epsilon_s = _time_comparison_epsilon_s(
+            lower.stamp_s,
+            upper.stamp_s,
+            lower.stamp_s + max_bracket_s,
+        )
+        if bracket_s > max_bracket_s + bracket_epsilon_s:
             return PoseInterpolationResult(
                 False,
                 None,
@@ -355,10 +362,14 @@ class CorrectionGate:
             replaced = True
 
         self.state = CorrectionGateState.REACQUIRING
+        span_epsilon_s = _time_comparison_epsilon_s(
+            self._candidates[0].stamp_s,
+            self._candidates[-1].stamp_s,
+            self._candidates[0].stamp_s + self.min_span_s,
+        )
         if (
             len(self._candidates) >= self.min_candidates
-            and self._candidate_span_s() + _TIME_COMPARISON_EPSILON_S
-            >= self.min_span_s
+            and self._candidate_span_s() + span_epsilon_s >= self.min_span_s
         ):
             self._target = self._candidate_mean()
             self.state = CorrectionGateState.LOCKED
@@ -411,8 +422,13 @@ class CorrectionGate:
         elif kind not in _QUALITY_UNAVAILABLE_FAILURES:
             raise AssertionError(f"unhandled prerequisite failure kind: {kind.value}")
 
+        timeout_epsilon_s = _time_comparison_epsilon_s(
+            self._unavailable_since_s,
+            now_s,
+            self._unavailable_since_s + self.processable_timeout_s,
+        )
         timed_out = (
-            now_s - self._unavailable_since_s + _TIME_COMPARISON_EPSILON_S
+            now_s - self._unavailable_since_s + timeout_epsilon_s
             >= self.processable_timeout_s
         )
         if self._consecutive_failures >= self.max_consecutive_failures or timed_out:
@@ -426,10 +442,18 @@ class CorrectionGate:
         reference_s = self._last_processable_time_s
         if reference_s is None:
             reference_s = self._unavailable_since_s
+        timeout_epsilon_s = (
+            0.0
+            if reference_s is None
+            else _time_comparison_epsilon_s(
+                reference_s,
+                now_s,
+                reference_s + self.processable_timeout_s,
+            )
+        )
         if (
             reference_s is None
-            or now_s - reference_s + _TIME_COMPARISON_EPSILON_S
-            < self.processable_timeout_s
+            or now_s - reference_s + timeout_epsilon_s < self.processable_timeout_s
         ):
             return self._result(False, False, None)
 

@@ -184,6 +184,17 @@ def test_stamped_pose_history_accepts_logical_bracket_limit_float_roundoff():
     assert result.ok is True
 
 
+def test_stamped_pose_history_accepts_logical_bracket_at_ros_epoch_scale():
+    base_stamp_s = 1783342965.0
+    history = StampedPoseHistory()
+    _append_history(history, base_stamp_s)
+    _append_history(history, base_stamp_s + 0.20, _pose(x=1.0))
+
+    result = history.interpolate(base_stamp_s + 0.10, max_bracket_s=0.20)
+
+    assert result.ok is True
+
+
 def test_correction_gate_state_values_match_diagnostic_contract():
     assert list(CorrectionGateState) == [
         CorrectionGateState.UNINITIALIZED,
@@ -267,6 +278,17 @@ def test_recovery_locks_when_logical_span_has_negative_float_roundoff():
         result = gate.observe(stamp_s=stamp_s, value=0.0, now_s=stamp_s + 1.0)
 
     assert result.candidate_span_s == 0.2999999999999998
+    assert result.state is CorrectionGateState.LOCKED
+
+
+def test_recovery_locks_on_logical_span_at_ros_epoch_scale():
+    base_stamp_s = 1783342965.0
+    gate = CorrectionGate.yaw()
+    result = None
+    for offset_s in [0.0, 0.05, 0.10, 0.20, 0.30]:
+        stamp_s = base_stamp_s + offset_s
+        result = gate.observe(stamp_s=stamp_s, value=0.0, now_s=stamp_s)
+
     assert result.state is CorrectionGateState.LOCKED
 
 

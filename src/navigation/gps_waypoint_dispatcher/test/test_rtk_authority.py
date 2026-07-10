@@ -1474,6 +1474,86 @@ def test_correction_release_latched_hard_fault_precedes_all_later_validation(
         _assert_release_poses_finite(result)
 
 
+def test_correction_release_fault_hold_refreshes_valid_target_diagnostics():
+    state = CorrectionReleaseState()
+    trusted = _pose()
+    _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
+    fault = _release_update(
+        state,
+        previous=trusted,
+        target=_pose(x=2.1),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    target = _pose(x=3.0, yaw=math.radians(12.0))
+
+    held = _release_update(
+        state,
+        previous=_pose(x=0.4),
+        target=target,
+        local=_pose(),
+        now_s=10.2,
+        lio_stamp_s=1.2,
+    )
+
+    assert fault.translation_gap_m == pytest.approx(2.1)
+    assert held.output_map_odom == trusted
+    assert held.output_map_base == trusted
+    assert held.target_map_base.x == pytest.approx(target.x)
+    assert held.target_map_base.y == pytest.approx(target.y)
+    assert held.target_map_base.yaw == pytest.approx(target.yaw)
+    assert held.translation_gap_m == pytest.approx(3.0)
+    assert math.degrees(held.yaw_gap_rad) == pytest.approx(12.0)
+    assert held.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert held.reason is CorrectionReleaseReason.FAULT_LATCHED
+    assert held.motion_allowed is False
+    assert held.dt_s == 0.0
+    assert held.translation_step_m == 0.0
+    assert held.yaw_step_rad == 0.0
+    assert held.stopped_duration_s == 0.0
+    assert held.recovery_duration_s == 0.0
+
+
+def test_correction_release_fault_diagnostics_overflow_keeps_last_finite_snapshot():
+    state = CorrectionReleaseState()
+    trusted = _pose()
+    _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=trusted,
+        target=_pose(x=2.1),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    last_target = _pose(x=3.0, yaw=math.radians(12.0))
+    last_finite = _release_update(
+        state,
+        previous=trusted,
+        target=last_target,
+        now_s=10.2,
+        lio_stamp_s=1.2,
+    )
+
+    overflow = _release_update(
+        state,
+        previous=_pose(x=0.5),
+        target=_pose(x=1e308),
+        local=_pose(x=1e308),
+        now_s=10.3,
+        lio_stamp_s=1.3,
+    )
+
+    assert overflow.output_map_odom == trusted
+    assert overflow.output_map_base == last_finite.output_map_base
+    assert overflow.target_map_base == last_finite.target_map_base
+    assert overflow.translation_gap_m == pytest.approx(3.0)
+    assert math.degrees(overflow.yaw_gap_rad) == pytest.approx(12.0)
+    assert overflow.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert overflow.reason is CorrectionReleaseReason.FAULT_LATCHED
+    assert overflow.motion_allowed is False
+    _assert_release_poses_finite(overflow)
+
+
 def test_correction_release_backlog_uses_base_yaw_lever_arm_translation_gap():
     state = CorrectionReleaseState()
     previous = _pose()

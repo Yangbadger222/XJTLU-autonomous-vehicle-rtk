@@ -753,6 +753,8 @@ class CorrectionReleaseState:
         self._last_finite_output_map_odom = identity
         self._last_finite_output_map_base = identity
         self._last_finite_target_map_base = identity
+        self._last_finite_translation_gap_m = 0.0
+        self._last_finite_yaw_gap_rad = 0.0
 
     def update(
         self,
@@ -768,14 +770,14 @@ class CorrectionReleaseState:
         gates_locked: bool,
     ) -> CorrectionReleaseResult:
         if self._fault_latched:
-            return self._frozen_result(
-                self._last_finite_output_map_odom,
-                self._last_finite_output_map_base,
-                self._last_finite_target_map_base,
-                CorrectionReleaseReason.FAULT_LATCHED,
-                0.0,
-                0.0,
-                mode=CorrectionReleaseMode.FAULT_HOLD,
+            return self._fault_hold_result(
+                target_map_odom=target_map_odom,
+                local_pose=local_pose,
+                now_s=now_s,
+                lio_stamp_s=lio_stamp_s,
+                lio_age_s=lio_age_s,
+                local_linear_rate_mps=local_linear_rate_mps,
+                local_yaw_rate_radps=local_yaw_rate_radps,
             )
 
         if not self._is_finite_pose(previous_output_map_odom):
@@ -822,6 +824,14 @@ class CorrectionReleaseState:
             target_map_base.y - previous_map_base.y,
         )
         gap_yaw_rad = abs(normalize_angle(target_map_base.yaw - previous_map_base.yaw))
+        if not math.isfinite(gap_m) or not math.isfinite(gap_yaw_rad):
+            self._fault_latched = True
+            return self._invalid_pose_result(
+                CorrectionReleaseReason.INVALID_POSE_COMPOSITION,
+                CorrectionReleaseMode.FAULT_HOLD,
+            )
+        self._last_finite_translation_gap_m = gap_m
+        self._last_finite_yaw_gap_rad = gap_yaw_rad
 
         if gap_m > self.fault_translation_m or gap_yaw_rad > self.fault_yaw_rad:
             self._fault_latched = True
@@ -1007,6 +1017,14 @@ class CorrectionReleaseState:
         output_gap_yaw_rad = abs(
             normalize_angle(target_map_base.yaw - limited.pose.yaw)
         )
+        if not math.isfinite(output_gap_m) or not math.isfinite(output_gap_yaw_rad):
+            self._fault_latched = True
+            return self._invalid_pose_result(
+                CorrectionReleaseReason.INVALID_POSE_COMPOSITION,
+                CorrectionReleaseMode.FAULT_HOLD,
+            )
+        self._last_finite_translation_gap_m = output_gap_m
+        self._last_finite_yaw_gap_rad = output_gap_yaw_rad
         recovery_duration_s = 0.0
         if self._backlog_active:
             recovery_ready = (
@@ -1091,6 +1109,84 @@ class CorrectionReleaseState:
             yaw_step_rad=0.0,
             stopped_duration_s=0.0,
             recovery_duration_s=0.0,
+        )
+
+    def _fault_hold_result(
+        self,
+        *,
+        target_map_odom: Pose2D,
+        local_pose: Pose2D,
+        now_s: float,
+        lio_stamp_s: float,
+        lio_age_s: float,
+        local_linear_rate_mps: float,
+        local_yaw_rate_radps: float,
+    ) -> CorrectionReleaseResult:
+        lio_values = (
+            now_s,
+            lio_stamp_s,
+            lio_age_s,
+            local_linear_rate_mps,
+            local_yaw_rate_radps,
+        )
+        valid_input = (
+            self._is_finite_pose(target_map_odom)
+            and self._is_finite_pose(local_pose)
+            and all(math.isfinite(value) for value in lio_values)
+            and lio_stamp_s > 0.0
+            and lio_age_s >= 0.0
+        )
+        age_epsilon_s = _time_comparison_epsilon_s(
+            lio_stamp_s,
+            lio_stamp_s + self.max_lio_age_s,
+            lio_age_s,
+        )
+        valid_input = (
+            valid_input
+            and lio_age_s <= self.max_lio_age_s + age_epsilon_s
+            and (
+                self._last_lio_stamp_s is None
+                or lio_stamp_s > self._last_lio_stamp_s
+            )
+        )
+        if valid_input:
+            try:
+                output_map_base = compose_pose(
+                    self._last_finite_output_map_odom,
+                    local_pose,
+                )
+                target_map_base = compose_pose(target_map_odom, local_pose)
+                gap_m = math.hypot(
+                    target_map_base.x - output_map_base.x,
+                    target_map_base.y - output_map_base.y,
+                )
+                gap_yaw_rad = abs(
+                    normalize_angle(target_map_base.yaw - output_map_base.yaw)
+                )
+            except (OverflowError, ValueError):
+                valid_input = False
+            else:
+                valid_input = (
+                    self._is_finite_pose(output_map_base)
+                    and self._is_finite_pose(target_map_base)
+                    and math.isfinite(gap_m)
+                    and math.isfinite(gap_yaw_rad)
+                )
+        if valid_input:
+            self._last_lio_stamp_s = lio_stamp_s
+            self._last_finite_output_map_base = output_map_base
+            self._last_finite_target_map_base = target_map_base
+            self._last_finite_translation_gap_m = gap_m
+            self._last_finite_yaw_gap_rad = gap_yaw_rad
+
+        return self._frozen_result(
+            self._last_finite_output_map_odom,
+            self._last_finite_output_map_base,
+            self._last_finite_target_map_base,
+            CorrectionReleaseReason.FAULT_LATCHED,
+            self._last_finite_translation_gap_m,
+            self._last_finite_yaw_gap_rad,
+            mode=CorrectionReleaseMode.FAULT_HOLD,
         )
 
     def _validate_configuration(self) -> None:

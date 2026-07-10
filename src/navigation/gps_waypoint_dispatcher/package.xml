@@ -13,6 +13,7 @@
   <depend>lifecycle_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>nav2_msgs</depend>
+  <depend>nmea_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>geographic_msgs</depend>

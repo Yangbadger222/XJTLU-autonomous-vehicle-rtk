@@ -2264,23 +2264,64 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
 
     assert 'super().__init__("rtk_map_odom_corrector")' in node_text
     assert "TransformBroadcaster" in node_text
-    assert "lookup_transform(" in node_text
     assert "sendTransform" in node_text
     assert '"/localization_authority/mode"' in node_text
     assert '"/localization_authority/status"' in node_text
     assert '"/localization_authority/diagnostics"' in node_text
-    assert "compute_map_to_odom" in node_text
-    assert "compute_rtk_map_base" in node_text
-    assert '"allow_yaw_reacquire"' in node_text
-    assert '"YAW_REACQUIRE"' in node_text
-    assert '"max_base_yaw_step_m"' in node_text
-    assert "limit_map_to_odom_step_for_base" in node_text
-    assert "self._last_raw_target: Pose2D | None = None" in node_text
-    assert "self._last_raw_map_base: Pose2D | None = None" in node_text
-    assert "compute_authority_target_delta(" in node_text
-    assert "previous_map_base=self._last_raw_map_base" in node_text
-    assert "previous_map_odom=self._last_raw_target" in node_text
-    assert "raw_output_gap_m" in node_text
+    assert '"/localization_authority/motion_allowed"' in node_text
+    assert '"/fastlio2/lio_odom"' in node_text
+    assert '"/rtk/nmea_sentence"' in node_text
+    assert "StampedPoseHistory" in node_text
+    assert "CorrectionGate.yaw" in node_text
+    assert "CorrectionGate.translation" in node_text
+    assert "CorrectionReleaseState" in node_text
+    assert "lookup_transform(" not in node_text
+    assert "max_pending_observation_s" in node_text
+    assert "fix_quality_wait_s" in node_text
+    assert "heading_quality_wait_s" in node_text
+    assert "observation_fifo_capacity" in node_text
+
+
+def test_rtk_map_odom_corrector_preserves_fifo_and_quality_contracts():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "deque" in node_text
+    assert "if len(queue) >= self._observation_fifo_capacity:" in node_text
+    assert "return False" in node_text
+    assert "self._heading_queue.clear()" in node_text
+    assert "self._fix_queue.clear()" in node_text
+    assert "PrerequisiteFailureKind.NON_FIXED_INPUT" in node_text
+    assert "ODOM_BRACKET_TOO_WIDE" in node_text
+    assert "HEADING_QUALITY_UNAVAILABLE" in node_text
+    assert "FIX_QUALITY_UNAVAILABLE" in node_text
+
+
+def test_rtk_map_odom_corrector_appends_fixed_diagnostic_fields():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "float(self._heading_gate.state)" in node_text
+    assert "float(self._position_gate.state)" in node_text
+    assert "heading_innovation_deg" in node_text
+    assert "position_innovation_m" in node_text
+    assert "release.translation_gap_m" in node_text
+    assert "math.degrees(release.yaw_gap_rad)" in node_text
+    assert "1.0 if motion_allowed else 0.0" in node_text
+
+
+def test_dispatcher_declares_raw_nmea_runtime_dependency():
+    package_text = open(
+        "src/navigation/gps_waypoint_dispatcher/package.xml", encoding="utf-8"
+    ).read()
+
+    assert "<depend>nmea_msgs</depend>" in package_text
 
 
 def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():
@@ -2293,17 +2334,13 @@ def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():
     assert "def _rebroadcast_last_output(self) -> bool:" in node_text
     assert "self._publish_tf(self._last_output)" in node_text
 
-    degraded_exit_markers = [
-        "if not summary.ok:",
-        "if not rtk_fixed_ok and not publish_bootstrap_without_fixed:",
-        "if not valid_fix(self._latest_fix) or self._latest_heading_enu_yaw is None:",
-        "if not jump_summary.ok:",
-    ]
-    for marker in degraded_exit_markers:
-        marker_index = node_text.index(marker)
-        return_index = node_text.index("return", marker_index)
-        degraded_branch = node_text[marker_index:return_index]
-        assert "_rebroadcast_last_output()" in degraded_branch
+    no_alignment = node_text.index("if alignment is None:")
+    process_heading = node_text.index("self._process_heading", no_alignment)
+    assert "_rebroadcast_last_output()" in node_text[no_alignment:process_heading]
+
+    no_release = node_text.index("else:", node_text.index("if release is not None:"))
+    publish_status = node_text.index("self._publish_mode_status", no_release)
+    assert "_rebroadcast_last_output()" in node_text[no_release:publish_status]
 
 
 def test_rtk_map_odom_corrector_is_shutdown_safe():

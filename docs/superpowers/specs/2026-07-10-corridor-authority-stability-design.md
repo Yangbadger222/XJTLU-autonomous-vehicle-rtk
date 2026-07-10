@@ -50,20 +50,33 @@ for topic-staleness and output-rate calculations.
 | Zero stamp | Reject the observation. |
 | More than 0.10 s in the future | Reject the observation. |
 | Duplicate or older than the last processed stamp | Drop without changing gate state. |
-| Exact TF not yet available | Keep one pending sample for at most 0.30 s and retry. |
+| Exact TF not yet available | Queue the observation for at most 0.30 s and retry. |
 | TF still unavailable after 0.30 s | Reject as `TF_AT_STAMP_UNAVAILABLE`. |
 | Requested stamp outside the TF cache | Reject; never substitute latest TF. |
 | Alignment receipt age exceeds 1.0 s | Freeze both correction targets. |
 
 No extrapolation is allowed. A requested `odom -> base` transform must bracket
-the observation time in the TF cache; tf2 performs translation and circular
-quaternion interpolation. Tests use a maximum bracketing interval of 0.20 s.
+the observation time in the TF cache, and the two bracketing transforms must be
+at most 0.20 s apart at runtime. tf2 performs translation and circular
+quaternion interpolation. A larger bracket is rejected as
+`TF_BRACKET_TOO_WIDE`.
+
+Heading and fix streams each have a timestamp-ordered FIFO with capacity 10.
+New observations append while an older item awaits TF; a full FIFO drops the
+newest arrival without changing gate state. Processing never skips the oldest
+item. At 0.30 s pending age, `TF_AT_STAMP_UNAVAILABLE` or
+`TF_BRACKET_TOO_WIDE` pops that item and moves a locked gate to `SUSPECT`; five
+consecutive TF failures or 1.0 s without a processable observation moves it to
+`DEGRADED`. This prevents both indefinite latest-sample replacement and one TF
+cache miss being treated as a sensor outage.
 
 GGA quality is read from timestamped raw `/rtk/nmea_sentence` GGA samples,
 because `NavSatFix` cannot distinguish Fixed from Float. A fix is eligible only
-when its nearest GGA sample has quality 4 and is within 0.25 s. A newer non-4
-GGA immediately clears pending fix candidates and degrades both correction
-gates. Malformed or stale GGA cannot authorize a fix.
+when its same-stamp GGA has quality 4; the current driver publishes both from
+one parsed line. A heading is eligible only when the newest GGA at or before
+its stamp has quality 4 and is no more than 1.5 s old. A newer non-4 GGA
+immediately clears both pending FIFOs and degrades both correction gates.
+Malformed or stale GGA cannot authorize either observation.
 
 ### Heading observation
 
@@ -110,6 +123,7 @@ Heading and translation use separate gate instances with the same states:
 | `UNINITIALIZED` | Eligible observation | Seed candidate window and enter `REACQUIRING`. |
 | `LOCKED` | Innovation inside locked gate | Accept target and remain `LOCKED`. |
 | `LOCKED` | One rejected innovation | Freeze that target, clear candidates, enter `SUSPECT`. |
+| `LOCKED` | One TF-at-stamp timeout | Freeze that target and enter `SUSPECT`. |
 | `SUSPECT` | First eligible observation | Seed candidate window and enter `REACQUIRING`. |
 | `REACQUIRING` | Candidate consistent with window | Append; lock after 5 consecutive samples. |
 | `REACQUIRING` | Candidate inconsistent with window | Replace window with this sample; remain `REACQUIRING`. |
@@ -150,6 +164,13 @@ The output timer uses monotonic time. `dt <= 0` freezes output; `dt` is capped
 at 0.10 s so a stalled callback never releases accumulated correction in one
 step. Defaults are 0.20 m/s base translation and 2.0 deg/s base yaw.
 
+Every release and stopped-detection cycle requires an `odom -> base` transform
+whose ROS stamp is no more than 0.20 s old and strictly newer than the last
+sample used for a rate calculation. A duplicate stamp is ignored. A stale or
+regressing stamp freezes release, clears stopped-duration accumulation, makes
+motion authority false, and reports `LOCAL_ODOM_STALE`; it can never authorize
+backlog recovery.
+
 Backlog handling is explicit:
 
 - Below 0.50 m and 5 degrees: normal release.
@@ -187,6 +208,11 @@ Local discontinuity defaults are translation speed above 3.0 m/s or yaw rate
 above 3.0 rad/s for three consecutive stamped samples. Only this condition is
 reported as `ODOM_DIVERGENCE_ABORT`.
 
+A non-finite local transform, a regressing nonzero stamp, translation speed
+above 10.0 m/s, or yaw rate above 10.0 rad/s is catastrophic and aborts on one
+sample. Duplicate stamps are ignored. Ordinary-threshold counters reset only
+on a fresh finite sample below both ordinary thresholds.
+
 A `map -> odom` rate above 0.50 m/s or 5 deg/s, or motion authority becoming
 false, returns `GLOBAL_CORRECTION_HOLD` from goal monitoring. The runner:
 
@@ -196,7 +222,11 @@ false, returns `GLOBAL_CORRECTION_HOLD` from goal monitoring. The runner:
 4. requires readiness continuously for 1.0 s;
 5. recomputes and resends the same ENU subgoal; and
 6. aborts the route if cancellation fails, `FAULT_HOLD` appears, or readiness
-   does not return within 10.0 s.
+   does not return within 15.0 s from the cancellation request.
+
+The 15 s budget covers the worst automatically recoverable 2.0 m/20 degree
+backlog: up to 2 s cancellation, 1 s stopped confirmation, 9.25 s release to
+the recovery gap, 1 s stable readiness, and 1.75 s scheduling margin.
 
 ## Command Containment
 
@@ -223,9 +253,25 @@ limits.
 The guard publishes zero for non-finite input, command age above 0.25 s,
 motion-authority age above 0.50 s, motion authority false, or stop override
 true. Startup is fail-closed until fresh authority and command samples exist.
-The stop override is a runner heartbeat; missing for 0.50 s is also treated as
-stop. Guard process exit shuts down corridor launch, and the existing
-`serial_twistctl` command timeout remains the final zero-command fallback.
+The guard publishes at 20 Hz and uses steady receipt ages because Twist and Bool
+have no header.
+
+`/localization_authority/motion_allowed` and
+`/gps_corridor/stop_override` are volatile `std_msgs/msg/Bool` heartbeats at
+10 Hz with depth 10. The corrector owns the first from startup through
+shutdown. The runner owns the second: it publishes true during startup, holds,
+route completion, and clean shutdown, and publishes false only while actively
+allowing a goal. Missing either heartbeat for 0.50 s is stop. Runner failure is
+therefore fail-closed at the guard.
+
+The guard is a required corridor launch process; its exit shuts down the launch.
+`serial_twistctl` gains a 20 Hz safety timer with a 0.25 s command timeout: once
+stale it transmits one explicit zero command and remains armed until a fresh
+Twist arrives. Its destructor makes three best-effort zero writes before closing
+the port. The companion serial-firmware repair adds a 0.30 s host-command
+watchdog, which is the abrupt host-process/Jetson-loss fallback. Corridor vehicle
+acceptance requires both changes; no software guarantee replaces the physical
+e-stop.
 
 Uniform route subgoal insertion is deferred until localization and command
 stability pass replay and low-speed vehicle acceptance. It cannot repair a bad
@@ -248,8 +294,10 @@ global transform.
   | 18 | motion allowed, 0 or 1 |
 
   Gate enums are `UNINITIALIZED=0`, `LOCKED=1`, `SUSPECT=2`,
-  `REACQUIRING=3`, `DEGRADED=4`, and `FAULT_HOLD=5`. Unavailable numeric
-  diagnostics use NaN.
+  `REACQUIRING=3`, and `DEGRADED=4`. `FAULT_HOLD` is correction-release state,
+  not a sensor gate state; in that condition both gates retain their sensor
+  states while motion remains false and the authority status string reports the
+  fault. Unavailable numeric diagnostics use NaN.
 - Keep PGO TF disabled in corridor mode.
 - Keep route files and other navigation modes unchanged.
 
@@ -269,15 +317,19 @@ The four captured bags are replay acceptance fixtures outside the repository:
 - `13:36`: the approximately 52 degree correction innovation makes motion false
   within one sample; no reacquisition occurs before five consistent samples.
 - `13:46` and `13:48`: every released base correction respects 0.20 m/s and
-  2 deg/s plus numeric tolerance; no `ODOM_DIVERGENCE_ABORT` is generated from
+  2 deg/s with absolute replay tolerances of 0.005 m/s and 0.05 deg/s; no
+  `ODOM_DIVERGENCE_ABORT` is generated from
   global correction; no more than 10 consecutive release samples are rate
   saturated.
 - `13:34`: the evaluator reports `LOCAL_NO_PROGRESS` after GNSS and LIO remain
   below 0.05 m/s for 15 s while command speed exceeds 0.5 m/s.
 
 Launch/integration tests verify historical TF lookup, bootstrap TF publication,
-quality matching, action-cancel hold behavior, exactly one `/cmd_vel` publisher
-in corridor topology, guard fail-closed timeouts, and PGO TF ownership.
+quality matching for fixes and headings, FIFO timeout/overflow policy, runtime
+TF bracket rejection, stale-LIO hold, catastrophic local abort, action-cancel
+hold behavior and its 15 s budget, heartbeat startup/terminal ownership,
+exactly one `/cmd_vel` publisher in corridor topology, guard fail-closed
+timeouts, serial zero-on-timeout/destruction, and PGO TF ownership.
 
 Jetson validation is build/run only. Initial vehicle testing remains low speed
 with the PS2 `X` disable and physical e-stop continuously available.

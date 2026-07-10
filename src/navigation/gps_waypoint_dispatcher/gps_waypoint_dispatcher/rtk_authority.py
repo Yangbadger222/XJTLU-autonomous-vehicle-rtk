@@ -767,6 +767,17 @@ class CorrectionReleaseState:
         local_yaw_rate_radps: float,
         gates_locked: bool,
     ) -> CorrectionReleaseResult:
+        if self._fault_latched:
+            return self._frozen_result(
+                self._last_finite_output_map_odom,
+                self._last_finite_output_map_base,
+                self._last_finite_target_map_base,
+                CorrectionReleaseReason.FAULT_LATCHED,
+                0.0,
+                0.0,
+                mode=CorrectionReleaseMode.FAULT_HOLD,
+            )
+
         if not self._is_finite_pose(previous_output_map_odom):
             self._fault_latched = True
             return self._invalid_pose_result(

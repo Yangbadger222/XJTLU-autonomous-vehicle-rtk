@@ -1403,6 +1403,77 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
     assert still_faulted.motion_allowed is False
 
 
+@pytest.mark.parametrize("fault_kind", ["translation", "yaw"])
+@pytest.mark.parametrize(
+    "probe_kind",
+    [
+        "nonfinite_local_pose",
+        "nonfinite_local_rate",
+        "stale_local",
+        "duplicate_local",
+        "regressing_local",
+        "nonfinite_target",
+    ],
+)
+def test_correction_release_latched_hard_fault_precedes_all_later_validation(
+    fault_kind,
+    probe_kind,
+):
+    state = CorrectionReleaseState()
+    trusted = _pose(x=0.2, y=-0.1, yaw=0.05)
+    _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
+    fault_target = (
+        _pose(x=trusted.x + 2.1, y=trusted.y, yaw=trusted.yaw)
+        if fault_kind == "translation"
+        else _pose(x=trusted.x, y=trusted.y, yaw=trusted.yaw + math.radians(20.1))
+    )
+    fault = _release_update(
+        state,
+        previous=trusted,
+        target=fault_target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    probe = {
+        "previous": _pose(x=0.3, y=0.4, yaw=0.2),
+        "target": trusted,
+        "local": _pose(),
+        "now_s": 10.2,
+        "lio_stamp_s": 1.2,
+        "lio_age_s": 0.0,
+        "local_linear_rate_mps": 0.0,
+    }
+    if probe_kind == "nonfinite_local_pose":
+        probe["local"] = _pose(yaw=math.nan)
+    elif probe_kind == "nonfinite_local_rate":
+        probe["local_linear_rate_mps"] = math.inf
+    elif probe_kind == "stale_local":
+        probe["lio_age_s"] = 0.21
+    elif probe_kind == "duplicate_local":
+        probe["lio_stamp_s"] = 1.0
+    elif probe_kind == "regressing_local":
+        probe["lio_stamp_s"] = 0.9
+    elif probe_kind == "nonfinite_target":
+        probe["target"] = _pose(x=math.nan)
+
+    held = _release_update(state, **probe)
+    held_again = _release_update(
+        state,
+        previous=_pose(x=0.4),
+        target=trusted,
+        now_s=10.3,
+        lio_stamp_s=1.3,
+    )
+
+    for result in (fault, held, held_again):
+        assert result.output_map_odom == trusted
+        assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+        assert result.reason is CorrectionReleaseReason.FAULT_LATCHED
+        assert result.motion_allowed is False
+        _assert_release_poses_finite(result)
+
+
 def test_correction_release_backlog_uses_base_yaw_lever_arm_translation_gap():
     state = CorrectionReleaseState()
     previous = _pose()

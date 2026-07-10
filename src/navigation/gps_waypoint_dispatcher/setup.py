@@ -29,6 +29,7 @@ setup(
             'gps_corridor_runner_node = gps_waypoint_dispatcher.gps_corridor_runner_node:main',
             'gps_global_aligner_node = gps_waypoint_dispatcher.gps_global_aligner_node:main',
             'gps_route_runner_node = gps_waypoint_dispatcher.gps_route_runner_node:main',
+            'corridor_cmd_vel_guard_node = gps_waypoint_dispatcher.corridor_cmd_vel_guard_node:main',
             'rtk_map_odom_corrector_node = gps_waypoint_dispatcher.rtk_map_odom_corrector_node:main',
         ],
     },

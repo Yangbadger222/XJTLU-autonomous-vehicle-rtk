@@ -12,6 +12,23 @@ def _time_comparison_epsilon_s(*values: float) -> float:
     return max(1e-9, 4.0 * max(finite_ulps, default=0.0))
 
 
+def _finite_lerp(start: float, end: float, fraction: float) -> float | None:
+    try:
+        result = math.fsum(((1.0 - fraction) * start, fraction * end))
+    except (OverflowError, ValueError):
+        return None
+    return result if math.isfinite(result) else None
+
+
+def _finite_mean(values: list[float]) -> float | None:
+    count = len(values)
+    try:
+        result = math.fsum(value / count for value in values)
+    except OverflowError:
+        return None
+    return result if math.isfinite(result) else None
+
+
 @dataclass(frozen=True)
 class Pose2D:
     x: float
@@ -148,14 +165,31 @@ class StampedPoseHistory:
             )
 
         fraction = (stamp_s - lower.stamp_s) / bracket_s
-        yaw_delta = normalize_angle(upper.pose.yaw - lower.pose.yaw)
+        if not math.isfinite(fraction):
+            return PoseInterpolationResult(
+                False,
+                None,
+                "NONFINITE_INTERPOLATION",
+                lower_stamp_s=lower.stamp_s,
+                upper_stamp_s=upper.stamp_s,
+            )
+        x = _finite_lerp(lower.pose.x, upper.pose.x, fraction)
+        y = _finite_lerp(lower.pose.y, upper.pose.y, fraction)
+        lower_yaw = normalize_angle(lower.pose.yaw)
+        upper_yaw = normalize_angle(upper.pose.yaw)
+        yaw_delta = normalize_angle(upper_yaw - lower_yaw)
+        yaw = normalize_angle(lower_yaw + fraction * yaw_delta)
+        if x is None or y is None or not math.isfinite(yaw):
+            return PoseInterpolationResult(
+                False,
+                None,
+                "NONFINITE_INTERPOLATION",
+                lower_stamp_s=lower.stamp_s,
+                upper_stamp_s=upper.stamp_s,
+            )
         return PoseInterpolationResult(
             True,
-            Pose2D(
-                x=lower.pose.x + fraction * (upper.pose.x - lower.pose.x),
-                y=lower.pose.y + fraction * (upper.pose.y - lower.pose.y),
-                yaw=normalize_angle(lower.pose.yaw + fraction * yaw_delta),
-            ),
+            Pose2D(x=x, y=y, yaw=yaw),
             None,
             lower_stamp_s=lower.stamp_s,
             upper_stamp_s=upper.stamp_s,
@@ -314,7 +348,7 @@ class CorrectionGate:
         stamp_s: float,
         value: GateValue,
         *,
-        now_s: float | None = None,
+        now_s: float,
     ) -> CorrectionGateResult:
         if not math.isfinite(stamp_s) or stamp_s <= 0.0:
             return self._result(False, False, "INVALID_STAMP")
@@ -325,12 +359,11 @@ class CorrectionGate:
         if normalized_value is None:
             return self._result(False, False, "NONFINITE_CANDIDATE")
 
-        process_time_s = stamp_s if now_s is None else now_s
-        if not math.isfinite(process_time_s):
+        if not math.isfinite(now_s):
             return self._result(False, False, "INVALID_PROCESS_TIME")
 
         self._last_observation_stamp_s = stamp_s
-        self._last_processable_time_s = process_time_s
+        self._last_processable_time_s = now_s
         self._unavailable_since_s = None
         self._consecutive_failures = 0
 
@@ -371,7 +404,11 @@ class CorrectionGate:
             len(self._candidates) >= self.min_candidates
             and self._candidate_span_s() + span_epsilon_s >= self.min_span_s
         ):
-            self._target = self._candidate_mean()
+            target = self._candidate_mean()
+            if target is None:
+                self._candidates.clear()
+                return self._result(True, False, "NONFINITE_TARGET")
+            self._target = target
             self.state = CorrectionGateState.LOCKED
             return self._result(True, True, "RECOVERY_LOCKED")
 
@@ -543,17 +580,15 @@ class CorrectionGate:
         gaps.append(wrapped[0] + math.tau - wrapped[-1])
         return math.tau - max(gaps)
 
-    def _candidate_mean(self) -> GateValue:
+    def _candidate_mean(self) -> GateValue | None:
         if self.kind is CorrectionGateKind.YAW:
             sin_sum = sum(math.sin(float(candidate.value)) for candidate in self._candidates)
             cos_sum = sum(math.cos(float(candidate.value)) for candidate in self._candidates)
             return math.atan2(sin_sum, cos_sum)
 
-        count = len(self._candidates)
-        return (
-            sum(candidate.value[0] for candidate in self._candidates) / count,
-            sum(candidate.value[1] for candidate in self._candidates) / count,
-        )
+        x = _finite_mean([candidate.value[0] for candidate in self._candidates])
+        y = _finite_mean([candidate.value[1] for candidate in self._candidates])
+        return None if x is None or y is None else (x, y)
 
     def _candidate_span_s(self) -> float:
         if len(self._candidates) < 2:

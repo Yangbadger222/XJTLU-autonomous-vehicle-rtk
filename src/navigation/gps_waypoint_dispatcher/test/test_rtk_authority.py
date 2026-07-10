@@ -149,6 +149,18 @@ def test_stamped_pose_history_interpolates_translation_linearly():
     assert result.pose.y == pytest.approx(-0.5)
 
 
+def test_stamped_pose_history_interpolation_stays_finite_for_huge_values():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0, _pose(x=1e308, y=-1e308))
+    _append_history(history, 1.2, _pose(x=-1e308, y=1e308))
+
+    result = history.interpolate(1.1)
+
+    assert result.ok is True
+    assert all(math.isfinite(value) for value in (result.pose.x, result.pose.y))
+    assert result.pose.x == pytest.approx(-result.pose.y)
+
+
 def test_stamped_pose_history_interpolates_yaw_across_wrap_on_shortest_arc():
     history = StampedPoseHistory()
     _append_history(history, 1.0, _pose(yaw=math.radians(179.0)))
@@ -219,6 +231,34 @@ def test_first_eligible_observation_seeds_reacquisition():
     assert gate.target is None
 
 
+def test_correction_gate_observe_requires_monotonic_process_time():
+    gate = CorrectionGate.yaw()
+
+    with pytest.raises(TypeError):
+        gate.observe(stamp_s=1.0, value=0.0)
+
+    assert gate.state is CorrectionGateState.UNINITIALIZED
+
+
+def test_epoch_observations_use_monotonic_time_for_processable_timeout():
+    base_stamp_s = 1783342965.0
+    gate = CorrectionGate.yaw()
+    for index in range(5):
+        gate.observe(
+            stamp_s=base_stamp_s + index * 0.1,
+            value=0.0,
+            now_s=10.0 + index * 0.1,
+        )
+
+    result = gate.prerequisite_failure(
+        now_s=11.4,
+        kind=authority.PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+    )
+
+    assert gate.snapshot().last_processable_time_s == pytest.approx(10.4)
+    assert result.state is CorrectionGateState.DEGRADED
+
+
 def test_yaw_gate_locks_on_count_and_span_with_circular_mean():
     gate = CorrectionGate.yaw()
     values = [
@@ -251,6 +291,21 @@ def test_translation_gate_locks_to_component_arithmetic_mean():
 
     assert result.state is CorrectionGateState.LOCKED
     assert result.target == pytest.approx((0.1, 0.0))
+
+
+def test_translation_gate_mean_stays_finite_for_repeated_huge_values():
+    gate = CorrectionGate.translation()
+    result = None
+    for index in range(5):
+        result = gate.observe(
+            stamp_s=1.0 + 0.1 * index,
+            value=(1e308, 1e308),
+            now_s=10.0 + 0.1 * index,
+        )
+
+    assert result.state is CorrectionGateState.LOCKED
+    assert all(math.isfinite(value) for value in result.target)
+    assert result.target == pytest.approx((1e308, 1e308))
 
 
 def test_high_rate_fifth_candidate_stays_reacquiring_until_span_passes():

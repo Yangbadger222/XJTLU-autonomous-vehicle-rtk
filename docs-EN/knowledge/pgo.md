@@ -206,3 +206,6 @@ The runner uses fixed yaw bootstrap at startup to begin navigation immediately:
 - Issue the first goal immediately without waiting for the aligner to converge
 
 This resolves the "stationary startup deadlock" problem from the early v2 planning phase.
+## 11. Corridor TF Ownership After Authority Containment
+
+In corridor mode PGO must keep both GPS factors and `publish_tf` disabled. The only production `map->odom` broadcaster is `rtk_map_odom_corrector`; FAST-LIO2 publishes `odom->base_footprint`, and URDF supplies `base_footprint->base_link`. The corrector uses stamped LIO history rather than latest tf2 lookup. A fresh timestamp on a frozen correction preserves TF availability but `/localization_authority/motion_allowed=false` prevents Nav2 commands from reaching the chassis.

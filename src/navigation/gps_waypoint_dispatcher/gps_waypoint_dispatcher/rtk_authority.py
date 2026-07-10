@@ -246,6 +246,7 @@ class CorrectionReleaseReason(Enum):
     INVALID_OUTPUT_POSE = "INVALID_OUTPUT_POSE"
     INVALID_TARGET_POSE = "INVALID_TARGET_POSE"
     INVALID_POSE_COMPOSITION = "INVALID_POSE_COMPOSITION"
+    SATURATION_LIMIT_HOLD = "SATURATION_LIMIT_HOLD"
 
 
 _QUALITY_UNAVAILABLE_FAILURES = frozenset(
@@ -727,6 +728,7 @@ class CorrectionReleaseState:
         recovery_translation_m: float = 0.15,
         recovery_yaw_rad: float = math.radians(2.0),
         recovery_confirmation_s: float = 1.0,
+        max_saturated_samples: int = 10,
     ) -> None:
         self.max_translation_rate_mps = max_translation_rate_mps
         self.max_yaw_rate_radps = max_yaw_rate_radps
@@ -742,6 +744,7 @@ class CorrectionReleaseState:
         self.recovery_translation_m = recovery_translation_m
         self.recovery_yaw_rad = recovery_yaw_rad
         self.recovery_confirmation_s = recovery_confirmation_s
+        self.max_saturated_samples = max_saturated_samples
         self._validate_configuration()
         self._last_now_s: float | None = None
         self._last_lio_stamp_s: float | None = None
@@ -749,6 +752,7 @@ class CorrectionReleaseState:
         self._fault_latched = False
         self._stopped_since_s: float | None = None
         self._recovery_since_s: float | None = None
+        self._consecutive_saturated_samples = 0
         identity = Pose2D(x=0.0, y=0.0, yaw=0.0)
         self._last_finite_output_map_odom = identity
         self._last_finite_output_map_base = identity
@@ -1007,6 +1011,35 @@ class CorrectionReleaseState:
                 CorrectionReleaseReason.INVALID_POSE_COMPOSITION,
                 CorrectionReleaseMode.FAULT_HOLD,
             )
+        translation_limit_m = self.max_translation_rate_mps * dt_s
+        yaw_limit_rad = self.max_yaw_rate_radps * dt_s
+        saturated = (
+            limited.translation_step_m >= translation_limit_m - 1e-12
+            or limited.yaw_step_rad >= yaw_limit_rad - 1e-12
+        ) and dt_s > 0.0
+        if self._backlog_active:
+            self._consecutive_saturated_samples = 0
+        else:
+            self._consecutive_saturated_samples = (
+                self._consecutive_saturated_samples + 1 if saturated else 0
+            )
+        if (
+            not self._backlog_active
+            and self._consecutive_saturated_samples > self.max_saturated_samples
+        ):
+            self._consecutive_saturated_samples = 0
+            self._backlog_active = True
+            self._recovery_since_s = None
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.SATURATION_LIMIT_HOLD,
+                gap_m,
+                gap_yaw_rad,
+                mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                stopped_duration_s=stopped_duration_s,
+            )
         self._last_finite_output_map_odom = output_map_odom
         self._last_finite_output_map_base = limited.pose
         self._last_finite_target_map_base = target_map_base
@@ -1209,6 +1242,12 @@ class CorrectionReleaseState:
         for name, value in positive_values:
             if not math.isfinite(value) or value <= 0.0:
                 raise ValueError(f"{name} must be finite and positive")
+        if (
+            not isinstance(self.max_saturated_samples, int)
+            or isinstance(self.max_saturated_samples, bool)
+            or self.max_saturated_samples <= 0
+        ):
+            raise ValueError("max_saturated_samples must be a positive integer")
         if not (
             self.recovery_translation_m
             < self.backlog_translation_m

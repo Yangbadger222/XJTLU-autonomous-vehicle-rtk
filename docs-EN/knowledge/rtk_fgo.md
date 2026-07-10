@@ -330,3 +330,8 @@ Stage 4: guarded experimental navigation
 - If RTK parsing or structured RTK quality output changes, add raw-NMEA sample tests for `um982_rtk_driver`.
 - Never commit CORS/NTRIP credentials.
 - Keep CN/EN documentation synchronized for package, launch, parameter, workflow, and GPS/GNSS changes.
+## Corridor Authority Relationship (2026-07-10)
+
+The corridor production `map->odom` owner remains `rtk_map_odom_corrector`. RTK FGO remains shadow-only (`publish_tf=false`, `nav2_use_fgo=false`) and is bagged for comparison. Fixed quality comes from checksum-valid raw GGA because `NavSatStatus` cannot distinguish quality 4 from 5. Heading and position corrections use independent five-sample gates; a later heading is never paired backward with an older fix.
+
+The `serial-telemetry-integrity` branch is a deployment prerequisite, not part of FGO authority. Until its STM32 300 ms watchdog is flashed and the motor-disabled 500 ms command-loss bench passes, successful replay does not authorize corridor vehicle acceptance.

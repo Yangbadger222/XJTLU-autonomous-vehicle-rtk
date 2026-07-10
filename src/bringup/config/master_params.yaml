@@ -266,6 +266,7 @@
     recovery_translation_m: 0.15
     recovery_yaw_deg: 2.0
     recovery_confirmation_s: 1.0
+    max_saturated_samples: 10
 
 /corridor_cmd_vel_guard:
   ros__parameters:

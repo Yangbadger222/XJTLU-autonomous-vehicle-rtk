@@ -2255,6 +2255,34 @@ def test_setup_exposes_rtk_map_odom_corrector_entry_point():
     ) in setup_text
 
 
+def test_correction_release_limits_consecutive_rate_saturation_to_ten_samples():
+    state = CorrectionReleaseState(max_saturated_samples=10)
+    previous = _pose()
+    target = _pose(x=0.49)
+    saturated_run = 0
+    max_saturated_run = 0
+    reasons = []
+
+    for index in range(16):
+        result = _release_update(
+            state,
+            previous=previous,
+            target=target,
+            now_s=10.0 + index * 0.1,
+            lio_stamp_s=1.0 + index * 0.1,
+        )
+        previous = result.output_map_odom
+        reasons.append(result.reason)
+        if result.translation_step_m >= result.dt_s * 0.20 - 1e-9 and result.dt_s > 0.0:
+            saturated_run += 1
+            max_saturated_run = max(max_saturated_run, saturated_run)
+        else:
+            saturated_run = 0
+
+    assert max_saturated_run == 10
+    assert CorrectionReleaseReason.SATURATION_LIMIT_HOLD in reasons
+
+
 def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"

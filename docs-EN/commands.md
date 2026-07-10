@@ -808,3 +808,29 @@ rc
 7. To test it, run: `s1`
 
 Whenever you want to update `~/.bashrc`, modify it first from [/scripts/.bashrc](/scripts/.bashrc), then follow the steps above to make sure we keep track of the file. Do not modify it in the Jetson without tracking it in this repo.
+## 18. Corridor Authority Replay And Acceptance
+
+Run the four 2026-07-10 external fixtures from a workstation with `rosbags` installed:
+
+```bash
+export FYP_CORRIDOR_BAG_ROOT=/path/to/rosbags-jetson-20260710
+PYTHONPATH=src/navigation/gps_waypoint_dispatcher \
+  python3 scripts/evaluate_corridor_authority_replay.py \
+  --manifest --out /tmp/corridor-authority-replay.json
+```
+
+The command returns nonzero if an assertion fails. Current reference replay detects 20 s `LOCAL_NO_PROGRESS` in `13:34`, a 51.75-degree rejected heading correction in `13:36`, and release limits at or below `0.20 m/s` and `2 deg/s` in `13:46`/`13:48` (maximum ten consecutive saturated samples).
+
+After deploying to Jetson, build with the required single worker and re-source:
+
+```bash
+colcon build --packages-select gps_waypoint_dispatcher bringup --symlink-install --parallel-workers 1
+source install/setup.bash
+colcon test --packages-select gps_waypoint_dispatcher
+PYTHONPATH=src/navigation/gps_waypoint_dispatcher python3 -m pytest \
+  src/navigation/gps_waypoint_dispatcher/test/test_route_hold_integration.py \
+  src/bringup/test/test_system_gps_corridor_launch.py -q
+colcon test-result --verbose
+```
+
+Before vehicle acceptance, separately deploy the serial branch, flash the STM32, and perform the motor-disabled 500 ms command-loss bench. During runtime monitor `/localization_authority/motion_allowed`, `/gps_corridor/stop_override`, `/cmd_vel_nav`, and guarded `/cmd_vel`.

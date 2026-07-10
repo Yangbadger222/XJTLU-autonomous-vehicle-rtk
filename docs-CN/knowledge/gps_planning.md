@@ -431,3 +431,8 @@ Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_correc
 - `pgo_corridor_no_gps.yaml`：ROS 参数 override，继续关闭 `publish_tf` / GPS 因子，并把 PGO 对齐调试话题隔离到 `/gps_corridor/pgo_enu_to_map`。
 
 现场判断规则：如果 `/rtk/status` 全程 `q=4`、`/fastlio2/lio_odom` 没有大步跳变，但 `/tf` 里的 `map -> odom` 在 30ms 内出现 0.15m 以上的互相冲突跳变，优先检查是否有重复 TF owner，或 Jetson 的 `install/` 是否还是旧 launch/config。
+## 13. Global Correction Hold 与同一子目标重试（2026-07-10）
+
+`gps_route_runner` 现在分别消费带时间戳的 LIO 与 `map→odom`。local odom 非有限、时间回退或速率超过 `10 m/s`/`10 rad/s` 时单帧立即 abort；超过 `3 m/s`/`3 rad/s` 连续 3 帧才 abort。`map→odom` 超过 `0.50 m/s` 或 `5 deg/s`，以及 motion authority false/过期，统一归类为 `GLOBAL_CORRECTION_HOLD`，不能报成 `ODOM_DIVERGENCE_ABORT`。
+
+进入 hold 后，runner 先置位 `/gps_corridor/stop_override`，再请求 action cancel；2 秒内必须收到非空 acknowledgement。随后最多等待 15 秒，并要求 authority 连续 ready 1 秒，再按当前 alignment 重算并发送同一个已保存 ENU 子目标。cancel 拒绝/超时或出现 `FAULT_HOLD` 时终止路线。runner 不再直接发布 Twist。

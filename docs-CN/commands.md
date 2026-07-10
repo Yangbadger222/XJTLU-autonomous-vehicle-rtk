@@ -813,3 +813,29 @@ rc
 7. 如需进行测试，请打开一个新终端或运行：`s1`
 
 每当您想要更新 `~/.bashrc` 时，请先在 [/scripts/.bashrc](/scripts/.bashrc) 中进行修改，然后按照上述步骤操作，以确保我们能够追踪该文件的变化。请勿在未在本仓库中进行追踪的情况下直接在 Jetson 中修改它。
+## 18. Corridor Authority 回放与验收
+
+工作站安装 `rosbags` 后，回放四个 2026-07-10 外部 fixture：
+
+```bash
+export FYP_CORRIDOR_BAG_ROOT=/path/to/rosbags-jetson-20260710
+PYTHONPATH=src/navigation/gps_waypoint_dispatcher \
+  python3 scripts/evaluate_corridor_authority_replay.py \
+  --manifest --out /tmp/corridor-authority-replay.json
+```
+
+任一断言失败时命令返回非零。当前基准结果：`13:34` 检出 20 秒 `LOCAL_NO_PROGRESS`；`13:36` 拒绝 51.75 度 heading correction；`13:46`/`13:48` release 不超过 `0.20 m/s`、`2 deg/s`，连续饱和最多 10 个样本。
+
+部署到 Jetson 后按单 worker 构建并重新 source：
+
+```bash
+colcon build --packages-select gps_waypoint_dispatcher bringup --symlink-install --parallel-workers 1
+source install/setup.bash
+colcon test --packages-select gps_waypoint_dispatcher
+PYTHONPATH=src/navigation/gps_waypoint_dispatcher python3 -m pytest \
+  src/navigation/gps_waypoint_dispatcher/test/test_route_hold_integration.py \
+  src/bringup/test/test_system_gps_corridor_launch.py -q
+colcon test-result --verbose
+```
+
+实车验收前还必须单独部署串口分支、刷写 STM32，并在电机失能条件下完成 500 ms command-loss bench。运行时检查 `/localization_authority/motion_allowed`、`/gps_corridor/stop_override`、`/cmd_vel_nav` 与 guard 后的 `/cmd_vel`。

@@ -174,6 +174,16 @@ def test_stamped_pose_history_enforces_inclusive_bracket_limit():
     assert too_wide.reason == "ODOM_BRACKET_TOO_WIDE"
 
 
+def test_stamped_pose_history_accepts_logical_bracket_limit_float_roundoff():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0)
+    _append_history(history, 1.2000000000000002, _pose(x=1.0))
+
+    result = history.interpolate(1.1, max_bracket_s=0.20)
+
+    assert result.ok is True
+
+
 def test_correction_gate_state_values_match_diagnostic_contract():
     assert list(CorrectionGateState) == [
         CorrectionGateState.UNINITIALIZED,
@@ -250,6 +260,16 @@ def test_high_rate_fifth_candidate_stays_reacquiring_until_span_passes():
     assert locked.state is CorrectionGateState.LOCKED
 
 
+def test_recovery_locks_when_logical_span_has_negative_float_roundoff():
+    gate = CorrectionGate.yaw()
+    result = None
+    for stamp_s in [1.0, 1.05, 1.1, 1.2, 1.2999999999999998]:
+        result = gate.observe(stamp_s=stamp_s, value=0.0, now_s=stamp_s + 1.0)
+
+    assert result.candidate_span_s == 0.2999999999999998
+    assert result.state is CorrectionGateState.LOCKED
+
+
 def test_inconsistent_candidate_replaces_the_whole_window():
     gate = CorrectionGate.yaw()
     gate.observe(stamp_s=1.0, value=math.radians(0.0), now_s=2.0)
@@ -322,7 +342,10 @@ def test_suspect_and_degraded_gates_seed_reacquisition_without_moving_target():
 
     degraded = CorrectionGate.translation()
     for index in range(5):
-        degraded.prerequisite_failure(now_s=float(index), reason="NO_ODOM")
+        degraded.prerequisite_failure(
+            now_s=float(index),
+            kind=authority.PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE,
+        )
     degraded_result = degraded.observe(
         stamp_s=2.0,
         value=(3.0, 4.0),
@@ -364,6 +387,105 @@ def test_one_odom_timeout_moves_locked_gate_to_suspect_and_freezes_target():
     assert result.candidate_count == 0
 
 
+@pytest.mark.parametrize(
+    "kind",
+    [
+        authority.PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+        authority.PrerequisiteFailureKind.FIX_QUALITY_UNAVAILABLE,
+    ],
+)
+def test_one_quality_miss_keeps_locked_gate_and_freezes_target(kind):
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate)
+    trusted = gate.target
+
+    result = gate.prerequisite_failure(now_s=10.5, kind=kind)
+
+    assert result.state is CorrectionGateState.LOCKED
+    assert result.target == trusted
+    assert result.consecutive_failures == 1
+
+
+def test_five_quality_misses_degrade_and_clear_candidates():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate)
+    trusted = gate.target
+
+    for index in range(4):
+        result = gate.prerequisite_failure(
+            now_s=10.5 + index * 0.01,
+            kind=authority.PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+        )
+        assert result.state is CorrectionGateState.LOCKED
+
+    degraded = gate.prerequisite_failure(
+        now_s=10.54,
+        kind=authority.PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+    )
+
+    assert degraded.state is CorrectionGateState.DEGRADED
+    assert degraded.target == trusted
+    assert degraded.candidate_count == 0
+
+
+def test_quality_miss_degrades_after_one_second_without_processable_observation():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate, now_s=10.0)
+
+    result = gate.prerequisite_failure(
+        now_s=11.4,
+        kind=authority.PrerequisiteFailureKind.FIX_QUALITY_UNAVAILABLE,
+    )
+
+    assert result.state is CorrectionGateState.DEGRADED
+    assert result.reason == "FIX_QUALITY_UNAVAILABLE"
+
+
+def test_eligible_observation_resets_prerequisite_failure_tracking():
+    gate = CorrectionGate.yaw()
+    _lock_yaw_gate(gate, now_s=10.0)
+    for now_s in [10.5, 10.6]:
+        gate.prerequisite_failure(
+            now_s=now_s,
+            kind=authority.PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+        )
+
+    accepted = gate.observe(stamp_s=1.5, value=0.0, now_s=10.7)
+    before_timeout = gate.check_timeout(now_s=11.69)
+
+    assert accepted.state is CorrectionGateState.LOCKED
+    assert accepted.consecutive_failures == 0
+    assert before_timeout.state is CorrectionGateState.LOCKED
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        authority.PrerequisiteFailureKind.STALE_INPUT,
+        authority.PrerequisiteFailureKind.NON_FIXED_INPUT,
+        authority.PrerequisiteFailureKind.MALFORMED_INPUT,
+    ],
+)
+def test_terminal_input_failure_immediately_degrades_and_freezes(kind):
+    gate = CorrectionGate.translation()
+    values = [(0.0, 0.0), (0.1, 0.0), (0.2, 0.0), (0.1, 0.05), (0.1, -0.05)]
+    result = None
+    for index, value in enumerate(values):
+        result = gate.observe(
+            stamp_s=1.0 + index * 0.1,
+            value=value,
+            now_s=10.0 + index * 0.1,
+        )
+    trusted = result.target
+
+    degraded = gate.prerequisite_failure(now_s=10.5, kind=kind)
+
+    assert degraded.state is CorrectionGateState.DEGRADED
+    assert degraded.target == trusted
+    assert degraded.candidate_count == 0
+    assert degraded.reason == kind.value
+
+
 def test_invalid_odom_timeout_process_time_does_not_advance_gate_stamp():
     gate = CorrectionGate.yaw()
     gate.observe(stamp_s=1.0, value=0.0, now_s=2.0)
@@ -383,14 +505,17 @@ def test_five_consecutive_prerequisite_failures_degrade_and_clear_candidates():
     for index in range(4):
         result = gate.prerequisite_failure(
             now_s=10.1 + index * 0.1,
-            reason="NO_ODOM",
+            kind=authority.PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE,
         )
         assert result.state is CorrectionGateState.REACQUIRING
 
-    degraded = gate.prerequisite_failure(now_s=10.5, reason="NO_ODOM")
+    degraded = gate.prerequisite_failure(
+        now_s=10.5,
+        kind=authority.PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE,
+    )
 
     assert degraded.state is CorrectionGateState.DEGRADED
-    assert degraded.reason == "NO_ODOM"
+    assert degraded.reason == "ODOM_AT_STAMP_UNAVAILABLE"
     assert degraded.candidate_count == 0
 
 

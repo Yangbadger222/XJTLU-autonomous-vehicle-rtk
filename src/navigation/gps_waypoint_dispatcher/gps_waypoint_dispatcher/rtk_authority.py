@@ -7,6 +7,9 @@ from enum import Enum, IntEnum
 from typing import Union
 
 
+_TIME_COMPARISON_EPSILON_S = 1e-9
+
+
 @dataclass(frozen=True)
 class Pose2D:
     x: float
@@ -128,7 +131,7 @@ class StampedPoseHistory:
         lower = self._samples[upper_index - 1]
         upper = self._samples[upper_index]
         bracket_s = upper.stamp_s - lower.stamp_s
-        if bracket_s > max_bracket_s:
+        if bracket_s > max_bracket_s + _TIME_COMPARISON_EPSILON_S:
             return PoseInterpolationResult(
                 False,
                 None,
@@ -170,6 +173,30 @@ class CorrectionGateState(IntEnum):
 class CorrectionGateKind(Enum):
     YAW = "yaw"
     TRANSLATION = "translation"
+
+
+class PrerequisiteFailureKind(Enum):
+    HEADING_QUALITY_UNAVAILABLE = "HEADING_QUALITY_UNAVAILABLE"
+    FIX_QUALITY_UNAVAILABLE = "FIX_QUALITY_UNAVAILABLE"
+    ODOM_AT_STAMP_UNAVAILABLE = "ODOM_AT_STAMP_UNAVAILABLE"
+    STALE_INPUT = "STALE_INPUT"
+    NON_FIXED_INPUT = "NON_FIXED_INPUT"
+    MALFORMED_INPUT = "MALFORMED_INPUT"
+
+
+_QUALITY_UNAVAILABLE_FAILURES = frozenset(
+    {
+        PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+        PrerequisiteFailureKind.FIX_QUALITY_UNAVAILABLE,
+    }
+)
+_IMMEDIATE_DEGRADE_FAILURES = frozenset(
+    {
+        PrerequisiteFailureKind.STALE_INPUT,
+        PrerequisiteFailureKind.NON_FIXED_INPUT,
+        PrerequisiteFailureKind.MALFORMED_INPUT,
+    }
+)
 
 
 GateValue = Union[float, tuple[float, float]]
@@ -330,7 +357,8 @@ class CorrectionGate:
         self.state = CorrectionGateState.REACQUIRING
         if (
             len(self._candidates) >= self.min_candidates
-            and self._candidate_span_s() >= self.min_span_s
+            and self._candidate_span_s() + _TIME_COMPARISON_EPSILON_S
+            >= self.min_span_s
         ):
             self._target = self._candidate_mean()
             self.state = CorrectionGateState.LOCKED
@@ -350,17 +378,19 @@ class CorrectionGate:
         self._last_observation_stamp_s = stamp_s
         return self.prerequisite_failure(
             now_s=now_s,
-            reason="ODOM_AT_STAMP_UNAVAILABLE",
+            kind=PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE,
         )
 
     def prerequisite_failure(
         self,
         *,
         now_s: float,
-        reason: str,
+        kind: PrerequisiteFailureKind,
     ) -> CorrectionGateResult:
         if not math.isfinite(now_s):
             return self._result(False, False, "INVALID_PROCESS_TIME")
+        if not isinstance(kind, PrerequisiteFailureKind):
+            raise TypeError("kind must be a PrerequisiteFailureKind")
 
         self._consecutive_failures += 1
         if self._unavailable_since_s is None:
@@ -369,15 +399,26 @@ class CorrectionGate:
                 if self._last_processable_time_s is not None
                 else now_s
             )
-        if self.state is CorrectionGateState.LOCKED:
-            self.state = CorrectionGateState.SUSPECT
+        if kind in _IMMEDIATE_DEGRADE_FAILURES:
+            self.state = CorrectionGateState.DEGRADED
             self._candidates.clear()
+            return self._result(True, False, kind.value)
 
-        timed_out = now_s - self._unavailable_since_s >= self.processable_timeout_s
+        if kind is PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE:
+            if self.state is CorrectionGateState.LOCKED:
+                self.state = CorrectionGateState.SUSPECT
+                self._candidates.clear()
+        elif kind not in _QUALITY_UNAVAILABLE_FAILURES:
+            raise AssertionError(f"unhandled prerequisite failure kind: {kind.value}")
+
+        timed_out = (
+            now_s - self._unavailable_since_s + _TIME_COMPARISON_EPSILON_S
+            >= self.processable_timeout_s
+        )
         if self._consecutive_failures >= self.max_consecutive_failures or timed_out:
             self.state = CorrectionGateState.DEGRADED
             self._candidates.clear()
-        return self._result(True, False, reason)
+        return self._result(True, False, kind.value)
 
     def check_timeout(self, *, now_s: float) -> CorrectionGateResult:
         if not math.isfinite(now_s):
@@ -385,7 +426,11 @@ class CorrectionGate:
         reference_s = self._last_processable_time_s
         if reference_s is None:
             reference_s = self._unavailable_since_s
-        if reference_s is None or now_s - reference_s < self.processable_timeout_s:
+        if (
+            reference_s is None
+            or now_s - reference_s + _TIME_COMPARISON_EPSILON_S
+            < self.processable_timeout_s
+        ):
             return self._result(False, False, None)
 
         self.state = CorrectionGateState.DEGRADED

@@ -124,6 +124,25 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_heading_for_fix_age_s", 0.30)
         self.declare_parameter("max_translation_rate_mps", 0.20)
         self.declare_parameter("max_yaw_rate_degps", 2.0)
+        self.declare_parameter("heading_locked_innovation_deg", 15.0)
+        self.declare_parameter("position_locked_innovation_m", 1.0)
+        self.declare_parameter("heading_recovery_spread_deg", 5.0)
+        self.declare_parameter("position_recovery_diameter_m", 0.30)
+        self.declare_parameter("recovery_min_samples", 5)
+        self.declare_parameter("recovery_min_span_s", 0.30)
+        self.declare_parameter("gate_max_candidates", 20)
+        self.declare_parameter("gate_max_failures", 5)
+        self.declare_parameter("gate_processable_timeout_s", 1.0)
+        self.declare_parameter("backlog_translation_m", 0.50)
+        self.declare_parameter("backlog_yaw_deg", 5.0)
+        self.declare_parameter("fault_translation_m", 2.0)
+        self.declare_parameter("fault_yaw_deg", 20.0)
+        self.declare_parameter("stopped_linear_rate_mps", 0.05)
+        self.declare_parameter("stopped_yaw_rate_degps", 2.0)
+        self.declare_parameter("stopped_confirmation_s", 1.0)
+        self.declare_parameter("recovery_translation_m", 0.15)
+        self.declare_parameter("recovery_yaw_deg", 2.0)
+        self.declare_parameter("recovery_confirmation_s", 1.0)
 
         self._map_frame = str(self.get_parameter("map_frame").value)
         self._odom_frame = str(self.get_parameter("odom_frame").value)
@@ -188,8 +207,35 @@ class RtkMapOdomCorrector(Node):
             frame_id=self._odom_frame,
             child_frame_id=self._base_frame,
         )
-        self._heading_gate = CorrectionGate.yaw()
-        self._position_gate = CorrectionGate.translation()
+        gate_common = {
+            "min_candidates": int(self.get_parameter("recovery_min_samples").value),
+            "min_span_s": float(self.get_parameter("recovery_min_span_s").value),
+            "max_candidates": int(self.get_parameter("gate_max_candidates").value),
+            "max_consecutive_failures": int(
+                self.get_parameter("gate_max_failures").value
+            ),
+            "processable_timeout_s": float(
+                self.get_parameter("gate_processable_timeout_s").value
+            ),
+        }
+        self._heading_gate = CorrectionGate.yaw(
+            locked_threshold=math.radians(
+                float(self.get_parameter("heading_locked_innovation_deg").value)
+            ),
+            recovery_threshold=math.radians(
+                float(self.get_parameter("heading_recovery_spread_deg").value)
+            ),
+            **gate_common,
+        )
+        self._position_gate = CorrectionGate.translation(
+            locked_threshold=float(
+                self.get_parameter("position_locked_innovation_m").value
+            ),
+            recovery_threshold=float(
+                self.get_parameter("position_recovery_diameter_m").value
+            ),
+            **gate_common,
+        )
         self._release_state = CorrectionReleaseState(
             max_translation_rate_mps=float(
                 self.get_parameter("max_translation_rate_mps").value
@@ -198,6 +244,48 @@ class RtkMapOdomCorrector(Node):
                 float(self.get_parameter("max_yaw_rate_degps").value)
             ),
             max_lio_age_s=self._max_lio_age_s,
+            backlog_translation_m=float(
+                self.get_parameter("backlog_translation_m").value
+            ),
+            backlog_yaw_rad=math.radians(
+                float(self.get_parameter("backlog_yaw_deg").value)
+            ),
+            fault_translation_m=float(
+                self.get_parameter("fault_translation_m").value
+            ),
+            fault_yaw_rad=math.radians(
+                float(self.get_parameter("fault_yaw_deg").value)
+            ),
+            stopped_linear_rate_mps=float(
+                self.get_parameter("stopped_linear_rate_mps").value
+            ),
+            stopped_yaw_rate_radps=math.radians(
+                float(self.get_parameter("stopped_yaw_rate_degps").value)
+            ),
+            stopped_confirmation_s=float(
+                self.get_parameter("stopped_confirmation_s").value
+            ),
+            recovery_translation_m=float(
+                self.get_parameter("recovery_translation_m").value
+            ),
+            recovery_yaw_rad=math.radians(
+                float(self.get_parameter("recovery_yaw_deg").value)
+            ),
+            recovery_confirmation_s=float(
+                self.get_parameter("recovery_confirmation_s").value
+            ),
+        )
+        self.get_logger().info(
+            "RTK authority gates: yaw=%.1fdeg position=%.2fm recovery=%d/%.2fs; "
+            "release=%.2fm/s %.1fdeg/s"
+            % (
+                float(self.get_parameter("heading_locked_innovation_deg").value),
+                float(self.get_parameter("position_locked_innovation_m").value),
+                gate_common["min_candidates"],
+                gate_common["min_span_s"],
+                float(self.get_parameter("max_translation_rate_mps").value),
+                float(self.get_parameter("max_yaw_rate_degps").value),
+            )
         )
 
         self._heading_queue: deque[PendingHeading] = deque()

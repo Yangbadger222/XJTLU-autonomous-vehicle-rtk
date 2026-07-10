@@ -40,6 +40,8 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/localization_authority/mode',
     '/localization_authority/status',
     '/localization_authority/diagnostics',
+    '/localization_authority/motion_allowed',
+    '/gps_corridor/stop_override',
     '/rtk_fgo/odom',
     '/rtk_fgo/path',
     '/rtk_fgo/status',
@@ -49,6 +51,8 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/gps_corridor/goal_map',
     '/gps_corridor/path_map',
     '/cmd_vel',
+    '/cmd_vel_nav',
+    '/cmd_vel_controller',
     '/local_costmap/costmap',
     '/global_costmap/costmap',
     '/plan',
@@ -177,6 +181,7 @@ def generate_launch_description():
             'nav2_params_file': corridor_nav2_params,
             'nav_to_pose_bt_xml': corridor_no_recovery_bt_xml,
             'nav_through_poses_bt_xml': corridor_no_recovery_through_poses_bt_xml,
+            'guarded_cmd_vel': 'true',
         }.items(),
     )
 
@@ -227,6 +232,10 @@ def generate_launch_description():
                 'base_frame': 'base_link',
                 'fix_topic': '/fix',
                 'alignment_topic': '/gps_corridor/enu_to_map',
+                'lio_odom_topic': '/fastlio2/lio_odom',
+                'motion_allowed_topic': '/localization_authority/motion_allowed',
+                'authority_status_topic': '/localization_authority/status',
+                'stop_override_topic': '/gps_corridor/stop_override',
                 'terminal_stop_hold_s': 1.2,
                 'terminal_stop_publish_hz': 20.0,
             }
@@ -238,15 +247,27 @@ def generate_launch_description():
         executable='rtk_map_odom_corrector_node',
         name='rtk_map_odom_corrector',
         output='screen',
+        on_exit=Shutdown(reason='rtk_map_odom_corrector exited'),
         parameters=[
             master_params_file,
             {
                 'fix_topic': '/fix',
                 'heading_topic': '/heading',
-                'rtk_status_topic': '/rtk/status',
+                'nmea_topic': '/rtk/nmea_sentence',
+                'lio_odom_topic': '/fastlio2/lio_odom',
+                'base_frame': 'base_footprint',
                 'alignment_topic': '/gps_corridor/enu_to_map',
             },
         ],
+    )
+
+    corridor_cmd_guard = Node(
+        package='gps_waypoint_dispatcher',
+        executable='corridor_cmd_vel_guard_node',
+        name='corridor_cmd_vel_guard',
+        output='screen',
+        on_exit=Shutdown(reason='corridor_cmd_vel_guard exited'),
+        parameters=[master_params_file],
     )
 
     fgo_shadow = Node(
@@ -303,6 +324,7 @@ def generate_launch_description():
         bag_record,
         delayed_aligner,
         delayed_rtk_authority,
+        corridor_cmd_guard,
         delayed_fgo_shadow,
         delayed_runner,
     ])

@@ -118,12 +118,15 @@ class GPSRouteRunner(Node):
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
         self.declare_parameter("enu_origin_alt", 0.0)
-        self.declare_parameter("odom_watchdog_step_warn_m", 0.5)
-        self.declare_parameter("odom_watchdog_step_abort_m", 1.0)
-        self.declare_parameter("odom_watchdog_warn_count_abort", 3)
-        self.declare_parameter("odom_watchdog_tf_stale_abort_count", 3)
-        self.declare_parameter("odom_watchdog_tf_stale_abort_s", 3.0)
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
+        self.declare_parameter("local_rate_abort_mps", 3.0)
+        self.declare_parameter("local_yaw_rate_abort_radps", 3.0)
+        self.declare_parameter("local_rate_abort_count", 3)
+        self.declare_parameter("local_catastrophic_rate_mps", 10.0)
+        self.declare_parameter("local_catastrophic_yaw_rate_radps", 10.0)
+        self.declare_parameter("global_correction_rate_mps", 0.50)
+        self.declare_parameter("global_correction_yaw_rate_degps", 5.0)
+        self.declare_parameter("motion_authority_max_age_s", 0.50)
         self.declare_parameter("tf_pose_max_age_s", 3.0)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
@@ -171,23 +174,11 @@ class GPSRouteRunner(Node):
         self._enu_origin_lat = float(self.get_parameter("enu_origin_lat").value)
         self._enu_origin_lon = float(self.get_parameter("enu_origin_lon").value)
         self._enu_origin_alt = float(self.get_parameter("enu_origin_alt").value)
-        self._odom_watchdog_step_warn_m = float(
-            self.get_parameter("odom_watchdog_step_warn_m").value
-        )
-        self._odom_watchdog_step_abort_m = float(
-            self.get_parameter("odom_watchdog_step_abort_m").value
-        )
-        self._odom_watchdog_warn_count_abort = int(
-            self.get_parameter("odom_watchdog_warn_count_abort").value
-        )
-        self._odom_watchdog_tf_stale_abort_count = int(
-            self.get_parameter("odom_watchdog_tf_stale_abort_count").value
-        )
-        self._odom_watchdog_tf_stale_abort_s = float(
-            self.get_parameter("odom_watchdog_tf_stale_abort_s").value
-        )
         self._odom_watchdog_monitor_period_s = float(
             self.get_parameter("odom_watchdog_monitor_period_s").value
+        )
+        self._motion_authority_max_age_s = float(
+            self.get_parameter("motion_authority_max_age_s").value
         )
         self._tf_pose_max_age_s = float(self.get_parameter("tf_pose_max_age_s").value)
         self._alignment_shift_cancel_threshold_m = float(
@@ -240,9 +231,33 @@ class GPSRouteRunner(Node):
         self._motion_allowed = False
         self._motion_allowed_mono: float | None = None
         self._authority_status = "STARTUP"
-        self._local_watchdog = LocalOdomWatchdog()
+        self._local_watchdog = LocalOdomWatchdog(
+            ordinary_linear_rate_mps=float(
+                self.get_parameter("local_rate_abort_mps").value
+            ),
+            ordinary_yaw_rate_radps=float(
+                self.get_parameter("local_yaw_rate_abort_radps").value
+            ),
+            ordinary_abort_count=int(
+                self.get_parameter("local_rate_abort_count").value
+            ),
+            catastrophic_linear_rate_mps=float(
+                self.get_parameter("local_catastrophic_rate_mps").value
+            ),
+            catastrophic_yaw_rate_radps=float(
+                self.get_parameter("local_catastrophic_yaw_rate_radps").value
+            ),
+        )
         self._local_watchdog_result = None
-        self._global_watchdog = GlobalCorrectionWatchdog()
+        self._global_watchdog = GlobalCorrectionWatchdog(
+            max_translation_rate_mps=float(
+                self.get_parameter("global_correction_rate_mps").value
+            ),
+            max_yaw_rate_radps=math.radians(
+                float(self.get_parameter("global_correction_yaw_rate_degps").value)
+            ),
+            max_authority_age_s=self._motion_authority_max_age_s,
+        )
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -914,7 +929,10 @@ class GPSRouteRunner(Node):
                 )
                 return GoalStatus.STATUS_ABORTED
 
-            ready = self._motion_allowed and self._authority_age_s() <= 0.50
+            ready = (
+                self._motion_allowed
+                and self._authority_age_s() <= self._motion_authority_max_age_s
+            )
             if not readiness.update(ready=ready, now_s=now_mono):
                 continue
 
@@ -952,7 +970,10 @@ class GPSRouteRunner(Node):
             now_mono = time.monotonic()
             if self._authority_faulted():
                 return False
-            ready = self._motion_allowed and self._authority_age_s() <= 0.50
+            ready = (
+                self._motion_allowed
+                and self._authority_age_s() <= self._motion_authority_max_age_s
+            )
             if readiness.update(ready=ready, now_s=now_mono):
                 return True
         return False

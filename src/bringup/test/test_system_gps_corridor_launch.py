@@ -230,9 +230,53 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "publish_tf: false" in pgo_legacy_override_text
     assert "enable: false" in pgo_legacy_override_text
     assert '"gps.enable": false' in pgo_override_text
-    assert "allow_yaw_reacquire: true" in master_params_text
-    assert "max_yaw_reacquire_jump_deg: 45.0" in master_params_text
-    assert "max_yaw_step_deg: 0.5" in master_params_text
+    assert "base_frame: base_footprint" in master_params_text
+    assert "observation_fifo_capacity: 10" in master_params_text
+    assert "max_pending_observation_s: 0.30" in master_params_text
+    assert "fix_quality_wait_s: 0.25" in master_params_text
+    assert "heading_quality_wait_s: 0.30" in master_params_text
+    assert "max_translation_rate_mps: 0.20" in master_params_text
+    assert "max_yaw_rate_degps: 2.0" in master_params_text
+    assert "heading_locked_innovation_deg: 15.0" in master_params_text
+    assert "position_locked_innovation_m: 1.0" in master_params_text
+    assert "backlog_translation_m: 0.50" in master_params_text
+    assert "fault_translation_m: 2.0" in master_params_text
+
+
+def test_corridor_command_topology_has_one_guarded_cmd_vel_publisher():
+    explore_text = EXPLORE_LAUNCH.read_text(encoding="utf-8")
+    corridor_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+    runner_text = ROUTE_RUNNER.read_text(encoding="utf-8")
+
+    assert '"guarded_cmd_vel"' in explore_text
+    assert 'src="/cmd_vel_nav"' in explore_text
+    assert 'dst="/cmd_vel_controller"' in explore_text
+    assert 'src="/cmd_vel"' in explore_text
+    assert 'dst="/cmd_vel_nav"' in explore_text
+    assert "'guarded_cmd_vel': 'true'" in corridor_text
+    assert "corridor_cmd_vel_guard_node" in corridor_text
+    assert "on_exit=Shutdown(reason='corridor_cmd_vel_guard exited')" in corridor_text
+    assert "create_publisher(Twist" not in runner_text
+    assert "'/cmd_vel_controller'," in corridor_text
+    assert "'/cmd_vel_nav'," in corridor_text
+    assert "'/localization_authority/motion_allowed'," in corridor_text
+    assert "'/gps_corridor/stop_override'," in corridor_text
+
+
+def test_corridor_guard_and_hold_defaults_match_safety_spec():
+    params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    guard = params["/corridor_cmd_vel_guard"]["ros__parameters"]
+    runner = params["/gps_route_runner"]["ros__parameters"]
+
+    assert guard["input_topic"] == "/cmd_vel_nav"
+    assert guard["output_topic"] == "/cmd_vel"
+    assert guard["straight_max_mps"] == 0.85
+    assert guard["turn_product_limit"] == 0.25
+    assert guard["command_timeout_s"] == 0.25
+    assert guard["heartbeat_timeout_s"] == 0.50
+    assert runner["cancel_ack_timeout_s"] == 2.0
+    assert runner["authority_ready_confirmation_s"] == 1.0
+    assert runner["global_hold_timeout_s"] == 15.0
 
 
 def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
@@ -241,6 +285,7 @@ def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():
 
     required_cleanup_patterns = [
         "[r]tk_map_odom_corrector",
+        "[c]orridor_cmd_vel_guard",
         "[s]erial_reader_node",
         "[j]oint_state_publisher",
     ]
@@ -340,12 +385,17 @@ def test_fastlio_rejects_imu_only_prediction_when_lidar_update_is_invalid():
     assert "FAST-LIO2 rejected package without valid LiDAR correction" in lio_text
 
 
-def test_corridor_tf_watchdog_allows_short_fastlio_gaps():
-    params_text = MASTER_PARAMS.read_text(encoding="utf-8")
+def test_corridor_watchdogs_use_stamped_local_and_global_rate_thresholds():
+    params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    runner = params["/gps_route_runner"]["ros__parameters"]
 
-    assert "odom_watchdog_tf_stale_abort_count: 3" in params_text
-    assert "odom_watchdog_tf_stale_abort_s: 3.0" in params_text
-    assert "tf_pose_max_age_s: 3.0" in params_text
+    assert runner["local_rate_abort_mps"] == 3.0
+    assert runner["local_yaw_rate_abort_radps"] == 3.0
+    assert runner["local_rate_abort_count"] == 3
+    assert runner["local_catastrophic_rate_mps"] == 10.0
+    assert runner["local_catastrophic_yaw_rate_radps"] == 10.0
+    assert runner["global_correction_rate_mps"] == 0.50
+    assert runner["global_correction_yaw_rate_degps"] == 5.0
 
 
 def test_pgo_and_fastlio_logging_default_to_quiet_when_switch_is_missing():

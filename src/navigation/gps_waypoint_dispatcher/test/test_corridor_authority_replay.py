@@ -35,7 +35,7 @@ def test_synthetic_replay_detects_heading_freeze_and_five_sample_reacquisition()
     assert result["heading"]["minimum_reacquire_samples"] >= 5
 
 
-def test_synthetic_replay_checks_release_rates_and_saturation_runs():
+def test_synthetic_replay_allows_long_saturation_when_release_rates_are_safe():
     replay = _load_module()
     releases = [
         {
@@ -43,7 +43,7 @@ def test_synthetic_replay_checks_release_rates_and_saturation_runs():
             "x": index * 0.0204,
             "y": 0.0,
             "yaw": math.radians(index * 0.204),
-            "saturated": index < 10,
+            "saturated": True,
         }
         for index in range(12)
     ]
@@ -52,8 +52,9 @@ def test_synthetic_replay_checks_release_rates_and_saturation_runs():
 
     assert result["release"]["max_translation_rate_mps"] <= 0.205
     assert result["release"]["max_yaw_rate_degps"] <= 2.05
-    assert result["release"]["max_consecutive_saturated"] == 10
+    assert result["release"]["max_consecutive_saturated"] == 12
     assert result["assertions"]["release_rates_within_limits"] is True
+    assert result["passed"] is True
 
 
 def test_synthetic_replay_keeps_global_correction_out_of_local_abort():

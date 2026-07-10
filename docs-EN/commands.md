@@ -819,7 +819,7 @@ PYTHONPATH=src/navigation/gps_waypoint_dispatcher \
   --manifest --out /tmp/corridor-authority-replay.json
 ```
 
-The command returns nonzero if an assertion fails. Current reference replay detects 20 s `LOCAL_NO_PROGRESS` in `13:34`, a 51.75-degree rejected heading correction in `13:36`, and release limits at or below `0.20 m/s` and `2 deg/s` in `13:46`/`13:48` (maximum ten consecutive saturated samples).
+The command returns nonzero if an assertion fails. Current reference replay detects 20 s `LOCAL_NO_PROGRESS` in `13:34`, a 51.75-degree rejected heading correction in `13:36`, and release limits at or below `0.20 m/s` and `2 deg/s` in `13:46`/`13:48`. `max_consecutive_saturated` remains in the result as a diagnostic, but sustained limiting no longer fails acceptance by itself; safety is enforced by the release-rate limits, the `0.50 m/5 deg` backlog thresholds, and the `2.0 m/20 deg` fault thresholds.
 
 After deploying to Jetson, build with the required single worker and re-source:
 

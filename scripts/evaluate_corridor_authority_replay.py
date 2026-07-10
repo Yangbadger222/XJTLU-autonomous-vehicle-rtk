@@ -198,9 +198,6 @@ def evaluate_records(records):
             release["max_translation_rate_mps"] <= 0.205 + 1e-9
             and release["max_yaw_rate_degps"] <= 2.05 + 1e-9
         ),
-        "release_saturation_run_bounded": (
-            release["max_consecutive_saturated"] <= 10
-        ),
         "global_never_classified_as_local_abort": local["abort_count"] == 0,
     }
     return {
@@ -520,9 +517,6 @@ def evaluate_bag(bag_path, fixture_name=None):
     elif expectation == "STABLE_RELEASE":
         common["release_rates_within_limits"] = result["assertions"][
             "release_rates_within_limits"
-        ]
-        common["release_saturation_run_bounded"] = result["assertions"][
-            "release_saturation_run_bounded"
         ]
         common["fixture_release_available"] = (
             result["release"]["sample_count"] > 0

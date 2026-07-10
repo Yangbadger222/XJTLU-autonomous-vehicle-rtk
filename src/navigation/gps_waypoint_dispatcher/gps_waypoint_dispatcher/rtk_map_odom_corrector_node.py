@@ -143,7 +143,6 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("recovery_translation_m", 0.15)
         self.declare_parameter("recovery_yaw_deg", 2.0)
         self.declare_parameter("recovery_confirmation_s", 1.0)
-        self.declare_parameter("max_saturated_samples", 10)
 
         self._map_frame = str(self.get_parameter("map_frame").value)
         self._odom_frame = str(self.get_parameter("odom_frame").value)
@@ -274,9 +273,6 @@ class RtkMapOdomCorrector(Node):
             ),
             recovery_confirmation_s=float(
                 self.get_parameter("recovery_confirmation_s").value
-            ),
-            max_saturated_samples=int(
-                self.get_parameter("max_saturated_samples").value
             ),
         )
         self.get_logger().info(

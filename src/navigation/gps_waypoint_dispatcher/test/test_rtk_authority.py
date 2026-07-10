@@ -2255,15 +2255,13 @@ def test_setup_exposes_rtk_map_odom_corrector_entry_point():
     ) in setup_text
 
 
-def test_correction_release_limits_consecutive_rate_saturation_to_ten_samples():
-    state = CorrectionReleaseState(max_saturated_samples=10)
+def test_correction_release_allows_sub_backlog_saturation_until_converged():
+    state = CorrectionReleaseState()
     previous = _pose()
     target = _pose(x=0.49)
-    saturated_run = 0
-    max_saturated_run = 0
-    reasons = []
+    results = []
 
-    for index in range(16):
+    for index in range(30):
         result = _release_update(
             state,
             previous=previous,
@@ -2272,15 +2270,17 @@ def test_correction_release_limits_consecutive_rate_saturation_to_ten_samples():
             lio_stamp_s=1.0 + index * 0.1,
         )
         previous = result.output_map_odom
-        reasons.append(result.reason)
-        if result.translation_step_m >= result.dt_s * 0.20 - 1e-9 and result.dt_s > 0.0:
-            saturated_run += 1
-            max_saturated_run = max(max_saturated_run, saturated_run)
-        else:
-            saturated_run = 0
+        results.append(result)
 
-    assert max_saturated_run == 10
-    assert CorrectionReleaseReason.SATURATION_LIMIT_HOLD in reasons
+    saturated_samples = sum(
+        result.dt_s > 0.0
+        and result.translation_step_m >= result.dt_s * 0.20 - 1e-9
+        for result in results
+    )
+    assert saturated_samples > 10
+    assert all(result.mode is CorrectionReleaseMode.NORMAL for result in results)
+    assert all(result.motion_allowed for result in results[1:])
+    assert previous.x == pytest.approx(target.x)
 
 
 def test_rtk_map_odom_corrector_node_owns_authority_outputs():

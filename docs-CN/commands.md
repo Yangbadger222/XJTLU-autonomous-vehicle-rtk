@@ -824,7 +824,7 @@ PYTHONPATH=src/navigation/gps_waypoint_dispatcher \
   --manifest --out /tmp/corridor-authority-replay.json
 ```
 
-任一断言失败时命令返回非零。当前基准结果：`13:34` 检出 20 秒 `LOCAL_NO_PROGRESS`；`13:36` 拒绝 51.75 度 heading correction；`13:46`/`13:48` release 不超过 `0.20 m/s`、`2 deg/s`，连续饱和最多 10 个样本。
+任一断言失败时命令返回非零。当前基准结果：`13:34` 检出 20 秒 `LOCAL_NO_PROGRESS`；`13:36` 拒绝 51.75 度 heading correction；`13:46`/`13:48` release 不超过 `0.20 m/s`、`2 deg/s`。`max_consecutive_saturated` 仍写入结果用于诊断，但连续受限不再单独判失败；安全边界由 release 速率、`0.50 m/5 deg` backlog 与 `2.0 m/20 deg` fault 阈值负责。
 
 部署到 Jetson 后按单 worker 构建并重新 source：
 

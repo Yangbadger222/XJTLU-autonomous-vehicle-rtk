@@ -6,6 +6,9 @@ import gps_waypoint_dispatcher.rtk_authority as authority
 from gps_waypoint_dispatcher.rtk_authority import (
     CorrectionGate,
     CorrectionGateState,
+    CorrectionReleaseMode,
+    CorrectionReleaseReason,
+    CorrectionReleaseState,
     Pose2D,
     StampedPoseHistory,
     blend_pose_target,
@@ -44,6 +47,32 @@ def _lock_yaw_gate(gate, *, start_stamp_s=1.0, now_s=10.0, values=None):
             now_s=now_s + 0.1 * index,
         )
     return result
+
+
+def _release_update(
+    state,
+    *,
+    previous=None,
+    target=None,
+    local=None,
+    now_s=10.0,
+    lio_stamp_s=1.0,
+    lio_age_s=0.0,
+    local_linear_rate_mps=0.0,
+    local_yaw_rate_radps=0.0,
+    gates_locked=True,
+):
+    return state.update(
+        previous_output_map_odom=previous or _pose(),
+        target_map_odom=target or _pose(),
+        local_pose=local or _pose(),
+        now_s=now_s,
+        lio_stamp_s=lio_stamp_s,
+        lio_age_s=lio_age_s,
+        local_linear_rate_mps=local_linear_rate_mps,
+        local_yaw_rate_radps=local_yaw_rate_radps,
+        gates_locked=gates_locked,
+    )
 
 
 @pytest.mark.parametrize(
@@ -736,6 +765,908 @@ def test_limit_map_to_odom_step_caps_base_motion_from_far_yaw_lever_arm():
     assert base_shift_m <= 0.12 + 1e-6
     assert math.degrees(limited.yaw_step_rad) < 0.5
     assert limited.limited is True
+
+
+def test_correction_release_exposes_explicit_modes_and_reasons():
+    assert [mode.value for mode in CorrectionReleaseMode] == [
+        "NORMAL",
+        "CORRECTION_BACKLOG",
+        "FAULT_HOLD",
+        "LOCAL_ODOM_STALE",
+    ]
+    assert CorrectionReleaseReason.BOOTSTRAP.value == "BOOTSTRAP"
+    assert CorrectionReleaseReason.NONPOSITIVE_DT.value == "NONPOSITIVE_DT"
+
+
+def test_correction_release_bootstrap_freezes_deterministically():
+    state = CorrectionReleaseState()
+    previous = _pose(x=2.0, y=-1.0, yaw=math.radians(3.0))
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=2.2, y=-1.0, yaw=math.radians(5.0)),
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.reason is CorrectionReleaseReason.BOOTSTRAP
+    assert result.motion_allowed is False
+    assert result.dt_s == 0.0
+
+
+def test_correction_release_bootstrap_reports_moderate_backlog():
+    state = CorrectionReleaseState()
+    previous = _pose()
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert result.reason is CorrectionReleaseReason.BOOTSTRAP
+    assert result.motion_allowed is False
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"max_translation_rate_mps": -0.1},
+        {"max_dt_s": 0.0},
+        {"max_lio_age_s": math.nan},
+        {"backlog_translation_m": 2.1},
+        {"recovery_yaw_rad": math.radians(5.0)},
+    ],
+)
+def test_correction_release_rejects_unsafe_configuration(kwargs):
+    with pytest.raises(ValueError):
+        CorrectionReleaseState(**kwargs)
+
+
+@pytest.mark.parametrize("now_s", [10.0, 9.9])
+def test_correction_release_nonpositive_monotonic_dt_freezes(now_s):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.4, yaw=math.radians(4.0)),
+        now_s=now_s,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.reason is CorrectionReleaseReason.NONPOSITIVE_DT
+    assert result.motion_allowed is False
+
+
+def test_correction_release_caps_dt_and_vehicle_space_rates_for_replay():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.4, yaw=math.radians(4.0))
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.5,
+        lio_stamp_s=1.1,
+    )
+    output_base = compose_pose(result.output_map_odom, _pose())
+    translation_rate_mps = math.hypot(output_base.x, output_base.y) / result.dt_s
+    yaw_rate_degps = abs(math.degrees(output_base.yaw)) / result.dt_s
+
+    assert result.dt_s == pytest.approx(0.10)
+    assert translation_rate_mps <= 0.205
+    assert yaw_rate_degps <= 2.05
+    assert translation_rate_mps == pytest.approx(0.20)
+    assert yaw_rate_degps == pytest.approx(2.0)
+
+
+def test_correction_release_limits_coupled_base_pose_at_yaw_lever_arm():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    local = _pose(x=4.0)
+    target = _pose(yaw=math.radians(4.0))
+    _release_update(
+        state,
+        previous=previous,
+        local=local,
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        local=local,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    previous_base = compose_pose(previous, local)
+    output_base = compose_pose(result.output_map_odom, local)
+    base_step_m = math.hypot(
+        output_base.x - previous_base.x,
+        output_base.y - previous_base.y,
+    )
+
+    assert base_step_m == pytest.approx(0.020, abs=1e-9)
+    assert math.degrees(output_base.yaw - previous_base.yaw) == pytest.approx(0.20)
+    assert abs(result.output_map_odom.y) > 0.001
+
+
+def test_correction_release_accepts_inclusive_lio_age_boundary():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        lio_age_s=0.20,
+    )
+
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.reason is None
+    assert result.motion_allowed is True
+    assert result.translation_step_m == pytest.approx(0.02)
+
+
+def test_correction_release_accepts_logical_lio_age_at_ros_epoch_scale():
+    epoch_s = 1783342965.0
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=epoch_s)
+    rounded_age_s = (epoch_s + 0.30) - (epoch_s + 0.10)
+    assert rounded_age_s > 0.20
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=10.1,
+        lio_stamp_s=epoch_s + 0.10,
+        lio_age_s=rounded_age_s,
+    )
+
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.reason is None
+
+
+def test_correction_release_duplicate_lio_stamp_is_ignored_and_frozen():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=10.1,
+        lio_stamp_s=1.0,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert result.motion_allowed is False
+
+
+def test_correction_release_duplicate_preserves_backlog_mode():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.1,
+    )
+
+    duplicate = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.2,
+        lio_stamp_s=1.1,
+    )
+
+    assert duplicate.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+
+
+def test_correction_release_stale_age_takes_precedence_over_duplicate_stamp():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    stale = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=10.3,
+        lio_stamp_s=1.0,
+        lio_age_s=0.21,
+    )
+
+    assert stale.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
+    assert stale.reason is CorrectionReleaseReason.LOCAL_ODOM_STALE
+
+
+@pytest.mark.parametrize(
+    ("lio_stamp_s", "lio_age_s", "linear_rate", "yaw_rate"),
+    [
+        (0.9, 0.0, 0.0, 0.0),
+        (1.1, 0.201, 0.0, 0.0),
+        (math.nan, 0.0, 0.0, 0.0),
+        (1.1, math.nan, 0.0, 0.0),
+        (1.1, 0.0, math.inf, 0.0),
+        (1.1, 0.0, 0.0, math.nan),
+    ],
+)
+def test_correction_release_stale_or_invalid_lio_fails_closed(
+    lio_stamp_s,
+    lio_age_s,
+    linear_rate,
+    yaw_rate,
+):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=10.1,
+        lio_stamp_s=lio_stamp_s,
+        lio_age_s=lio_age_s,
+        local_linear_rate_mps=linear_rate,
+        local_yaw_rate_radps=yaw_rate,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
+    assert result.reason is CorrectionReleaseReason.LOCAL_ODOM_STALE
+    assert result.motion_allowed is False
+
+
+@pytest.mark.parametrize("now_s", [math.nan, math.inf, -math.inf])
+def test_correction_release_nonfinite_monotonic_time_fails_closed(now_s):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.1),
+        now_s=now_s,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
+    assert result.reason is CorrectionReleaseReason.INVALID_PROCESS_TIME
+    assert result.motion_allowed is False
+
+
+def test_correction_release_gap_just_below_both_backlog_thresholds_is_normal():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.499, yaw=math.radians(4.99)),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.2,
+    )
+
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.motion_allowed is True
+    assert result.translation_step_m == pytest.approx(0.02)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        _pose(x=0.50),
+        _pose(yaw=math.radians(5.0)),
+        _pose(x=2.0),
+        _pose(yaw=math.radians(20.0)),
+    ],
+)
+def test_correction_release_moderate_gap_boundaries_freeze_while_moving(target):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.05,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert result.reason is CorrectionReleaseReason.MOVING_BACKLOG_HOLD
+    assert result.motion_allowed is False
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        _pose(x=2.001),
+        _pose(yaw=math.radians(20.01)),
+    ],
+)
+def test_correction_release_gap_above_hard_boundary_latches_fault(target):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    fault = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    still_faulted = _release_update(
+        state,
+        previous=previous,
+        target=previous,
+        now_s=10.2,
+        lio_stamp_s=1.2,
+    )
+
+    assert fault.output_map_odom == previous
+    assert fault.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert fault.reason is CorrectionReleaseReason.FAULT_LATCHED
+    assert still_faulted.output_map_odom == previous
+    assert still_faulted.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert still_faulted.motion_allowed is False
+
+
+def test_correction_release_backlog_uses_base_yaw_lever_arm_translation_gap():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    local = _pose(x=30.0)
+    _release_update(
+        state,
+        previous=previous,
+        local=local,
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(yaw=math.radians(4.0)),
+        local=local,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert result.translation_gap_m > 2.0
+    assert result.yaw_gap_rad < math.radians(5.0)
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+
+
+def test_correction_release_still_detects_fault_on_duplicate_lio_cycle():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=2.1),
+        now_s=10.1,
+        lio_stamp_s=1.0,
+    )
+
+    assert result.mode is CorrectionReleaseMode.FAULT_HOLD
+    assert result.reason is CorrectionReleaseReason.FAULT_LATCHED
+    assert result.output_map_odom == previous
+
+
+@pytest.mark.parametrize(
+    ("linear_rate", "yaw_rate"),
+    [
+        (0.05, 0.0),
+        (0.0, math.radians(2.0)),
+    ],
+)
+def test_correction_release_stopped_thresholds_are_strict(linear_rate, yaw_rate):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=linear_rate,
+        local_yaw_rate_radps=yaw_rate,
+    )
+
+    assert result.output_map_odom == previous
+    assert result.reason is CorrectionReleaseReason.MOVING_BACKLOG_HOLD
+    assert result.stopped_duration_s == 0.0
+
+
+@pytest.mark.parametrize(
+    ("elapsed_s", "released"),
+    [
+        (0.999, False),
+        (1.0, True),
+    ],
+)
+def test_correction_release_requires_one_second_continuously_stopped(
+    elapsed_s,
+    released,
+):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1 + elapsed_s,
+        lio_stamp_s=1.2,
+    )
+
+    assert pending.reason is CorrectionReleaseReason.STOP_CONFIRMATION_PENDING
+    assert (result.output_map_odom != previous) is released
+    assert result.stopped_duration_s == pytest.approx(elapsed_s)
+    assert result.motion_allowed is False
+    if released:
+        assert result.reason is CorrectionReleaseReason.RELEASING_BACKLOG
+        assert result.translation_step_m == pytest.approx(0.02)
+    else:
+        assert result.reason is CorrectionReleaseReason.STOP_CONFIRMATION_PENDING
+
+
+def test_correction_release_stopped_confirmation_is_ulp_safe_at_epoch_scale():
+    epoch_s = 1783342965.0
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=epoch_s, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=epoch_s + 0.1,
+        lio_stamp_s=1.1,
+    )
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=epoch_s + 1.1,
+        lio_stamp_s=1.2,
+    )
+
+    assert result.output_map_odom != previous
+    assert result.reason is CorrectionReleaseReason.RELEASING_BACKLOG
+
+
+def test_correction_release_motion_resets_stopped_confirmation():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.6,
+        lio_stamp_s=1.2,
+    )
+    moving = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.7,
+        lio_stamp_s=1.3,
+        local_linear_rate_mps=0.06,
+    )
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.0,
+        lio_stamp_s=1.4,
+    )
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.9,
+        lio_stamp_s=1.5,
+    )
+    released = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.0,
+        lio_stamp_s=1.6,
+    )
+
+    assert moving.stopped_duration_s == 0.0
+    assert pending.output_map_odom == previous
+    assert pending.stopped_duration_s == pytest.approx(0.9)
+    assert released.output_map_odom != previous
+
+
+@pytest.mark.parametrize("bad_lio", ["stale", "regressing"])
+def test_correction_release_bad_lio_clears_stopped_confirmation(bad_lio):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.8,
+        lio_stamp_s=1.2,
+    )
+    bad = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.9,
+        lio_stamp_s=1.3 if bad_lio == "stale" else 1.1,
+        lio_age_s=0.21 if bad_lio == "stale" else 0.0,
+    )
+    restarted = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.0,
+        lio_stamp_s=1.4,
+    )
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.9,
+        lio_stamp_s=1.5,
+    )
+
+    assert bad.mode is CorrectionReleaseMode.LOCAL_ODOM_STALE
+    assert bad.stopped_duration_s == 0.0
+    assert restarted.stopped_duration_s == 0.0
+    assert pending.output_map_odom == previous
+    assert pending.stopped_duration_s == pytest.approx(0.9)
+
+
+@pytest.mark.parametrize("boundary", ["translation", "yaw"])
+def test_correction_release_recovery_gap_boundaries_are_strict(boundary):
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    confirmed = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=11.1,
+        lio_stamp_s=1.2,
+    )
+    previous = confirmed.output_map_odom
+    if boundary == "translation":
+        target = _pose(x=previous.x + 0.17, yaw=previous.yaw)
+    else:
+        target = _pose(
+            x=previous.x,
+            yaw=previous.yaw + math.radians(2.2),
+        )
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.2,
+        lio_stamp_s=1.3,
+    )
+    output_base = compose_pose(result.output_map_odom, _pose())
+    target_base = compose_pose(target, _pose())
+    remaining_m = math.hypot(
+        target_base.x - output_base.x,
+        target_base.y - output_base.y,
+    )
+    remaining_yaw = abs(authority.normalize_angle(target_base.yaw - output_base.yaw))
+
+    if boundary == "translation":
+        assert remaining_m == pytest.approx(0.15)
+    else:
+        assert math.degrees(remaining_yaw) == pytest.approx(2.0)
+    assert result.recovery_duration_s == 0.0
+    assert result.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+
+
+def test_correction_release_requires_both_gates_locked_for_one_second_recovery():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=0.5)
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.1,
+        lio_stamp_s=1.2,
+    )
+    previous = result.output_map_odom
+    target = _pose(x=0.10)
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.2,
+        lio_stamp_s=1.3,
+    )
+    previous = result.output_map_odom
+    unlocked = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.7,
+        lio_stamp_s=1.4,
+        gates_locked=False,
+    )
+    previous = unlocked.output_map_odom
+    recovery_start = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.0,
+        lio_stamp_s=1.5,
+        gates_locked=True,
+    )
+    previous = recovery_start.output_map_odom
+    almost = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.999,
+        lio_stamp_s=1.6,
+        gates_locked=True,
+    )
+    previous = almost.output_map_odom
+    recovered = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=13.0,
+        lio_stamp_s=1.7,
+        gates_locked=True,
+    )
+
+    assert unlocked.recovery_duration_s == 0.0
+    assert recovery_start.recovery_duration_s == 0.0
+    assert almost.recovery_duration_s == pytest.approx(0.999)
+    assert almost.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert almost.motion_allowed is False
+    assert recovered.mode is CorrectionReleaseMode.NORMAL
+    assert recovered.motion_allowed is True
+
+
+def test_correction_release_stale_lio_resets_recovery_continuity():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=11.1,
+        lio_stamp_s=1.2,
+    )
+    previous = result.output_map_odom
+    target = _pose(x=0.1)
+    started = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.2,
+        lio_stamp_s=1.3,
+    )
+    previous = started.output_map_odom
+    stale = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.7,
+        lio_stamp_s=1.4,
+        lio_age_s=0.21,
+    )
+    restarted = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=11.8,
+        lio_stamp_s=1.5,
+    )
+    previous = restarted.output_map_odom
+    pending_stop = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.7,
+        lio_stamp_s=1.6,
+    )
+    recovery_restarted = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=12.8,
+        lio_stamp_s=1.7,
+    )
+    previous = recovery_restarted.output_map_odom
+    pending_recovery = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=13.7,
+        lio_stamp_s=1.8,
+    )
+
+    assert stale.recovery_duration_s == 0.0
+    assert restarted.recovery_duration_s == 0.0
+    assert pending_stop.stopped_duration_s == pytest.approx(0.9)
+    assert recovery_restarted.recovery_duration_s == 0.0
+    assert pending_recovery.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert pending_recovery.recovery_duration_s == pytest.approx(0.9)
+
+
+def test_correction_release_recovery_timer_is_ulp_safe_at_epoch_scale():
+    epoch_s = 1783342965.0
+    state = CorrectionReleaseState()
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=epoch_s, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=epoch_s + 0.1,
+        lio_stamp_s=1.1,
+    )
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=epoch_s + 1.1,
+        lio_stamp_s=1.2,
+    )
+    previous = result.output_map_odom
+    target = _pose(x=0.1)
+    started = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=epoch_s + 1.2,
+        lio_stamp_s=1.3,
+    )
+    previous = started.output_map_odom
+    recovered = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=epoch_s + 2.2,
+        lio_stamp_s=1.4,
+    )
+
+    assert recovered.mode is CorrectionReleaseMode.NORMAL
+    assert recovered.motion_allowed is True
+
+
+def test_correction_release_worst_recoverable_backlog_stays_rate_limited():
+    state = CorrectionReleaseState()
+    previous = _pose()
+    target = _pose(x=2.0)
+    _release_update(state, previous=previous, now_s=0.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=0.1,
+        lio_stamp_s=1.1,
+    )
+
+    result = None
+    for index in range(1, 116):
+        now_s = 0.1 + index * 0.1
+        result = _release_update(
+            state,
+            previous=previous,
+            target=target,
+            now_s=now_s,
+            lio_stamp_s=1.1 + index * 0.1,
+        )
+        step_m = math.hypot(
+            result.output_map_odom.x - previous.x,
+            result.output_map_odom.y - previous.y,
+        )
+        assert step_m / max(result.dt_s, 0.1) <= 0.205
+        previous = result.output_map_odom
+        if result.mode is CorrectionReleaseMode.NORMAL:
+            break
+
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.motion_allowed is True
+    assert 11.2 <= now_s <= 11.4
+    assert target.x - result.output_map_odom.x < 0.15
 
 
 def test_blend_pose_target_holds_small_map_odom_target_jitter():

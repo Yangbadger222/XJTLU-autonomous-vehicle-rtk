@@ -225,6 +225,25 @@ class PrerequisiteFailureKind(Enum):
     MALFORMED_INPUT = "MALFORMED_INPUT"
 
 
+class CorrectionReleaseMode(Enum):
+    NORMAL = "NORMAL"
+    CORRECTION_BACKLOG = "CORRECTION_BACKLOG"
+    FAULT_HOLD = "FAULT_HOLD"
+    LOCAL_ODOM_STALE = "LOCAL_ODOM_STALE"
+
+
+class CorrectionReleaseReason(Enum):
+    BOOTSTRAP = "BOOTSTRAP"
+    NONPOSITIVE_DT = "NONPOSITIVE_DT"
+    DUPLICATE_LOCAL_ODOM = "DUPLICATE_LOCAL_ODOM"
+    LOCAL_ODOM_STALE = "LOCAL_ODOM_STALE"
+    INVALID_PROCESS_TIME = "INVALID_PROCESS_TIME"
+    MOVING_BACKLOG_HOLD = "MOVING_BACKLOG_HOLD"
+    STOP_CONFIRMATION_PENDING = "STOP_CONFIRMATION_PENDING"
+    RELEASING_BACKLOG = "RELEASING_BACKLOG"
+    FAULT_LATCHED = "FAULT_LATCHED"
+
+
 _QUALITY_UNAVAILABLE_FAILURES = frozenset(
     {
         PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
@@ -638,6 +657,23 @@ class AuthorityInputSummary:
     reason: str | None
 
 
+@dataclass(frozen=True)
+class CorrectionReleaseResult:
+    output_map_odom: Pose2D
+    output_map_base: Pose2D
+    target_map_base: Pose2D
+    mode: CorrectionReleaseMode
+    reason: CorrectionReleaseReason | None
+    motion_allowed: bool
+    dt_s: float
+    translation_gap_m: float
+    yaw_gap_rad: float
+    translation_step_m: float
+    yaw_step_rad: float
+    stopped_duration_s: float = 0.0
+    recovery_duration_s: float = 0.0
+
+
 AlignmentTuple = tuple[float, float, float, bool]
 
 
@@ -667,6 +703,348 @@ def compose_pose(parent_child: Pose2D, child_grandchild: Pose2D) -> Pose2D:
 
 def compute_map_to_odom(map_base: Pose2D, odom_base: Pose2D) -> Pose2D:
     return compose_pose(map_base, invert_pose(odom_base))
+
+
+class CorrectionReleaseState:
+    def __init__(
+        self,
+        *,
+        max_translation_rate_mps: float = 0.20,
+        max_yaw_rate_radps: float = math.radians(2.0),
+        max_dt_s: float = 0.10,
+        max_lio_age_s: float = 0.20,
+        backlog_translation_m: float = 0.50,
+        backlog_yaw_rad: float = math.radians(5.0),
+        fault_translation_m: float = 2.0,
+        fault_yaw_rad: float = math.radians(20.0),
+        stopped_linear_rate_mps: float = 0.05,
+        stopped_yaw_rate_radps: float = math.radians(2.0),
+        stopped_confirmation_s: float = 1.0,
+        recovery_translation_m: float = 0.15,
+        recovery_yaw_rad: float = math.radians(2.0),
+        recovery_confirmation_s: float = 1.0,
+    ) -> None:
+        self.max_translation_rate_mps = max_translation_rate_mps
+        self.max_yaw_rate_radps = max_yaw_rate_radps
+        self.max_dt_s = max_dt_s
+        self.max_lio_age_s = max_lio_age_s
+        self.backlog_translation_m = backlog_translation_m
+        self.backlog_yaw_rad = backlog_yaw_rad
+        self.fault_translation_m = fault_translation_m
+        self.fault_yaw_rad = fault_yaw_rad
+        self.stopped_linear_rate_mps = stopped_linear_rate_mps
+        self.stopped_yaw_rate_radps = stopped_yaw_rate_radps
+        self.stopped_confirmation_s = stopped_confirmation_s
+        self.recovery_translation_m = recovery_translation_m
+        self.recovery_yaw_rad = recovery_yaw_rad
+        self.recovery_confirmation_s = recovery_confirmation_s
+        self._validate_configuration()
+        self._last_now_s: float | None = None
+        self._last_lio_stamp_s: float | None = None
+        self._backlog_active = False
+        self._fault_latched = False
+        self._stopped_since_s: float | None = None
+        self._recovery_since_s: float | None = None
+
+    def update(
+        self,
+        *,
+        previous_output_map_odom: Pose2D,
+        target_map_odom: Pose2D,
+        local_pose: Pose2D,
+        now_s: float,
+        lio_stamp_s: float,
+        lio_age_s: float,
+        local_linear_rate_mps: float,
+        local_yaw_rate_radps: float,
+        gates_locked: bool,
+    ) -> CorrectionReleaseResult:
+        previous_map_base = compose_pose(previous_output_map_odom, local_pose)
+        target_map_base = compose_pose(target_map_odom, local_pose)
+        gap_m = math.hypot(
+            target_map_base.x - previous_map_base.x,
+            target_map_base.y - previous_map_base.y,
+        )
+        gap_yaw_rad = abs(normalize_angle(target_map_base.yaw - previous_map_base.yaw))
+
+        if gap_m > self.fault_translation_m or gap_yaw_rad > self.fault_yaw_rad:
+            self._fault_latched = True
+        elif gap_m >= self.backlog_translation_m or gap_yaw_rad >= self.backlog_yaw_rad:
+            self._backlog_active = True
+
+        if self._fault_latched:
+            self._stopped_since_s = None
+            self._recovery_since_s = None
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.FAULT_LATCHED,
+                gap_m,
+                gap_yaw_rad,
+                mode=CorrectionReleaseMode.FAULT_HOLD,
+            )
+
+        if not math.isfinite(now_s):
+            self._stopped_since_s = None
+            self._recovery_since_s = None
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.INVALID_PROCESS_TIME,
+                gap_m,
+                gap_yaw_rad,
+                mode=CorrectionReleaseMode.LOCAL_ODOM_STALE,
+            )
+
+        lio_invalid = not all(
+            math.isfinite(value)
+            for value in (
+                lio_stamp_s,
+                lio_age_s,
+                local_linear_rate_mps,
+                local_yaw_rate_radps,
+            )
+        ) or lio_stamp_s <= 0.0 or lio_age_s < 0.0
+        age_epsilon_s = _time_comparison_epsilon_s(
+            lio_stamp_s,
+            lio_stamp_s + self.max_lio_age_s,
+            lio_age_s,
+        )
+        if (
+            lio_invalid
+            or (
+                self._last_lio_stamp_s is not None
+                and lio_stamp_s < self._last_lio_stamp_s
+            )
+            or lio_age_s > self.max_lio_age_s + age_epsilon_s
+        ):
+            self._stopped_since_s = None
+            self._recovery_since_s = None
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.LOCAL_ODOM_STALE,
+                gap_m,
+                gap_yaw_rad,
+                mode=CorrectionReleaseMode.LOCAL_ODOM_STALE,
+            )
+
+        if self._last_lio_stamp_s is not None and lio_stamp_s == self._last_lio_stamp_s:
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM,
+                gap_m,
+                gap_yaw_rad,
+                mode=self._active_mode(),
+            )
+
+        self._last_lio_stamp_s = lio_stamp_s
+
+        if self._last_now_s is None:
+            self._last_now_s = now_s
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.BOOTSTRAP,
+                gap_m,
+                gap_yaw_rad,
+                mode=self._active_mode(),
+            )
+
+        elapsed_s = now_s - self._last_now_s
+        if elapsed_s <= 0.0:
+            return self._frozen_result(
+                previous_output_map_odom,
+                previous_map_base,
+                target_map_base,
+                CorrectionReleaseReason.NONPOSITIVE_DT,
+                gap_m,
+                gap_yaw_rad,
+                mode=(
+                    CorrectionReleaseMode.CORRECTION_BACKLOG
+                    if self._backlog_active
+                    else CorrectionReleaseMode.NORMAL
+                ),
+            )
+
+        self._last_now_s = now_s
+        dt_s = min(elapsed_s, self.max_dt_s)
+        if self._backlog_active:
+            stopped = (
+                abs(local_linear_rate_mps) < self.stopped_linear_rate_mps
+                and abs(local_yaw_rate_radps) < self.stopped_yaw_rate_radps
+            )
+            if not stopped:
+                self._stopped_since_s = None
+                self._recovery_since_s = None
+                return self._frozen_result(
+                    previous_output_map_odom,
+                    previous_map_base,
+                    target_map_base,
+                    CorrectionReleaseReason.MOVING_BACKLOG_HOLD,
+                    gap_m,
+                    gap_yaw_rad,
+                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                )
+
+            if self._stopped_since_s is None:
+                self._stopped_since_s = now_s
+            stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
+            stopped_epsilon_s = _time_comparison_epsilon_s(
+                self._stopped_since_s,
+                now_s,
+                self._stopped_since_s + self.stopped_confirmation_s,
+            )
+            if (
+                stopped_duration_s + stopped_epsilon_s
+                < self.stopped_confirmation_s
+            ):
+                self._recovery_since_s = None
+                return self._frozen_result(
+                    previous_output_map_odom,
+                    previous_map_base,
+                    target_map_base,
+                    CorrectionReleaseReason.STOP_CONFIRMATION_PENDING,
+                    gap_m,
+                    gap_yaw_rad,
+                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                    stopped_duration_s=stopped_duration_s,
+                )
+        else:
+            stopped_duration_s = 0.0
+
+        limited = limit_pose_step(
+            previous_map_base,
+            target_map_base,
+            max_translation_step_m=self.max_translation_rate_mps * dt_s,
+            max_yaw_step_rad=self.max_yaw_rate_radps * dt_s,
+        )
+        output_map_odom = compute_map_to_odom(limited.pose, local_pose)
+        output_gap_m = math.hypot(
+            target_map_base.x - limited.pose.x,
+            target_map_base.y - limited.pose.y,
+        )
+        output_gap_yaw_rad = abs(
+            normalize_angle(target_map_base.yaw - limited.pose.yaw)
+        )
+        recovery_duration_s = 0.0
+        if self._backlog_active:
+            recovery_ready = (
+                output_gap_m < self.recovery_translation_m
+                and output_gap_yaw_rad < self.recovery_yaw_rad
+                and gates_locked
+            )
+            if not recovery_ready:
+                self._recovery_since_s = None
+            else:
+                if self._recovery_since_s is None:
+                    self._recovery_since_s = now_s
+                recovery_duration_s = max(0.0, now_s - self._recovery_since_s)
+                recovery_epsilon_s = _time_comparison_epsilon_s(
+                    self._recovery_since_s,
+                    now_s,
+                    self._recovery_since_s + self.recovery_confirmation_s,
+                )
+                if (
+                    recovery_duration_s + recovery_epsilon_s
+                    >= self.recovery_confirmation_s
+                ):
+                    self._backlog_active = False
+                    self._stopped_since_s = None
+                    self._recovery_since_s = None
+
+        return CorrectionReleaseResult(
+            output_map_odom=output_map_odom,
+            output_map_base=limited.pose,
+            target_map_base=target_map_base,
+            mode=(
+                CorrectionReleaseMode.CORRECTION_BACKLOG
+                if self._backlog_active
+                else CorrectionReleaseMode.NORMAL
+            ),
+            reason=(
+                CorrectionReleaseReason.RELEASING_BACKLOG
+                if self._backlog_active
+                else None
+            ),
+            motion_allowed=gates_locked and not self._backlog_active,
+            dt_s=dt_s,
+            translation_gap_m=output_gap_m,
+            yaw_gap_rad=output_gap_yaw_rad,
+            translation_step_m=limited.translation_step_m,
+            yaw_step_rad=limited.yaw_step_rad,
+            stopped_duration_s=stopped_duration_s,
+            recovery_duration_s=recovery_duration_s,
+        )
+
+    def _active_mode(self) -> CorrectionReleaseMode:
+        if self._fault_latched:
+            return CorrectionReleaseMode.FAULT_HOLD
+        if self._backlog_active:
+            return CorrectionReleaseMode.CORRECTION_BACKLOG
+        return CorrectionReleaseMode.NORMAL
+
+    def _validate_configuration(self) -> None:
+        positive_values = (
+            ("max_translation_rate_mps", self.max_translation_rate_mps),
+            ("max_yaw_rate_radps", self.max_yaw_rate_radps),
+            ("max_dt_s", self.max_dt_s),
+            ("max_lio_age_s", self.max_lio_age_s),
+            ("backlog_translation_m", self.backlog_translation_m),
+            ("backlog_yaw_rad", self.backlog_yaw_rad),
+            ("fault_translation_m", self.fault_translation_m),
+            ("fault_yaw_rad", self.fault_yaw_rad),
+            ("stopped_linear_rate_mps", self.stopped_linear_rate_mps),
+            ("stopped_yaw_rate_radps", self.stopped_yaw_rate_radps),
+            ("stopped_confirmation_s", self.stopped_confirmation_s),
+            ("recovery_translation_m", self.recovery_translation_m),
+            ("recovery_yaw_rad", self.recovery_yaw_rad),
+            ("recovery_confirmation_s", self.recovery_confirmation_s),
+        )
+        for name, value in positive_values:
+            if not math.isfinite(value) or value <= 0.0:
+                raise ValueError(f"{name} must be finite and positive")
+        if not (
+            self.recovery_translation_m
+            < self.backlog_translation_m
+            <= self.fault_translation_m
+        ):
+            raise ValueError("translation thresholds must increase through fault")
+        if not self.recovery_yaw_rad < self.backlog_yaw_rad <= self.fault_yaw_rad:
+            raise ValueError("yaw thresholds must increase through fault")
+
+    @staticmethod
+    def _frozen_result(
+        output_map_odom: Pose2D,
+        output_map_base: Pose2D,
+        target_map_base: Pose2D,
+        reason: CorrectionReleaseReason,
+        gap_m: float,
+        gap_yaw_rad: float,
+        *,
+        mode: CorrectionReleaseMode = CorrectionReleaseMode.NORMAL,
+        stopped_duration_s: float = 0.0,
+    ) -> CorrectionReleaseResult:
+        return CorrectionReleaseResult(
+            output_map_odom=output_map_odom,
+            output_map_base=output_map_base,
+            target_map_base=target_map_base,
+            mode=mode,
+            reason=reason,
+            motion_allowed=False,
+            dt_s=0.0,
+            translation_gap_m=gap_m,
+            yaw_gap_rad=gap_yaw_rad,
+            translation_step_m=0.0,
+            yaw_step_rad=0.0,
+            stopped_duration_s=stopped_duration_s,
+        )
 
 
 def compute_pose_delta(previous: Pose2D | None, current: Pose2D) -> tuple[float, float]:

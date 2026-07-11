@@ -13,8 +13,15 @@ from datetime import datetime
 import json
 from pathlib import Path
 
-from pyproj import Transformer
 import yaml
+
+try:
+    from pyproj import Transformer
+
+    PYPROJ_AVAILABLE = True
+except ImportError:
+    Transformer = None
+    PYPROJ_AVAILABLE = False
 
 RUNTIME_ROOT = Path.home() / "XJTLU-autonomous-vehicle/runtime-data"
 DEFAULT_BUNDLE = RUNTIME_ROOT / "gnss" / "scene_gps_bundle.yaml"
@@ -26,6 +33,27 @@ SCENE_GRAPH_FILE = CURRENT_SCENE_DIR / "scene_route_graph.geojson"
 MASTER_PARAMS_SCENE_FILE = CURRENT_SCENE_DIR / "master_params_scene.yaml"
 SCENE_BUNDLE_COPY = CURRENT_SCENE_DIR / "scene_gps_bundle.yaml"
 ENGLISH_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+EARTH_RADIUS_M = 6378137.0
+
+
+class LocalENUProjector:
+    def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float) -> None:
+        self.origin_lat = float(origin_lat)
+        self.origin_lon = float(origin_lon)
+        self.origin_alt = float(origin_alt)
+        self._origin_lat_rad = math.radians(self.origin_lat)
+
+    def transform(self, lon: float, lat: float, alt: float, radians: bool = False) -> tuple[float, float, float]:
+        if radians:
+            lon_deg = math.degrees(float(lon))
+            lat_deg = math.degrees(float(lat))
+        else:
+            lon_deg = float(lon)
+            lat_deg = float(lat)
+        x = math.radians(lon_deg - self.origin_lon) * EARTH_RADIUS_M * math.cos(self._origin_lat_rad)
+        y = math.radians(lat_deg - self.origin_lat) * EARTH_RADIUS_M
+        z = float(alt) - self.origin_alt
+        return float(x), float(y), float(z)
 
 
 def load_yaml(path: Path) -> dict:
@@ -39,7 +67,10 @@ def save_yaml(path: Path, data: dict) -> None:
         yaml.safe_dump(data, output_file, allow_unicode=True, sort_keys=False)
 
 
-def build_transformer(origin_lat: float, origin_lon: float, origin_alt: float) -> Transformer:
+def build_transformer(origin_lat: float, origin_lon: float, origin_alt: float):
+    if not PYPROJ_AVAILABLE:
+        return LocalENUProjector(origin_lat, origin_lon, origin_alt)
+
     pipeline = (
         "+proj=pipeline "
         "+step +proj=cart +ellps=WGS84 "
@@ -285,6 +316,22 @@ def build_master_params_scene(scene_points: dict) -> dict:
             "goal_checker_id": "general_goal_checker",
         }
     }
+
+    params["/rtk_map_odom_corrector"] = params.get(
+        "/rtk_map_odom_corrector",
+        {"ros__parameters": {}},
+    )
+    rtk_authority_params = params["/rtk_map_odom_corrector"].setdefault("ros__parameters", {})
+    rtk_authority_params.update(
+        {
+            "scene_points_file": str(SCENE_POINTS_FILE),
+            "use_scene_identity_alignment": True,
+            "alignment_topic": "/gps_scene/enu_to_map",
+            "enu_origin_lat": origin["lat"],
+            "enu_origin_lon": origin["lon"],
+            "enu_origin_alt": origin["alt"],
+        }
+    )
 
     return params
 

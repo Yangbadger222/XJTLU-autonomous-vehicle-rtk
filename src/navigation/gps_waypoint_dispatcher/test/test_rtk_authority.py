@@ -376,6 +376,21 @@ def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():
         assert "_rebroadcast_last_output()" in degraded_branch
 
 
+def test_rtk_map_odom_corrector_supports_scene_identity_alignment():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert 'self.declare_parameter("scene_points_file", "")' in node_text
+    assert 'self.declare_parameter("use_scene_identity_alignment", False)' in node_text
+    assert "load_scene_points" in node_text
+    assert "_scene_identity_alignment" in node_text
+    assert "alignment = self._scene_identity_alignment" in node_text
+    assert "using_external_alignment = True" in node_text
+
+
 def test_rtk_map_odom_corrector_is_shutdown_safe():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"

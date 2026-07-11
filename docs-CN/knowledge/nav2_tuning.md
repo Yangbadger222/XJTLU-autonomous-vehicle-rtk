@@ -140,23 +140,22 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - 用途：这是当前用于答辩资源稳定性图和室内无 GPS 全链路验证的代表性 session
 - 远端保存：该 session 的 `system/`、`console/`、`data/` 已保存在 runtime-data Hugging Face 数据仓库远端主分支
 
-## 6. GPS 专用配置（`nav2_gps.yaml`）
+## 6. GPS 路网选点配置（RTK nav-gps）
 
-GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `nav2_gps.yaml`。
+旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
-相对 Explore 配置的最小必要差异：
+- 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
+- 使用 MPPI，保持 `controller_frequency=20Hz`、`failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
+- local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。
+- global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
+- `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
+- `route_server.enable_nn_search=true`，goal manager 用当前 pose 发 `ComputeRoute(use_poses=true)`；只要车辆靠近路网，起点会吸附到最近可通行图节点，而不是依赖少数 anchor。
 
-- `general_goal_checker.xy_goal_tolerance = 3.0`
-- `general_goal_checker.yaw_goal_tolerance = 0.5`
-- `GridBased.tolerance = 2.5`
-- `BaseObstacle.scale = 0.02`
-- `GoalAlign.scale = 24.0`
-- `RotateToGoal.scale = 32.0`
-
-调参原则：
-- 低精度 GNSS 环境下放宽 goal tolerance
-- 保持现有 DWB / costmap 主结构不动
-- 不在 GPS MVP 分支中顺手引入 MPPI、VoxelLayer 等更大变更
+定位语义：
+- PGO 关闭 `publish_tf` 和 GPS 因子，不再抢 `map→odom`。
+- `rtk_map_odom_corrector` 使用 scene fixed origin 和 ENU→map identity alignment，成为唯一 `map→odom` owner。
+- `gps_anchor_localizer` 仍负责 `NAV_READY`、最近 anchor 和 `/gnss` 发布；goal manager 仍通过 `goto_name` 调 route graph。
+- 在 RTK `nav-gps` 实车入口中，goal manager 不再把 `NAV_READY`/anchor 作为发目标硬门槛；RTK authoritative `map→odom` 和当前 TF 可用才是实际起跑条件。
 
 ## 7. 当前运行注意事项（2026-07）
 
@@ -165,9 +164,9 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 3. Explore 使用 MPPI 主线 baseline；Corridor 启动时从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件来使用 RTK 小步提速、中等原地转头、近场 local costmap、全局/局部代价地图分离与横摆抑制 profile。
 4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.85`；Corridor 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
-6. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
+6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
-8. Corridor 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 `/rtk/status`、`/fix`、`/heading`、`/fastlio2/lio_odom`、`/livox/imu`、`/odom_CBoar`、`/rtk_fgo/*`、TF、corridor 状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
+8. Corridor 与 nav-gps 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug` 或 `FYP_NAV_GPS_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
 
 ## 8. 航点系统
 

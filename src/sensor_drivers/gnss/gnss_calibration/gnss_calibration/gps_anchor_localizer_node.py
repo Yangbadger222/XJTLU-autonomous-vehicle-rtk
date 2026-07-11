@@ -7,8 +7,6 @@ from collections import deque
 from pathlib import Path
 
 from geometry_msgs.msg import TransformStamped
-from pyproj import Transformer
-from pyproj.enums import TransformDirection
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
@@ -17,9 +15,42 @@ from std_msgs.msg import Int32, String
 from tf2_ros import Buffer, TransformException, TransformListener
 import yaml
 
+try:
+    from pyproj import Transformer
+    from pyproj.enums import TransformDirection
+
+    PYPROJ_AVAILABLE = True
+except ImportError:
+    Transformer = None
+    TransformDirection = None
+    PYPROJ_AVAILABLE = False
+
+
+EARTH_RADIUS_M = 6378137.0
+
 
 def euclidean_xy(a: tuple[float, float], b: tuple[float, float]) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+class LocalENUProjector:
+    def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float = 0.0) -> None:
+        self.origin_lat = float(origin_lat)
+        self.origin_lon = float(origin_lon)
+        self.origin_alt = float(origin_alt)
+        self._origin_lat_rad = math.radians(self.origin_lat)
+
+    def forward(self, lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+        x = math.radians(float(lon) - self.origin_lon) * EARTH_RADIUS_M * math.cos(self._origin_lat_rad)
+        y = math.radians(float(lat) - self.origin_lat) * EARTH_RADIUS_M
+        z = float(alt) - self.origin_alt
+        return float(x), float(y), float(z)
+
+    def inverse(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        lon = self.origin_lon + math.degrees(float(x) / (EARTH_RADIUS_M * math.cos(self._origin_lat_rad)))
+        lat = self.origin_lat + math.degrees(float(y) / EARTH_RADIUS_M)
+        alt = self.origin_alt + float(z)
+        return float(lat), float(lon), float(alt)
 
 
 class GPSAnchorLocalizer(Node):
@@ -81,7 +112,10 @@ class GPSAnchorLocalizer(Node):
         self._publish_anchor(None)
         self._publish_state("NO_FIX")
 
-    def _build_transformer(self) -> Transformer:
+    def _build_transformer(self):
+        if not PYPROJ_AVAILABLE:
+            return LocalENUProjector(self.origin_lat, self.origin_lon, self.origin_alt)
+
         pipeline = (
             "+proj=pipeline "
             "+step +proj=cart +ellps=WGS84 "
@@ -127,10 +161,16 @@ class GPSAnchorLocalizer(Node):
         return nodes, anchors
 
     def _latlon_to_enu(self, lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+        if not PYPROJ_AVAILABLE:
+            return self.transformer.forward(lat, lon, alt)
+
         x, y, z = self.transformer.transform(lon, lat, alt, radians=False)
         return float(x), float(y), float(z)
 
     def _enu_to_latlon(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        if not PYPROJ_AVAILABLE:
+            return self.transformer.inverse(x, y, z)
+
         lon, lat, alt = self.transformer.transform(
             x,
             y,

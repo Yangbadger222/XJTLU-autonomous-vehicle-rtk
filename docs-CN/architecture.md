@@ -98,27 +98,34 @@ scene_gps_bundle.yaml -> build_scene_runtime.py
                        -> current_scene/scene_points.yaml
                        -> current_scene/scene_route_graph.geojson
 
-GNSS serial -> /fix -> gps_anchor_localizer -> /gnss -----------+
-                       |                    |                   |
-                       |                    +-> /gps_system/*   +-> PGO GPS Factor
+GNSS serial -> /fix + /heading + /rtk/status -------------------+
+                       |                                       |
+                       |                                       v
+                       |                         rtk_map_odom_corrector
+                       |                         scene fixed ENU -> map identity
+                       |                         TF: map -> odom
+                       v
+                gps_anchor_localizer -> /gnss + /gps_system/*
                        |
-                       +-> lock startup anchor + session offset
+                       +-> lock startup anchor for route selection readiness
 
 scene_points.yaml + route_graph.geojson ------------------------+
                                                                |
 goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
             |  读取 scene_points.yaml
-            |  检查 NAV_READY
-            |  锁定 startup anchor
-            |  Stage A: navigate_to_pose (需要时)
-            |  Stage B: ComputeRoute(start_id, goal_id)
+            |  读取当前 map->base_link pose
+            |  Stage A: route_server 最近可通行图节点搜索
+            |  Stage B: ComputeRoute(use_poses=true)
             v
      dense graph path -> FollowPath -> Nav2 -> /cmd_vel
 ```
 
 `nav-gps` 的核心是：
-- 当前位姿统一使用 `gps_anchor_localizer` 发布的 `/gnss`
-- PGO、localizer、goal manager 读取同一 fixed ENU origin
+- `gps_anchor_localizer` 仍负责 anchor 匹配、`NAV_READY` 状态和 `/gnss` 发布
+- `map -> odom` 不再由 PGO 抢发布；PGO 使用 corridor no-TF/no-GPS 配置，仅保留点云/优化旁路能力
+- `rtk_map_odom_corrector` 读取 scene fixed origin，并使用固定 ENU→map identity alignment 计算 RTK authoritative `map -> odom`
+- Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
+- route server 开启 `enable_nn_search=true`，goal manager 使用当前 pose 起算，不再要求车辆靠近少数 anchor 才能导航
 - `scene_gps_bundle.yaml` 是唯一 source of truth
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
 - `goto_name` 是主入口；用户只输入英文目标名
@@ -133,9 +140,9 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 也会默认启动同一个 shadow node 仅用于录包评估：
+该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 和 `nav-gps` 也会默认启动同一个 shadow node 仅用于录包评估：
 - 默认 `publish_tf=false`，不广播生产 `map -> odom`
-- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
+- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps` 的生产定位输出
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
 
 ## 7. TF 链
@@ -144,7 +151,8 @@ Explore stack + UM982 RTK
 map -> odom -> base_footprint -> base_link
 ```
 
-- 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
+- Explore / explore-gps 等生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
+- Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证或旧时间戳 TF 污染 Nav2
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
@@ -256,7 +264,7 @@ src/
 - Livox SDK2
 - GTSAM
 - GeographicLib
-- pyproj
+- pyproj（推荐用于精确 GPS 投影；QGIS scene 编译和 nav-gps 读取有本地 ENU fallback）
 - `ros-humble-geographic-msgs`
 
 

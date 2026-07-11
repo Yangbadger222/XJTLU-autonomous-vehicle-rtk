@@ -140,23 +140,22 @@ Corridor v2 uses Rotation Shim + Regulated Pure Pursuit instead of DWB:
 - Purpose: this is the current representative session used for the oral-presentation resource-stability plot and the indoor no-GNSS full-stack verification claim
 - Remote retention: this session's `system/`, `console/`, and `data/` directories are already present in the runtime-data Hugging Face dataset remote main branch
 
-## 6. GPS-Specific Configuration (`nav2_gps.yaml`)
+## 6. GPS Route-Graph Destination Profile (RTK nav-gps)
 
-GPS goal navigation mode does not modify `nav2_explore.yaml` directly; instead, a separate `nav2_gps.yaml` is created.
+The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-gps` entry point no longer uses it as the main profile. `system_nav_gps.launch.py` reuses the corridor RTK profile:
 
-Minimum necessary differences from the Explore configuration:
+- Generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml`.
+- Uses MPPI with `controller_frequency=20Hz`, `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
+- The local costmap uses `/fastlio2/body_cloud_nav2_obstacles`, preserving the high-window obstacle cloud around `[-0.20, 1.20]m`.
+- The global costmap keeps the route-planning-only semantics so realtime point clouds / unknown space do not block route-graph goals.
+- `general_goal_checker.stateful=false`, preventing a reached-state latch from one destination from carrying into the next route-graph goal.
+- `route_server.enable_nn_search=true`, and the goal manager sends `ComputeRoute(use_poses=true)` from the current pose; as long as the vehicle is close to the route graph, the start is snapped to the nearest traversable graph node instead of depending on a small anchor set.
 
-- `general_goal_checker.xy_goal_tolerance = 3.0`
-- `general_goal_checker.yaw_goal_tolerance = 0.5`
-- `GridBased.tolerance = 2.5`
-- `BaseObstacle.scale = 0.02`
-- `GoalAlign.scale = 24.0`
-- `RotateToGoal.scale = 32.0`
-
-Tuning principles:
-- Relax goal tolerance in low-accuracy GNSS environments
-- Keep the existing DWB / costmap main structure unchanged
-- Do not introduce larger changes like MPPI or VoxelLayer in the GPS MVP branch
+Localization semantics:
+- PGO disables `publish_tf` and GPS factors, so it no longer competes for `map->odom`.
+- `rtk_map_odom_corrector` uses the scene fixed origin plus ENU-to-map identity alignment and becomes the only `map->odom` owner.
+- `gps_anchor_localizer` still owns `NAV_READY`, nearest-anchor reporting, and `/gnss`; the goal manager still sends route-graph goals through `goto_name`.
+- In the RTK vehicle `nav-gps` entry point, the goal manager no longer treats `NAV_READY` / anchors as hard gates for sending a goal; the practical start condition is RTK-authoritative `map->odom` plus an available current TF.
 
 ## 7. Current Operational Notes (2026-07)
 
@@ -165,9 +164,9 @@ Tuning principles:
 3. Explore uses the MPPI mainline baseline; Corridor generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml` for the RTK small-speedup, moderate in-place turn, near-field local costmap, global/local costmap split, and yaw-oscillation suppression profile.
 4. `velocity_smoother.max_velocity[0]` is `1.0` in Explore and `0.85` in Corridor; Corridor's angular limit is `0.70rad/s`, but it still uses the `vcx,wc` command chain and does not publish lateral `vcy`.
 5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
-6. `nav2_gps.yaml` and `nav2_travel.yaml` are both independent of the Explore/Corridor profiles.
+6. `nav2_gps.yaml` remains as the old GPS MVP profile; the current RTK `nav-gps` vehicle entry point reuses the corridor RTK MPPI profile, while `nav2_travel.yaml` remains independent of Explore/Corridor/nav-gps.
 7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-8. Corridor starts the RTK FGO shadow node by default with `publish_tf=false` and `nav2_use_fgo=false`, so it does not own `map->odom` or feed Nav2; rosbags default to the lean profile: `/rtk/status`, `/fix`, `/heading`, `/fastlio2/lio_odom`, `/livox/imu`, `/odom_CBoar`, `/rtk_fgo/*`, TF, corridor status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/fastlio2/body_cloud`, or `/fastlio2/body_cloud_nav2_obstacles` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
+8. Corridor and nav-gps start the RTK FGO shadow node by default with `publish_tf=false` and `nav2_use_fgo=false`, so it does not own `map->odom` or feed Nav2; lean rosbags record RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` or `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/fastlio2/body_cloud`, or `/fastlio2/body_cloud_nav2_obstacles` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
 
 ## 8. Waypoint System
 

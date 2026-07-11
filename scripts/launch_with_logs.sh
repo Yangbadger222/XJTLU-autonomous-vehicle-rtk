@@ -112,7 +112,7 @@ if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
       ;;
   esac
 fi
-if [[ "$MODE" == "corridor" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
+if [[ "$MODE" == "corridor" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")
   elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then

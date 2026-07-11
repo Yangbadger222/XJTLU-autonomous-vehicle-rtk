@@ -1,4 +1,6 @@
 #include "um982_raw_driver/binary_framer.hpp"
+#include "um982_raw_driver/epoch_deduplicator.hpp"
+#include "um982_raw_driver/observation_decoder.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -13,6 +15,8 @@
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "gnss_raw_msgs/msg/observation.hpp"
+#include "gnss_raw_msgs/msg/observation_epoch.hpp"
 #include "gnss_raw_msgs/msg/raw_frame.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "serial/serial.h"
@@ -48,6 +52,8 @@ public:
     baud_ = declare_parameter<int>("baud", 921600);
     frame_id_ = declare_parameter<std::string>("frame_id", "gnss_raw");
     output_topic_ = declare_parameter<std::string>("output_topic", "/gnss/raw/frame");
+    observation_topic_ =
+      declare_parameter<std::string>("observation_topic", "/gnss/raw/observation_epoch");
     diagnostics_topic_ =
       declare_parameter<std::string>("diagnostics_topic", "/gnss/raw/diagnostics");
     read_chunk_bytes_ = declare_parameter<int>("read_chunk_bytes", 4096);
@@ -55,6 +61,7 @@ public:
     read_timeout_ms_ = declare_parameter<int>("read_timeout_ms", 20);
     max_payload_bytes_ = declare_parameter<int>("max_payload_bytes", 65535);
     max_buffer_bytes_ = declare_parameter<int>("max_buffer_bytes", 131072);
+    epoch_dedup_capacity_ = declare_parameter<int>("epoch_dedup_capacity", 256);
     reconnect_period_s_ = declare_parameter<double>("reconnect_period_s", 1.0);
     diagnostics_period_s_ = declare_parameter<double>("diagnostics_period_s", 1.0);
     stale_frame_timeout_s_ = declare_parameter<double>("stale_frame_timeout_s", 2.0);
@@ -63,8 +70,12 @@ public:
     framer_ = std::make_unique<BinaryFramer>(
       static_cast<std::size_t>(max_payload_bytes_),
       static_cast<std::size_t>(max_buffer_bytes_));
+    epoch_deduplicator_ =
+      std::make_unique<EpochDeduplicator>(static_cast<std::size_t>(epoch_dedup_capacity_));
 
     frame_pub_ = create_publisher<gnss_raw_msgs::msg::RawFrame>(output_topic_, 100);
+    observation_pub_ =
+      create_publisher<gnss_raw_msgs::msg::ObservationEpoch>(observation_topic_, 50);
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
 
@@ -91,7 +102,9 @@ private:
     if (baud_ <= 0 || read_chunk_bytes_ <= 0 || max_read_batches_ <= 0 ||
       read_timeout_ms_ < 0 || max_payload_bytes_ < 0 || max_payload_bytes_ > 65535 ||
       max_buffer_bytes_ <= 0 || read_chunk_bytes_ > max_buffer_bytes_ ||
-      max_read_batches_ > 1024 || reconnect_period_s_ <= 0.0 || diagnostics_period_s_ <= 0.0 ||
+      max_read_batches_ > 1024 || epoch_dedup_capacity_ <= 0 ||
+      epoch_dedup_capacity_ > 100000 || reconnect_period_s_ <= 0.0 ||
+      diagnostics_period_s_ <= 0.0 ||
       stale_frame_timeout_s_ <= 0.0)
     {
       throw std::invalid_argument("UM982 raw-driver parameters are outside valid bounds");
@@ -141,6 +154,7 @@ private:
   {
     closeSerial();
     framer_->reset();
+    epoch_deduplicator_->reset();
     last_serial_error_ = reason;
     next_reconnect_ = std::chrono::steady_clock::now() +
       std::chrono::duration_cast<std::chrono::steady_clock::duration>(
@@ -183,11 +197,12 @@ private:
 
   void publishFrame(const BinaryFrame & frame, const rclcpp::Time & reception_stamp)
   {
+    const std::uint64_t current_frame_index = frame_index_++;
     gnss_raw_msgs::msg::RawFrame message;
     message.header.stamp = reception_stamp;
     message.header.frame_id = frame_id_;
     message.source_port = port_;
-    message.frame_index = frame_index_++;
+    message.frame_index = current_frame_index;
     message.stream_offset = frame.stream_offset;
     message.cpu_idle_percent = frame.header.cpu_idle_percent;
     message.message_id = frame.header.message_id;
@@ -202,8 +217,74 @@ private:
     message.crc_valid = true;
     message.data = frame.bytes;
     frame_pub_->publish(std::move(message));
+    publishObservationEpoch(frame, current_frame_index, reception_stamp);
     have_valid_frame_ = true;
     last_valid_frame_ = std::chrono::steady_clock::now();
+  }
+
+  void publishObservationEpoch(
+    const BinaryFrame & frame,
+    const std::uint64_t current_frame_index,
+    const rclcpp::Time & reception_stamp)
+  {
+    if (!isObservationMessage(frame.header.message_id)) {
+      return;
+    }
+    ++observation_frames_seen_;
+    const auto decoded = decodeObservationFrame(frame);
+    if (!decoded.ok()) {
+      ++observation_decode_failures_;
+      last_observation_decode_error_ = decoded.reason;
+      return;
+    }
+    const ObservationEpochKey epoch_key{
+      decoded.epoch->receiver,
+      frame.header.time_reference,
+      frame.header.week,
+      frame.header.milliseconds_of_week};
+    if (!epoch_deduplicator_->accept(epoch_key)) {
+      ++duplicate_observation_epochs_;
+      return;
+    }
+
+    gnss_raw_msgs::msg::ObservationEpoch message;
+    message.header.stamp = reception_stamp;
+    message.header.frame_id = frame_id_;
+    message.source_port = port_;
+    message.frame_index = current_frame_index;
+    message.stream_offset = frame.stream_offset;
+    message.receiver = static_cast<std::uint8_t>(decoded.epoch->receiver);
+    message.source_message_id = frame.header.message_id;
+    message.time_reference = frame.header.time_reference;
+    message.time_status = frame.header.time_status;
+    message.week = frame.header.week;
+    message.milliseconds_of_week = frame.header.milliseconds_of_week;
+    message.output_delay_ms = frame.header.output_delay_ms;
+    message.observations.reserve(decoded.epoch->observations.size());
+    for (const auto & source : decoded.epoch->observations) {
+      gnss_raw_msgs::msg::Observation observation;
+      observation.constellation = static_cast<std::uint8_t>(source.constellation);
+      observation.prn = source.prn;
+      observation.signal_type = source.signal_type;
+      observation.channel_number = source.channel_number;
+      observation.system_frequency = source.system_frequency;
+      observation.glonass_frequency_channel = source.glonass_frequency_channel;
+      observation.pseudorange_m = source.pseudorange_m;
+      observation.carrier_phase_cycles = source.carrier_phase_cycles;
+      observation.doppler_hz = source.doppler_hz;
+      observation.pseudorange_std_m = source.pseudorange_std_m;
+      observation.carrier_phase_std_cycles = source.carrier_phase_std_cycles;
+      observation.cn0_db_hz = source.cn0_db_hz;
+      observation.lock_time_s = source.lock_time_s;
+      observation.pseudorange_valid = source.pseudorange_valid;
+      observation.carrier_phase_valid = source.carrier_phase_valid;
+      observation.l2c_signal = source.l2c_signal;
+      observation.tracking_status = source.tracking_status;
+      message.observations.push_back(std::move(observation));
+    }
+    observations_published_ += message.observations.size();
+    ++observation_epochs_published_;
+    observation_pub_->publish(std::move(message));
   }
 
   void publishDiagnostics()
@@ -224,6 +305,9 @@ private:
     } else if (!have_valid_frame_ || frame_age_s > stale_frame_timeout_s_) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
       status.message = "NO_RECENT_VALID_FRAME";
+    } else if (observation_decode_failures_ != 0U) {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+      status.message = "OBSERVATION_DECODE_FAILURE";
     } else {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
       status.message = "STREAMING";
@@ -241,6 +325,20 @@ private:
     status.values.push_back(numericKeyValue("length_failures", stats.length_failures));
     status.values.push_back(numericKeyValue("buffer_overflows", stats.buffer_overflows));
     status.values.push_back(numericKeyValue("buffered_bytes", framer_->bufferedBytes()));
+    status.values.push_back(
+      numericKeyValue("observation_frames_seen", observation_frames_seen_));
+    status.values.push_back(
+      numericKeyValue("observation_epochs_published", observation_epochs_published_));
+    status.values.push_back(
+      numericKeyValue("observations_published", observations_published_));
+    status.values.push_back(
+      numericKeyValue("observation_decode_failures", observation_decode_failures_));
+    status.values.push_back(
+      numericKeyValue("duplicate_observation_epochs", duplicate_observation_epochs_));
+    status.values.push_back(
+      numericKeyValue("epoch_dedup_entries", epoch_deduplicator_->size()));
+    status.values.push_back(
+      keyValue("last_observation_decode_error", last_observation_decode_error_));
     array.status.push_back(std::move(status));
     diagnostics_pub_->publish(std::move(array));
   }
@@ -249,12 +347,14 @@ private:
   int baud_ = 921600;
   std::string frame_id_;
   std::string output_topic_;
+  std::string observation_topic_;
   std::string diagnostics_topic_;
   int read_chunk_bytes_ = 4096;
   int max_read_batches_ = 16;
   int read_timeout_ms_ = 20;
   int max_payload_bytes_ = 65535;
   int max_buffer_bytes_ = 131072;
+  int epoch_dedup_capacity_ = 256;
   double reconnect_period_s_ = 1.0;
   double diagnostics_period_s_ = 1.0;
   double stale_frame_timeout_s_ = 2.0;
@@ -266,9 +366,17 @@ private:
   bool have_valid_frame_ = false;
   std::chrono::steady_clock::time_point last_valid_frame_{};
   std::uint64_t frame_index_ = 0;
+  std::uint64_t observation_frames_seen_ = 0;
+  std::uint64_t observation_epochs_published_ = 0;
+  std::uint64_t observations_published_ = 0;
+  std::uint64_t observation_decode_failures_ = 0;
+  std::uint64_t duplicate_observation_epochs_ = 0;
+  std::string last_observation_decode_error_;
   std::unique_ptr<BinaryFramer> framer_;
+  std::unique_ptr<EpochDeduplicator> epoch_deduplicator_;
 
   rclcpp::Publisher<gnss_raw_msgs::msg::RawFrame>::SharedPtr frame_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr observation_pub_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
   rclcpp::TimerBase::SharedPtr read_timer_;
   rclcpp::TimerBase::SharedPtr diagnostics_timer_;

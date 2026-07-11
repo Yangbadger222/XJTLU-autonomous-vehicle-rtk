@@ -659,11 +659,13 @@ FYP_UM982_RAW_PARAMS_FILE=/tmp/um982_raw_vehicle.yaml make launch-rtk-raw
 ```bash
 ros2 topic hz /gnss/raw/frame
 ros2 topic echo /gnss/raw/frame --once
+ros2 topic hz /gnss/raw/observation_epoch
+ros2 topic echo /gnss/raw/observation_epoch --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/diagnostics'
 ```
 
-当前 Phase 1 只完成 `AA 44 B5` framing、24-byte header、CRC、重同步和 raw bag。OBSVM/OBSVH/OBSVBASE 与星历字段解码属于 Phase 2。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
+当前已完成 Phase 1 以及 Phase 2 的非压缩 observation 子集：ID 12/13/284 分别发布 master/secondary/base epoch，伪距、载波相位、Doppler、标准差、C/N0、lock time、validity、星座和 signal type 已规范化，并按 receiver + week/TOW 有界去重。compressed observation、RTCM fallback、星历和 satellite-state 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
 
 ## RTK FGO 紧耦合 shadow mode
 

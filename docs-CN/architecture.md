@@ -28,7 +28,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
-| RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧 shadow 采集与录包 |
+| RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧与 observation epoch shadow 采集/录包 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。

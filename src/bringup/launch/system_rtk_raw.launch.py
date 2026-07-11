@@ -42,6 +42,7 @@ def generate_launch_description():
             "--output",
             bag_dir,
             "/gnss/raw/frame",
+            "/gnss/raw/observation_epoch",
             "/gnss/raw/diagnostics",
         ],
         output="log",

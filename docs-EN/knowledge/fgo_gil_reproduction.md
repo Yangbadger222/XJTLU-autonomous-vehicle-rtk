@@ -8,7 +8,7 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
-Current implementation status: Phase 1 now includes the protocol-neutral `RawFrame`, bounded `AA 44 B5` framer, official 32-bit CRC, 24-byte header decoding, corrupt-frame resynchronization, dedicated raw serial node, automatic bagging, and diagnostics. A real raw-UART fixture and OBSVM/OBSVH/OBSVBASE payload decoding are still pending.
+Current implementation status: Phase 1 is complete. Phase 2 now includes strict 40-byte record decoding for uncompressed OBSVM/OBSVH/OBSVBASE, physical-unit scaling, tracking-status semantics, constellation/PRN validation, non-finite rejection, and bounded receiver + week/TOW deduplication. A real raw-UART fixture, compressed observations, RTCM fallback, ephemerides, and satellite-state calculation remain pending.
 
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
@@ -301,10 +301,13 @@ Done: synthetic/official fixtures pass, fuzz input cannot crash or overrun, and 
 
 ### Phase 2: Observation and ephemeris canonicalization
 
-- [ ] Decode OBSVM/OBSVH and compressed variants when supported.
-- [ ] Decode OBSVBASE; if CORS does not expose it, adapt RTCM MSM into canonical epochs.
+- [x] Decode uncompressed OBSVM/OBSVH and tracking-status semantics.
+- [ ] Decode OBSVMCMP/OBSVHCMP when firmware supports them.
+- [x] Decode uncompressed OBSVBASE.
+- [ ] If CORS does not expose OBSVBASE, adapt RTCM MSM into canonical epochs.
 - [ ] Decode required ephemerides and compute satellite states.
-- [ ] Handle week rollover, TOW, time status, and epoch deduplication.
+- [x] Preserve week/TOW/time status and deduplicate on receiver + week/TOW with bounded memory.
+- [ ] Add explicit week-rollover and receiver-time-reset policy.
 
 Done: zero-noise synthetic observations recover known ranges; bad time, ephemeris, and non-finite fields are rejected.
 

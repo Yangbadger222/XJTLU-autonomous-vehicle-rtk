@@ -16,6 +16,8 @@ find_package(serial REQUIRED)
 
 add_library(um982_binary_framer
   src/binary_framer.cpp
+  src/epoch_deduplicator.cpp
+  src/observation_decoder.cpp
 )
 target_include_directories(um982_binary_framer PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -55,6 +57,14 @@ if(BUILD_TESTING)
   ament_add_gtest(test_binary_framer test/test_binary_framer.cpp)
   target_include_directories(test_binary_framer PRIVATE include)
   target_link_libraries(test_binary_framer um982_binary_framer)
+
+  ament_add_gtest(test_observation_decoder test/test_observation_decoder.cpp)
+  target_include_directories(test_observation_decoder PRIVATE include)
+  target_link_libraries(test_observation_decoder um982_binary_framer)
+
+  ament_add_gtest(test_epoch_deduplicator test/test_epoch_deduplicator.cpp)
+  target_include_directories(test_epoch_deduplicator PRIVATE include)
+  target_link_libraries(test_epoch_deduplicator um982_binary_framer)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

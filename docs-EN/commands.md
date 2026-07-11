@@ -658,11 +658,13 @@ Inspect checksum-valid frames, GNSS week/TOW, message ID, and diagnostics:
 ```bash
 ros2 topic hz /gnss/raw/frame
 ros2 topic echo /gnss/raw/frame --once
+ros2 topic hz /gnss/raw/observation_epoch
+ros2 topic echo /gnss/raw/observation_epoch --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/diagnostics'
 ```
 
-Phase 1 currently covers `AA 44 B5` framing, the 24-byte header, CRC, resynchronization, and raw bagging. OBSVM/OBSVH/OBSVBASE and ephemeris field decoding belong to Phase 2. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
+Phase 1 and the uncompressed-observation subset of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs with normalized pseudorange, carrier phase, Doppler, standard deviations, C/N0, lock time, validity, constellation, and signal type, plus bounded receiver + week/TOW deduplication. Compressed observations, RTCM fallback, ephemerides, and satellite-state calculation remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

@@ -22,6 +22,7 @@ def test_raw_launch_records_frame_and_diagnostics():
     text = LAUNCH_FILE.read_text(encoding="utf-8")
 
     assert '"/gnss/raw/frame"' in text
+    assert '"/gnss/raw/observation_epoch"' in text
     assert '"/gnss/raw/diagnostics"' in text
     assert '"bag",' in text
 
@@ -34,6 +35,7 @@ def test_raw_config_uses_dedicated_high_baud_port():
     assert "port: /dev/rtk_um982\n" not in text
     assert "max_payload_bytes: 65535" in text
     assert "max_buffer_bytes: 131072" in text
+    assert "epoch_dedup_capacity: 256" in text
 
 
 def test_build_launch_and_cleanup_entry_points_include_raw_driver():

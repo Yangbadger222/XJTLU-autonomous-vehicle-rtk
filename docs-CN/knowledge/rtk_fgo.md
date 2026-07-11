@@ -4,6 +4,8 @@
 
 本文是设计说明和早期实现记录。当前已经有 `rtk_fgo_localizer` 的最小 `ament_cmake` 包骨架、RTK GGA quality 解析与 gate 决策核心库、室内外/RTK 恢复状态机、校正平滑器、最小 GTSAM graph core、ROS shadow node、实验 launch/Make target，以及对应 gtest；但还没有 Nav2 remap。
 
+这里的实现属于解级 shadow FGO：GNSS 输入仍是 `/fix` 和 `/heading`，LiDAR 输入仍是 FAST-LIO odometry。它不是 FGO-GIL 论文所述的原始伪距/载波相位/IMU/LiDAR 观测级紧耦合。论文复现的独立架构、标定初值、开发阶段和验收门槛见 [FGO-GIL 复现设计与开发实施文档](fgo_gil_reproduction.md)。两条链路必须使用不同 package/topic namespace，现有实现保留为 comparator。
+
 计划中的系统必须作为新的实验模式引入，不能替换或暗中改变现有 `corridor`、`explore-gps`、`nav-gps` 链路。
 
 第一版目标边界：

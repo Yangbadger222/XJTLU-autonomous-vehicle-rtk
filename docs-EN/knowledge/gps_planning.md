@@ -431,3 +431,8 @@ Corridor now passes two PGO overrides:
 - `pgo_corridor_no_gps.yaml`: a ROS parameter override that also disables `publish_tf` / GPS factors and isolates PGO alignment diagnostics on `/gps_corridor/pgo_enu_to_map`.
 
 Field diagnostic rule: if `/rtk/status` stays `q=4` and `/fastlio2/lio_odom` has no large step, but `/tf` shows conflicting `map -> odom` jumps above 0.15m within 30ms, first check for duplicate TF owners or a stale Jetson `install/` tree.
+## 13. Global-Correction Hold And Same-Subgoal Retry (2026-07-10)
+
+`gps_route_runner` now consumes stamped LIO separately from `map->odom`. Non-finite/regressing local odom or rates above `10 m/s`/`10 rad/s` abort immediately; rates above `3 m/s`/`3 rad/s` abort after three consecutive samples. A `map->odom` rate above `0.50 m/s` or `5 deg/s`, or false/stale motion authority, is `GLOBAL_CORRECTION_HOLD`, never `ODOM_DIVERGENCE_ABORT`.
+
+On hold the runner asserts `/gps_corridor/stop_override`, requests action cancellation, requires a nonempty acknowledgement within 2 s, waits up to 15 s for one continuous second of authority readiness, then recomputes the same stored ENU subgoal under the current alignment. Cancellation rejection, timeout, or `FAULT_HOLD` aborts the route. The runner no longer publishes Twist directly.

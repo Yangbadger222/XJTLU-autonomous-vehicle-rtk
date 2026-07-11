@@ -282,3 +282,11 @@
      - 没有成功发布新的可信 runtime 平移修正
    - 根因: 启动锚定本身偏差已超过 aligner 的 `max_bootstrap_translation_delta_m: 8.0` 阈值
    - 状���: 已记录，不单独修 — 属于 #25 GPS 锚定主问题的下游表现
+35. **[阻塞实车验收] Corridor authority 改动已通过回放，但尚未完成 Jetson/STM32 验证**
+   - 状态：工作站纯测试与四个 2026-07-10 bag fixture 已通过。
+   - 剩余：在 ROS 2 Humble/Jetson 构建并跑 action integration；刷写串口分支 STM32 watchdog；完成电机失能状态下 500 ms command-loss bench；最后在 PS2 `X` 与物理急停可用条件下做低速 corridor 验收。
+   - 影响：不能只凭 replay 宣称实车验收通过或继续提速。
+
+36. **[预期 hold 行为] 中等 global correction 会暂时取消 Nav2 goal**
+   - `GLOBAL_CORRECTION_HOLD` 不等于 LIO divergence。runner 会置位 stop、cancel goal、等待 authority 连续 ready 1 秒，并在 15 秒预算内重试同一 ENU 子目标。
+   - `FAULT_HOLD`、cancel 拒绝或超时仍会 abort route，需要重启/重定位。

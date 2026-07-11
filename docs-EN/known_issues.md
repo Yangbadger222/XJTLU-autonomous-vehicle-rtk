@@ -282,3 +282,11 @@
       - No successful publication of a new trusted runtime translation correction
     - Root cause: The startup anchoring deviation itself exceeded the aligner's `max_bootstrap_translation_delta_m: 8.0` threshold
     - Status: Recorded; will not be fixed independently -- this is a downstream manifestation of #25 GPS anchoring primary issue
+35. **[Blocking vehicle acceptance] Corridor authority changes are replay-verified but not Jetson/STM32 verified**
+   - Status: workstation pure regression and all four 2026-07-10 bag fixtures pass.
+   - Remaining: build and action integration on ROS 2 Humble/Jetson; flash the serial-branch STM32 watchdog; perform the motor-disabled 500 ms command-loss bench; then run low-speed corridor acceptance with PS2 `X` and the physical e-stop available.
+   - Impact: do not claim vehicle acceptance or raise speed based on replay alone.
+
+36. **[Expected hold behavior] Moderate global correction temporarily cancels the Nav2 goal**
+   - `GLOBAL_CORRECTION_HOLD` is not LIO divergence. The runner asserts stop, cancels, waits for one continuous second of authority readiness, and retries the same ENU subgoal within a 15 s budget.
+   - `FAULT_HOLD`, cancellation rejection, or timeout remains a route abort requiring restart/relocalization.

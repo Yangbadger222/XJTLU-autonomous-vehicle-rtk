@@ -9,16 +9,16 @@ from pathlib import Path as FSPath
 import rclpy
 import yaml
 from action_msgs.msg import GoalStatus
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped
 from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateToPose
-from nav_msgs.msg import Path as NavPath
+from nav_msgs.msg import Odometry, Path as NavPath
 from rclpy.action import ActionClient
 from rclpy.duration import Duration
 from rclpy.node import Node
 from rclpy.time import Time
 from sensor_msgs.msg import NavSatFix
-from std_msgs.msg import Float64MultiArray, String
+from std_msgs.msg import Bool, Float64MultiArray, String
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
@@ -27,10 +27,13 @@ from gps_waypoint_dispatcher.nav2_lifecycle_ready import (
     summarize_lifecycle_states,
 )
 from gps_waypoint_dispatcher.route_safety import (
+    ContinuousReadiness,
+    GlobalCorrectionWatchdog,
+    LocalOdomWatchdog,
+    WatchdogDecision,
     summarize_nav2_success_progress,
     summarize_map_gps_consistency,
     summarize_tf_freshness,
-    summarize_tf_watchdog_gap,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
@@ -56,6 +59,7 @@ def normalize_angle(angle: float) -> float:
 
 
 GOAL_STATUS_ALIGNMENT_SHIFT = -100
+GOAL_STATUS_GLOBAL_CORRECTION_HOLD = -101
 
 
 @dataclass
@@ -96,19 +100,33 @@ class GPSRouteRunner(Node):
         self.declare_parameter("base_frame", "base_link")
         self.declare_parameter("fix_topic", "/fix")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
-        self.declare_parameter("cmd_vel_topic", "/cmd_vel")
+        self.declare_parameter("stop_override_topic", "/gps_corridor/stop_override")
+        self.declare_parameter(
+            "motion_allowed_topic", "/localization_authority/motion_allowed"
+        )
+        self.declare_parameter(
+            "authority_status_topic", "/localization_authority/status"
+        )
+        self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
+        self.declare_parameter("stop_override_publish_hz", 10.0)
+        self.declare_parameter("cancel_ack_timeout_s", 2.0)
+        self.declare_parameter("authority_ready_confirmation_s", 1.0)
+        self.declare_parameter("global_hold_timeout_s", 15.0)
         self.declare_parameter("terminal_stop_hold_s", 1.2)
         self.declare_parameter("terminal_stop_publish_hz", 20.0)
         self.declare_parameter("startup_wait_timeout_s", 90.0)
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
         self.declare_parameter("enu_origin_alt", 0.0)
-        self.declare_parameter("odom_watchdog_step_warn_m", 0.5)
-        self.declare_parameter("odom_watchdog_step_abort_m", 1.0)
-        self.declare_parameter("odom_watchdog_warn_count_abort", 3)
-        self.declare_parameter("odom_watchdog_tf_stale_abort_count", 3)
-        self.declare_parameter("odom_watchdog_tf_stale_abort_s", 3.0)
         self.declare_parameter("odom_watchdog_monitor_period_s", 0.1)
+        self.declare_parameter("local_rate_abort_mps", 3.0)
+        self.declare_parameter("local_yaw_rate_abort_radps", 3.0)
+        self.declare_parameter("local_rate_abort_count", 3)
+        self.declare_parameter("local_catastrophic_rate_mps", 10.0)
+        self.declare_parameter("local_catastrophic_yaw_rate_radps", 10.0)
+        self.declare_parameter("global_correction_rate_mps", 0.50)
+        self.declare_parameter("global_correction_yaw_rate_degps", 5.0)
+        self.declare_parameter("motion_authority_max_age_s", 0.50)
         self.declare_parameter("tf_pose_max_age_s", 3.0)
         self.declare_parameter("alignment_shift_cancel_threshold_m", 0.5)
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
@@ -124,7 +142,28 @@ class GPSRouteRunner(Node):
         self._base_frame = str(self.get_parameter("base_frame").value)
         self._fix_topic = str(self.get_parameter("fix_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
-        self._cmd_vel_topic = str(self.get_parameter("cmd_vel_topic").value)
+        self._stop_override_topic = str(
+            self.get_parameter("stop_override_topic").value
+        )
+        self._motion_allowed_topic = str(
+            self.get_parameter("motion_allowed_topic").value
+        )
+        self._authority_status_topic = str(
+            self.get_parameter("authority_status_topic").value
+        )
+        self._lio_odom_topic = str(self.get_parameter("lio_odom_topic").value)
+        self._stop_override_publish_hz = float(
+            self.get_parameter("stop_override_publish_hz").value
+        )
+        self._cancel_ack_timeout_s = float(
+            self.get_parameter("cancel_ack_timeout_s").value
+        )
+        self._authority_ready_confirmation_s = float(
+            self.get_parameter("authority_ready_confirmation_s").value
+        )
+        self._global_hold_timeout_s = float(
+            self.get_parameter("global_hold_timeout_s").value
+        )
         self._terminal_stop_hold_s = max(
             0.0, float(self.get_parameter("terminal_stop_hold_s").value)
         )
@@ -135,23 +174,11 @@ class GPSRouteRunner(Node):
         self._enu_origin_lat = float(self.get_parameter("enu_origin_lat").value)
         self._enu_origin_lon = float(self.get_parameter("enu_origin_lon").value)
         self._enu_origin_alt = float(self.get_parameter("enu_origin_alt").value)
-        self._odom_watchdog_step_warn_m = float(
-            self.get_parameter("odom_watchdog_step_warn_m").value
-        )
-        self._odom_watchdog_step_abort_m = float(
-            self.get_parameter("odom_watchdog_step_abort_m").value
-        )
-        self._odom_watchdog_warn_count_abort = int(
-            self.get_parameter("odom_watchdog_warn_count_abort").value
-        )
-        self._odom_watchdog_tf_stale_abort_count = int(
-            self.get_parameter("odom_watchdog_tf_stale_abort_count").value
-        )
-        self._odom_watchdog_tf_stale_abort_s = float(
-            self.get_parameter("odom_watchdog_tf_stale_abort_s").value
-        )
         self._odom_watchdog_monitor_period_s = float(
             self.get_parameter("odom_watchdog_monitor_period_s").value
+        )
+        self._motion_authority_max_age_s = float(
+            self.get_parameter("motion_authority_max_age_s").value
         )
         self._tf_pose_max_age_s = float(self.get_parameter("tf_pose_max_age_s").value)
         self._alignment_shift_cancel_threshold_m = float(
@@ -173,16 +200,64 @@ class GPSRouteRunner(Node):
         self._status_pub = self.create_publisher(String, "/gps_corridor/status", 10)
         self._goal_pub = self.create_publisher(PoseStamped, "/gps_corridor/goal_map", 10)
         self._path_pub = self.create_publisher(NavPath, "/gps_corridor/path_map", 10)
-        self._cmd_vel_pub = self.create_publisher(Twist, self._cmd_vel_topic, 10)
+        self._stop_override_pub = self.create_publisher(
+            Bool, self._stop_override_topic, 10
+        )
         self._fix_sub = self.create_subscription(NavSatFix, self._fix_topic, self._fix_callback, 10)
         self._alignment_sub = self.create_subscription(
             Float64MultiArray, self._alignment_topic, self._alignment_callback, 10
+        )
+        self._motion_allowed_sub = self.create_subscription(
+            Bool,
+            self._motion_allowed_topic,
+            self._motion_allowed_callback,
+            10,
+        )
+        self._authority_status_sub = self.create_subscription(
+            String,
+            self._authority_status_topic,
+            self._authority_status_callback,
+            10,
+        )
+        self._lio_odom_sub = self.create_subscription(
+            Odometry, self._lio_odom_topic, self._lio_odom_callback, 50
         )
 
         self._latest_fix: NavSatFix | None = None
         self._last_fix_key: tuple | None = None
         self._latest_alignment: Alignment2D | None = None
         self._alignment_revision = 0
+        self._stop_override = True
+        self._motion_allowed = False
+        self._motion_allowed_mono: float | None = None
+        self._authority_status = "STARTUP"
+        self._local_watchdog = LocalOdomWatchdog(
+            ordinary_linear_rate_mps=float(
+                self.get_parameter("local_rate_abort_mps").value
+            ),
+            ordinary_yaw_rate_radps=float(
+                self.get_parameter("local_yaw_rate_abort_radps").value
+            ),
+            ordinary_abort_count=int(
+                self.get_parameter("local_rate_abort_count").value
+            ),
+            catastrophic_linear_rate_mps=float(
+                self.get_parameter("local_catastrophic_rate_mps").value
+            ),
+            catastrophic_yaw_rate_radps=float(
+                self.get_parameter("local_catastrophic_yaw_rate_radps").value
+            ),
+        )
+        self._local_watchdog_result = None
+        self._global_watchdog = GlobalCorrectionWatchdog(
+            max_translation_rate_mps=float(
+                self.get_parameter("global_correction_rate_mps").value
+            ),
+            max_yaw_rate_radps=math.radians(
+                float(self.get_parameter("global_correction_yaw_rate_degps").value)
+            ),
+            max_authority_age_s=self._motion_authority_max_age_s,
+        )
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -195,6 +270,11 @@ class GPSRouteRunner(Node):
             self._enu_origin_lat, self._enu_origin_lon, self._enu_origin_alt
         )
         self._route = self._load_route(self._route_file)
+        self._stop_override_timer = self.create_timer(
+            1.0 / self._stop_override_publish_hz,
+            self._publish_stop_override_heartbeat,
+        )
+        self._publish_stop_override(True)
 
     def _publish_status(self, text: str) -> None:
         self.get_logger().info(text)
@@ -202,6 +282,30 @@ class GPSRouteRunner(Node):
 
     def _fix_callback(self, msg: NavSatFix) -> None:
         self._latest_fix = msg
+
+    def _motion_allowed_callback(self, msg: Bool) -> None:
+        self._motion_allowed = bool(msg.data)
+        self._motion_allowed_mono = time.monotonic()
+
+    def _authority_status_callback(self, msg: String) -> None:
+        self._authority_status = msg.data
+
+    def _lio_odom_callback(self, msg: Odometry) -> None:
+        stamp_s = float(msg.header.stamp.sec) + float(msg.header.stamp.nanosec) * 1e-9
+        position = msg.pose.pose.position
+        orientation = msg.pose.pose.orientation
+        yaw = quaternion_to_yaw(
+            orientation.x,
+            orientation.y,
+            orientation.z,
+            orientation.w,
+        )
+        self._local_watchdog_result = self._local_watchdog.update(
+            stamp_s,
+            float(position.x),
+            float(position.y),
+            yaw,
+        )
 
     def _alignment_callback(self, msg: Float64MultiArray) -> None:
         if len(msg.data) < 4 or msg.data[3] < 0.5:
@@ -553,7 +657,7 @@ class GPSRouteRunner(Node):
         if not summary.ok:
             self.get_logger().error("Map/GPS divergence abort: %s" % detail)
             self._publish_status("MAP_GPS_DIVERGENCE_ABORT|%s" % detail)
-            self._publish_zero_cmd_vel()
+            self._publish_stop_override(True)
             return False
 
         self.get_logger().warn("Map/GPS divergence warning: %s" % detail)
@@ -721,20 +825,122 @@ class GPSRouteRunner(Node):
         if path.poses:
             self._goal_pub.publish(path.poses[0])
 
-    def _publish_zero_cmd_vel(self, repeat: int = 3, period_s: float = 0.05) -> None:
-        zero = Twist()
-        for _ in range(max(1, repeat)):
-            self._cmd_vel_pub.publish(zero)
-            rclpy.spin_once(self, timeout_sec=max(0.0, period_s))
+    def _publish_stop_override(self, stop: bool) -> None:
+        self._stop_override = bool(stop)
+        self._stop_override_pub.publish(Bool(data=self._stop_override))
+
+    def _publish_stop_override_heartbeat(self) -> None:
+        self._stop_override_pub.publish(Bool(data=self._stop_override))
 
     def _publish_terminal_stop_hold(self) -> None:
         period_s = 1.0 / self._terminal_stop_publish_hz
         repeat = max(1, int(math.ceil(self._terminal_stop_hold_s / period_s)))
         self.get_logger().info(
-            "Holding zero cmd_vel for %.2fs before terminal status (%d samples @ %.1fHz)"
+            "Holding stop override for %.2fs before terminal status (%d samples @ %.1fHz)"
             % (self._terminal_stop_hold_s, repeat, self._terminal_stop_publish_hz)
         )
-        self._publish_zero_cmd_vel(repeat=repeat, period_s=period_s)
+        self._publish_stop_override(True)
+        for _ in range(repeat):
+            rclpy.spin_once(self, timeout_sec=period_s)
+
+    def _authority_age_s(self) -> float:
+        if self._motion_allowed_mono is None:
+            return math.inf
+        return max(0.0, time.monotonic() - self._motion_allowed_mono)
+
+    def _authority_faulted(self) -> bool:
+        return (
+            "FAULT_HOLD" in self._authority_status
+            or "FAULT_LATCHED" in self._authority_status
+        )
+
+    def _global_correction_result(self):
+        authority_age_s = self._authority_age_s()
+        try:
+            transform = self._tf_buffer.lookup_transform(
+                self._route_frame,
+                "odom",
+                Time(),
+                timeout=Duration(seconds=0.02),
+            )
+        except TransformException:
+            return self._global_watchdog.update(
+                1.0,
+                0.0,
+                0.0,
+                0.0,
+                authority_allowed=False,
+                authority_age_s=authority_age_s,
+            )
+        stamp_s = float(transform.header.stamp.sec) + float(
+            transform.header.stamp.nanosec
+        ) * 1e-9
+        translation = transform.transform.translation
+        rotation = transform.transform.rotation
+        yaw = quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w)
+        return self._global_watchdog.update(
+            stamp_s,
+            float(translation.x),
+            float(translation.y),
+            yaw,
+            authority_allowed=self._motion_allowed,
+            authority_age_s=authority_age_s,
+        )
+
+    def _cancel_for_global_hold(
+        self,
+        goal_handle,
+        waypoint_name: str,
+        subgoal_index: int,
+        reason: str,
+    ) -> int:
+        hold_started_mono = time.monotonic()
+        self._publish_stop_override(True)
+        self._publish_status(
+            "GLOBAL_CORRECTION_HOLD|%s|%d|%s"
+            % (waypoint_name, subgoal_index, reason)
+        )
+        cancel_future = goal_handle.cancel_goal_async()
+        rclpy.spin_until_future_complete(
+            self, cancel_future, timeout_sec=self._cancel_ack_timeout_s
+        )
+        cancel_response = cancel_future.result() if cancel_future.done() else None
+        if cancel_response is None or not cancel_response.goals_canceling:
+            self._publish_status(
+                "GLOBAL_CORRECTION_ABORT|%s|%d|CANCEL_NOT_ACKNOWLEDGED"
+                % (waypoint_name, subgoal_index)
+            )
+            return GoalStatus.STATUS_ABORTED
+
+        readiness = ContinuousReadiness(self._authority_ready_confirmation_s)
+        while rclpy.ok():
+            rclpy.spin_once(self, timeout_sec=self._odom_watchdog_monitor_period_s)
+            now_mono = time.monotonic()
+            if self._authority_faulted():
+                self._publish_status(
+                    "GLOBAL_CORRECTION_ABORT|%s|%d|FAULT_HOLD"
+                    % (waypoint_name, subgoal_index)
+                )
+                return GoalStatus.STATUS_ABORTED
+            if now_mono - hold_started_mono > self._global_hold_timeout_s:
+                self._publish_status(
+                    "GLOBAL_CORRECTION_ABORT|%s|%d|HOLD_TIMEOUT"
+                    % (waypoint_name, subgoal_index)
+                )
+                return GoalStatus.STATUS_ABORTED
+
+            ready = (
+                self._motion_allowed
+                and self._authority_age_s() <= self._motion_authority_max_age_s
+            )
+            if not readiness.update(ready=ready, now_s=now_mono):
+                continue
+
+            self._publish_stop_override(False)
+            self._publish_status(
+                "GLOBAL_CORRECTION_RETRY|%s|%d" % (waypoint_name, subgoal_index)
+            )
+            return GOAL_STATUS_GLOBAL_CORRECTION_HOLD
 
     def _abort_goal_with_watchdog(
         self,
@@ -750,10 +956,27 @@ class GPSRouteRunner(Node):
         self._publish_status(
             "ODOM_DIVERGENCE_ABORT|%s|%d|%s" % (waypoint_name, subgoal_index, reason)
         )
+        self._publish_stop_override(True)
         cancel_future = goal_handle.cancel_goal_async()
         rclpy.spin_until_future_complete(self, cancel_future, timeout_sec=2.0)
-        self._publish_zero_cmd_vel()
         return GoalStatus.STATUS_ABORTED
+
+    def _wait_for_authority_ready(self, timeout_s: float) -> bool:
+        self._publish_stop_override(True)
+        deadline_mono = time.monotonic() + timeout_s
+        readiness = ContinuousReadiness(self._authority_ready_confirmation_s)
+        while rclpy.ok() and time.monotonic() < deadline_mono:
+            rclpy.spin_once(self, timeout_sec=self._odom_watchdog_monitor_period_s)
+            now_mono = time.monotonic()
+            if self._authority_faulted():
+                return False
+            ready = (
+                self._motion_allowed
+                and self._authority_age_s() <= self._motion_authority_max_age_s
+            )
+            if readiness.update(ready=ready, now_s=now_mono):
+                return True
+        return False
 
     def _send_goal(
         self,
@@ -762,6 +985,12 @@ class GPSRouteRunner(Node):
         subgoal_index: int,
         alignment_at_send: Alignment2D | None = None,
     ) -> int:
+        if not self._wait_for_authority_ready(self._global_hold_timeout_s):
+            self._publish_status(
+                "GLOBAL_CORRECTION_ABORT|%s|%d|AUTHORITY_NOT_READY"
+                % (waypoint_name, subgoal_index)
+            )
+            return GoalStatus.STATUS_ABORTED
         goal = NavigateToPose.Goal()
         pose.header.stamp = self.get_clock().now().to_msg()
         goal.pose = pose
@@ -770,20 +999,38 @@ class GPSRouteRunner(Node):
         goal_handle = send_future.result()
         if goal_handle is None or not goal_handle.accepted:
             return GoalStatus.STATUS_ABORTED
+        self._publish_stop_override(False)
         result_future = goal_handle.get_result_async()
-        last_pose = self._try_lookup_current_pose(timeout_s=0.05)
-        last_pose_mono = time.monotonic()
-        warning_count = 0
-        tf_stale_count = 0
-        tf_stale_started_mono: float | None = None
 
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=self._odom_watchdog_monitor_period_s)
             if result_future.done():
+                self._publish_stop_override(True)
                 result = result_future.result()
                 if result is None:
                     return GoalStatus.STATUS_UNKNOWN
                 return int(result.status)
+
+            local_result = self._local_watchdog_result
+            if (
+                local_result is not None
+                and local_result.decision is WatchdogDecision.LOCAL_ABORT
+            ):
+                return self._abort_goal_with_watchdog(
+                    goal_handle,
+                    waypoint_name,
+                    subgoal_index,
+                    local_result.reason or "LOCAL_ODOM_INVALID",
+                )
+
+            global_result = self._global_correction_result()
+            if global_result.decision is WatchdogDecision.GLOBAL_HOLD:
+                return self._cancel_for_global_hold(
+                    goal_handle,
+                    waypoint_name,
+                    subgoal_index,
+                    global_result.reason or "GLOBAL_CORRECTION_HOLD",
+                )
 
             if alignment_at_send is not None and self._latest_alignment is not None:
                 alignment_check_mono = time.monotonic()
@@ -807,76 +1054,12 @@ class GPSRouteRunner(Node):
                             % (displacement_m, waypoint_name, subgoal_index)
                         )
                         self._last_alignment_shift_mono = alignment_check_mono
-                        return GOAL_STATUS_ALIGNMENT_SHIFT
-
-            current_pose = self._try_lookup_current_pose(timeout_s=0.05)
-            now_mono = time.monotonic()
-            if current_pose is None:
-                if tf_stale_started_mono is None:
-                    tf_stale_started_mono = now_mono
-                tf_stale_count += 1
-                stale_elapsed_s = now_mono - tf_stale_started_mono
-                gap = summarize_tf_watchdog_gap(
-                    stale_count=tf_stale_count,
-                    stale_elapsed_s=stale_elapsed_s,
-                    abort_count=self._odom_watchdog_tf_stale_abort_count,
-                    abort_after_s=self._odom_watchdog_tf_stale_abort_s,
-                )
-                if gap.abort:
-                    return self._abort_goal_with_watchdog(
-                        goal_handle,
-                        waypoint_name,
-                        subgoal_index,
-                        gap.reason or "TF_STALE",
-                    )
-                continue
-
-            tf_stale_count = 0
-            tf_stale_started_mono = None
-            if last_pose is None:
-                last_pose = current_pose
-                last_pose_mono = now_mono
-                continue
-
-            dt_s = max(1e-3, now_mono - last_pose_mono)
-            step_m = math.hypot(
-                current_pose[0] - last_pose[0],
-                current_pose[1] - last_pose[1],
-            )
-            last_pose = current_pose
-            last_pose_mono = now_mono
-
-            if step_m > self._odom_watchdog_step_abort_m:
-                return self._abort_goal_with_watchdog(
-                    goal_handle,
-                    waypoint_name,
-                    subgoal_index,
-                    "STEP_%.2fm_IN_%.2fs" % (step_m, dt_s),
-                )
-
-            if step_m > self._odom_watchdog_step_warn_m:
-                warning_count += 1
-                self.get_logger().warn(
-                    "Odom watchdog warning for %s subgoal %d: step %.2fm in %.2fs (%d/%d)"
-                    % (
-                        waypoint_name,
-                        subgoal_index,
-                        step_m,
-                        dt_s,
-                        warning_count,
-                        self._odom_watchdog_warn_count_abort,
-                    )
-                )
-                if warning_count >= self._odom_watchdog_warn_count_abort:
-                    return self._abort_goal_with_watchdog(
-                        goal_handle,
-                        waypoint_name,
-                        subgoal_index,
-                        "REPEATED_WARNING_%.2fm" % step_m,
-                    )
-                continue
-
-            warning_count = 0
+                        return self._cancel_for_global_hold(
+                            goal_handle,
+                            waypoint_name,
+                            subgoal_index,
+                            "ALIGNMENT_SHIFT",
+                        )
 
         return GoalStatus.STATUS_UNKNOWN
 
@@ -919,6 +1102,7 @@ class GPSRouteRunner(Node):
                 starting_alignment.revision,
             )
         )
+        retry_progress_m: float | None = None
 
         while rclpy.ok():
             current_xy = self._current_xy()
@@ -941,7 +1125,14 @@ class GPSRouteRunner(Node):
                 current_xy, waypoint_index, live_alignment, current_progress_m
             )
 
-            next_progress_m = min(segment.total_length_m, current_progress_m + segment_length_m)
+            next_progress_m = (
+                retry_progress_m
+                if retry_progress_m is not None
+                else min(
+                    segment.total_length_m,
+                    current_progress_m + segment_length_m,
+                )
+            )
             next_subgoal = self._segment_pose(segment, next_progress_m, live_alignment)
             subgoal_index = self._subgoal_index(segment, next_progress_m, segment_length_m)
             self._publish_status(
@@ -976,11 +1167,17 @@ class GPSRouteRunner(Node):
                 subgoal_index,
                 alignment_at_send=live_alignment,
             )
-            if status == GOAL_STATUS_ALIGNMENT_SHIFT:
+            if status in (
+                GOAL_STATUS_ALIGNMENT_SHIFT,
+                GOAL_STATUS_GLOBAL_CORRECTION_HOLD,
+            ):
+                retry_progress_m = next_progress_m
                 self.get_logger().info(
-                    "Re-computing subgoal for %s due to alignment shift" % waypoint.name
+                    "Re-computing the same ENU subgoal for %s after global hold"
+                    % waypoint.name
                 )
                 continue
+            retry_progress_m = None
             if status != GoalStatus.STATUS_SUCCEEDED:
                 self._publish_terminal_stop_hold()
                 self._publish_status(
@@ -1115,6 +1312,8 @@ def main(args=None) -> None:
         node.get_logger().error(str(exc))
         node._publish_status(f"ABORTED: {exc}")
     finally:
+        if rclpy.ok():
+            node._publish_stop_override(True)
         node.destroy_node()
         rclpy.shutdown()
     raise SystemExit(0 if ok else 1)

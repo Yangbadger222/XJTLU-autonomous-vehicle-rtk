@@ -1,0 +1,368 @@
+# Corridor Authority Stability Design
+
+## Goal
+
+Prevent RTK/LIO timing skew and rejected RTK heading samples from producing fast
+`map -> odom` corrections that destabilize Nav2. Preserve RTK as the outdoor
+global reference while keeping FAST-LIO2 responsible for continuous local
+motion.
+
+## Evidence
+
+The four 2026-07-10 corridor sessions separate three failures:
+
+- `13:34`: GNSS and LIO both stopped after about 5.8 m while Nav2 continued to
+  request `vx=0.85`. This is a drivetrain/feedback failure, not an RTK heading
+  failure.
+- `13:36`: RTK heading contained about 52 degree single-sample jumps and RTK
+  quality degraded. The FGO shadow gate rejected most samples.
+- `13:46` and `13:48`: RTK heading and LIO yaw remained broadly consistent,
+  but the authority raw/output transform gap grew to about 8 m and 13 m. The
+  current 0.20 m per 50 ms transform limit saturated before the route watchdog
+  aborted waypoint 4.
+
+The current node combines the latest fix, latest heading, and latest odom pose
+even though they represent different times. During a fast turn, a few degrees
+of timing error at a 35 m odom radius becomes meters of `map -> odom`
+translation. Component-wise transform smoothing then releases that error at up
+to 4 m/s.
+
+## Architecture
+
+The TF ownership stays unchanged in corridor mode:
+
+```text
+rtk_map_odom_corrector: map -> odom
+FAST-LIO2:              odom -> base_footprint -> base_link
+```
+
+The corrector will estimate yaw and translation corrections independently from
+timestamp-aligned observations instead of constructing one pose from unrelated
+latest messages.
+
+## Timestamp Contract
+
+All RTK observations use ROS header time. Receipt monotonic time is used only
+for topic-staleness and output-rate calculations.
+
+| Condition | Required behavior |
+|---|---|
+| Zero stamp | Reject the observation. |
+| More than 0.10 s in the future | Reject the observation. |
+| Duplicate or older than the last processed stamp | Drop without changing gate state. |
+| Bracketing LIO odometry not yet available | Queue the observation for at most 0.30 s and retry. |
+| Bracket still unavailable after 0.30 s | Reject as `ODOM_AT_STAMP_UNAVAILABLE`. |
+| Requested stamp outside odometry history | Reject; never substitute latest odometry. |
+| Alignment receipt age exceeds 1.0 s | Freeze both correction targets. |
+
+The corrector subscribes to stamped `/fastlio2/lio_odom` and keeps a 2.0 s,
+200-sample history after verifying `header.frame_id=odom`,
+`child_frame_id=base_footprint`, finite pose, nonzero stamp, and strictly
+increasing stamps. This history is the observable `odom -> base_footprint`
+source for observation alignment, release, and stopped detection. The static
+planar `base_footprint -> base_link` offset does not change x/y/yaw.
+
+No extrapolation is allowed. The two odometry samples bracketing an observation
+must be at most 0.20 s apart at runtime. Translation uses linear interpolation
+and yaw uses shortest-arc circular interpolation. A larger bracket is rejected
+as `ODOM_BRACKET_TOO_WIDE`. tf2 remains the TF publication/consumer interface,
+but is not used as an unobservable historical interpolation cache.
+
+Heading and fix streams each have a timestamp-ordered FIFO with capacity 10.
+New observations append while an older item awaits odometry; a full FIFO drops the
+newest arrival without changing gate state. Processing never skips the oldest
+item. At 0.30 s pending age, `ODOM_AT_STAMP_UNAVAILABLE` or
+`ODOM_BRACKET_TOO_WIDE` pops that item and moves a locked gate to `SUSPECT`;
+five consecutive odometry-alignment failures or 1.0 s without a processable
+observation moves it to `DEGRADED`. This prevents both indefinite latest-sample
+replacement and one missing odometry bracket being treated as a sensor outage.
+
+GGA quality is read from timestamped raw `/rtk/nmea_sentence` GGA samples,
+because `NavSatFix` cannot distinguish Fixed from Float. A fix is eligible only
+when its same-stamp GGA has quality 4; the current driver publishes both from
+one parsed line. A heading is eligible only when the newest GGA at or before
+its stamp has quality 4 and is no more than 1.5 s old. A newer non-4 GGA
+immediately clears both pending FIFOs and degrades both correction gates.
+Malformed or stale GGA cannot authorize either observation.
+
+A heading with no qualifying prior GGA waits for at most 0.30 s, then is popped
+as `HEADING_QUALITY_UNAVAILABLE`; one such miss freezes but does not change a
+locked gate, while five consecutive misses or 1.0 s without an eligible heading
+degrades it. A fix may wait up to 0.25 s for its same-stamp raw GGA because
+cross-topic callback order is unspecified. If still absent, it is popped as
+`FIX_QUALITY_UNAVAILABLE` under the same single/persistent failure policy.
+
+### Heading observation
+
+For each new heading sample at `t_heading`:
+
+1. Transform the RTK compass heading into map yaw through the accepted
+   `ENU -> map` alignment.
+2. Interpolate buffered `odom -> base_footprint` at `t_heading`, not at timer callback time.
+3. Form a yaw-correction observation:
+
+   ```text
+   yaw_map_odom = yaw_map_base_rtk(t) - yaw_odom_base(t)
+   ```
+
+4. Gate the correction innovation against the last accepted correction.
+
+Raw heading rate is diagnostic only. A physical turn may legitimately exceed
+30 degrees per second, so the primary gate is RTK-versus-LIO innovation.
+
+### Position observation
+
+For each new fix at `t_fix`:
+
+1. Project the fix through the accepted `ENU -> map` alignment.
+2. Interpolate buffered `odom -> base_footprint` at `t_fix`.
+3. Use the accepted yaw correction to solve the corresponding translation
+   correction.
+4. Gate position-correction innovation separately from heading.
+
+The yaw correction used for a fix is the newest accepted heading correction at
+or before `t_fix`, with maximum age 0.30 s. Position updates are frozen until a
+heading correction is locked. If heading leaves `LOCKED`, translation retains
+its last safe target and every incoming/pending fix is dropped immediately as
+`HEADING_NOT_LOCKED` without changing the translation gate. If heading is
+locked but the required accepted correction has not arrived because of callback
+order, the fix may wait up to 0.30 s, then is popped and moves a locked
+translation gate to `SUSPECT`. A later heading can never be paired backward
+with an older fix.
+
+Each sensor sample is processed once. Repeated timer ticks only rebroadcast the
+last accepted output.
+
+## Gate State
+
+Heading and translation use separate gate instances with the same states:
+
+| State | Input | Next state and action |
+|---|---|---|
+| `UNINITIALIZED` | Eligible observation | Seed candidate window and enter `REACQUIRING`. |
+| `LOCKED` | Innovation inside locked gate | Accept target and remain `LOCKED`. |
+| `LOCKED` | One rejected innovation | Freeze that target, clear candidates, enter `SUSPECT`. |
+| `LOCKED` | One odometry-at-stamp timeout | Freeze that target and enter `SUSPECT`. |
+| `SUSPECT` | First eligible observation | Seed candidate window and enter `REACQUIRING`. |
+| `REACQUIRING` | Candidate consistent with window | Append; lock after count and span requirements pass. |
+| `REACQUIRING` | Candidate inconsistent with window | Replace window with this sample; remain `REACQUIRING`. |
+| Any | Input stale, non-Fixed, malformed, or odometry unavailable for 1.0 s | Enter `DEGRADED`, freeze target, clear candidates. |
+| `DEGRADED` | Eligible observation | Seed candidate window and enter `REACQUIRING`. |
+
+Default locked innovation gates are 15 degrees for yaw correction and 1.0 m
+for translation correction. Recovery candidates must have circular yaw spread
+at most 5 degrees or translation diameter at most 0.30 m. Each gate keeps at
+most 20 consecutive candidates. A consistent fifth sample spanning less than
+0.30 s remains in `REACQUIRING`; consistent samples continue appending, with
+the oldest dropped only at capacity, until both count and span pass. An
+inconsistent sample replaces the window. On lock, yaw target is the circular
+mean and translation target is the component-wise arithmetic mean of the full
+window. Duplicate samples do not count.
+Parameters remain configurable and are reported in startup logs.
+
+Overall motion authority is ready only when both gates are `LOCKED`, the latest
+GGA/fix/heading/alignment receipt ages are at most 1.5/1.0/1.0/1.0 s, the LIO
+age is at most 0.20 s, and correction release is not held.
+If heading is not locked, position cannot advance even if its own last state was
+locked.
+
+RTK GGA quality 4 is required but not sufficient. A heading observation must
+also be fresh and consistent with local yaw. Reacquisition never accepts a
+single 20-45 degree jump.
+
+## Correction Release
+
+Limits become rates multiplied by measured `dt`, expressed as m/s and deg/s.
+The release is limited in `map -> base` space:
+
+1. Compose the previous and target `map -> odom` transforms with the current
+   `odom -> base` pose.
+2. Bound the resulting base translation and yaw change.
+3. Recompute `map -> odom` from the bounded map-base pose.
+
+This keeps yaw and translation coupled around the vehicle rather than smoothing
+transform coefficients independently. If the target/output backlog exceeds a
+hard runtime threshold, freeze correction and publish `CORRECTION_BACKLOG`
+instead of chasing it while moving.
+
+The output timer uses monotonic time. `dt <= 0` freezes output; `dt` is capped
+at 0.10 s so a stalled callback never releases accumulated correction in one
+step. Defaults are 0.20 m/s base translation and 2.0 deg/s base yaw.
+
+Every release and stopped-detection cycle requires a buffered LIO odometry sample
+whose ROS stamp is no more than 0.20 s old and strictly newer than the last
+sample used for a rate calculation. A duplicate stamp is ignored. A stale or
+regressing stamp freezes release, clears stopped-duration accumulation, makes
+motion authority false, and reports `LOCAL_ODOM_STALE`; it can never authorize
+backlog recovery.
+
+Backlog handling is explicit:
+
+- Below 0.50 m and 5 degrees: normal release.
+- 0.50-2.0 m or 5-20 degrees: `CORRECTION_BACKLOG`; motion authority becomes
+  false and the output freezes until `odom -> base` remains below 0.05 m/s and
+  2 deg/s for 1.0 s. While stopped, release resumes at the normal rate.
+- Above 2.0 m or 20 degrees: `FAULT_HOLD`; no automatic release or
+  reacquisition. The route aborts and a node restart/relocalization is required.
+- Backlog recovery completes only after the gap stays below 0.15 m and 2
+  degrees with both gates locked for 1.0 s.
+
+Targets continue to be evaluated while held so faults and recovery can be
+diagnosed, but they do not move the published transform.
+
+Before external alignment exists, preserve the current bootstrap dependency
+break: one finite, stamped fix and heading plus odometry-at-stamp may initialize and
+rebroadcast `map -> odom` as `RTK_BOOTSTRAP`, even without GGA quality 4. This
+mode never sets motion authority true. External alignment plus five matched
+Fixed observations is required to enter authoritative motion.
+
+## Route Watchdog
+
+The route runner will monitor three signals separately:
+
+- `odom -> base`: local LIO continuity. Persistent physically impossible motion
+  can abort the route.
+- `map -> odom`: global correction motion. A large update preempts the current
+  goal and waits for authority stability; it does not report odom divergence.
+- `map -> base`: Nav2-visible pose, retained for goal progress and diagnostics.
+
+Local rates use `/fastlio2/lio_odom` header stamps; global-correction rates use
+`map -> odom` TF header stamps. Wall-clock callback spacing is not a valid
+motion interval when callbacks are backlogged.
+
+Local discontinuity defaults are translation speed above 3.0 m/s or yaw rate
+above 3.0 rad/s for three consecutive stamped samples. Only this condition is
+reported as `ODOM_DIVERGENCE_ABORT`.
+
+A non-finite local transform, a regressing nonzero stamp, translation speed
+above 10.0 m/s, or yaw rate above 10.0 rad/s is catastrophic and aborts on one
+sample. Duplicate stamps are ignored. Ordinary-threshold counters reset only
+on a fresh finite sample below both ordinary thresholds.
+
+A `map -> odom` rate above 0.50 m/s or 5 deg/s, or motion authority becoming
+false, returns `GLOBAL_CORRECTION_HOLD` from goal monitoring. The runner:
+
+1. asserts the stop override;
+2. requests action cancellation and waits up to 2.0 s for acknowledgement;
+3. keeps the stop override asserted while waiting for authority readiness;
+4. requires readiness continuously for 1.0 s;
+5. recomputes and resends the same ENU subgoal; and
+6. aborts the route if cancellation fails, `FAULT_HOLD` appears, or readiness
+   does not return within 15.0 s from the cancellation request.
+
+The 15 s budget covers the worst automatically recoverable 2.0 m/20 degree
+backlog: up to 2 s cancellation, 1 s stopped confirmation, 9.25 s release to
+the recovery gap, 1 s stable readiness, and 1.75 s scheduling margin.
+
+## Command Containment
+
+Corridor mode adds a command guard after Nav2 velocity smoothing:
+
+```text
+Nav2 -> velocity_smoother -> /cmd_vel_nav -> corridor_cmd_vel_guard -> /cmd_vel
+route runner --------------------> /gps_corridor/stop_override ----^
+```
+
+The guard is the only corridor publisher to `/cmd_vel`; the route runner no
+longer publishes Twist directly. It preserves straight-line speed but applies:
+
+```text
+v_limit = min(v_straight_max, turn_product_limit / max(abs(w), 0.05))
+v_out = sign(v_in) * min(abs(v_in), v_limit)
+```
+
+Defaults are `v_straight_max=0.85` and `turn_product_limit=0.25 m/s^2`, so
+`w=0.70` limits linear speed to about 0.36 m/s. Reverse commands use the same
+magnitude rule. Angular velocity remains bounded by the existing Nav2/smoother
+limits.
+
+The guard publishes zero for non-finite input, command age above 0.25 s,
+motion-authority age above 0.50 s, motion authority false, or stop override
+true. Startup is fail-closed until fresh authority and command samples exist.
+The guard publishes at 20 Hz and uses steady receipt ages because Twist and Bool
+have no header.
+
+`/localization_authority/motion_allowed` and
+`/gps_corridor/stop_override` are volatile `std_msgs/msg/Bool` heartbeats at
+10 Hz with depth 10. The corrector owns the first from startup through
+shutdown. The runner owns the second: it publishes true during startup, holds,
+route completion, and clean shutdown, and publishes false only while actively
+allowing a goal. Missing either heartbeat for 0.50 s is stop. Runner failure is
+therefore fail-closed at the guard.
+
+The guard is a required corridor launch process; its exit shuts down the launch.
+`serial_twistctl` gains a 20 Hz safety timer with a 0.25 s command timeout: once
+stale it transmits one explicit zero command and remains armed until a fresh
+Twist arrives. Its destructor makes three best-effort zero writes before closing
+the port.
+
+The companion `serial-telemetry-integrity` repair is a deployment prerequisite.
+Its STM32 watchdog refreshes only after exact, finite, in-range
+`vcx=<float>,wc=<float>` parsing in host mode, forces `Vcx=Wc=0` after 0.30 s,
+disarms across every PS2/host transition, and rearms only on a new valid host
+command. Source-contract tests cover grammar/mode transitions; the
+motor-disabled bench must stop commands for 0.50 s and observe zero commands and
+an incremented trip counter before corridor vehicle acceptance. This is the
+abrupt host-process/Jetson-loss fallback. No software guarantee replaces the
+physical e-stop.
+
+Uniform route subgoal insertion is deferred until localization and command
+stability pass replay and low-speed vehicle acceptance. It cannot repair a bad
+global transform.
+
+## Compatibility And Diagnostics
+
+- Keep existing authority topics and the first 12 diagnostic array fields.
+- Add `/localization_authority/motion_allowed` as a fresh Boolean heartbeat.
+- Append diagnostic fields with this fixed mapping:
+
+  | Index | Value |
+  |---|---|
+  | 12 | heading gate enum |
+  | 13 | position gate enum |
+  | 14 | heading correction innovation, degrees |
+  | 15 | position correction innovation, meters |
+  | 16 | translation backlog, meters |
+  | 17 | absolute yaw backlog, degrees |
+  | 18 | motion allowed, 0 or 1 |
+
+  Gate enums are `UNINITIALIZED=0`, `LOCKED=1`, `SUSPECT=2`,
+  `REACQUIRING=3`, and `DEGRADED=4`. `FAULT_HOLD` is correction-release state,
+  not a sensor gate state; in that condition both gates retain their sensor
+  states while motion remains false and the authority status string reports the
+  fault. Unavailable numeric diagnostics use NaN.
+- Keep PGO TF disabled in corridor mode.
+- Keep route files and other navigation modes unchanged.
+
+## Testing
+
+ROS-free tests cover correction observations, circular yaw interpolation, the
+reacquisition state machine, base-space rate limiting, backlog freeze, watchdog
+classification, and command limiting.
+
+`scripts/evaluate_corridor_authority_replay.py` consumes a bag directory and
+emits JSON plus a nonzero exit status on failed assertions. A manifest in the
+script identifies the four external fixtures under `FYP_CORRIDOR_BAG_ROOT`.
+Replay uses bag timestamps and offline interpolation, not wall time.
+
+The four captured bags are replay acceptance fixtures outside the repository:
+
+- `13:36`: the approximately 52 degree correction innovation makes motion false
+  within one sample; no reacquisition occurs before five consistent samples.
+- `13:46` and `13:48`: every released base correction respects 0.20 m/s and
+  2 deg/s with absolute replay tolerances of 0.005 m/s and 0.05 deg/s; no
+  `ODOM_DIVERGENCE_ABORT` is generated from
+  global correction; no more than 10 consecutive release samples are rate
+  saturated.
+- `13:34`: the evaluator reports `LOCAL_NO_PROGRESS` after GNSS and LIO remain
+  below 0.05 m/s for 15 s while command speed exceeds 0.5 m/s.
+
+Launch/integration tests verify stamped LIO-history interpolation, bootstrap TF publication,
+quality matching for fixes and headings, FIFO timeout/overflow policy, runtime
+odometry-bracket rejection, stale-LIO hold, catastrophic local abort, action-cancel
+hold behavior and its 15 s budget, heartbeat startup/terminal ownership,
+exactly one `/cmd_vel` publisher in corridor topology, guard fail-closed
+timeouts, serial zero-on-timeout/destruction, and PGO TF ownership.
+
+Jetson validation is build/run only. Initial vehicle testing remains low speed
+with the PS2 `X` disable and physical e-stop continuously available.

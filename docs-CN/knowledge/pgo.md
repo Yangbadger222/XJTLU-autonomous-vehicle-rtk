@@ -206,3 +206,6 @@ Runner 在启动时用固定 yaw bootstrap 立即开始导航：
 - 不等 aligner 收敛，立即发出第一个目标
 
 这解决了 v2 计划初期的"静止启动死锁"问题。
+## 11. Authority 收敛后的 Corridor TF 归属
+
+Corridor 模式下 PGO 必须同时关闭 GPS factor 与 `publish_tf`。生产链唯一的 `map→odom` broadcaster 是 `rtk_map_odom_corrector`；FAST-LIO2 发布 `odom→base_footprint`，URDF 提供 `base_footprint→base_link`。corrector 使用带时间戳的 LIO history，不再用 latest tf2 lookup 代替历史对齐。冻结 correction 时仍以新时间戳保持 TF 可用，但 `/localization_authority/motion_allowed=false` 会阻止 Nav2 命令到达底盘。

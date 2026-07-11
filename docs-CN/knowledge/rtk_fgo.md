@@ -330,3 +330,8 @@ python3 scripts/evaluate_rtk_fgo_bag.py \
 - 如果修改 RTK parser 或新增结构化 RTK 质量输出，必须给 `um982_rtk_driver` 添加原始 NMEA 样例测试。
 - 永远不要提交 CORS/NTRIP 凭据。
 - 新增包、launch、参数、工作流和 GPS/GNSS 行为变更时，中英文文档必须同步。
+## Corridor Authority 关系（2026-07-10）
+
+Corridor 生产链的 `map→odom` owner 仍是 `rtk_map_odom_corrector`。RTK FGO 继续保持 shadow-only（`publish_tf=false`、`nav2_use_fgo=false`），只录包对照。Fixed 质量来自 checksum 有效的 raw GGA，因为 `NavSatStatus` 无法区分 quality 4 与 5。heading 与 position correction 使用独立的 5 样本 gate，后到 heading 不允许反向配对旧 fix。
+
+`serial-telemetry-integrity` 分支是部署前置条件，不属于 FGO authority。其 STM32 300 ms watchdog 未刷写、且未完成电机失能状态下 500 ms command-loss bench 前，即使 replay 通过也不能宣称 corridor 实车验收通过。

@@ -315,3 +315,17 @@ Data plane for this mode:
 - `start_ref` + multiple `waypoints[]` GPS coordinates
 - `launch_yaw_deg` is a required field
 - `/localization_authority/*` records the current `map->odom` authority source, rejection reason, raw RTK `map_base` jump, raw `map->odom` target/output gap, and limited output
+## 5.4 Corridor Localization And Command Containment (2026-07-10)
+
+```text
+raw GGA + stamped fix/heading + stamped LIO history
+                         -> independent yaw/position gates
+                         -> base-space correction release
+                         -> map -> odom + motion_allowed heartbeat
+
+controller_server -> /cmd_vel_controller -> velocity_smoother -> /cmd_vel_nav
+motion_allowed ----------------------------------------------------------+
+gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corridor_cmd_vel_guard -> /cmd_vel -> serial_twistctl
+```
+
+The corrector is the only corridor `map->odom` owner. The runner owns stop intent and action retry, but never Twist. The guard is the only corridor `/cmd_vel` publisher and is a required launch process. Missing either 10 Hz Bool heartbeat for 0.50 s stops output. Explore and other modes do not enable these remaps.

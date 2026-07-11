@@ -1,14 +1,19 @@
 import os
 
-import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    TimerAction,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import SetRemap
 from nav2_common.launch import RewrittenYaml
 
 
@@ -86,6 +91,11 @@ def generate_launch_description():
         default_value="",
         description="Optional ROS2 parameter file appended only to the FRC nodes",
     )
+    guarded_cmd_vel_arg = DeclareLaunchArgument(
+        "guarded_cmd_vel",
+        default_value="false",
+        description="Route Nav2 output through the corridor command guard",
+    )
     rewritten_nav2_params = RewrittenYaml(
         source_file=LaunchConfiguration("nav2_params_file"),
         param_rewrites={
@@ -156,7 +166,22 @@ def generate_launch_description():
         }.items(),
     )
 
-    delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
+    guarded_nav2 = GroupAction(
+        [
+            SetRemap(
+                src="/cmd_vel_nav",
+                dst="/cmd_vel_controller",
+                condition=IfCondition(LaunchConfiguration("guarded_cmd_vel")),
+            ),
+            SetRemap(
+                src="/cmd_vel",
+                dst="/cmd_vel_nav",
+                condition=IfCondition(LaunchConfiguration("guarded_cmd_vel")),
+            ),
+            nav2_launch,
+        ]
+    )
+    delayed_nav2 = TimerAction(period=5.0, actions=[guarded_nav2])
 
     # P5（FRC）：frc_mode != off 时附加 FRC 栈（延时 8 秒，等 LIO/PGO 起稳）
     frc_launch = IncludeLaunchDescription(
@@ -199,6 +224,7 @@ def generate_launch_description():
             rviz_config_arg,
             frc_mode_arg,
             frc_extra_params_arg,
+            guarded_cmd_vel_arg,
             livox_launch,
             pgo_launch,
             serial_node,

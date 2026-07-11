@@ -3,29 +3,29 @@ from __future__ import annotations
 
 import math
 import time
+from collections import deque
+from dataclasses import dataclass
 
 import rclpy
 from geometry_msgs.msg import QuaternionStamped, TransformStamped
-from rclpy.duration import Duration
+from nav_msgs.msg import Odometry
+from nmea_msgs.msg import Sentence
 from rclpy.node import Node
-from rclpy.time import Time
 from sensor_msgs.msg import NavSatFix
-from std_msgs.msg import Float64MultiArray, String
-from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
+from std_msgs.msg import Bool, Float64MultiArray, String
+from tf2_ros import TransformBroadcaster
 
 from gps_waypoint_dispatcher.alignment_math import heading_quaternion_yaw_to_enu_yaw
+from gps_waypoint_dispatcher.corridor_quality import parse_gga_quality
 from gps_waypoint_dispatcher.rtk_authority import (
+    CorrectionGate,
+    CorrectionGateState,
+    CorrectionReleaseMode,
+    CorrectionReleaseState,
     Pose2D,
-    blend_pose_target,
-    compute_authority_target_delta,
-    compute_bootstrap_alignment_from_current_pose,
-    compute_map_to_odom,
-    compute_pose_delta,
-    compute_rtk_map_base,
-    limit_map_to_odom_step_for_base,
-    select_authority_alignment,
-    should_publish_bootstrap_without_fixed,
-    summarize_authority_inputs,
+    PrerequisiteFailureKind,
+    StampedPoseHistory,
+    normalize_angle,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
@@ -34,12 +34,55 @@ from gps_waypoint_dispatcher.scene_runtime import (
 )
 
 
-def valid_fix(msg: NavSatFix | None) -> bool:
-    if msg is None:
-        return False
-    if msg.status.status < 0:
-        return False
-    return math.isfinite(msg.latitude) and math.isfinite(msg.longitude)
+@dataclass(frozen=True)
+class PendingHeading:
+    stamp_s: float
+    enu_yaw: float
+    received_mono_s: float
+
+
+@dataclass(frozen=True)
+class PendingFix:
+    stamp_s: float
+    latitude: float
+    longitude: float
+    altitude: float
+    received_mono_s: float
+
+
+@dataclass(frozen=True)
+class GgaQuality:
+    stamp_s: float
+    quality: int
+    received_mono_s: float
+
+
+def _stamp_s(stamp) -> float:
+    return float(stamp.sec) + float(stamp.nanosec) * 1e-9
+
+
+def _finite_pose_from_odom(msg: Odometry) -> Pose2D | None:
+    position = msg.pose.pose.position
+    orientation = msg.pose.pose.orientation
+    values = (
+        position.x,
+        position.y,
+        orientation.x,
+        orientation.y,
+        orientation.z,
+        orientation.w,
+    )
+    if not all(math.isfinite(float(value)) for value in values):
+        return None
+    yaw = quaternion_to_yaw(
+        orientation.x,
+        orientation.y,
+        orientation.z,
+        orientation.w,
+    )
+    if not math.isfinite(yaw):
+        return None
+    return Pose2D(float(position.x), float(position.y), yaw)
 
 
 class RtkMapOdomCorrector(Node):
@@ -47,159 +90,392 @@ class RtkMapOdomCorrector(Node):
         super().__init__("rtk_map_odom_corrector")
         self.declare_parameter("map_frame", "map")
         self.declare_parameter("odom_frame", "odom")
-        self.declare_parameter("base_frame", "base_link")
+        self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("fix_topic", "/fix")
         self.declare_parameter("heading_topic", "/heading")
-        self.declare_parameter("rtk_status_topic", "/rtk/status")
+        self.declare_parameter("nmea_topic", "/rtk/nmea_sentence")
+        self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
         self.declare_parameter("mode_topic", "/localization_authority/mode")
         self.declare_parameter("status_topic", "/localization_authority/status")
-        self.declare_parameter("diagnostics_topic", "/localization_authority/diagnostics")
+        self.declare_parameter(
+            "diagnostics_topic", "/localization_authority/diagnostics"
+        )
+        self.declare_parameter(
+            "motion_allowed_topic", "/localization_authority/motion_allowed"
+        )
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
         self.declare_parameter("enu_origin_alt", 0.0)
         self.declare_parameter("heading_quaternion_yaw_is_compass", True)
-        self.declare_parameter("require_rtk_fixed", True)
+        self.declare_parameter("publish_period_s", 0.10)
+        self.declare_parameter("observation_fifo_capacity", 10)
+        self.declare_parameter("max_pending_observation_s", 0.30)
+        self.declare_parameter("fix_quality_wait_s", 0.25)
+        self.declare_parameter("heading_quality_wait_s", 0.30)
+        self.declare_parameter("max_future_stamp_s", 0.10)
+        self.declare_parameter("max_odom_bracket_s", 0.20)
+        self.declare_parameter("max_gga_heading_age_s", 1.50)
         self.declare_parameter("max_fix_age_s", 1.0)
         self.declare_parameter("max_heading_age_s", 1.0)
         self.declare_parameter("max_alignment_age_s", 1.0)
-        self.declare_parameter("max_rtk_status_age_s", 2.0)
-        self.declare_parameter("max_target_jump_m", 2.0)
-        self.declare_parameter("max_target_yaw_jump_deg", 20.0)
-        self.declare_parameter("allow_yaw_reacquire", True)
-        self.declare_parameter("max_yaw_reacquire_jump_deg", 45.0)
-        self.declare_parameter("max_translation_step_m", 0.20)
-        self.declare_parameter("max_yaw_step_deg", 1.0)
-        self.declare_parameter("max_base_yaw_step_m", 0.12)
-        self.declare_parameter("target_smoothing_alpha", 0.20)
-        self.declare_parameter("target_translation_deadband_m", 0.05)
-        self.declare_parameter("target_yaw_deadband_deg", 0.25)
-        self.declare_parameter("publish_period_s", 0.05)
-        self.declare_parameter("tf_lookup_timeout_s", 0.05)
+        self.declare_parameter("max_gga_age_s", 1.5)
+        self.declare_parameter("max_lio_age_s", 0.20)
+        self.declare_parameter("max_heading_for_fix_age_s", 0.30)
+        self.declare_parameter("max_translation_rate_mps", 0.20)
+        self.declare_parameter("max_yaw_rate_degps", 2.0)
+        self.declare_parameter("heading_locked_innovation_deg", 15.0)
+        self.declare_parameter("position_locked_innovation_m", 1.0)
+        self.declare_parameter("heading_recovery_spread_deg", 5.0)
+        self.declare_parameter("position_recovery_diameter_m", 0.30)
+        self.declare_parameter("recovery_min_samples", 5)
+        self.declare_parameter("recovery_min_span_s", 0.30)
+        self.declare_parameter("gate_max_candidates", 20)
+        self.declare_parameter("gate_max_failures", 5)
+        self.declare_parameter("gate_processable_timeout_s", 1.0)
+        self.declare_parameter("backlog_translation_m", 0.50)
+        self.declare_parameter("backlog_yaw_deg", 5.0)
+        self.declare_parameter("fault_translation_m", 2.0)
+        self.declare_parameter("fault_yaw_deg", 20.0)
+        self.declare_parameter("stopped_linear_rate_mps", 0.05)
+        self.declare_parameter("stopped_yaw_rate_degps", 2.0)
+        self.declare_parameter("stopped_confirmation_s", 1.0)
+        self.declare_parameter("recovery_translation_m", 0.15)
+        self.declare_parameter("recovery_yaw_deg", 2.0)
+        self.declare_parameter("recovery_confirmation_s", 1.0)
 
         self._map_frame = str(self.get_parameter("map_frame").value)
         self._odom_frame = str(self.get_parameter("odom_frame").value)
         self._base_frame = str(self.get_parameter("base_frame").value)
         self._fix_topic = str(self.get_parameter("fix_topic").value)
         self._heading_topic = str(self.get_parameter("heading_topic").value)
-        self._rtk_status_topic = str(self.get_parameter("rtk_status_topic").value)
+        self._nmea_topic = str(self.get_parameter("nmea_topic").value)
+        self._lio_odom_topic = str(self.get_parameter("lio_odom_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
         self._mode_topic = str(self.get_parameter("mode_topic").value)
         self._status_topic = str(self.get_parameter("status_topic").value)
         self._diagnostics_topic = str(self.get_parameter("diagnostics_topic").value)
+        self._motion_allowed_topic = str(
+            self.get_parameter("motion_allowed_topic").value
+        )
         self._heading_quaternion_yaw_is_compass = bool(
             self.get_parameter("heading_quaternion_yaw_is_compass").value
         )
-        self._require_rtk_fixed = bool(self.get_parameter("require_rtk_fixed").value)
-        self._max_fix_age_s = float(self.get_parameter("max_fix_age_s").value)
-        self._max_heading_age_s = float(self.get_parameter("max_heading_age_s").value)
-        self._max_alignment_age_s = float(self.get_parameter("max_alignment_age_s").value)
-        self._max_rtk_status_age_s = float(
-            self.get_parameter("max_rtk_status_age_s").value
-        )
-        self._max_target_jump_m = float(self.get_parameter("max_target_jump_m").value)
-        self._max_target_yaw_jump_rad = math.radians(
-            float(self.get_parameter("max_target_yaw_jump_deg").value)
-        )
-        self._allow_yaw_reacquire = bool(
-            self.get_parameter("allow_yaw_reacquire").value
-        )
-        self._max_yaw_reacquire_jump_rad = math.radians(
-            float(self.get_parameter("max_yaw_reacquire_jump_deg").value)
-        )
-        self._max_translation_step_m = float(
-            self.get_parameter("max_translation_step_m").value
-        )
-        self._max_yaw_step_rad = math.radians(
-            float(self.get_parameter("max_yaw_step_deg").value)
-        )
-        self._max_base_yaw_step_m = float(
-            self.get_parameter("max_base_yaw_step_m").value
-        )
-        self._target_smoothing_alpha = float(
-            self.get_parameter("target_smoothing_alpha").value
-        )
-        self._target_translation_deadband_m = float(
-            self.get_parameter("target_translation_deadband_m").value
-        )
-        self._target_yaw_deadband_rad = math.radians(
-            float(self.get_parameter("target_yaw_deadband_deg").value)
-        )
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
-        self._tf_lookup_timeout_s = float(self.get_parameter("tf_lookup_timeout_s").value)
+        self._observation_fifo_capacity = int(
+            self.get_parameter("observation_fifo_capacity").value
+        )
+        self._max_pending_observation_s = float(
+            self.get_parameter("max_pending_observation_s").value
+        )
+        self._fix_quality_wait_s = float(
+            self.get_parameter("fix_quality_wait_s").value
+        )
+        self._heading_quality_wait_s = float(
+            self.get_parameter("heading_quality_wait_s").value
+        )
+        self._max_future_stamp_s = float(
+            self.get_parameter("max_future_stamp_s").value
+        )
+        self._max_odom_bracket_s = float(
+            self.get_parameter("max_odom_bracket_s").value
+        )
+        self._max_gga_heading_age_s = float(
+            self.get_parameter("max_gga_heading_age_s").value
+        )
+        self._max_fix_age_s = float(self.get_parameter("max_fix_age_s").value)
+        self._max_heading_age_s = float(
+            self.get_parameter("max_heading_age_s").value
+        )
+        self._max_alignment_age_s = float(
+            self.get_parameter("max_alignment_age_s").value
+        )
+        self._max_gga_age_s = float(self.get_parameter("max_gga_age_s").value)
+        self._max_lio_age_s = float(self.get_parameter("max_lio_age_s").value)
+        self._max_heading_for_fix_age_s = float(
+            self.get_parameter("max_heading_for_fix_age_s").value
+        )
 
         self._projector = FixedENUProjector(
             float(self.get_parameter("enu_origin_lat").value),
             float(self.get_parameter("enu_origin_lon").value),
             float(self.get_parameter("enu_origin_alt").value),
         )
+        self._lio_history = StampedPoseHistory(
+            max_age_s=2.0,
+            max_samples=200,
+            frame_id=self._odom_frame,
+            child_frame_id=self._base_frame,
+        )
+        gate_common = {
+            "min_candidates": int(self.get_parameter("recovery_min_samples").value),
+            "min_span_s": float(self.get_parameter("recovery_min_span_s").value),
+            "max_candidates": int(self.get_parameter("gate_max_candidates").value),
+            "max_consecutive_failures": int(
+                self.get_parameter("gate_max_failures").value
+            ),
+            "processable_timeout_s": float(
+                self.get_parameter("gate_processable_timeout_s").value
+            ),
+        }
+        self._heading_gate = CorrectionGate.yaw(
+            locked_threshold=math.radians(
+                float(self.get_parameter("heading_locked_innovation_deg").value)
+            ),
+            recovery_threshold=math.radians(
+                float(self.get_parameter("heading_recovery_spread_deg").value)
+            ),
+            **gate_common,
+        )
+        self._position_gate = CorrectionGate.translation(
+            locked_threshold=float(
+                self.get_parameter("position_locked_innovation_m").value
+            ),
+            recovery_threshold=float(
+                self.get_parameter("position_recovery_diameter_m").value
+            ),
+            **gate_common,
+        )
+        self._release_state = CorrectionReleaseState(
+            max_translation_rate_mps=float(
+                self.get_parameter("max_translation_rate_mps").value
+            ),
+            max_yaw_rate_radps=math.radians(
+                float(self.get_parameter("max_yaw_rate_degps").value)
+            ),
+            max_lio_age_s=self._max_lio_age_s,
+            backlog_translation_m=float(
+                self.get_parameter("backlog_translation_m").value
+            ),
+            backlog_yaw_rad=math.radians(
+                float(self.get_parameter("backlog_yaw_deg").value)
+            ),
+            fault_translation_m=float(
+                self.get_parameter("fault_translation_m").value
+            ),
+            fault_yaw_rad=math.radians(
+                float(self.get_parameter("fault_yaw_deg").value)
+            ),
+            stopped_linear_rate_mps=float(
+                self.get_parameter("stopped_linear_rate_mps").value
+            ),
+            stopped_yaw_rate_radps=math.radians(
+                float(self.get_parameter("stopped_yaw_rate_degps").value)
+            ),
+            stopped_confirmation_s=float(
+                self.get_parameter("stopped_confirmation_s").value
+            ),
+            recovery_translation_m=float(
+                self.get_parameter("recovery_translation_m").value
+            ),
+            recovery_yaw_rad=math.radians(
+                float(self.get_parameter("recovery_yaw_deg").value)
+            ),
+            recovery_confirmation_s=float(
+                self.get_parameter("recovery_confirmation_s").value
+            ),
+        )
+        self.get_logger().info(
+            "RTK authority gates: yaw=%.1fdeg position=%.2fm recovery=%d/%.2fs; "
+            "release=%.2fm/s %.1fdeg/s"
+            % (
+                float(self.get_parameter("heading_locked_innovation_deg").value),
+                float(self.get_parameter("position_locked_innovation_m").value),
+                gate_common["min_candidates"],
+                gate_common["min_span_s"],
+                float(self.get_parameter("max_translation_rate_mps").value),
+                float(self.get_parameter("max_yaw_rate_degps").value),
+            )
+        )
+
+        self._heading_queue: deque[PendingHeading] = deque()
+        self._fix_queue: deque[PendingFix] = deque()
+        self._gga_history: deque[GgaQuality] = deque(maxlen=100)
+        self._accepted_heading_corrections: deque[tuple[float, float]] = deque(
+            maxlen=100
+        )
+        self._last_heading_enqueue_stamp_s: float | None = None
+        self._last_fix_enqueue_stamp_s: float | None = None
+        self._latest_lio_stamp_s: float | None = None
+        self._latest_lio_pose: Pose2D | None = None
+        self._previous_lio_stamp_s: float | None = None
+        self._previous_lio_pose: Pose2D | None = None
+        self._local_linear_rate_mps = math.inf
+        self._local_yaw_rate_radps = math.inf
+        self._latest_lio_mono_s: float | None = None
+        self._latest_fix_mono_s: float | None = None
+        self._latest_heading_mono_s: float | None = None
+        self._latest_gga_mono_s: float | None = None
+        self._latest_alignment_mono_s: float | None = None
+        self._latest_alignment: tuple[float, float, float, bool] | None = None
+        self._bootstrap_alignment: tuple[float, float, float, bool] | None = None
+        self._last_output: Pose2D | None = None
+        self._last_release = None
+        self._last_heading_innovation_rad: float | None = None
+        self._last_position_innovation_m: float | None = None
+        self._last_mode = ""
+        self._last_status = ""
 
         self._mode_pub = self.create_publisher(String, self._mode_topic, 10)
         self._status_pub = self.create_publisher(String, self._status_topic, 10)
         self._diagnostics_pub = self.create_publisher(
             Float64MultiArray, self._diagnostics_topic, 10
         )
-
+        self._motion_allowed_pub = self.create_publisher(
+            Bool, self._motion_allowed_topic, 10
+        )
         self._fix_sub = self.create_subscription(
             NavSatFix, self._fix_topic, self._fix_callback, 10
         )
         self._heading_sub = self.create_subscription(
             QuaternionStamped, self._heading_topic, self._heading_callback, 10
         )
-        self._rtk_status_sub = self.create_subscription(
-            String, self._rtk_status_topic, self._rtk_status_callback, 10
+        self._nmea_sub = self.create_subscription(
+            Sentence, self._nmea_topic, self._nmea_callback, 50
+        )
+        self._lio_sub = self.create_subscription(
+            Odometry, self._lio_odom_topic, self._lio_callback, 50
         )
         self._alignment_sub = self.create_subscription(
             Float64MultiArray, self._alignment_topic, self._alignment_callback, 10
         )
-
-        self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self)
         self._tf_broadcaster = TransformBroadcaster(self)
         self._timer = self.create_timer(self._publish_period_s, self._timer_callback)
 
-        self._latest_fix: NavSatFix | None = None
-        self._latest_fix_mono: float | None = None
-        self._latest_heading_enu_yaw: float | None = None
-        self._latest_heading_mono: float | None = None
-        self._latest_alignment: tuple[float, float, float, bool] | None = None
-        self._latest_alignment_mono: float | None = None
-        self._bootstrap_alignment: tuple[float, float, float, bool] | None = None
-        self._latest_rtk_fixed = False
-        self._latest_rtk_status_mono: float | None = None
-        self._last_output: Pose2D | None = None
-        self._last_raw_target: Pose2D | None = None
-        self._last_raw_map_base: Pose2D | None = None
-        self._smoothed_target: Pose2D | None = None
-        self._last_mode = ""
-        self._last_status = ""
+    def _ros_now_s(self) -> float:
+        return self.get_clock().now().nanoseconds * 1e-9
+
+    def _valid_observation_stamp(self, stamp_s: float) -> bool:
+        return (
+            math.isfinite(stamp_s)
+            and stamp_s > 0.0
+            and stamp_s <= self._ros_now_s() + self._max_future_stamp_s
+        )
+
+    def _enqueue(self, queue: deque, observation) -> bool:
+        if len(queue) >= self._observation_fifo_capacity:
+            return False
+        queue.append(observation)
+        return True
 
     def _fix_callback(self, msg: NavSatFix) -> None:
-        self._latest_fix = msg
-        self._latest_fix_mono = time.monotonic()
+        stamp_s = _stamp_s(msg.header.stamp)
+        if (
+            not self._valid_observation_stamp(stamp_s)
+            or msg.status.status < 0
+            or not all(
+                math.isfinite(value)
+                for value in (msg.latitude, msg.longitude, msg.altitude)
+            )
+            or (
+                self._last_fix_enqueue_stamp_s is not None
+                and stamp_s <= self._last_fix_enqueue_stamp_s
+            )
+        ):
+            return
+        received = time.monotonic()
+        if self._enqueue(
+            self._fix_queue,
+            PendingFix(
+                stamp_s,
+                float(msg.latitude),
+                float(msg.longitude),
+                float(msg.altitude),
+                received,
+            ),
+        ):
+            self._last_fix_enqueue_stamp_s = stamp_s
+            self._latest_fix_mono_s = received
 
     def _heading_callback(self, msg: QuaternionStamped) -> None:
+        stamp_s = _stamp_s(msg.header.stamp)
+        quaternion = msg.quaternion
+        if not self._valid_observation_stamp(stamp_s) or not all(
+            math.isfinite(value)
+            for value in (quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+        ):
+            return
         yaw = quaternion_to_yaw(
-            msg.quaternion.x,
-            msg.quaternion.y,
-            msg.quaternion.z,
-            msg.quaternion.w,
+            quaternion.x,
+            quaternion.y,
+            quaternion.z,
+            quaternion.w,
         )
-        self._latest_heading_enu_yaw = heading_quaternion_yaw_to_enu_yaw(
+        enu_yaw = heading_quaternion_yaw_to_enu_yaw(
             yaw,
             quaternion_yaw_is_compass=self._heading_quaternion_yaw_is_compass,
         )
-        self._latest_heading_mono = time.monotonic()
+        if (
+            not math.isfinite(enu_yaw)
+            or (
+                self._last_heading_enqueue_stamp_s is not None
+                and stamp_s <= self._last_heading_enqueue_stamp_s
+            )
+        ):
+            return
+        received = time.monotonic()
+        if self._enqueue(
+            self._heading_queue, PendingHeading(stamp_s, enu_yaw, received)
+        ):
+            self._last_heading_enqueue_stamp_s = stamp_s
+            self._latest_heading_mono_s = received
 
-    def _rtk_status_callback(self, msg: String) -> None:
-        text = msg.data
-        self._latest_rtk_fixed = "q=4" in text or "RTK Fixed" in text
-        self._latest_rtk_status_mono = time.monotonic()
+    def _nmea_callback(self, msg: Sentence) -> None:
+        quality = parse_gga_quality(msg.sentence)
+        stamp_s = _stamp_s(msg.header.stamp)
+        if quality is None or not self._valid_observation_stamp(stamp_s):
+            return
+        received = time.monotonic()
+        self._gga_history.append(GgaQuality(stamp_s, quality, received))
+        self._latest_gga_mono_s = received
+        if quality != 4:
+            self._heading_queue.clear()
+            self._fix_queue.clear()
+            self._heading_gate.prerequisite_failure(
+                now_s=received,
+                kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
+            )
+            self._position_gate.prerequisite_failure(
+                now_s=received,
+                kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
+            )
+
+    def _lio_callback(self, msg: Odometry) -> None:
+        stamp_s = _stamp_s(msg.header.stamp)
+        pose = _finite_pose_from_odom(msg)
+        if pose is None or not self._valid_observation_stamp(stamp_s):
+            return
+        appended = self._lio_history.append(
+            stamp_s,
+            pose,
+            frame_id=msg.header.frame_id,
+            child_frame_id=msg.child_frame_id,
+        )
+        if not appended.accepted:
+            return
+        self._previous_lio_stamp_s = self._latest_lio_stamp_s
+        self._previous_lio_pose = self._latest_lio_pose
+        self._latest_lio_stamp_s = stamp_s
+        self._latest_lio_pose = pose
+        self._latest_lio_mono_s = time.monotonic()
+        if self._previous_lio_stamp_s is None or self._previous_lio_pose is None:
+            return
+        dt_s = stamp_s - self._previous_lio_stamp_s
+        if dt_s <= 0.0:
+            return
+        self._local_linear_rate_mps = math.hypot(
+            pose.x - self._previous_lio_pose.x,
+            pose.y - self._previous_lio_pose.y,
+        ) / dt_s
+        self._local_yaw_rate_radps = abs(
+            normalize_angle(pose.yaw - self._previous_lio_pose.yaw)
+        ) / dt_s
 
     def _alignment_callback(self, msg: Float64MultiArray) -> None:
-        if len(msg.data) < 4:
+        received = time.monotonic()
+        self._latest_alignment_mono_s = received
+        if len(msg.data) < 4 or not all(math.isfinite(value) for value in msg.data[:3]):
             self._latest_alignment = None
-            self._latest_alignment_mono = time.monotonic()
             return
         self._latest_alignment = (
             float(msg.data[0]),
@@ -207,35 +483,294 @@ class RtkMapOdomCorrector(Node):
             float(msg.data[2]),
             float(msg.data[3]) >= 0.5,
         )
-        self._latest_alignment_mono = time.monotonic()
 
-    def _age_s(self, stamp_mono: float | None, now_mono: float) -> float:
-        if stamp_mono is None:
+    @staticmethod
+    def _age_s(received_mono_s: float | None, now_mono_s: float) -> float:
+        if received_mono_s is None:
             return math.inf
-        return now_mono - stamp_mono
+        return max(0.0, now_mono_s - received_mono_s)
 
-    def _lookup_odom_base(self) -> Pose2D | None:
-        try:
-            transform = self._tf_buffer.lookup_transform(
-                self._odom_frame,
-                self._base_frame,
-                Time(),
-                timeout=Duration(seconds=self._tf_lookup_timeout_s),
-            )
-        except TransformException:
+    def _external_alignment(self, now_mono_s: float):
+        if (
+            self._latest_alignment is None
+            or not self._latest_alignment[3]
+            or self._age_s(self._latest_alignment_mono_s, now_mono_s)
+            > self._max_alignment_age_s
+        ):
             return None
+        return self._latest_alignment
 
-        translation = transform.transform.translation
-        rotation = transform.transform.rotation
-        return Pose2D(
-            x=float(translation.x),
-            y=float(translation.y),
-            yaw=quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w),
+    def _heading_quality(self, stamp_s: float) -> int | None:
+        for sample in reversed(self._gga_history):
+            if sample.stamp_s <= stamp_s:
+                if stamp_s - sample.stamp_s <= self._max_gga_heading_age_s:
+                    return sample.quality
+                return None
+        return None
+
+    def _fix_quality(self, stamp_s: float) -> int | None:
+        epsilon_s = max(1e-6, 4.0 * math.ulp(stamp_s))
+        for sample in reversed(self._gga_history):
+            if abs(sample.stamp_s - stamp_s) <= epsilon_s:
+                return sample.quality
+        return None
+
+    def _record_heading_target(self, stamp_s: float) -> None:
+        target = self._heading_gate.target
+        if isinstance(target, (float, int)) and math.isfinite(target):
+            self._accepted_heading_corrections.append((stamp_s, float(target)))
+
+    def _heading_target_for_fix(self, stamp_s: float) -> float | None:
+        for heading_stamp_s, correction in reversed(
+            self._accepted_heading_corrections
+        ):
+            if heading_stamp_s <= stamp_s:
+                if stamp_s - heading_stamp_s <= self._max_heading_for_fix_age_s:
+                    return correction
+                return None
+        return None
+
+    def _process_heading(self, now_mono_s: float, alignment) -> None:
+        while self._heading_queue:
+            pending = self._heading_queue[0]
+            waited_s = now_mono_s - pending.received_mono_s
+            quality = self._heading_quality(pending.stamp_s)
+            if quality is None:
+                if waited_s < self._heading_quality_wait_s:
+                    return
+                self._heading_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.HEADING_QUALITY_UNAVAILABLE,
+                )
+                self._heading_queue.popleft()
+                continue
+            if quality != 4:
+                self._heading_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
+                )
+                self._heading_queue.popleft()
+                continue
+            interpolated = self._lio_history.interpolate(
+                pending.stamp_s, self._max_odom_bracket_s
+            )
+            if not interpolated.ok:
+                if waited_s < self._max_pending_observation_s:
+                    return
+                if interpolated.reason in (
+                    "ODOM_AT_STAMP_UNAVAILABLE",
+                    "ODOM_BRACKET_TOO_WIDE",
+                ):
+                    self._heading_gate.odom_timeout(
+                        pending.stamp_s, now_s=now_mono_s
+                    )
+                else:
+                    self._heading_gate.prerequisite_failure(
+                        now_s=now_mono_s,
+                        kind=PrerequisiteFailureKind.MALFORMED_INPUT,
+                    )
+                self._heading_queue.popleft()
+                continue
+            map_yaw = normalize_angle(alignment[0] + pending.enu_yaw)
+            correction = normalize_angle(map_yaw - interpolated.pose.yaw)
+            result = self._heading_gate.observe(
+                pending.stamp_s, correction, now_s=now_mono_s
+            )
+            self._last_heading_innovation_rad = result.innovation
+            if result.accepted:
+                self._record_heading_target(pending.stamp_s)
+            self._heading_queue.popleft()
+
+    def _process_fix(self, now_mono_s: float, alignment) -> None:
+        while self._fix_queue:
+            pending = self._fix_queue[0]
+            waited_s = now_mono_s - pending.received_mono_s
+            if self._heading_gate.state is not CorrectionGateState.LOCKED:
+                self._fix_queue.popleft()
+                continue
+            quality = self._fix_quality(pending.stamp_s)
+            if quality is None:
+                if waited_s < self._fix_quality_wait_s:
+                    return
+                self._position_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.FIX_QUALITY_UNAVAILABLE,
+                )
+                self._fix_queue.popleft()
+                continue
+            if quality != 4:
+                self._position_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
+                )
+                self._fix_queue.popleft()
+                continue
+            yaw_correction = self._heading_target_for_fix(pending.stamp_s)
+            if yaw_correction is None:
+                if waited_s < self._max_pending_observation_s:
+                    return
+                self._position_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.ODOM_AT_STAMP_UNAVAILABLE,
+                )
+                self._fix_queue.popleft()
+                continue
+            interpolated = self._lio_history.interpolate(
+                pending.stamp_s, self._max_odom_bracket_s
+            )
+            if not interpolated.ok:
+                if waited_s < self._max_pending_observation_s:
+                    return
+                if interpolated.reason in (
+                    "ODOM_AT_STAMP_UNAVAILABLE",
+                    "ODOM_BRACKET_TOO_WIDE",
+                ):
+                    self._position_gate.odom_timeout(
+                        pending.stamp_s, now_s=now_mono_s
+                    )
+                else:
+                    self._position_gate.prerequisite_failure(
+                        now_s=now_mono_s,
+                        kind=PrerequisiteFailureKind.MALFORMED_INPUT,
+                    )
+                self._fix_queue.popleft()
+                continue
+            enu_x, enu_y = self._projector.forward(
+                pending.latitude, pending.longitude
+            )
+            theta, tx, ty, _ = alignment
+            cos_theta = math.cos(theta)
+            sin_theta = math.sin(theta)
+            map_x = cos_theta * enu_x - sin_theta * enu_y + tx
+            map_y = sin_theta * enu_x + cos_theta * enu_y + ty
+            local = interpolated.pose
+            cos_yaw = math.cos(yaw_correction)
+            sin_yaw = math.sin(yaw_correction)
+            correction_xy = (
+                map_x - (cos_yaw * local.x - sin_yaw * local.y),
+                map_y - (sin_yaw * local.x + cos_yaw * local.y),
+            )
+            result = self._position_gate.observe(
+                pending.stamp_s, correction_xy, now_s=now_mono_s
+            )
+            self._last_position_innovation_m = result.innovation
+            self._fix_queue.popleft()
+
+    def _try_bootstrap(self, now_mono_s: float) -> bool:
+        if self._bootstrap_alignment is not None:
+            return True
+        if not self._heading_queue or not self._fix_queue:
+            return False
+        heading = self._heading_queue[-1]
+        fix = self._fix_queue[-1]
+        heading_odom = self._lio_history.interpolate(
+            heading.stamp_s, self._max_odom_bracket_s
+        )
+        fix_odom = self._lio_history.interpolate(fix.stamp_s, self._max_odom_bracket_s)
+        if not heading_odom.ok or not fix_odom.ok:
+            return False
+        theta = normalize_angle(heading_odom.pose.yaw - heading.enu_yaw)
+        enu_x, enu_y = self._projector.forward(fix.latitude, fix.longitude)
+        cos_theta = math.cos(theta)
+        sin_theta = math.sin(theta)
+        tx = fix_odom.pose.x - (cos_theta * enu_x - sin_theta * enu_y)
+        ty = fix_odom.pose.y - (sin_theta * enu_x + cos_theta * enu_y)
+        if not all(math.isfinite(value) for value in (theta, tx, ty)):
+            return False
+        self._bootstrap_alignment = (theta, tx, ty, True)
+        self._last_output = Pose2D(0.0, 0.0, 0.0)
+        self._heading_queue.clear()
+        self._fix_queue.clear()
+        self._publish_tf(self._last_output)
+        self._publish_mode_status("RTK_BOOTSTRAP", "PUBLISHING_BOOTSTRAP_MAP_ODOM")
+        self._publish_motion_allowed(False)
+        return True
+
+    def _authority_fresh(self, now_mono_s: float) -> bool:
+        return (
+            self._age_s(self._latest_gga_mono_s, now_mono_s) <= self._max_gga_age_s
+            and self._age_s(self._latest_fix_mono_s, now_mono_s)
+            <= self._max_fix_age_s
+            and self._age_s(self._latest_heading_mono_s, now_mono_s)
+            <= self._max_heading_age_s
+            and self._age_s(self._latest_alignment_mono_s, now_mono_s)
+            <= self._max_alignment_age_s
+            and self._age_s(self._latest_lio_mono_s, now_mono_s)
+            <= self._max_lio_age_s
         )
 
-    def _publish_mode_status(self, mode: str, status: str) -> None:
+    def _release(self, now_mono_s: float):
+        if (
+            self._heading_gate.state is not CorrectionGateState.LOCKED
+            or self._position_gate.state is not CorrectionGateState.LOCKED
+            or self._latest_lio_pose is None
+            or self._latest_lio_stamp_s is None
+        ):
+            return None
+        heading_target = self._heading_gate.target
+        position_target = self._position_gate.target
+        if not isinstance(heading_target, (float, int)) or not isinstance(
+            position_target, tuple
+        ):
+            return None
+        target = Pose2D(position_target[0], position_target[1], float(heading_target))
+        if self._last_output is None:
+            self._last_output = Pose2D(0.0, 0.0, 0.0)
+        lio_age_s = max(0.0, self._ros_now_s() - self._latest_lio_stamp_s)
+        release = self._release_state.update(
+            previous_output_map_odom=self._last_output,
+            target_map_odom=target,
+            local_pose=self._latest_lio_pose,
+            now_s=now_mono_s,
+            lio_stamp_s=self._latest_lio_stamp_s,
+            lio_age_s=lio_age_s,
+            local_linear_rate_mps=self._local_linear_rate_mps,
+            local_yaw_rate_radps=self._local_yaw_rate_radps,
+            gates_locked=True,
+        )
+        self._last_output = release.output_map_odom
+        self._last_release = release
+        return release
+
+    def _timer_callback(self) -> None:
         if not rclpy.ok():
             return
+        now_mono_s = time.monotonic()
+        alignment = self._external_alignment(now_mono_s)
+        if alignment is None:
+            self._try_bootstrap(now_mono_s)
+            self._rebroadcast_last_output()
+            self._publish_motion_allowed(False)
+            self._publish_diagnostics(False, None)
+            return
+
+        self._process_heading(now_mono_s, alignment)
+        self._process_fix(now_mono_s, alignment)
+        self._heading_gate.check_timeout(now_s=now_mono_s)
+        self._position_gate.check_timeout(now_s=now_mono_s)
+        release = self._release(now_mono_s)
+        fresh = self._authority_fresh(now_mono_s)
+        motion_allowed = bool(release and release.motion_allowed and fresh)
+        if release is not None:
+            self._publish_tf(release.output_map_odom)
+            mode = (
+                "RTK_AUTHORITATIVE"
+                if release.mode is CorrectionReleaseMode.NORMAL and motion_allowed
+                else release.mode.value
+            )
+            status = release.reason.value if release.reason is not None else "LOCKED"
+        else:
+            self._rebroadcast_last_output()
+            mode = "RTK_DEGRADED"
+            status = "GATES_NOT_LOCKED"
+        self._publish_mode_status(mode, status)
+        self._publish_motion_allowed(motion_allowed)
+        self._publish_diagnostics(motion_allowed, release)
+
+    def _publish_motion_allowed(self, motion_allowed: bool) -> None:
+        self._safe_publish(self._motion_allowed_pub, Bool(data=motion_allowed))
+
+    def _publish_mode_status(self, mode: str, status: str) -> None:
         if mode != self._last_mode:
             self.get_logger().info(mode)
             self._last_mode = mode
@@ -245,7 +780,64 @@ class RtkMapOdomCorrector(Node):
         self._safe_publish(self._mode_pub, String(data=mode))
         self._safe_publish(self._status_pub, String(data=status))
 
-    def _is_shutdown_publish_error(self, exc: Exception) -> bool:
+    def _publish_diagnostics(self, motion_allowed: bool, release) -> None:
+        now_mono_s = time.monotonic()
+        heading_innovation_deg = (
+            math.degrees(self._last_heading_innovation_rad)
+            if self._last_heading_innovation_rad is not None
+            else math.nan
+        )
+        position_innovation_m = (
+            self._last_position_innovation_m
+            if self._last_position_innovation_m is not None
+            else math.nan
+        )
+        output = self._last_output
+        data = [
+            1.0 if motion_allowed else 0.0,
+            self._age_s(self._latest_fix_mono_s, now_mono_s),
+            self._age_s(self._latest_heading_mono_s, now_mono_s),
+            self._age_s(self._latest_alignment_mono_s, now_mono_s),
+            position_innovation_m,
+            heading_innovation_deg,
+            output.x if output is not None else math.nan,
+            output.y if output is not None else math.nan,
+            math.degrees(output.yaw) if output is not None else math.nan,
+            1.0 if self._heading_quality(self._last_heading_enqueue_stamp_s or 0.0) == 4 else 0.0,
+            release.translation_step_m if release is not None else 0.0,
+            math.degrees(release.yaw_step_rad) if release is not None else 0.0,
+            float(self._heading_gate.state),
+            float(self._position_gate.state),
+            heading_innovation_deg,
+            position_innovation_m,
+            release.translation_gap_m if release is not None else math.nan,
+            math.degrees(release.yaw_gap_rad) if release is not None else math.nan,
+            1.0 if motion_allowed else 0.0,
+        ]
+        self._safe_publish(self._diagnostics_pub, Float64MultiArray(data=data))
+
+    def _publish_tf(self, pose: Pose2D) -> None:
+        msg = TransformStamped()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = self._map_frame
+        msg.child_frame_id = self._odom_frame
+        msg.transform.translation.x = pose.x
+        msg.transform.translation.y = pose.y
+        qx, qy, qz, qw = yaw_to_quaternion(pose.yaw)
+        msg.transform.rotation.x = qx
+        msg.transform.rotation.y = qy
+        msg.transform.rotation.z = qz
+        msg.transform.rotation.w = qw
+        self._safe_send_transform(msg)
+
+    def _rebroadcast_last_output(self) -> bool:
+        if self._last_output is None:
+            return False
+        self._publish_tf(self._last_output)
+        return True
+
+    @staticmethod
+    def _is_shutdown_publish_error(exc: Exception) -> bool:
         text = str(exc)
         return (
             not rclpy.ok()
@@ -276,267 +868,6 @@ class RtkMapOdomCorrector(Node):
                 return False
             raise
         return True
-
-    def _publish_diagnostics(
-        self,
-        *,
-        ok: bool,
-        fix_age_s: float,
-        heading_age_s: float,
-        alignment_age_s: float,
-        target_jump_m: float,
-        target_yaw_jump_rad: float,
-        output: Pose2D | None,
-        raw_output_gap_m: float = 0.0,
-        raw_output_yaw_gap_rad: float = 0.0,
-    ) -> None:
-        msg = Float64MultiArray()
-        msg.data = [
-            1.0 if ok else 0.0,
-            fix_age_s,
-            heading_age_s,
-            alignment_age_s,
-            target_jump_m,
-            math.degrees(target_yaw_jump_rad),
-            output.x if output is not None else 0.0,
-            output.y if output is not None else 0.0,
-            math.degrees(output.yaw) if output is not None else 0.0,
-            1.0 if self._latest_rtk_fixed else 0.0,
-            raw_output_gap_m,
-            math.degrees(raw_output_yaw_gap_rad),
-        ]
-        self._safe_publish(self._diagnostics_pub, msg)
-
-    def _publish_tf(self, pose: Pose2D) -> None:
-        msg = TransformStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = self._map_frame
-        msg.child_frame_id = self._odom_frame
-        msg.transform.translation.x = pose.x
-        msg.transform.translation.y = pose.y
-        msg.transform.translation.z = 0.0
-        qx, qy, qz, qw = yaw_to_quaternion(pose.yaw)
-        msg.transform.rotation.x = qx
-        msg.transform.rotation.y = qy
-        msg.transform.rotation.z = qz
-        msg.transform.rotation.w = qw
-        self._safe_send_transform(msg)
-
-    def _rebroadcast_last_output(self) -> bool:
-        if self._last_output is None:
-            return False
-        self._publish_tf(self._last_output)
-        return True
-
-    def _timer_callback(self) -> None:
-        if not rclpy.ok():
-            return
-        now_mono = time.monotonic()
-        fix_age_s = self._age_s(self._latest_fix_mono, now_mono)
-        heading_age_s = self._age_s(self._latest_heading_mono, now_mono)
-        alignment_age_s = self._age_s(self._latest_alignment_mono, now_mono)
-        rtk_status_age_s = self._age_s(self._latest_rtk_status_mono, now_mono)
-
-        odom_base = self._lookup_odom_base()
-        odom_available = odom_base is not None
-        external_alignment_valid = (
-            self._latest_alignment is not None
-            and self._latest_alignment[3]
-            and alignment_age_s <= self._max_alignment_age_s
-        )
-        alignment, using_external_alignment = select_authority_alignment(
-            latest_alignment=self._latest_alignment,
-            external_alignment_valid=external_alignment_valid,
-            bootstrap_alignment=self._bootstrap_alignment,
-        )
-        if (
-            alignment is None
-            and odom_base is not None
-            and valid_fix(self._latest_fix)
-            and self._latest_heading_enu_yaw is not None
-            and fix_age_s <= self._max_fix_age_s
-            and heading_age_s <= self._max_heading_age_s
-        ):
-            enu_x, enu_y = self._projector.forward(
-                self._latest_fix.latitude,
-                self._latest_fix.longitude,
-            )
-            bootstrap = compute_bootstrap_alignment_from_current_pose(
-                odom_base=odom_base,
-                enu_x=enu_x,
-                enu_y=enu_y,
-                heading_enu_yaw=self._latest_heading_enu_yaw,
-            )
-            self._bootstrap_alignment = (
-                bootstrap.theta,
-                bootstrap.tx,
-                bootstrap.ty,
-                True,
-            )
-            alignment = self._bootstrap_alignment
-            alignment_age_s = 0.0
-            using_external_alignment = False
-
-        alignment_valid = alignment is not None and alignment[3]
-        summary = summarize_authority_inputs(
-            alignment_valid=alignment_valid,
-            odom_available=odom_available,
-            fix_age_s=fix_age_s,
-            heading_age_s=heading_age_s,
-            target_jump_m=0.0,
-            target_yaw_jump_rad=0.0,
-            max_fix_age_s=self._max_fix_age_s,
-            max_heading_age_s=self._max_heading_age_s,
-            max_target_jump_m=self._max_target_jump_m,
-            max_target_yaw_jump_rad=self._max_target_yaw_jump_rad,
-        )
-        if not summary.ok:
-            self._publish_mode_status(summary.mode, summary.reason or "RTK_DEGRADED")
-            self._rebroadcast_last_output()
-            self._publish_diagnostics(
-                ok=False,
-                fix_age_s=fix_age_s,
-                heading_age_s=heading_age_s,
-                alignment_age_s=alignment_age_s,
-                target_jump_m=0.0,
-                target_yaw_jump_rad=0.0,
-                output=self._last_output,
-            )
-            return
-
-        rtk_fixed_ok = (
-            not self._require_rtk_fixed
-            or (self._latest_rtk_fixed and rtk_status_age_s <= self._max_rtk_status_age_s)
-        )
-        publish_bootstrap_without_fixed = should_publish_bootstrap_without_fixed(
-            rtk_fixed_ok=rtk_fixed_ok,
-            using_external_alignment=using_external_alignment,
-            bootstrap_alignment_valid=alignment_valid,
-        )
-        if not rtk_fixed_ok and not publish_bootstrap_without_fixed:
-            self._publish_mode_status("RTK_DEGRADED", "NOT_RTK_FIXED")
-            self._rebroadcast_last_output()
-            self._publish_diagnostics(
-                ok=False,
-                fix_age_s=fix_age_s,
-                heading_age_s=heading_age_s,
-                alignment_age_s=alignment_age_s,
-                target_jump_m=0.0,
-                target_yaw_jump_rad=0.0,
-                output=self._last_output,
-            )
-            return
-
-        if not valid_fix(self._latest_fix) or self._latest_heading_enu_yaw is None:
-            self._publish_mode_status("RTK_DEGRADED", "INVALID_RTK_INPUT")
-            self._rebroadcast_last_output()
-            return
-
-        alignment_theta, alignment_tx, alignment_ty, _ = alignment
-        enu_x, enu_y = self._projector.forward(
-            self._latest_fix.latitude,
-            self._latest_fix.longitude,
-        )
-        rtk_map_base = compute_rtk_map_base(
-            enu_x=enu_x,
-            enu_y=enu_y,
-            heading_enu_yaw=self._latest_heading_enu_yaw,
-            alignment_theta=alignment_theta,
-            alignment_tx=alignment_tx,
-            alignment_ty=alignment_ty,
-        )
-        raw_target = compute_map_to_odom(rtk_map_base, odom_base)
-        raw_output_gap_m, raw_output_yaw_gap_rad = compute_pose_delta(
-            self._last_output,
-            raw_target,
-        )
-
-        if self._last_output is None:
-            target_jump_m = 0.0
-            target_yaw_jump_rad = 0.0
-            target = raw_target
-            self._smoothed_target = target
-            output = target
-            authority_status = None
-        else:
-            target_jump_m, target_yaw_jump_rad = compute_authority_target_delta(
-                previous_map_base=self._last_raw_map_base,
-                current_map_base=rtk_map_base,
-                previous_map_odom=self._last_raw_target,
-                current_map_odom=raw_target,
-            )
-            jump_summary = summarize_authority_inputs(
-                alignment_valid=True,
-                odom_available=True,
-                fix_age_s=fix_age_s,
-                heading_age_s=heading_age_s,
-                target_jump_m=target_jump_m,
-                target_yaw_jump_rad=target_yaw_jump_rad,
-                max_fix_age_s=self._max_fix_age_s,
-                max_heading_age_s=self._max_heading_age_s,
-                max_target_jump_m=self._max_target_jump_m,
-                max_target_yaw_jump_rad=self._max_target_yaw_jump_rad,
-                allow_yaw_reacquire=self._allow_yaw_reacquire,
-                max_yaw_reacquire_jump_rad=self._max_yaw_reacquire_jump_rad,
-            )
-            if not jump_summary.ok:
-                self._publish_mode_status(
-                    jump_summary.mode,
-                    jump_summary.reason or "RTK_DEGRADED",
-                )
-                self._rebroadcast_last_output()
-                self._publish_diagnostics(
-                    ok=False,
-                    fix_age_s=fix_age_s,
-                    heading_age_s=heading_age_s,
-                    alignment_age_s=alignment_age_s,
-                    target_jump_m=target_jump_m,
-                    target_yaw_jump_rad=target_yaw_jump_rad,
-                    output=self._last_output,
-                    raw_output_gap_m=raw_output_gap_m,
-                    raw_output_yaw_gap_rad=raw_output_yaw_gap_rad,
-                )
-                return
-
-            authority_status = jump_summary.reason
-            target = blend_pose_target(
-                self._smoothed_target if self._smoothed_target is not None else self._last_output,
-                raw_target,
-                alpha=self._target_smoothing_alpha,
-                translation_deadband_m=self._target_translation_deadband_m,
-                yaw_deadband_rad=self._target_yaw_deadband_rad,
-            )
-            self._smoothed_target = target
-            output = limit_map_to_odom_step_for_base(
-                self._last_output,
-                target,
-                odom_base=odom_base,
-                max_translation_step_m=self._max_translation_step_m,
-                max_yaw_step_rad=self._max_yaw_step_rad,
-                max_base_yaw_step_m=self._max_base_yaw_step_m,
-            ).pose
-
-        self._last_output = output
-        self._last_raw_target = raw_target
-        self._last_raw_map_base = rtk_map_base
-        self._publish_tf(output)
-        if authority_status == "YAW_REACQUIRE":
-            self._publish_mode_status("RTK_AUTHORITATIVE", "YAW_REACQUIRE")
-        elif using_external_alignment:
-            self._publish_mode_status("RTK_AUTHORITATIVE", "PUBLISHING_MAP_ODOM")
-        else:
-            self._publish_mode_status("RTK_BOOTSTRAP", "PUBLISHING_BOOTSTRAP_MAP_ODOM")
-        self._publish_diagnostics(
-            ok=True,
-            fix_age_s=fix_age_s,
-            heading_age_s=heading_age_s,
-            alignment_age_s=alignment_age_s,
-            target_jump_m=target_jump_m,
-            target_yaw_jump_rad=target_yaw_jump_rad,
-            output=output,
-            raw_output_gap_m=raw_output_gap_m,
-            raw_output_yaw_gap_rad=raw_output_yaw_gap_rad,
-        )
 
 
 def main(args=None) -> None:

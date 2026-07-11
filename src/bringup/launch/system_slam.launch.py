@@ -115,24 +115,15 @@ def generate_launch_description():
         output="screen",
     )
 
-    slam_toolbox_dir = get_package_share_directory("slam_toolbox")
     slam_params_file = os.path.join(
-        slam_toolbox_dir, "config", "mapper_params_online_async.yaml"
+        bringup_share, "config", "slam_toolbox_mapping.yaml"
     )
     slam_toolbox_node = launch_ros.actions.Node(
         package="slam_toolbox",
         executable="async_slam_toolbox_node",
         name="slam_toolbox",
         output="screen",
-        parameters=[
-            slam_params_file,
-            {
-                "base_frame": "base_link",
-                "scan_topic": "/scan",
-                "transform_timeout": 1.0,
-                "tf_buffer_duration": 60.0,
-            },
-        ],
+        parameters=[slam_params_file],
     )
     map_saver_server = launch_ros.actions.Node(
         package="nav2_map_server",

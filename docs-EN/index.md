@@ -1,6 +1,6 @@
 # XJTLU Autonomous Vehicle Documentation Index
 
-> Last updated: 2026-07-09
+> Last updated: 2026-07-11
 
 ## Current System Summary
 
@@ -48,6 +48,7 @@
 | FAST-LIO2 internals | [knowledge/fastlio2.md](knowledge/fastlio2.md) |
 | PGO + GPS Factor | [knowledge/pgo.md](knowledge/pgo.md) |
 | Nav2 tuning and runtime constraints | [knowledge/nav2_tuning.md](knowledge/nav2_tuning.md) |
+| SLAM mapping and indoor navigation design plan | [knowledge/indoor_mapping_navigation_design.md](knowledge/indoor_mapping_navigation_design.md) |
 | GPS global navigation and route planning | [knowledge/gps_planning.md](knowledge/gps_planning.md) |
 
 ## Development Log

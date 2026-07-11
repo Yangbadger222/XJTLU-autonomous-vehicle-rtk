@@ -235,8 +235,8 @@ controller_server:
     # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
     use_sim_time: false
     # 控制循环频率；决定局部控制器每秒更新多少次速度指令。
-    # 调大：响应更快但 CPU 更高；调小：负载更低但控制更迟缓。
-    controller_frequency: 15.0
+    # 必须不低于 1/model_dt；model_dt=0.05s 时使用 20Hz，避免 MPPI lifecycle 配置失败。
+    controller_frequency: 20.0
     # 前向速度死区阈值；低于该值的前向速度会被视为零。
     # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
     min_x_velocity_threshold: 0.001

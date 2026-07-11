@@ -167,7 +167,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
 8. Corridor 与 nav-gps 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug` 或 `FYP_NAV_GPS_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
-9. Travel 是独立的室内先验地图 profile。global costmap 只使用静态地图和膨胀层；local costmap 读取重时间戳后的 `/fastlio2/body_cloud_nav2` 障碍点云。它使用低负载 MPPI 限幅（`0.35m/s`、`0.65rad/s`、`15Hz`、`batch_size=500`）和 `6m x 6m @ 0.05m` 滚动局部地图。
+9. Travel 是独立的室内先验地图 profile。global costmap 只使用静态地图和膨胀层；local costmap 读取重时间戳后的 `/fastlio2/body_cloud_nav2` 障碍点云。它使用低负载 MPPI 限幅（`0.35m/s`、`0.65rad/s`、`20Hz`、`batch_size=500`）和 `6m x 6m @ 0.05m` 滚动局部地图；`20Hz` 与 `model_dt=0.05s` 匹配，避免 MPPI 因控制周期大于模型步长而拒绝配置。
 10. Travel 的 NavigateToPose 和 NavigateThroughPoses 使用 fail-stop 行为树，自动旋转、倒车和清图恢复动作不可用。ICP localizer 独占 `map->odom`；重定位成功后冻结该次校正，并按当前 ROS 时间重发。每次发目标前都要在 RViz 中确认点云与静态地图对齐。
 
 ## 8. 航点系统

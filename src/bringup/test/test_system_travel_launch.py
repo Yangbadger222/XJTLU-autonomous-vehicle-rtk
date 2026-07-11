@@ -97,7 +97,8 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
     behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
 
-    assert "controller_frequency: 15.0" in controller_text
+    assert "controller_frequency: 20.0" in controller_text
+    assert "controller_frequency: 15.0" not in controller_text
     assert "required_movement_radius: 0.10" in controller_text
     assert "movement_time_allowance: 15.0" in controller_text
     assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text

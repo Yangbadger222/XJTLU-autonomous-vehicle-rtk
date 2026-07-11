@@ -55,7 +55,7 @@ scripts/save_mapping_session.sh <map_name>
   -> writes manifest.yaml with 2D/3D consistency, patch/pose integrity, and frame checks
 ```
 
-SLAM mode does not start Nav2 planners/controllers and does not execute navigation behavior. In this mode PGO uses `pgo_slam.yaml` with `publish_tf=false` by default, so it does not compete with SLAM Toolbox for `map -> odom`. The save script checks the current FAST-LIO2 child frame `base_footprint` by default, but the actual child frame must be confirmed with TF tools before changing `base_frame` on the vehicle. RTK can be enabled with `use_rtk:=true` to record outdoor Fixed samples during mapping, but indoor invalid/float RTK samples are records only, not strong constraints.
+SLAM mode does not start Nav2 planners/controllers and does not execute navigation behavior. Slam Toolbox uses the repository-owned `src/bringup/config/slam_toolbox_mapping.yaml`, pinning the Humble async-mapper parameters with `base_frame=base_footprint`. In this mode PGO uses `pgo_slam.yaml` with `publish_tf=false` by default, so it does not compete with Slam Toolbox for `map -> odom`. The save script checks the current FAST-LIO2 child frame `base_footprint` by default, but the actual child frame must be confirmed with TF tools before changing `base_frame` on the vehicle. RTK can be enabled with `use_rtk:=true` to record outdoor Fixed samples during mapping, but indoor invalid/float RTK samples are records only, not strong constraints.
 
 ## 5. Explore Mode Data Flow
 

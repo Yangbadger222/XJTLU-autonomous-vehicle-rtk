@@ -55,7 +55,7 @@ scripts/save_mapping_session.sh <map_name>
   -> 写 manifest.yaml，包括 2D/3D 一致性、patch/pose 完整性与 frame 检查
 ```
 
-SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 SLAM Toolbox 同时发布 `map -> odom`。保存脚本默认检查 FAST-LIO2 当前子坐标系 `base_footprint`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `src/bringup/config/slam_toolbox_mapping.yaml`，固定 Humble async mapper 参数并统一 `base_frame=base_footprint`。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 Slam Toolbox 同时发布 `map -> odom`。保存脚本默认检查 FAST-LIO2 当前子坐标系 `base_footprint`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
 
 ## 5. Explore 模式数据流
 

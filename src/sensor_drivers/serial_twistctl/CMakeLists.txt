@@ -34,8 +34,10 @@ install(TARGETS
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
   find_package(ament_lint_auto REQUIRED)
   ament_add_gtest(test_twist_command test/test_twist_command.cpp)
+  ament_add_pytest_test(test_watchdog_contract test/test_watchdog_contract.py)
   target_include_directories(test_twist_command PRIVATE include)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files

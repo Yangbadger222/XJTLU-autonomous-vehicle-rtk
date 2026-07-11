@@ -284,6 +284,7 @@ UNINITIALIZED
 - localizer 以低频执行先验地图匹配。
 - 小且连续的可信修正通过限速/低通平滑更新 `map -> odom`。
 - 大跳变、候选切换或低重叠结果不得直接写入 TF。
+- 室内 `map -> odom` 必须投影为平面 `SE(2)`：只保留 XY 和 yaw，禁止 ICP 把 z、roll 或 pitch 写入 Nav2 全局 TF。
 - 大修正需要停车、多帧一致后重新定位。
 - 所有门控基于 `map -> base_footprint` 的实际影响，而不只看原始 `map -> odom` 数值。
 
@@ -341,6 +342,10 @@ NavigateNamedDestination
 第一版只调用室内 `NavigateToPose`。接口中保留 `map_id` 和 backend 字段，未来室外算法完成后再增加切换，不在本阶段实现。
 
 Foxglove 操作面通过独立适配器接入，不绕过 Action 和安全门：`PoseStamped` 点击目标转 `NavigateToPose`，地点字符串转 `NavigateNamedDestination`，Trigger Service 取消当前目标。适配器只在结构化定位状态健康时发目标，发布地点 MarkerArray/目录/状态，不得订阅或发布 `/cmd_vel*`。
+
+命名导航的取消必须覆盖底层 Nav2 goal 尚未返回 handle 的窗口；取消请求需要锁存，并在 handle 接受后立即下发。异常、拒绝和取消路径都必须释放并发占用。
+
+速度链采用三层断流保护：定位速度门要求定位/障碍点云/速度命令均新鲜，主机串口节点 300ms 断流重发零速，STM32 500ms 未收到合法串口命令时独立把 `Vcx/Wc` 清零。Collision Monitor 的传感器 source timeout 本身不是停车保证，因此障碍点云 freshness 必须在其上游 fail-closed 门中检查。
 
 ## 8. 开发阶段与文件范围
 

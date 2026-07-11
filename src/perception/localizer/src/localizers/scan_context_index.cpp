@@ -169,7 +169,7 @@ std::vector<GlobalPoseCandidate> ScanContextIndex::query(
         int shift = 0;
         const float score = descriptorDistance(
             query_descriptor, ranked[static_cast<std::size_t>(index)].candidate->descriptor, shift);
-        const float yaw = -static_cast<float>(shift) * 2.0F * kPi / static_cast<float>(m_sectors);
+        const float yaw = static_cast<float>(shift) * 2.0F * kPi / static_cast<float>(m_sectors);
         M4F yaw_correction = M4F::Identity();
         yaw_correction.block<3, 3>(0, 0) =
             Eigen::AngleAxisf(yaw, Eigen::Vector3f::UnitZ()).toRotationMatrix();

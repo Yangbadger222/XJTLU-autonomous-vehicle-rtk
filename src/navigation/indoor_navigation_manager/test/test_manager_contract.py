@@ -37,3 +37,14 @@ def test_travel_launches_named_navigation_from_bundle_destinations():
     assert 'package="indoor_navigation_manager"' in text
     assert '"destinations_file": LaunchConfiguration("destinations_file")' in text
     assert '"map_id": LaunchConfiguration("map_id")' in text
+
+
+def test_manager_carries_cancel_across_nav_goal_acceptance_race():
+    text = MANAGER.read_text(encoding="utf-8")
+
+    assert "self.cancel_requested = True" in text
+    assert "await self.nav_goal_handle.cancel_goal_async()" in text
+    assert "navigation canceled before dispatch" in text
+    assert "finally:" in text
+    assert "self.cancel_requested = False" in text
+    assert "wait_for_server" not in text

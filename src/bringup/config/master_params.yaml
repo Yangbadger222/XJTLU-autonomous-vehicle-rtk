@@ -305,6 +305,10 @@
     # 当前 STM32 底盘固件正 wc 表现为左转，和 ROS REP-103 的正 angular.z 左转一致。
     # 若后续固件或接线导致转向相反，可现场改为 -1.0，不需要改代码。
     angular_z_scale: 1.0
+    # 上位机超过该时间未收到安全速度输出时持续向 STM32 发送零速。
+    command_timeout_ms: 300
+    # 上位机速度 watchdog 检查和零速重发周期。
+    watchdog_period_ms: 100
 
 /serial_reader_node:
   ros__parameters:

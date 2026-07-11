@@ -282,6 +282,7 @@ Freezing one successful ICP correction is appropriate for the early safety basel
 - The localizer performs low-rate prior-map matching.
 - Small, continuous, trusted corrections update `map -> odom` through rate limiting and low-pass filtering.
 - Large jumps, candidate switches, and low-overlap results are not written directly to TF.
+- Indoor `map -> odom` must be projected to planar `SE(2)`: retain only XY and yaw, and never let ICP write z, roll, or pitch into Nav2's global TF.
 - Large corrections require a stop and multi-frame-consistent relocalization.
 - Gates consider the actual effect on `map -> base_footprint`, not only raw `map -> odom` values.
 
@@ -339,6 +340,10 @@ NavigateNamedDestination
 The first implementation only calls indoor `NavigateToPose`. Keep `map_id` and a backend field for future outdoor support, but do not implement switching in this phase.
 
 Foxglove uses a separate adapter without bypassing Actions or safety gates: a clicked `PoseStamped` becomes `NavigateToPose`, a destination string becomes `NavigateNamedDestination`, and a Trigger service cancels the current goal. The adapter sends only under healthy structured localization, publishes destination markers/catalog/status, and never subscribes or publishes to `/cmd_vel*`.
+
+Named-navigation cancellation must cover the window before the underlying Nav2 goal handle is returned. The request is latched and issued as soon as the handle is accepted; rejection, exception, and cancellation paths must all release the concurrency reservation.
+
+The velocity chain uses three command-loss layers: the localization gate requires fresh localization, obstacle cloud, and velocity command; the host serial node resends zero after 300 ms; and the STM32 independently clears `Vcx/Wc` after 500 ms without a valid serial command. Collision Monitor source timeout is not itself a stop guarantee, so obstacle-cloud freshness is checked by the upstream fail-closed gate.
 
 ## 8. Development phases and file scope
 

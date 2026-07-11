@@ -51,6 +51,9 @@ def test_localizer_config_enables_gated_runtime_correction():
     assert "max_correction_translation_m: 0.30" in text
     assert "max_correction_yaw_rad: 0.20" in text
     assert "max_consecutive_failures: 5" in text
+    assert "global_retry_interval_s: 3.0" in text
+    assert "global_max_automatic_attempts: 5" in text
+    assert "global_min_cloud_points: 200" in text
 
 
 def test_localizer_uses_dedicated_structural_cloud():
@@ -118,3 +121,23 @@ def test_localizer_tf_throttle_uses_node_clock_only():
 
     assert "rclcpp::Clock().now()" not in text
     assert "this->now() - m_state.last_send_tf_time" in text
+
+
+def test_scan_context_yaw_shift_uses_body_to_map_direction():
+    source = Path(
+        "src/perception/localizer/src/localizers/scan_context_index.cpp"
+    ).read_text(encoding="utf-8")
+
+    yaw_line = next(line for line in source.splitlines() if "const float yaw =" in line)
+    assert "-static_cast" not in yaw_line
+    assert "static_cast<float>(shift)" in yaw_line
+
+
+def test_map_to_odom_is_projected_to_planar_se2():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+
+    assert "planarRotation(candidate_offset_yaw)" in text
+    assert "candidate_offset_t.z() = 0.0" in text
+    assert "map_body_t.head<2>() - predicted_t.head<2>()" in text
+    assert "m_state.global_attempts" in text
+    assert 'm_state.state_reason = "waiting_for_global_cloud"' in text

@@ -192,6 +192,14 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert 'cmd_vel_out_topic: /cmd_vel_safe' in collision_text
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
 
+    gate_text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
+    assert '"/fastlio2/body_cloud_nav2"' in gate_text
+    assert 'declare_parameter("obstacle_timeout_s", 0.5)' in gate_text
+    assert 'declare_parameter("cmd_timeout_s", 0.25)' in gate_text
+    assert "self.last_obstacle_time" in gate_text
+    assert "self.last_cmd_time" in gate_text
+    assert "self.publisher.publish(Twist())" in gate_text
+
 
 def test_travel_exposes_foxglove_control_surface():
     launch_text = _travel_launch_text()

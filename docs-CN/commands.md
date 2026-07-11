@@ -149,6 +149,8 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用专用 fail-stop 行为树：局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp` 或清图恢复动作
 - Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、20Hz MPPI、Collision Monitor 减速/停车区；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度
+- 定位速度门还要求 `/fastlio2/body_cloud_nav2` 在 0.5s 内更新、`/cmd_vel` 在 0.25s 内更新；`serial_twistctl` 300ms 断流重发零速，STM32 500ms watchdog 再独立清零。固件层保护只有重新编译并烧录 `src/firmware/rm_c_board/` 后才生效
+- 自动全局定位会等待至少 200 个结构点，以 3s 间隔最多尝试 5 次；`map -> odom` 始终投影为平面 XY+yaw
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 
 定位状态和区域辅助重定位：

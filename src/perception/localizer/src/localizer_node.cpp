@@ -50,6 +50,9 @@ struct NodeConfig
     bool continuous_icp = true;
     bool auto_global_localization = true;
     int global_max_candidates = 5;
+    double global_retry_interval_s = 3.0;
+    int global_max_automatic_attempts = 5;
+    int global_min_cloud_points = 200;
     double min_candidate_score_gap = 0.03;
     double min_overlap_ratio = 0.35;
     double correction_alpha = 0.15;
@@ -81,7 +84,8 @@ struct NodeState
     uint8_t localization_state = interface::msg::LocalizationStatus::UNINITIALIZED;
     std::string state_reason = "startup";
     int consecutive_failures = 0;
-    bool global_attempted = false;
+    int global_attempts = 0;
+    rclcpp::Time last_global_attempt_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
     double rough_score = std::numeric_limits<double>::infinity();
     double refine_score = std::numeric_limits<double>::infinity();
     double overlap_ratio = 0.0;
@@ -163,6 +167,12 @@ public:
             m_config.continuous_icp = config["continuous_icp"].as<bool>();
         if (config["global_max_candidates"])
             m_config.global_max_candidates = config["global_max_candidates"].as<int>();
+        if (config["global_retry_interval_s"])
+            m_config.global_retry_interval_s = config["global_retry_interval_s"].as<double>();
+        if (config["global_max_automatic_attempts"])
+            m_config.global_max_automatic_attempts = config["global_max_automatic_attempts"].as<int>();
+        if (config["global_min_cloud_points"])
+            m_config.global_min_cloud_points = config["global_min_cloud_points"].as<int>();
         if (config["min_candidate_score_gap"])
             m_config.min_candidate_score_gap = config["min_candidate_score_gap"].as<double>();
         if (config["min_overlap_ratio"])
@@ -284,15 +294,39 @@ public:
         bool localize_success;
         bool service_received;
         bool should_attempt_global = false;
+        std::size_t cloud_points = 0;
+        {
+            std::lock_guard<std::mutex> lock(m_state.message_mutex);
+            cloud_points = m_state.last_cloud->size();
+        }
         {
             std::lock_guard<std::mutex> lock(m_state.service_mutex);
             localize_success = m_state.localize_success;
             service_received = m_state.service_received;
+            const rclcpp::Time now = this->now();
+            const bool attempts_remaining =
+                m_config.global_max_automatic_attempts <= 0 ||
+                m_state.global_attempts < m_config.global_max_automatic_attempts;
+            const bool retry_due =
+                m_state.last_global_attempt_time.nanoseconds() == 0 ||
+                (now - m_state.last_global_attempt_time).seconds() >=
+                    m_config.global_retry_interval_s;
             if (m_config.auto_global_localization && !localize_success && !service_received &&
-                !m_state.global_attempted && !m_scan_context.empty())
+                attempts_remaining && retry_due && !m_scan_context.empty() &&
+                cloud_points >= static_cast<std::size_t>(
+                    std::max(1, m_config.global_min_cloud_points)))
             {
-                m_state.global_attempted = true;
+                ++m_state.global_attempts;
+                m_state.last_global_attempt_time = now;
                 should_attempt_global = true;
+            }
+            else if (m_config.auto_global_localization && !localize_success &&
+                     cloud_points < static_cast<std::size_t>(
+                         std::max(1, m_config.global_min_cloud_points)))
+            {
+                m_state.localization_state =
+                    interface::msg::LocalizationStatus::WAITING_FOR_SENSORS;
+                m_state.state_reason = "waiting_for_global_cloud";
             }
         }
 
@@ -378,6 +412,10 @@ public:
     {
         return std::atan2(rotation(1, 0), rotation(0, 0));
     }
+    static M3D planarRotation(double yaw)
+    {
+        return Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ()).toRotationMatrix();
+    }
     void handleAlignmentFailure(const std::string &reason)
     {
         std::lock_guard<std::mutex> lock(m_state.service_mutex);
@@ -408,9 +446,12 @@ public:
 
         const M3D map_body_r = map2d_body.block<3, 3>(0, 0).cast<double>();
         const V3D map_body_t = map2d_body.block<3, 1>(0, 3).cast<double>();
-        const M3D candidate_offset_r = map_body_r * current_local_r.transpose();
-        const V3D candidate_offset_t =
-            -map_body_r * current_local_r.transpose() * current_local_t + map_body_t;
+        const double candidate_offset_yaw =
+            yawFromRotation(map_body_r) - yawFromRotation(current_local_r);
+        const M3D candidate_offset_r = planarRotation(candidate_offset_yaw);
+        V3D candidate_offset_t =
+            map_body_t - candidate_offset_r * current_local_t;
+        candidate_offset_t.z() = 0.0;
 
         double correction_translation = 0.0;
         double correction_yaw = 0.0;
@@ -418,7 +459,8 @@ public:
         {
             const M3D predicted_r = m_state.last_offset_r * current_local_r;
             const V3D predicted_t = m_state.last_offset_r * current_local_t + m_state.last_offset_t;
-            correction_translation = (map_body_t - predicted_t).norm();
+            correction_translation =
+                (map_body_t.head<2>() - predicted_t.head<2>()).norm();
             correction_yaw = std::abs(yawFromRotation(map_body_r * predicted_r.transpose()));
             if (correction_translation > m_config.max_correction_translation_m ||
                 correction_yaw > m_config.max_correction_yaw_rad)
@@ -451,6 +493,7 @@ public:
             m_state.localization_state = interface::msg::LocalizationStatus::LOCALIZED;
             m_state.state_reason = force_relocalization ? "relocalization_accepted" : "runtime_correction_accepted";
             m_state.consecutive_failures = 0;
+            m_state.global_attempts = 0;
             m_state.rough_score = m_localizer->lastRoughScore();
             m_state.refine_score = m_localizer->lastRefineScore();
             m_state.overlap_ratio = overlap;
@@ -682,6 +725,8 @@ public:
             m_state.localization_state = interface::msg::LocalizationStatus::RELOCALIZING;
             m_state.state_reason = "manual_initial_pose_received";
             m_state.consecutive_failures = 0;
+            m_state.global_attempts = 0;
+            m_state.last_global_attempt_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
         }
 
         response->success = true;

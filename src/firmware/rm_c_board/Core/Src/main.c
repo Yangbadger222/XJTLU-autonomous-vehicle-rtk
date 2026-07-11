@@ -74,6 +74,9 @@ int SERIAL_PERIOD_MS = 10; // 100HZ
 
 float Vcx = 0;   //   m/s 
 float Wc = 0;    //   rad/s 
+#define SERIAL_COMMAND_TIMEOUT_MS 500U
+static uint32_t last_serial_command_tick = 0U;
+static uint8_t serial_command_seen = 0U;
 
 /* USER CODE END PV */
 
@@ -83,6 +86,7 @@ void SystemClock_Config(void);
 void Serial_Output();
 void Serial_Input(); // 函数声明
 void Serial_Control();
+void Serial_Command_Watchdog();
 
 uint8_t DMA_RX_Buffer[DMA_RX_BUF_SIZE];
 uint8_t UART1_RX_Buffer[UART_RX_BUF_SIZE];
@@ -183,13 +187,17 @@ int main(void)
     }
     else
     {
-        TaskRun();
-
         if (new_serial_data_received) {
           new_serial_data_received = 0;
+          uint16_t terminator = UART1_RX_Size < UART_RX_BUF_SIZE
+            ? UART1_RX_Size
+            : UART_RX_BUF_SIZE - 1U;
+          UART1_RX_Buffer[terminator] = '\0';
           Serial_Input((char*)UART1_RX_Buffer);
           usart_printf("Received: %s\r\n", UART1_RX_Buffer);
-      }
+        }
+        Serial_Command_Watchdog();
+        TaskRun();
     }
   }
 
@@ -426,6 +434,8 @@ void Serial_Input(const char* input_data)
             // If parsing is successful, update Vcx and Wc
             Vcx = temp_vcx;
             Wc = temp_wc;
+            last_serial_command_tick = HAL_GetTick();
+            serial_command_seen = 1U;
             
             // Parsing succeeded, exit the function
         } 
@@ -433,6 +443,22 @@ void Serial_Input(const char* input_data)
             // led_red_start();
             snprintf(failed_input_buffer, sizeof(failed_input_buffer), "Failed input: %s", input_data);
         }
+    }
+}
+
+void Serial_Command_Watchdog(void)
+{
+    if (control_mode != 1)
+    {
+        serial_command_seen = 0U;
+        return;
+    }
+
+    if (!serial_command_seen ||
+        (uint32_t)(HAL_GetTick() - last_serial_command_tick) > SERIAL_COMMAND_TIMEOUT_MS)
+    {
+        Vcx = 0.0f;
+        Wc = 0.0f;
     }
 }
 

@@ -8,6 +8,9 @@ tf_republish_hz: 20.0
 status_hz: 5.0
 continuous_icp: true
 global_max_candidates: 5
+global_retry_interval_s: 3.0
+global_max_automatic_attempts: 5
+global_min_cloud_points: 200
 min_candidate_score_gap: 0.03
 min_overlap_ratio: 0.35
 correction_alpha: 0.15

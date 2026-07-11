@@ -174,3 +174,19 @@ def test_firmware_build_flags_reject_unused_value_regressions():
     makefile = read_source("Makefile")
 
     assert "-Werror=unused-value" in makefile
+
+
+def test_serial_control_has_independent_command_watchdog():
+    main_c = read_source("Core/Src/main.c")
+
+    assert re.search(r"#define\s+SERIAL_COMMAND_TIMEOUT_MS\s+500U", main_c)
+    watchdog = function_body(main_c, "Serial_Command_Watchdog")
+    assert "HAL_GetTick() - last_serial_command_tick" in watchdog
+    assert re.search(r"\bVcx\s*=\s*0\.0f\s*;", watchdog)
+    assert re.search(r"\bWc\s*=\s*0\.0f\s*;", watchdog)
+    assert "Serial_Command_Watchdog();" in main_c
+
+    serial_input = function_body(main_c, "Serial_Input")
+    assert "last_serial_command_tick = HAL_GetTick();" in serial_input
+    assert "serial_command_seen = 1U;" in serial_input
+    assert "UART1_RX_Buffer[terminator] = '\\0';" in main_c

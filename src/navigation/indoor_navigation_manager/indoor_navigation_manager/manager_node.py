@@ -40,6 +40,7 @@ class IndoorNavigationManager(Node):
         self.nav_goal_handle = None
         self.named_goal_handle = None
         self.goal_reserved = False
+        self.cancel_requested = False
         self.resolved_name = ""
         self.remaining_distance = float("nan")
         self.create_subscription(LocalizationStatus, localization_topic, self.on_localization, 10)
@@ -56,7 +57,12 @@ class IndoorNavigationManager(Node):
     def on_localization(self, msg):
         self.localization_state = msg.state_label
         self.localized = bool(msg.localized and msg.state == LocalizationStatus.LOCALIZED)
-        if not self.localized and self.nav_goal_handle is not None:
+        if (
+            not self.localized
+            and self.nav_goal_handle is not None
+            and not self.cancel_requested
+        ):
+            self.cancel_requested = True
             self.nav_goal_handle.cancel_goal_async()
 
     def on_goal(self, request):
@@ -71,9 +77,11 @@ class IndoorNavigationManager(Node):
         if not self.localized:
             return GoalResponse.REJECT
         self.goal_reserved = True
+        self.cancel_requested = False
         return GoalResponse.ACCEPT
 
     def on_cancel(self, _goal_handle):
+        self.cancel_requested = True
         if self.nav_goal_handle is not None:
             self.nav_goal_handle.cancel_goal_async()
         return CancelResponse.ACCEPT
@@ -82,7 +90,7 @@ class IndoorNavigationManager(Node):
         self.remaining_distance = float(feedback_msg.feedback.distance_remaining)
         if self.named_goal_handle is not None:
             feedback = NavigateNamedDestination.Feedback()
-            feedback.state = "NAVIGATING"
+            feedback.state = "CANCELING" if self.cancel_requested else "NAVIGATING"
             feedback.resolved_name = self.resolved_name
             feedback.remaining_distance = self.remaining_distance
             feedback.localization_state = self.localization_state
@@ -90,79 +98,108 @@ class IndoorNavigationManager(Node):
 
     async def execute(self, goal_handle):
         result = NavigateNamedDestination.Result()
-        destination = resolve_destination(self.catalog, goal_handle.request.destination_name)
-        if destination is None or not self.localized:
-            self.goal_reserved = False
-            result.success = False
-            result.error_code = 1
-            result.message = "destination unavailable or localization not ready"
-            goal_handle.abort()
-            return result
-
-        if not self.nav_client.wait_for_server(timeout_sec=5.0):
-            self.goal_reserved = False
-            result.success = False
-            result.error_code = 2
-            result.message = "navigate_to_pose action unavailable"
-            goal_handle.abort()
-            return result
-
-        pose = PoseStamped()
-        pose.header.stamp = self.get_clock().now().to_msg()
-        pose.header.frame_id = "map"
-        pose.pose.position.x = destination["x"]
-        pose.pose.position.y = destination["y"]
-        qx, qy, qz, qw = quaternion_from_yaw(destination["yaw"])
-        pose.pose.orientation.x = qx
-        pose.pose.orientation.y = qy
-        pose.pose.orientation.z = qz
-        pose.pose.orientation.w = qw
-
-        nav_goal = NavigateToPose.Goal()
-        nav_goal.pose = pose
-        self.remaining_distance = float("nan")
         self.named_goal_handle = goal_handle
-        self.resolved_name = destination["display_name"]
-        send_future = self.nav_client.send_goal_async(nav_goal, feedback_callback=self.on_nav_feedback)
-        self.nav_goal_handle = await send_future
-        if self.nav_goal_handle is None or not self.nav_goal_handle.accepted:
+        try:
+            destination = resolve_destination(
+                self.catalog, goal_handle.request.destination_name
+            )
+            if destination is None or not self.localized:
+                result.success = False
+                result.error_code = 1
+                result.message = "destination unavailable or localization not ready"
+                goal_handle.abort()
+                return result
+
+            if self.cancel_requested or goal_handle.is_cancel_requested:
+                goal_handle.canceled()
+                result.success = False
+                result.error_code = 4
+                result.message = "navigation canceled before dispatch"
+                return result
+
+            if not self.nav_client.server_is_ready():
+                result.success = False
+                result.error_code = 2
+                result.message = "navigate_to_pose action unavailable"
+                goal_handle.abort()
+                return result
+
+            pose = PoseStamped()
+            pose.header.stamp = self.get_clock().now().to_msg()
+            pose.header.frame_id = "map"
+            pose.pose.position.x = destination["x"]
+            pose.pose.position.y = destination["y"]
+            qx, qy, qz, qw = quaternion_from_yaw(destination["yaw"])
+            pose.pose.orientation.x = qx
+            pose.pose.orientation.y = qy
+            pose.pose.orientation.z = qz
+            pose.pose.orientation.w = qw
+
+            nav_goal = NavigateToPose.Goal()
+            nav_goal.pose = pose
+            self.remaining_distance = float("nan")
+            self.resolved_name = destination["display_name"]
+            send_future = self.nav_client.send_goal_async(
+                nav_goal, feedback_callback=self.on_nav_feedback
+            )
+            self.nav_goal_handle = await send_future
+            if self.nav_goal_handle is None or not self.nav_goal_handle.accepted:
+                result.success = False
+                result.error_code = 3
+                result.message = "navigate_to_pose goal rejected"
+                goal_handle.abort()
+                return result
+
+            if (
+                self.cancel_requested
+                or goal_handle.is_cancel_requested
+                or not self.localized
+            ):
+                self.cancel_requested = True
+                await self.nav_goal_handle.cancel_goal_async()
+
+            feedback = NavigateNamedDestination.Feedback()
+            feedback.state = "CANCELING" if self.cancel_requested else "NAVIGATING"
+            feedback.resolved_name = destination["display_name"]
+            feedback.remaining_distance = self.remaining_distance
+            feedback.localization_state = self.localization_state
+            goal_handle.publish_feedback(feedback)
+
+            wrapped = await self.nav_goal_handle.get_result_async()
+            if (
+                self.cancel_requested
+                or goal_handle.is_cancel_requested
+                or wrapped.status == GoalStatus.STATUS_CANCELED
+            ):
+                goal_handle.canceled()
+                result.success = False
+                result.error_code = 4
+                result.message = "navigation canceled"
+                return result
+            if wrapped.status != GoalStatus.STATUS_SUCCEEDED or not self.localized:
+                goal_handle.abort()
+                result.success = False
+                result.error_code = 5
+                result.message = "navigation failed or localization degraded"
+                return result
+            goal_handle.succeed()
+            result.success = True
+            result.error_code = 0
+            result.message = f"arrived at {destination['display_name']}"
+            return result
+        except Exception as exc:  # noqa: BLE001
+            self.get_logger().error(f"Named navigation failed: {exc}")
+            if goal_handle.is_active:
+                goal_handle.abort()
             result.success = False
-            result.error_code = 3
-            result.message = "navigate_to_pose goal rejected"
-            goal_handle.abort()
+            result.error_code = 6
+            result.message = f"navigation exception: {exc}"
+            return result
+        finally:
             self.nav_goal_handle = None
             self.named_goal_handle = None
             self.goal_reserved = False
-            return result
-
-        feedback = NavigateNamedDestination.Feedback()
-        feedback.state = "NAVIGATING"
-        feedback.resolved_name = destination["display_name"]
-        feedback.remaining_distance = self.remaining_distance
-        feedback.localization_state = self.localization_state
-        goal_handle.publish_feedback(feedback)
-
-        wrapped = await self.nav_goal_handle.get_result_async()
-        self.nav_goal_handle = None
-        self.named_goal_handle = None
-        self.goal_reserved = False
-        if goal_handle.is_cancel_requested or wrapped.status == GoalStatus.STATUS_CANCELED:
-            goal_handle.canceled()
-            result.success = False
-            result.error_code = 4
-            result.message = "navigation canceled"
-            return result
-        if wrapped.status != GoalStatus.STATUS_SUCCEEDED or not self.localized:
-            goal_handle.abort()
-            result.success = False
-            result.error_code = 5
-            result.message = "navigation failed or localization degraded"
-            return result
-        goal_handle.succeed()
-        result.success = True
-        result.error_code = 0
-        result.message = f"arrived at {destination['display_name']}"
-        return result
+            self.cancel_requested = False
 
 
 def main(args=None):

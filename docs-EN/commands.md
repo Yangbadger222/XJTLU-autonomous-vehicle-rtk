@@ -148,6 +148,8 @@ Notes:
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
 - Travel `NavigateToPose` / `NavigateThroughPoses` use dedicated fail-stop behavior trees: if the local controller or planner fails, navigation stops and returns failure instead of automatically running `Spin`, `BackUp`, or costmap-clearing recovery actions
 - Travel uses the `650x500mm` envelope plus `25mm` polygon margin, 20Hz MPPI, and Collision Monitor slowdown/stop zones. A stale or non-`LOCALIZED` `/localizer/status` forces zero velocity before serial output
+- The velocity gate also requires `/fastlio2/body_cloud_nav2` within 0.5s and `/cmd_vel` within 0.25s. `serial_twistctl` resends zero after 300 ms, and the STM32 independently clears commands after 500 ms. The firmware layer only takes effect after rebuilding and flashing `src/firmware/rm_c_board/`
+- Automatic global localization waits for at least 200 structural points and retries up to five times at 3s intervals; `map -> odom` is always projected to planar XY+yaw
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 
 Localization status and region-assisted relocalization:

@@ -9,14 +9,14 @@ ROS_SETUP    := source /opt/ros/humble/setup.bash
 COLCON_BUILD := $(ROS_SETUP) && colcon build --symlink-install --parallel-workers 1
 
 # Massive regex for killing processes
-KILL_PATTERN := '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner'
+KILL_PATTERN := '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[u]m982_raw_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner'
 
 .PHONY: setup build build-% launch-% kill kill-runtime clean ntrip-% frc-daily test
 
 # ==============================================================================
 # Auto-complete Helpers (Empty targets to trick bash/zsh tab-completion)
 # ==============================================================================
-launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel:
+launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-rtk-raw launch-tightly-coupled launch-travel:
 
 ntrip-logout ntrip-status ntrip-setup:
 
@@ -52,11 +52,15 @@ build-fastlio2:
 build-rtk-basic:
 	$(COLCON_BUILD) --packages-select serial nmea_msgs um982_rtk_driver
 
+build-rtk-raw:
+	$(COLCON_BUILD) --packages-select serial gnss_raw_msgs um982_raw_driver bringup
+
 build-sensor:
 	$(COLCON_BUILD) --packages-select \
 		frc_msgs livox_ros_driver2 wit_ros2_imu wit_imu_traj \
 		serial serial_reader serial_twistctl gyro_odometry \
-		nmea_msgs nmea_navsat_driver um982_rtk_driver gnss_calibration wheeltec_gps_path
+		nmea_msgs nmea_navsat_driver um982_rtk_driver gnss_raw_msgs um982_raw_driver \
+		gnss_calibration wheeltec_gps_path
 
 build-perception:
 	$(COLCON_BUILD) --packages-select \
@@ -114,7 +118,7 @@ kill-runtime:
 	sleep 2
 	pkill -KILL -f $(KILL_PATTERN) || true
 	ros2 daemon stop >/dev/null 2>&1 || true
-	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do \
+	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982 /dev/rtk_um982_raw; do \
 		if [ -e "$$dev" ] && fuser "$$dev" >/dev/null 2>&1; then \
 			fuser -k "$$dev" >/dev/null 2>&1 || true; \
 		fi; \

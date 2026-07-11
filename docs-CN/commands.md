@@ -77,6 +77,7 @@ make launch-travel
 make launch-explore-gps
 make launch-nav-gps
 make launch-rtk-basic
+make launch-rtk-raw
 make launch-tightly-coupled
 ```
 
@@ -91,6 +92,7 @@ bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
 bash scripts/launch_with_logs.sh rtk-basic
+bash scripts/launch_with_logs.sh rtk-raw
 bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
@@ -100,6 +102,7 @@ bash scripts/launch_with_logs.sh tightly-coupled
 ros2 launch bringup system_slam.launch.py
 ros2 launch bringup system_explore.launch.py
 ros2 launch bringup system_gps_corridor.launch.py
+ros2 launch bringup system_rtk_raw.launch.py
 ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
@@ -634,6 +637,33 @@ ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/fastlio2/bod
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+## UM982 原始 binary shadow 采集
+
+该模式只读取独立的 `/dev/rtk_um982_raw`，不得把参数改成生产 NMEA/NTRIP 使用的 `/dev/rtk_um982`。
+
+```bash
+make build-rtk-raw
+ss
+make launch-rtk-raw
+```
+
+使用未提交的现场参数覆盖设备名：
+
+```bash
+FYP_UM982_RAW_PARAMS_FILE=/tmp/um982_raw_vehicle.yaml make launch-rtk-raw
+```
+
+检查 checksum-valid 原始帧、GNSS week/TOW、message ID 和诊断：
+
+```bash
+ros2 topic hz /gnss/raw/frame
+ros2 topic echo /gnss/raw/frame --once
+ros2 topic echo /gnss/raw/diagnostics --once
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/diagnostics'
+```
+
+当前 Phase 1 只完成 `AA 44 B5` framing、24-byte header、CRC、重同步和 raw bag。OBSVM/OBSVH/OBSVBASE 与星历字段解码属于 Phase 2。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
 
 ## RTK FGO 紧耦合 shadow mode
 

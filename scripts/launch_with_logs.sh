@@ -18,11 +18,11 @@ export ROS_LOG_DIR="$SESSION_DIR/console"
 export FYP_LOG_SESSION_DIR="$SESSION_DIR/data"
 
 cleanup_runtime_nodes() {
-  pkill -INT -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -INT -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[u]m982_raw_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   sleep 1
-  pkill -KILL -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -KILL -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[i]nitialpose_relocalize_bridge(\.py)?|[n]av2_cloud_retime(\.py)?|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[u]m982_raw_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   ros2 daemon stop 2>/dev/null || true
-  for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do
+  for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982 /dev/rtk_um982_raw; do
     if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
       fuser -k "$dev" 2>/dev/null || true
     fi
@@ -90,6 +90,7 @@ case "$MODE" in
   explore-gps)  LAUNCH_FILE="system_explore_gps.launch.py" ;;
   nav-gps)      LAUNCH_FILE="system_nav_gps.launch.py" ;;
   rtk-basic)    LAUNCH_FILE="system_rtk_basic.launch.py" ;;
+  rtk-raw)      LAUNCH_FILE="system_rtk_raw.launch.py" ;;
   tightly-coupled) LAUNCH_FILE="system_tightly_coupled.launch.py" ;;
   *)            echo "Unknown mode: $MODE"; exit 1 ;;
 esac
@@ -111,6 +112,9 @@ if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
       LAUNCH_ARGS+=("rtk_params_file:=${FYP_RTK_PARAMS_FILE}")
       ;;
   esac
+fi
+if [[ "$MODE" == "rtk-raw" && -n "${FYP_UM982_RAW_PARAMS_FILE:-}" ]]; then
+  LAUNCH_ARGS+=("params_file:=${FYP_UM982_RAW_PARAMS_FILE}")
 fi
 if [[ "$MODE" == "corridor" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then

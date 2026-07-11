@@ -8,6 +8,8 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
+Current implementation status: Phase 1 now includes the protocol-neutral `RawFrame`, bounded `AA 44 B5` framer, official 32-bit CRC, 24-byte header decoding, corrupt-frame resynchronization, dedicated raw serial node, automatic bagging, and diagnostics. A real raw-UART fixture and OBSVM/OBSVH/OBSVBASE payload decoding are still pending.
+
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
 ## 2. Known Facts and Constraints
@@ -290,9 +292,9 @@ Done: interface review passes and production GNSS behavior is unchanged.
 
 ### Phase 1: UM982 raw frame acquisition
 
-- [ ] Implement bounded streaming `AA 44 B5` framing, length checks, CRC, and resynchronization.
-- [ ] Handle arbitrary fragmentation, coalescing, multiple frames, noise prefixes, truncation, and unknown IDs.
-- [ ] Publish/record raw frames and framing/CRC/drop diagnostics.
+- [x] Implement bounded streaming `AA 44 B5` framing, length checks, CRC, and resynchronization.
+- [x] Handle arbitrary fragmentation, coalescing, multiple frames, noise prefixes, truncation, and unknown IDs.
+- [x] Publish/record raw frames and framing/CRC/drop diagnostics.
 - [ ] Default to 921600 on a dedicated device/udev name; never store CORS credentials.
 
 Done: synthetic/official fixtures pass, fuzz input cannot crash or overrun, and existing NMEA tests do not regress.

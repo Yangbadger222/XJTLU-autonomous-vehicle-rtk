@@ -8,6 +8,8 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
+当前代码进度：Phase 1 的协议无关 `RawFrame`、有界 `AA 44 B5` framer、官方 32-bit CRC、24-byte header 解码、坏帧重同步、独立 raw 串口节点、自动录包和诊断已实现。尚未接入真实 raw UART fixture，也尚未解码 OBSVM/OBSVH/OBSVBASE payload。
+
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
 ## 2. 已知事实与约束
@@ -290,9 +292,9 @@ time_sync:
 
 ### Phase 1：UM982 原始帧采集
 
-- [ ] 实现 `AA 44 B5` 有界流式 framing、长度检查、CRC 和 resync。
-- [ ] 支持任意分片、合并、多帧、噪声前缀、截断和未知 ID。
-- [ ] 发布并录制 raw frame，增加 framing/CRC/丢帧诊断。
+- [x] 实现 `AA 44 B5` 有界流式 framing、长度检查、CRC 和 resync。
+- [x] 支持任意分片、合并、多帧、噪声前缀、截断和未知 ID。
+- [x] 发布并录制 raw frame，增加 framing/CRC/丢帧诊断。
 - [ ] 默认 921600、独立设备名和 udev 规则；不写入 CORS 凭证。
 
 完成条件：合成/官方 fixture 全通过；fuzz 输入不崩溃、不越界；现有 NMEA 驱动测试不回归。

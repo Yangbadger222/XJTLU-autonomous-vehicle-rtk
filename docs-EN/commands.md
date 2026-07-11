@@ -76,6 +76,7 @@ make launch-travel
 make launch-explore-gps
 make launch-nav-gps
 make launch-rtk-basic
+make launch-rtk-raw
 make launch-tightly-coupled
 ```
 
@@ -90,6 +91,7 @@ bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
 bash scripts/launch_with_logs.sh rtk-basic
+bash scripts/launch_with_logs.sh rtk-raw
 bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
@@ -99,6 +101,7 @@ Equivalent `ros2 launch` invocation:
 ros2 launch bringup system_slam.launch.py
 ros2 launch bringup system_explore.launch.py
 ros2 launch bringup system_gps_corridor.launch.py
+ros2 launch bringup system_rtk_raw.launch.py
 ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
@@ -633,6 +636,33 @@ Notes:
 ```bash
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
+
+## UM982 Raw Binary Shadow Capture
+
+This mode reads only the dedicated `/dev/rtk_um982_raw`. Never override it with the production NMEA/NTRIP device `/dev/rtk_um982`.
+
+```bash
+make build-rtk-raw
+ss
+make launch-rtk-raw
+```
+
+Override the device through an uncommitted vehicle parameter file:
+
+```bash
+FYP_UM982_RAW_PARAMS_FILE=/tmp/um982_raw_vehicle.yaml make launch-rtk-raw
+```
+
+Inspect checksum-valid frames, GNSS week/TOW, message ID, and diagnostics:
+
+```bash
+ros2 topic hz /gnss/raw/frame
+ros2 topic echo /gnss/raw/frame --once
+ros2 topic echo /gnss/raw/diagnostics --once
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/diagnostics'
+```
+
+Phase 1 currently covers `AA 44 B5` framing, the 24-byte header, CRC, resynchronization, and raw bagging. OBSVM/OBSVH/OBSVBASE and ephemeris field decoding belong to Phase 2. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

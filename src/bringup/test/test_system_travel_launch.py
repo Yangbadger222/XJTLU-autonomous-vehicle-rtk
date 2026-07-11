@@ -97,11 +97,13 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
     behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
 
-    assert "controller_frequency: 20.0" in controller_text
+    assert "controller_frequency: 15.0" in controller_text
+    assert "required_movement_radius: 0.10" in controller_text
+    assert "movement_time_allowance: 15.0" in controller_text
     assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
-    assert "batch_size: 700" in controller_text
+    assert "batch_size: 500" in controller_text
     assert "vx_std: 0.14" in controller_text
     assert "wz_std: 0.14" in controller_text
     assert "vx_max: 0.35" in controller_text
@@ -133,10 +135,14 @@ def test_travel_local_costmap_uses_stable_field_runtime_rates():
     assert "width: 6" in local_costmap_text
     assert "height: 6" in local_costmap_text
     assert "resolution: 0.05" in local_costmap_text
-    assert "min_obstacle_height: 0.05" in local_costmap_text
-    assert "max_obstacle_height: 1.2" in local_costmap_text
-    assert "obstacle_max_range: 6.0" in local_costmap_text
-    assert "raytrace_max_range: 6.0" in local_costmap_text
+    assert "min_obstacle_height: 0.12" in local_costmap_text
+    assert "max_obstacle_height: 1.0" in local_costmap_text
+    assert "obstacle_max_range: 3.5" in local_costmap_text
+    assert "obstacle_min_range: 0.45" in local_costmap_text
+    assert "raytrace_max_range: 4.0" in local_costmap_text
+    assert "raytrace_min_range: 0.1" in local_costmap_text
+    assert "observation_persistence: 0.0" in local_costmap_text
+    assert "expected_update_rate: 0.2" in local_costmap_text
     assert "update_frequency: 40.0" not in local_costmap_text
     assert "publish_frequency: 40.0" not in local_costmap_text
     assert "width: 15" not in local_costmap_text

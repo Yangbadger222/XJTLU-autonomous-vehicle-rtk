@@ -154,7 +154,9 @@ map -> odom -> base_footprint -> base_link
 - In Explore / explore-gps production navigation modes, `map -> odom` is published by PGO, representing global correction offset
 - In Corridor and RTK nav-gps modes, PGO disables `publish_tf`; the only production `map -> odom` owner is `rtk_map_odom_corrector`
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
-- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated or stale-stamped TF in Nav2
+- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated TF in Nav2. Travel defaults to `continuous_icp: false`, so the successful correction is frozen and republished with current ROS stamps at `tf_republish_hz` for Nav2 controller lookups.
+- Travel mode bridges RViz `2D Pose Estimate` (`/initialpose`) into `/localizer/relocalize`, has FAST-LIO2 publish the taller Nav2 obstacle cloud `/fastlio2/body_cloud_nav2_obstacles`, and retimes it as `/fastlio2/body_cloud_nav2` for the local costmap. The global costmap stays static-map based so live point-cloud obstacles cannot mark the robot start cell and block NavFn planning.
+- Travel uses fail-stop Nav2 behavior trees: if `ComputePathToPose`, `ComputePathThroughPoses`, or `FollowPath` fails, the goal stops and fails without automatic spin, backup, or costmap-clearing recovery; close-range avoidance is handled by the same MPPI baseline as Explore/Corridor and a `6 m x 6 m` local costmap.
 - PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_footprint` is published by FAST-LIO2, representing high-frequency local odometry; `base_footprint -> base_link` is provided by URDF static TF
 - The combination of both yields the global pose

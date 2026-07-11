@@ -11,10 +11,14 @@
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>livox_ros_driver2</exec_depend>
   <exec_depend>fastlio2</exec_depend>
   <exec_depend>pgo</exec_depend>
   <exec_depend>localizer</exec_depend>
+  <exec_depend>interface</exec_depend>
   <exec_depend>nmea_navsat_driver</exec_depend>
   <exec_depend>um982_rtk_driver</exec_depend>
   <exec_depend>rtk_fgo_localizer</exec_depend>

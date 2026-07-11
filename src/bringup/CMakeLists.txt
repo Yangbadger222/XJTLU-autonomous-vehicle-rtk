@@ -19,6 +19,12 @@ install(DIRECTORY rviz/
   DESTINATION share/${PROJECT_NAME}/rviz
 )
 
+install(PROGRAMS
+  scripts/initialpose_relocalize_bridge.py
+  scripts/nav2_cloud_retime.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/maps")
   install(DIRECTORY maps/
     DESTINATION share/${PROJECT_NAME}/maps

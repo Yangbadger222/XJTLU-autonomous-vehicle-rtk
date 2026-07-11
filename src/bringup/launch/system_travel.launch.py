@@ -26,6 +26,16 @@ def generate_launch_description():
     default_master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
     nav2_params_file = os.path.join(bringup_share, "config", "nav2_travel.yaml")
     default_rviz_config = os.path.join(bringup_share, "rviz", "pgo.rviz")
+    travel_bt_xml = os.path.join(
+        bringup_share,
+        "behavior_trees",
+        "travel_nav_to_pose_fail_stop.xml",
+    )
+    travel_through_poses_bt_xml = os.path.join(
+        bringup_share,
+        "behavior_trees",
+        "travel_nav_through_poses_fail_stop.xml",
+    )
     localizer_config_path = PathJoinSubstitution(
         [FindPackageShare("localizer"), "config", "localizer.yaml"]
     )
@@ -66,7 +76,11 @@ def generate_launch_description():
 
     rewritten_nav2_params = RewrittenYaml(
         source_file=nav2_params_file,
-        param_rewrites={"yaml_filename": LaunchConfiguration("map_yaml")},
+        param_rewrites={
+            "yaml_filename": LaunchConfiguration("map_yaml"),
+            "default_nav_to_pose_bt_xml": travel_bt_xml,
+            "default_nav_through_poses_bt_xml": travel_through_poses_bt_xml,
+        },
         convert_types=True,
     )
 
@@ -115,6 +129,29 @@ def generate_launch_description():
                 "config_path": localizer_config_path,
                 "pcd_map": LaunchConfiguration("pcd_map"),
             }
+        ],
+    )
+
+    initialpose_relocalize_bridge_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="initialpose_relocalize_bridge.py",
+        name="initialpose_relocalize_bridge",
+        output="screen",
+        parameters=[
+            {
+                "pcd_map": LaunchConfiguration("pcd_map"),
+            }
+        ],
+    )
+
+    nav2_cloud_retime_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="nav2_cloud_retime.py",
+        name="nav2_cloud_retime",
+        output="screen",
+        remappings=[
+            ("cloud_in", "/fastlio2/body_cloud_nav2_obstacles"),
+            ("cloud_out", "/fastlio2/body_cloud_nav2"),
         ],
     )
 
@@ -203,6 +240,8 @@ def generate_launch_description():
             fastlio_launch,
             pgo_node,
             localizer_node,
+            initialpose_relocalize_bridge_node,
+            nav2_cloud_retime_node,
             serial_node,
             serial_reader_node,
             pointcloud_to_laserscan_node,

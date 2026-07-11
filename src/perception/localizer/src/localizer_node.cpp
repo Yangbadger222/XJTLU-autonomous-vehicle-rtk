@@ -29,6 +29,8 @@ struct NodeConfig
     std::string pcd_map;
     double update_hz = 1.0;
     double max_tf_input_age_s = 2.0;
+    double tf_republish_hz = 20.0;
+    bool continuous_icp = true;
 };
 
 struct NodeState
@@ -40,7 +42,8 @@ struct NodeState
     bool service_received = false;
     bool localize_success = false;
     bool has_published_tf = false;
-    rclcpp::Time last_send_tf_time = rclcpp::Clock().now();
+    rclcpp::Time last_send_tf_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
+    rclcpp::Time last_republish_tf_time = rclcpp::Time(0, 0, RCL_ROS_TIME);
     builtin_interfaces::msg::Time last_message_time;
     builtin_interfaces::msg::Time last_tf_time;
     CloudType::Ptr last_cloud = std::make_shared<CloudType>();
@@ -101,6 +104,10 @@ public:
         m_config.update_hz = config["update_hz"].as<double>();
         if (config["max_tf_input_age_s"])
             m_config.max_tf_input_age_s = config["max_tf_input_age_s"].as<double>();
+        if (config["tf_republish_hz"])
+            m_config.tf_republish_hz = config["tf_republish_hz"].as<double>();
+        if (config["continuous_icp"])
+            m_config.continuous_icp = config["continuous_icp"].as<bool>();
 
         m_localizer_config.rough_scan_resolution = config["rough_scan_resolution"].as<double>();
         m_localizer_config.rough_map_resolution = config["rough_map_resolution"].as<double>();
@@ -136,14 +143,9 @@ public:
         if (!m_state.message_received)
             return;
 
-        rclcpp::Duration diff = rclcpp::Clock().now() - m_state.last_send_tf_time;
+        rclcpp::Duration diff = this->now() - m_state.last_send_tf_time;
 
         bool update_tf = diff.seconds() > (1.0 / m_config.update_hz) && m_state.message_received;
-
-        if (!update_tf)
-        {
-            return;
-        }
 
         bool localize_success;
         bool service_received;
@@ -163,18 +165,27 @@ public:
             return;
         }
 
-        m_state.last_send_tf_time = rclcpp::Clock().now();
+        if (localize_success)
+            republishLatestTF();
+
+        if (!update_tf)
+            return;
+
+        if (!m_config.continuous_icp && !service_received && m_state.has_published_tf)
+            return;
+
+        m_state.last_send_tf_time = this->now();
 
         M4F initial_guess = M4F::Identity();
         if (m_state.service_received)
         {
-            std::lock_guard<std::mutex>(m_state.service_mutex);
+            std::lock_guard<std::mutex> lock(m_state.service_mutex);
             initial_guess = m_state.initial_guess;
             // m_state.service_received = false;
         }
         else
         {
-            std::lock_guard<std::mutex>(m_state.message_mutex);
+            std::lock_guard<std::mutex> lock(m_state.message_mutex);
             initial_guess.block<3, 3>(0, 0) = (m_state.last_offset_r * m_state.last_r).cast<float>();
             initial_guess.block<3, 1>(0, 3) = (m_state.last_offset_r * m_state.last_t + m_state.last_offset_t).cast<float>();
         }
@@ -183,7 +194,7 @@ public:
         V3D current_local_t;
         builtin_interfaces::msg::Time current_time;
         {
-            std::lock_guard<std::mutex>(m_state.message_mutex);
+            std::lock_guard<std::mutex> lock(m_state.message_mutex);
             current_local_r = m_state.last_r;
             current_local_t = m_state.last_t;
             current_time = m_state.last_message_time;
@@ -193,7 +204,7 @@ public:
         if (!isTransformStampFresh(current_time))
             return;
 
-        if (m_state.has_published_tf && !isNewerStamp(current_time, m_state.last_tf_time))
+        if (!service_received && m_state.has_published_tf && !isNewerStamp(current_time, m_state.last_tf_time))
             return;
 
         bool result = m_localizer->align(initial_guess);
@@ -203,13 +214,17 @@ public:
             V3D map_body_t = initial_guess.block<3, 1>(0, 3).cast<double>();
             m_state.last_offset_r = map_body_r * current_local_r.transpose();
             m_state.last_offset_t = -map_body_r * current_local_r.transpose() * current_local_t + map_body_t;
-            if (!m_state.localize_success && m_state.service_received)
             {
-                std::lock_guard<std::mutex>(m_state.service_mutex);
-                m_state.localize_success = true;
-                m_state.service_received = false;
+                std::lock_guard<std::mutex> lock(m_state.service_mutex);
+                if (!m_state.localize_success && m_state.service_received)
+                {
+                    m_state.localize_success = true;
+                    m_state.service_received = false;
+                }
             }
-            sendBroadCastTF(current_time);
+            const rclcpp::Time publish_time = this->now();
+            sendBroadCastTF(publish_time);
+            m_state.last_republish_tf_time = publish_time;
             publishMapCloud(current_time);
             m_state.last_tf_time = current_time;
             m_state.has_published_tf = true;
@@ -219,7 +234,7 @@ public:
     void syncCB(const sensor_msgs::msg::PointCloud2::ConstSharedPtr &cloud_msg, const nav_msgs::msg::Odometry::ConstSharedPtr &odom_msg)
     {
 
-        std::lock_guard<std::mutex>(m_state.message_mutex);
+        std::lock_guard<std::mutex> lock(m_state.message_mutex);
 
         pcl::fromROSMsg(*cloud_msg, *m_state.last_cloud);
 
@@ -239,7 +254,7 @@ public:
         }
     }
 
-    void sendBroadCastTF(builtin_interfaces::msg::Time &time)
+    void sendBroadCastTF(const rclcpp::Time &time)
     {
         geometry_msgs::msg::TransformStamped transformStamped;
         transformStamped.header.frame_id = m_config.map_frame;
@@ -285,7 +300,7 @@ public:
             return;
         }
         {
-            std::lock_guard<std::mutex>(m_state.service_mutex);
+            std::lock_guard<std::mutex> lock(m_state.service_mutex);
             m_state.initial_guess.setIdentity();
             m_state.initial_guess.block<3, 3>(0, 0) = (yaw_angle * roll_angle * pitch_angle).toRotationMatrix().cast<float>();
             m_state.initial_guess.block<3, 1>(0, 3) = V3F(x, y, z);
@@ -300,7 +315,7 @@ public:
 
     void relocCheckCB(const std::shared_ptr<interface::srv::IsValid::Request> request, std::shared_ptr<interface::srv::IsValid::Response> response)
     {
-        std::lock_guard<std::mutex>(m_state.service_mutex);
+        std::lock_guard<std::mutex> lock(m_state.service_mutex);
         if (request->code == 1)
             response->valid = true;
         else
@@ -330,6 +345,19 @@ public:
             "Skipping stale map->odom broadcast because synchronized input stamp is %.3f seconds old",
             age_s);
         return false;
+    }
+    void republishLatestTF()
+    {
+        if (!m_state.has_published_tf || m_config.tf_republish_hz <= 0.0)
+            return;
+
+        const rclcpp::Time now = this->now();
+        const rclcpp::Duration diff = now - m_state.last_republish_tf_time;
+        if (diff.seconds() < (1.0 / m_config.tf_republish_hz))
+            return;
+
+        sendBroadCastTF(now);
+        m_state.last_republish_tf_time = now;
     }
     void publishMapCloud(builtin_interfaces::msg::Time &time)
     {

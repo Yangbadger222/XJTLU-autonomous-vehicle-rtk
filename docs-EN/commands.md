@@ -140,6 +140,12 @@ Notes:
 - `travel` uses the 2D `map.yaml` for Nav2 global planning and the 3D `map.pcd` for ICP point-cloud relocalization in `localizer`
 - `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
 - `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
+- After relocalization, Travel defaults to `continuous_icp: false`: `localizer` freezes the valid `map -> odom` correction and republishes it with the current ROS time at `tf_republish_hz`, avoiding map drift from partial local scans during navigation; sending `/initialpose` or calling `/localizer/relocalize` runs ICP again
+- Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
+- Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
+- Travel `NavigateToPose` / `NavigateThroughPoses` use dedicated fail-stop behavior trees: if the local controller or planner fails, navigation stops and returns failure instead of automatically running `Spin`, `BackUp`, or costmap-clearing recovery actions
+- Travel uses the MPPI indoor safety profile (`vx_max=0.35`, `wz_max=0.65`, `controller_frequency=20 Hz`) while keeping the fail-stop behavior trees and the `6 m x 6 m @ 0.05 m` local costmap
+- Before sending a navigation goal, verify in RViz that the live point cloud/scan overlaps the static map; Travel freezes the successful `map -> odom` correction by default, so a rough pose or heading error shifts the whole subsequent path
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 - After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
 
@@ -147,6 +153,8 @@ Notes:
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
   "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
 ```
+
+For normal field operation, prefer RViz `2D Pose Estimate` over the manual service call: click the vehicle's current map position and drag the arrow along the vehicle heading.
 
 Verification:
 

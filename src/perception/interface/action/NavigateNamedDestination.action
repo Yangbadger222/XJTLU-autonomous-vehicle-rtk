@@ -1,0 +1,12 @@
+string map_id
+string destination_name
+string backend
+---
+bool success
+int32 error_code
+string message
+---
+string state
+string resolved_name
+float32 remaining_distance
+string localization_state

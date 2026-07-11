@@ -6,6 +6,7 @@
 - Current primary outputs (when height filtering is enabled, point cloud outputs are height-filtered before publishing; see below):
   - `/fastlio2/lio_odom`
   - `/fastlio2/body_cloud`
+  - `/fastlio2/body_cloud_localization` (optional structural localization cloud)
   - `/fastlio2/body_cloud_nav2_obstacles` (optional taller Nav2 obstacle cloud)
 - Current primary entry point:
 
@@ -14,7 +15,7 @@ ros2 launch fastlio2 lio_no_rviz.py params_file:=~/XJTLU-autonomous-vehicle/src/
 ```
 
 - Current parameter source is primarily `src/bringup/config/master_params.yaml`; `lio_no_rviz.py` retains legacy `fastlio2/config/lio.yaml` fallback capability.
-- The downstream `pgo` node directly consumes `/fastlio2/lio_odom` and `/fastlio2/body_cloud`.
+- SLAM/Travel PGO and localizer consume `/fastlio2/body_cloud_localization`; historical PGO profiles may still consume `/fastlio2/body_cloud`.
 - This document mainly explains the algorithm principles; for the full vehicle pipeline, also refer to `docs/architecture.md` and `docs/knowledge/pgo.md`.
 
 ## Publish Cloud Pre-Height-Filtering (2026-04-01)
@@ -46,6 +47,12 @@ RTK corridor now branches an additional `/fastlio2/body_cloud_nav2_obstacles` st
 - Filtering runs only when the topic has subscribers, avoiding extra CPU cost outside corridor / Nav2 runs
 
 If future field tests still show unstable pedestrian marking, inspect whether `/fastlio2/body_cloud_nav2_obstacles` contains points, whether the local costmap STVL voxel map marks them, and whether the Livox blind zone / mounting angle is the limiting factor before widening the PGO-facing `/fastlio2/body_cloud`.
+
+## Indoor Structural Localization Cloud (2026-07-11)
+
+- `/fastlio2/body_cloud_localization` has an independent provisional `[-0.20, 1.80]m` window that retains walls, door frames, and columns. Both mapping PGO and the Travel localizer consume it, keeping descriptor, map, and live-scan semantics aligned.
+- `/fastlio2/body_cloud` remains the low LaserScan slice, while `body_cloud_nav2_obstacles` remains the dynamic local-obstacle stream; the three responsibilities no longer share one conflicting height window.
+- Filtering/publishing runs only with subscribers and does not alter the FAST-LIO2 IESKF. Finalize the window from vehicle PCD statistics instead of widening it blindly around glass, ceilings, or self-reflections.
 
 ## LiDAR / IMU Sync Guard (2026-07-06)
 

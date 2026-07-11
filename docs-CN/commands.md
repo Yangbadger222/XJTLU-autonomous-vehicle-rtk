@@ -114,6 +114,11 @@ bash scripts/launch_with_logs.sh slam
 
 # 需要为后续室内外地理配准记录室外 Fixed RTK 样本时再打开
 ros2 launch bringup system_slam.launch.py use_rtk:=true
+
+# 默认同时在 session 的 slam_bag/ 录 lean 证据；需要原始 Livox/结构云回放时用 debug
+FYP_SLAM_BAG_PROFILE=debug bash scripts/launch_with_logs.sh slam
+# 临时禁用 bag（不建议用于正式验收）
+FYP_SLAM_RECORD_BAG=false bash scripts/launch_with_logs.sh slam
 ```
 
 室内无 GPS 点击点导航的一整行命令：
@@ -133,29 +138,41 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh indoor-nav
 
 ```bash
 FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
-  map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
-  pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
 ```
 
 说明：
-- `travel` 使用 2D `map.yaml` 给 Nav2 做全局规划，使用 3D `map.pcd` 给 `localizer` 做 ICP 点云重定位
+- `map_bundle` 是正式入口；Travel 会检查 schema、`consistency_ok`、标定接受状态以及 2D map、定位 PCD、标定、描述子和地点文件。分开传 `map_yaml/pcd_map` 只保留给兼容调试
 - `localizer` 负责发布 `map -> odom`；FAST-LIO2 负责发布 `odom -> base_footprint`，URDF 再提供 `base_footprint -> base_link`
-- `localizer` 启动时只预加载 PCD，不会立即发布 `map -> odom`；必须先调用 `/localizer/relocalize` 并看到 check 通过
-- 重定位后，Travel 默认 `continuous_icp: false`：`localizer` 会冻结本次有效 `map -> odom` 校正，并按 `tf_republish_hz` 用当前 ROS 时间重发，避免导航过程中局部点云把地图拉散；再次发 `/initialpose` 或调 `/localizer/relocalize` 会重新做一次 ICP
-- Travel 现在会启动 `initialpose_relocalize_bridge.py`，因此 RViz 的 `2D Pose Estimate` 发到 `/initialpose` 后，会自动用启动时的 `pcd_map` 调 `/localizer/relocalize`
+- 默认先用 Scan Context 检索多个候选并做 ICP；重复走廊候选不唯一时进入 `LOST`，此时用区域 service 或 RViz `2D Pose Estimate` 降级，不会带着歧义开车
+- 定位成功后默认以 `1Hz` 做连续地图匹配，只接受重叠率和跳变门槛内的结果，并以 `alpha=0.15` 平滑 `map -> odom`
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用专用 fail-stop 行为树：局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp` 或清图恢复动作
-- Travel 的局部控制器使用 MPPI 室内安全档（`vx_max=0.35`、`wz_max=0.65`、`controller_frequency=20 Hz`），同时保留 fail-stop 行为树和 `6 m x 6 m @ 0.05 m` local costmap
-- 发送导航目标前，先确认 RViz 中实时点云/scan 与静态地图重合；Travel 默认冻结重定位成功时的 `map -> odom`，粗位姿或朝向偏差会让后续路径整体偏移
+- Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、20Hz MPPI、Collision Monitor 减速/停车区；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
-- 启动后用 `/localizer/relocalize` 重新加载 PCD 并给初始位姿：
+
+定位状态和区域辅助重定位：
+
+```bash
+ros2 topic echo /localizer/status
+ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
+  "{descriptor_index: '', region: 'east_corridor', max_candidates: 5}"
+```
+
+RViz `2D Pose Estimate` 仍可作为手动降级入口；也可直接调用旧重定位 service：
 
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
-  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
+  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>/localization/map_localization.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
 ```
 
-现场正常操作优先用 RViz `2D Pose Estimate`，在地图上点车当前位置并拖出车头方向即可，不必手写 service call。
+不依赖 RViz 的地点名导航：
+
+```bash
+ros2 action send_goal /navigate_named_destination \
+  interface/action/NavigateNamedDestination \
+  "{map_id: '<map_id>', destination_name: 'lab 101', backend: 'indoor'}" --feedback
+```
 
 验证：
 
@@ -163,6 +180,7 @@ ros2 service call /localizer/relocalize interface/srv/Relocalize \
 ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
 ros2 run tf2_ros tf2_monitor map odom
+ros2 topic echo /cmd_vel_safe
 ```
 
 GPS Corridor v2 的一整行命令：
@@ -300,23 +318,27 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 ## 8. 地图保存
 
 ```bash
-# 一次保存当前 slam session 的 2D + 3D 地图，并生成 manifest
+# 车辆先连续静止；一次生成并验收完整室内地图包
 scripts/save_mapping_session.sh <map_name>
+# 可选：用区域多边形给描述子候选加标签
+python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
 ```
 
 输出：
 
 ```text
-runtime-data/maps/<map_name>/manifest.yaml
-runtime-data/maps/2d/<map_name>/map.yaml
-runtime-data/maps/2d/<map_name>/map.pgm
-runtime-data/maps/3d/<map_name>/map.pcd
-runtime-data/maps/3d/<map_name>/poses.txt
-runtime-data/maps/3d/<map_name>/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/manifest.yaml
+runtime-data/maps/indoor/<map_name>/navigation/{map.yaml,map.pgm,slam_toolbox.posegraph,slam_toolbox.data}
+runtime-data/maps/indoor/<map_name>/localization/{map_raw.pcd,map_localization.pcd,poses.txt}
+runtime-data/maps/indoor/<map_name>/localization/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/localization/descriptor_index/scan_context.yaml
+runtime-data/maps/indoor/<map_name>/calibration/{map_3d_to_map_2d.yaml,alignment_report.yaml,alignment_overlay.png}
+runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 ```
 
 说明：
-- `manifest.yaml` 会记录 `consistency_ok`，用于提示 2D/3D 地图是否疑似错位；它由 2D/3D 对齐诊断、patch/pose 完整性和 frame 检查共同决定，是保存时检查，不会替代后续重定位验证
+- 保存前连续两次检查 FAST-LIO2 和 `/odom_CBoar` 速度；存在实时 `/cmd_vel` 时也必须为零。任一硬门槛失败会返回非零，Travel 不加载 `consistency_ok=false` 的地图包
+- 2D↔3D 标定默认要求全图及已配置区域的墙面 RMSE `<=0.10m`、p95 `<=0.15m`、重叠率 `>=0.55`，且第一/第二初值候选差距 `>=0.001`；这些是首轮安全值，必须用实车地图收口
 - `patch_pose_integrity.ok` 必须为 `true`，即 `patches/*.pcd` 与 `poses.txt` 关键帧一一对应
 - `frame_check.ok` 必须为 `true`，默认要求 `/scan.header.frame_id` 与 `/fastlio2/lio_odom.child_frame_id` 都是 `base_footprint`；如果现场 FAST-LIO2 使用别的子坐标系，先用 `view_frames`/`tf2_echo` 确认，再用 `--expected-base-frame <frame>` 保存
 - 后续室内外地理配准必须使用 RTK Fixed 样本和航向，室内 invalid/float RTK 只能记录，不能当强约束
@@ -329,10 +351,10 @@ ros2 run tf2_tools view_frames
 ros2 run tf2_ros tf2_echo odom base_footprint
 
 # 保存 3D 点云地图；file_path 必须写绝对路径，ROS service 请求里不会展开 ~
-ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>', save_patches: true}"
+ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/localization', save_patches: true}"
 
 # 保存 2D 栅格地图
-ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map --ros-args -p map_subscribe_transient_local:=true
+ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/navigation/map --ros-args -p map_subscribe_transient_local:=true
 
 # 查看 PCD
 pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>

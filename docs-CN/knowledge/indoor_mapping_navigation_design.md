@@ -1,6 +1,6 @@
 # SLAM 建图与室内导航设计开发方案
 
-> 状态：设计基线，尚未全部实现
+> 状态：阶段 1-5 代码已实现；阶段 0 实车基线证据、Jetson 构建、参数标定与实车验收待完成
 > 日期：2026-07-11
 > 范围：`slam` 建图模式与 `travel` 室内先验地图导航模式
 > 暂不包含：室内外自动切换、楼层切换、电梯联动和室外 RTK 导航算法
@@ -25,25 +25,27 @@
 
 ## 2. 当前基线
 
-### 2.1 已具备
+### 2.1 已实现的软件基线
 
 - `system_slam.launch.py` 同时运行 FAST-LIO2、PGO、点云转 LaserScan、Slam Toolbox 和地图保存服务。
 - `slam_toolbox_mapping.yaml` 已将 Humble async mapper 基线纳入仓库，并统一使用 `base_footprint`。
-- `save_mapping_session.py` 可保存 2D `map.yaml/map.pgm`、3D `map.pcd`、`poses.txt`、`patches/*.pcd` 和 manifest。
-- `system_travel.launch.py` 可加载 2D map 与 PCD，使用 `/initialpose` 触发 ICP 重定位。
+- FAST-LIO2 独立发布 `/fastlio2/body_cloud_localization`，与低窗 LaserScan 云和 Nav2 障碍云分离；PGO 与 localizer 使用同一定位结构云。
+- `save_mapping_session.py` 生成版本化室内地图包：2D map、pose graph、原始/降采样 3D PCD、关键帧、Scan Context 索引、区域、地点、2D↔3D 标定报告和叠加图。
+- 保存流程具有连续静止、底盘反馈、frame、patch/pose、配准 RMSE/p95/重叠率和文件完整性门槛；失败返回非零且 `consistency_ok=false`。
+- `system_travel.launch.py` 以 `map_bundle` 为主入口，拒绝 schema 不支持、整体门槛未通过、标定未接受或文件缺失的地图包。
+- localizer 支持 RViz 初值、区域辅助和 Scan Context 多候选自动定位，发布结构化状态，并以低频 ICP、跳变门控和低通更新 `map -> odom`。
 - Travel 的全局代价地图只使用静态地图；局部代价地图使用实时点云。
-- Travel 使用 MPPI、Savitzky-Golay 路径平滑和无自动倒车/旋转的 fail-stop 行为树。
+- Travel 使用真实矩形 footprint、MPPI、碰撞检查路径平滑、Collision Monitor 和无自动倒车/旋转的 fail-stop 行为树；定位异常会在串口前切断速度。
 - Travel 控制周期已使用 `20Hz`，与 MPPI `model_dt=0.05s` 匹配。
+- `indoor_navigation_manager` 提供 `NavigateNamedDestination` Action，支持地图/backend 校验、别名、反馈、取消、并发拒绝和定位降级取消。
 
-### 2.2 尚未具备
+### 2.2 尚待实车完成
 
-- 建图/定位专用的宽高度三维结构点云。
-- 可重复的 2D↔3D 地图配准工具和严格质量门槛。
-- 保存前静止、图优化稳定和地图完整性门控。
-- 适合 Orin NX 快速加载的降采样定位 PCD。
-- Scan Context 候选检索或其它任意起点全局定位能力。
-- 运行中低频地图匹配、平滑漂移校正和完整定位状态机。
-- 真实 polygon footprint、Collision Monitor 和地点名室内导航接口。
+- 在 Jetson Orin NX 使用 `--parallel-workers 1` 完成 ROS 接口/C++ 全量构建和 30 分钟资源测试。
+- 用真实 PCD 收口定位高度窗、voxel、ICP score/重叠率、候选差距和 2D↔3D 配准门槛。
+- 测量车体最外沿和 STM32 最小有效速度，确认当前 `650x500mm + 25mm` footprint 与 Collision Monitor 区域。
+- 采集区域/任意起点数据集并统计 top-k recall、误定位率、启动耗时和重复走廊拒绝率。
+- 完成窄门、原地转向、人员横穿、持续遮挡、定位丢失停车与十次路线往返验收。
 
 ## 3. 目标架构
 
@@ -117,6 +119,7 @@ runtime-data/maps/indoor/<map_id>/
     map.yaml
     map.pgm
     slam_toolbox.posegraph
+    slam_toolbox.data
   localization/
     map_raw.pcd
     map_localization.pcd
@@ -126,7 +129,9 @@ runtime-data/maps/indoor/<map_id>/
   calibration/
     map_3d_to_map_2d.yaml
     alignment_report.yaml
+    alignment_overlay.png
   destinations.yaml
+  regions.yaml
 ```
 
 manifest 最少记录：
@@ -346,9 +351,9 @@ NavigateNamedDestination
 
 验收：现有手动初始化流程不回归，SLAM/Travel 均能在 Jetson 使用 `--parallel-workers 1` 构建运行。
 
-### 阶段 1：正式地图包
+### 阶段 1：正式地图包（代码已完成）
 
-预计修改：
+实现范围：
 
 - `src/bringup/launch/system_slam.launch.py`
 - `src/bringup/config/slam_toolbox_mapping.yaml`
@@ -358,9 +363,9 @@ NavigateNamedDestination
 
 验收：单个命令生成完整地图包；失败门槛会返回非零；Travel 可通过 `map_bundle` 启动。
 
-### 阶段 2：Travel 安全与控制闭环
+### 阶段 2：Travel 安全与控制闭环（代码已完成）
 
-预计修改：
+实现范围：
 
 - `src/bringup/config/nav2_travel.yaml`
 - `src/bringup/behavior_trees/`
@@ -369,9 +374,9 @@ NavigateNamedDestination
 
 验收：直线、90 度弯、原地转向、窄门、人员横穿和 U 型障碍测试通过；定位失败时可靠停车。
 
-### 阶段 3：定位状态与低频防漂移
+### 阶段 3：定位状态与低频防漂移（代码已完成）
 
-预计修改：
+实现范围：
 
 - `src/perception/localizer/`
 - 新增定位状态消息/诊断
@@ -379,7 +384,7 @@ NavigateNamedDestination
 
 验收：长走廊往返后静态地图对齐误差保持在约定范围；错误配准不会直接写入 TF。
 
-### 阶段 4：任意起点全局定位
+### 阶段 4：任意起点全局定位（代码已完成）
 
 - 构建描述子索引。
 - 多候选检索、粗配准、精配准和歧义拒绝。
@@ -387,7 +392,7 @@ NavigateNamedDestination
 
 验收：在预定义未知起点集合上统计 top-k recall、成功率、误定位率和启动耗时；误定位率必须优先于成功率优化。
 
-### 阶段 5：地点名导航
+### 阶段 5：地点名导航（代码已完成）
 
 - 增加地点 schema、加载器和 Action server。
 - 增加取消、重复请求、未知地点和定位降级测试。
@@ -420,7 +425,7 @@ NavigateNamedDestination
 
 ## 11. 完成定义
 
-室内链路达到以下条件后，才进入室内外切换设计：
+代码侧阶段 1-5 已完成；室内链路达到以下实车条件后，才进入室内外切换设计：
 
 - 建图命令可重复生成版本化且验收通过的地图包。
 - 2D 导航地图和 3D 定位地图的关系被显式记录并严格校验。

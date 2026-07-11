@@ -284,7 +284,7 @@ controller_server:
       xy_goal_tolerance: 0.35
       # 朝向到点容差；角度误差小于该值可视为方向对正。
       # 调大：更容易判定朝向达标；调小：更严格、更要求精确对正。
-      yaw_goal_tolerance: 6.28
+      yaw_goal_tolerance: 0.20
     # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。
     # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。
     FollowPath:
@@ -340,7 +340,7 @@ controller_server:
         cost_power: 1
         cost_weight: 4.5
         critical_cost: 300.0
-        consider_footprint: false
+        consider_footprint: true
         collision_cost: 1000000.0
         near_goal_distance: 1.0
         trajectory_point_step: 2
@@ -425,9 +425,8 @@ local_costmap:
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.05
       transform_tolerance: 0.8
-      # 机器人安全半径；用于碰撞检查和膨胀边界计算。
-      # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
-      robot_radius: 0.38625
+      # 650x500mm 整车外廓各增加 25mm 安全余量；polygon 仍允许 DiffDrive 原地转向。
+      footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
       plugins: ["obstacle_layer", "inflation_layer"]
@@ -536,9 +535,8 @@ global_costmap:
       # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
       # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
       use_sim_time: false
-      # 机器人安全半径；用于碰撞检查和膨胀边界计算。
-      # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
-      robot_radius: 0.22
+      # 全局规划与局部碰撞检查使用同一真实车体外廓。
+      footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"
       # 地图分辨率；决定每个栅格代表的物理尺寸。
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。
       resolution: 0.02

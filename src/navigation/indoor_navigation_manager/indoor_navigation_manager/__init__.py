@@ -1,0 +1,1 @@
+"""Named indoor navigation manager."""

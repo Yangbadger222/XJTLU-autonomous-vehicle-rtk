@@ -24,7 +24,7 @@
 | Explore | `make launch-explore` | 当前主运行模式，局部避障导航 |
 | Indoor Nav | `make launch-indoor-nav` | 不启 GNSS 的 RViz 点击点导航 |
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
-| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
+| Travel | `make launch-travel` | 室内地图包导航：自动/辅助重定位 + 静态规划 + 动态避障 + 地点名 Action |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
@@ -35,7 +35,8 @@
 ## 4. SLAM 纯建图数据流
 
 ```text
-Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
+Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud (2D LaserScan 低窗)
+                                  -> /fastlio2/body_cloud_localization (3D 定位结构云)
                                   -> /fastlio2/lio_odom
                                   -> TF: odom -> base_footprint -> base_link
 
@@ -45,17 +46,17 @@ Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
                                       SLAM Toolbox -> /map
                                                    -> TF: map -> odom
 
-/fastlio2/body_cloud + /fastlio2/lio_odom -> PGO(publish_tf=false)
+/fastlio2/body_cloud_localization + /fastlio2/lio_odom -> PGO(publish_tf=false)
                                              -> /pgo/global_map
                                              -> /pgo/save_maps
 
 scripts/save_mapping_session.sh <map_name>
-  -> 保存 2D map.yaml/map.pgm
-  -> 保存 3D map.pcd/poses.txt/patches
-  -> 写 manifest.yaml，包括 2D/3D 一致性、patch/pose 完整性与 frame 检查
+  -> 保存 2D map + pose graph、原始/降采样 3D PCD、poses/patches
+  -> 构建 Scan Context 索引，求 T_map_2d_map_3d 并生成质量报告/叠加图
+  -> 写 manifest.yaml；静止、frame、完整性或标定门槛失败时拒绝 Travel 加载
 ```
 
-SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `src/bringup/config/slam_toolbox_mapping.yaml`，固定 Humble async mapper 参数并统一 `base_frame=base_footprint`。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 Slam Toolbox 同时发布 `map -> odom`。保存脚本默认检查 FAST-LIO2 当前子坐标系 `base_footprint`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `slam_toolbox_mapping.yaml` 并独占 `map -> odom`，PGO 以 `publish_tf=false` 保存三维地图。launch 默认录制 lean 证据 bag，debug profile 才加入原始点云。保存脚本要求 FAST-LIO2 与底盘连续静止、frame 一致、关键帧完整且 2D/3D 配准通过。RTK `use_rtk:=true` 仅用于记录后续地理配准证据，室内 invalid/float 不作为强约束。
 
 ## 5. Explore 模式数据流
 
@@ -154,9 +155,10 @@ map -> odom -> base_footprint -> base_link
 - Explore / explore-gps 等生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
-- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证 TF 污染 Nav2。Travel 默认 `continuous_icp: false`，因此重定位成功后冻结该次校正，只按 `tf_republish_hz` 使用当前 ROS stamp 重发，供 Nav2 controller 查询当前位姿。
+- Travel 下 `map -> odom` 由 localizer 独占。地图包加载后优先执行 Scan Context 多候选 + ICP 自动定位；可用区域 service 或 RViz 初值降级。定位后以 1Hz 低频匹配，重叠率/score/跳变门控通过后以 `alpha=0.15` 平滑释放修正。
 - Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并让 FAST-LIO2 额外发布高窗 Nav2 障碍点云 `/fastlio2/body_cloud_nav2_obstacles`，再重时间戳为 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
-- Travel 的 Nav2 行为树是 fail-stop 版本：`ComputePathToPose`、`ComputePathThroughPoses` 或 `FollowPath` 失败时停止并让目标失败，不触发自动原地旋转、倒车或清图恢复；局部避障由 Explore/Corridor 同款 MPPI baseline 和 `6 m x 6 m` local costmap 负责。
+- Travel 的速度链为 `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe -> serial_twistctl`。只有结构化定位状态为 `LOCALIZED` 且新鲜才放行；真实 polygon footprint、路径碰撞检查和减速/停车区共同提供近场安全。
+- `indoor_navigation_manager` 把地图包中的地点/别名解析为 `NavigateToPose`，通过 `/navigate_named_destination` 提供反馈、取消和定位降级取消。
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_footprint` 由 FAST-LIO2 发布，表示高频局部里程计；`base_footprint -> base_link` 由 URDF 静态 TF 提供
 - 两者组合后得到全局位姿

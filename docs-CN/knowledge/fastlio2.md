@@ -6,6 +6,8 @@
 - 当前主输出（启用高度过滤时，点云输出经过发布前高度裁剪，详见下文）:
   - `/fastlio2/lio_odom`
   - `/fastlio2/body_cloud`
+  - `/fastlio2/body_cloud_localization`（可选定位结构云）
+  - `/fastlio2/body_cloud_nav2_obstacles`（可选 Nav2 障碍云）
 - 当前主入口:
 
 ```bash
@@ -13,7 +15,7 @@ ros2 launch fastlio2 lio_no_rviz.py params_file:=~/XJTLU-autonomous-vehicle/src/
 ```
 
 - 当前参数来源以 `src/bringup/config/master_params.yaml` 为主；`lio_no_rviz.py` 保留 legacy `fastlio2/config/lio.yaml` 回退能力。
-- 下游的 `pgo` 节点直接消费 `/fastlio2/lio_odom` 和 `/fastlio2/body_cloud`。
+- SLAM/Travel 的 PGO/localizer 消费 `/fastlio2/body_cloud_localization`；其它历史模式的 PGO 配置仍可消费 `/fastlio2/body_cloud`。
 - 这份文档主要解释算法原理；整车链路请同时参考 `docs/architecture.md` 和 `docs/knowledge/pgo.md`。
 
 ## 发布点云前置高度过滤（2026-04-01）
@@ -39,6 +41,12 @@ RTK corridor 现在从 FAST-LIO2 发布层额外分叉一条 `/fastlio2/body_clo
 - 过滤只在该 topic 有订阅者时执行，避免非 corridor / 无 Nav2 场景额外消耗 CPU
 
 如果后续实车发现行人仍进入 costmap 不稳定，应优先检查 `/fastlio2/body_cloud_nav2_obstacles` 是否有点、local costmap 的 STVL voxel map 是否被标记，以及 Livox 近距离盲区/安装角度，而不是再放宽 PGO 使用的 `/fastlio2/body_cloud`。
+
+## 室内定位结构点云（2026-07-11）
+
+- `/fastlio2/body_cloud_localization` 使用独立的 `[-0.20, 1.80]m` 初始高度窗，保留墙面、门框和立柱；PGO 建图与 Travel localizer 都消费这一 topic，确保描述子/地图/在线扫描语义一致。
+- `/fastlio2/body_cloud` 继续作为低窗 LaserScan 输入，`body_cloud_nav2_obstacles` 继续负责局部动态障碍，三类点云不再共享一个冲突高度窗。
+- 定位云只在有订阅者时过滤发布，不改变 FAST-LIO2 内部 IESKF。高度窗是待实车 PCD 统计收口的参数，玻璃、顶棚和车体自反射明显时不能直接放宽阈值。
 
 ## LiDAR / IMU 同步保护（2026-07-06）
 

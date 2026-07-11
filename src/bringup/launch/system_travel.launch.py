@@ -1,15 +1,67 @@
 import os
+from pathlib import Path
+
+import yaml
 
 import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.parameter_descriptions import ParameterValue
 from nav2_common.launch import RewrittenYaml
+
+
+def _resolve_map_bundle(context):
+    bundle_value = LaunchConfiguration("map_bundle").perform(context).strip()
+    if not bundle_value:
+        return []
+    bundle_path = Path(bundle_value).expanduser().resolve()
+    manifest_path = bundle_path / "manifest.yaml" if bundle_path.is_dir() else bundle_path
+    if not manifest_path.exists():
+        raise RuntimeError(f"Indoor map bundle manifest not found: {manifest_path}")
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise RuntimeError("Indoor map bundle manifest must be a mapping")
+    if int(manifest.get("schema_version", 0)) != 1:
+        raise RuntimeError("Unsupported indoor map bundle schema")
+    if not bool(manifest.get("consistency_ok", False)):
+        raise RuntimeError("Indoor map bundle did not pass consistency gates")
+    if not bool(manifest.get("calibration", {}).get("accepted", False)):
+        raise RuntimeError("Indoor map bundle calibration is not accepted")
+    map_id = str(manifest.get("map_id", manifest.get("map_name", ""))).strip()
+    if not map_id:
+        raise RuntimeError("Indoor map bundle is missing map_id")
+    root = manifest_path.parent
+    artifacts = manifest.get("artifacts", {})
+    if not isinstance(artifacts, dict):
+        raise RuntimeError("Indoor map bundle artifacts must be a mapping")
+    required = {
+        "map_yaml": artifacts.get("navigation_map"),
+        "pcd_map": artifacts.get("localization_map"),
+        "map_alignment_file": artifacts.get("alignment"),
+        "descriptor_index": artifacts.get("descriptor_index"),
+        "destinations_file": artifacts.get("destinations"),
+    }
+    for launch_name, relative_path in required.items():
+        if not relative_path:
+            raise RuntimeError(f"Indoor map bundle is missing artifact: {launch_name}")
+        resolved = (root / str(relative_path)).resolve()
+        try:
+            resolved.relative_to(root)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Indoor map bundle artifact escapes bundle root: {relative_path}"
+            ) from exc
+        if not resolved.exists():
+            raise RuntimeError(f"Indoor map bundle artifact not found: {resolved}")
+        context.launch_configurations[launch_name] = str(resolved)
+    context.launch_configurations["map_id"] = map_id
+    return [LogInfo(msg=f"Loaded indoor map bundle: {manifest_path}")]
 
 
 def generate_launch_description():
@@ -25,6 +77,9 @@ def generate_launch_description():
     bringup_share = get_package_share_directory("bringup")
     default_master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
     nav2_params_file = os.path.join(bringup_share, "config", "nav2_travel.yaml")
+    collision_monitor_params = os.path.join(
+        bringup_share, "config", "collision_monitor_travel.yaml"
+    )
     default_rviz_config = os.path.join(bringup_share, "rviz", "pgo.rviz")
     travel_bt_xml = os.path.join(
         bringup_share,
@@ -43,6 +98,12 @@ def generate_launch_description():
         [FindPackageShare("pgo"), "config", "pgo_slam.yaml"]
     )
 
+    map_bundle_arg = DeclareLaunchArgument(
+        "map_bundle",
+        default_value="",
+        description="Indoor map bundle directory or manifest.yaml. Overrides individual map paths.",
+    )
+
     map_yaml_arg = DeclareLaunchArgument(
         "map_yaml",
         default_value="",
@@ -52,6 +113,13 @@ def generate_launch_description():
         "pcd_map",
         default_value="",
         description="Absolute path to the prior PCD map used by /localizer/relocalize.",
+    )
+    map_alignment_arg = DeclareLaunchArgument("map_alignment_file", default_value="")
+    descriptor_index_arg = DeclareLaunchArgument("descriptor_index", default_value="")
+    destinations_file_arg = DeclareLaunchArgument("destinations_file", default_value="")
+    map_id_arg = DeclareLaunchArgument("map_id", default_value="")
+    auto_global_localization_arg = DeclareLaunchArgument(
+        "auto_global_localization", default_value="true"
     )
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz",
@@ -128,6 +196,12 @@ def generate_launch_description():
             {
                 "config_path": localizer_config_path,
                 "pcd_map": LaunchConfiguration("pcd_map"),
+                "alignment_file": LaunchConfiguration("map_alignment_file"),
+                "descriptor_index": LaunchConfiguration("descriptor_index"),
+                "map_id": LaunchConfiguration("map_id"),
+                "auto_global_localization": ParameterValue(
+                    LaunchConfiguration("auto_global_localization"), value_type=bool
+                ),
             }
         ],
     )
@@ -155,12 +229,51 @@ def generate_launch_description():
         ],
     )
 
+    localization_cmd_gate_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="localization_cmd_gate.py",
+        name="localization_cmd_gate",
+        output="screen",
+    )
+
+    collision_monitor_node = launch_ros.actions.Node(
+        package="nav2_collision_monitor",
+        executable="collision_monitor",
+        name="collision_monitor",
+        output="screen",
+        parameters=[collision_monitor_params],
+    )
+    collision_monitor_lifecycle = launch_ros.actions.Node(
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="lifecycle_manager_collision_monitor",
+        output="screen",
+        parameters=[{"autostart": True, "node_names": ["collision_monitor"]}],
+    )
+
+    indoor_navigation_manager_node = launch_ros.actions.Node(
+        package="indoor_navigation_manager",
+        executable="indoor_navigation_manager_node",
+        name="indoor_navigation_manager",
+        output="screen",
+        parameters=[
+            {
+                "destinations_file": LaunchConfiguration("destinations_file"),
+                "map_id": LaunchConfiguration("map_id"),
+            }
+        ],
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration("destinations_file"), "' != ''"])
+        ),
+    )
+
     serial_node = launch_ros.actions.Node(
         package="serial_twistctl",
         executable="serial_twistctl_node",
         name="serial_twistctl_node",
         output="screen",
         parameters=[LaunchConfiguration("master_params_file")],
+        remappings=[("/cmd_vel", "/cmd_vel_safe")],
     )
 
     serial_reader_node = launch_ros.actions.Node(
@@ -224,24 +337,35 @@ def generate_launch_description():
 
     urdf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+            os.path.join(bringup_share, "launch", "robot_description.launch.py")
         )
     )
 
     return LaunchDescription(
         [
+            map_bundle_arg,
             map_yaml_arg,
             pcd_map_arg,
+            map_alignment_arg,
+            descriptor_index_arg,
+            destinations_file_arg,
+            map_id_arg,
+            auto_global_localization_arg,
             use_rviz_arg,
             use_pgo_arg,
             master_params_arg,
             rviz_config_arg,
+            OpaqueFunction(function=_resolve_map_bundle),
             livox_launch,
             fastlio_launch,
             pgo_node,
             localizer_node,
             initialpose_relocalize_bridge_node,
             nav2_cloud_retime_node,
+            localization_cmd_gate_node,
+            collision_monitor_node,
+            collision_monitor_lifecycle,
+            indoor_navigation_manager_node,
             serial_node,
             serial_reader_node,
             pointcloud_to_laserscan_node,

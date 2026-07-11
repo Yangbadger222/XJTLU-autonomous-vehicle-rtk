@@ -4,7 +4,7 @@ import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -20,11 +20,42 @@ def generate_launch_description():
 
     bringup_share = get_package_share_directory("bringup")
     master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
+    bag_profile = os.environ.get("FYP_SLAM_BAG_PROFILE", "lean").strip().lower()
+    bag_topics = [
+        "/livox/imu",
+        "/fastlio2/lio_odom",
+        "/fastlio2/degeneracy",
+        "/odom_CBoar",
+        "/scan",
+        "/map",
+        "/pgo/loop_markers",
+        "/tf",
+        "/tf_static",
+    ]
+    if bag_profile in {"debug", "full", "raw"}:
+        bag_topics.extend(
+            [
+                "/livox/lidar",
+                "/fastlio2/body_cloud",
+                "/fastlio2/body_cloud_localization",
+            ]
+        )
+    bag_session_dir = os.environ.get("FYP_LOG_SESSION_DIR")
+    bag_output = (
+        os.path.join(bag_session_dir, "slam_bag")
+        if bag_session_dir
+        else os.path.join("/tmp", f"slam_bag_{os.getpid()}")
+    )
 
     use_rtk_arg = DeclareLaunchArgument(
         "use_rtk",
         default_value="false",
         description="Start the UM982 RTK driver during mapping so outdoor fixed samples can be recorded for later geo-registration.",
+    )
+    record_bag_arg = DeclareLaunchArgument(
+        "record_bag",
+        default_value=os.environ.get("FYP_SLAM_RECORD_BAG", "true"),
+        description="Record the SLAM lean/debug evidence bag for this session.",
     )
 
     livox_launch = IncludeLaunchDescription(
@@ -144,16 +175,22 @@ def generate_launch_description():
         period=5.0,
         actions=[slam_toolbox_node, map_saver_server, lifecycle_manager_mapping],
     )
-    
+    bag_recorder = ExecuteProcess(
+        cmd=["ros2", "bag", "record", "-o", bag_output, *bag_topics],
+        output="screen",
+        condition=IfCondition(LaunchConfiguration("record_bag")),
+    )
+
     urdf_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(bringup_share, 'launch', 'robot_description.launch.py')
+            os.path.join(bringup_share, "launch", "robot_description.launch.py")
         )
     )
 
     return LaunchDescription(
         [
             use_rtk_arg,
+            record_bag_arg,
             livox_launch,
             rtk_launch,
             fastlio_launch,
@@ -163,6 +200,7 @@ def generate_launch_description():
             pgo_node,
             rviz_node,
             delayed_slam,
+            bag_recorder,
             urdf_launch,
         ]
     )

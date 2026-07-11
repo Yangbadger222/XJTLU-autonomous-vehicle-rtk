@@ -45,6 +45,7 @@ def test_slam_keeps_pgo_as_non_tf_map_artifact_builder():
     assert pgo_config["map_frame"] == "map"
     assert pgo_config["local_frame"] == "odom"
     assert pgo_config["gps"]["enable"] is False
+    assert pgo_config["cloud_topic"] == "/fastlio2/body_cloud_localization"
 
 
 def test_slam_wires_fastlio_cloud_to_laserscan_and_delays_mapper_start():
@@ -57,3 +58,14 @@ def test_slam_wires_fastlio_cloud_to_laserscan_and_delays_mapper_start():
     assert "map_saver_server" in text
     assert "lifecycle_manager_mapping" in text
     assert "robot_description.launch.py" in text
+
+
+def test_slam_records_replayable_mapping_evidence_by_default():
+    text = SLAM_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"record_bag"' in text
+    assert 'FYP_SLAM_BAG_PROFILE' in text
+    assert '"/fastlio2/degeneracy"' in text
+    assert '"/pgo/loop_markers"' in text
+    assert '"/fastlio2/body_cloud_localization"' in text
+    assert 'ExecuteProcess' in text

@@ -24,7 +24,7 @@
 | Explore | `make launch-explore` | Current primary operating mode, local obstacle avoidance navigation |
 | Indoor Nav | `make launch-indoor-nav` | RViz click-to-go navigation without GNSS |
 | Corridor | `make launch-corridor` | GPS Corridor v2 main runtime on the MPPI controller |
-| Travel | `make launch-travel` | Experimental prior-map navigation: 2D-map global planning + PCD point-cloud relocalization |
+| Travel | `make launch-travel` | Indoor map-bundle navigation: automatic/assisted localization, static planning, dynamic avoidance, and named Action |
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
@@ -35,7 +35,8 @@ All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so se
 ## 4. SLAM Pure Mapping Data Flow
 
 ```text
-Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
+Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud (low 2D LaserScan slice)
+                                  -> /fastlio2/body_cloud_localization (3D structural localization cloud)
                                   -> /fastlio2/lio_odom
                                   -> TF: odom -> base_footprint -> base_link
 
@@ -45,17 +46,17 @@ Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
                                       SLAM Toolbox -> /map
                                                    -> TF: map -> odom
 
-/fastlio2/body_cloud + /fastlio2/lio_odom -> PGO(publish_tf=false)
+/fastlio2/body_cloud_localization + /fastlio2/lio_odom -> PGO(publish_tf=false)
                                              -> /pgo/global_map
                                              -> /pgo/save_maps
 
 scripts/save_mapping_session.sh <map_name>
-  -> saves 2D map.yaml/map.pgm
-  -> saves 3D map.pcd/poses.txt/patches
-  -> writes manifest.yaml with 2D/3D consistency, patch/pose integrity, and frame checks
+  -> saves 2D map + pose graph, raw/downsampled 3D PCD, poses/patches
+  -> builds a Scan Context index, solves T_map_2d_map_3d, and writes metrics/overlay
+  -> writes manifest.yaml; failed stationary, frame, integrity, or calibration gates block Travel
 ```
 
-SLAM mode does not start Nav2 planners/controllers and does not execute navigation behavior. Slam Toolbox uses the repository-owned `src/bringup/config/slam_toolbox_mapping.yaml`, pinning the Humble async-mapper parameters with `base_frame=base_footprint`. In this mode PGO uses `pgo_slam.yaml` with `publish_tf=false` by default, so it does not compete with Slam Toolbox for `map -> odom`. The save script checks the current FAST-LIO2 child frame `base_footprint` by default, but the actual child frame must be confirmed with TF tools before changing `base_frame` on the vehicle. RTK can be enabled with `use_rtk:=true` to record outdoor Fixed samples during mapping, but indoor invalid/float RTK samples are records only, not strong constraints.
+SLAM mode does not run Nav2 planners/controllers. Slam Toolbox uses the repository-owned mapping profile and exclusively owns `map -> odom`; PGO saves the 3D assets with `publish_tf=false`. Launch records a lean evidence bag by default and only debug adds raw clouds. Saving requires stationary LIO/chassis feedback, consistent frames, complete keyframes, and accepted 2D/3D registration. `use_rtk:=true` records future geo-registration evidence only; indoor invalid/float RTK is not a strong constraint.
 
 ## 5. Explore Mode Data Flow
 
@@ -154,9 +155,10 @@ map -> odom -> base_footprint -> base_link
 - In Explore / explore-gps production navigation modes, `map -> odom` is published by PGO, representing global correction offset
 - In Corridor and RTK nav-gps modes, PGO disables `publish_tf`; the only production `map -> odom` owner is `rtk_map_odom_corrector`
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
-- In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated TF in Nav2. Travel defaults to `continuous_icp: false`, so the successful correction is frozen and republished with current ROS stamps at `tf_republish_hz` for Nav2 controller lookups.
+- In Travel, localizer exclusively owns `map -> odom`. Bundle startup first attempts multi-candidate Scan Context plus ICP; a region service or RViz seed provides fallback. Once localized, 1Hz map matching admits only score/overlap/jump-gated corrections and releases them with `alpha=0.15` smoothing.
 - Travel mode bridges RViz `2D Pose Estimate` (`/initialpose`) into `/localizer/relocalize`, has FAST-LIO2 publish the taller Nav2 obstacle cloud `/fastlio2/body_cloud_nav2_obstacles`, and retimes it as `/fastlio2/body_cloud_nav2` for the local costmap. The global costmap stays static-map based so live point-cloud obstacles cannot mark the robot start cell and block NavFn planning.
-- Travel uses fail-stop Nav2 behavior trees: if `ComputePathToPose`, `ComputePathThroughPoses`, or `FollowPath` fails, the goal stops and fails without automatic spin, backup, or costmap-clearing recovery; close-range avoidance is handled by the same MPPI baseline as Explore/Corridor and a `6 m x 6 m` local costmap.
+- Travel's velocity chain is `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe -> serial_twistctl`. Only fresh `LOCALIZED` status passes motion; the polygon footprint, collision-checked smoothing, and slowdown/stop zones provide close-range safety.
+- `indoor_navigation_manager` resolves bundle destinations/aliases into `NavigateToPose` and exposes feedback, cancellation, and cancellation on localization degradation through `/navigate_named_destination`.
 - PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_footprint` is published by FAST-LIO2, representing high-frequency local odometry; `base_footprint -> base_link` is provided by URDF static TF
 - The combination of both yields the global pose

@@ -113,6 +113,11 @@ bash scripts/launch_with_logs.sh slam
 
 # Enable RTK only when outdoor Fixed samples are needed for later indoor/outdoor geo-registration
 ros2 launch bringup system_slam.launch.py use_rtk:=true
+
+# A lean evidence bag is recorded under the session's slam_bag/ by default; debug adds raw Livox/structural clouds
+FYP_SLAM_BAG_PROFILE=debug bash scripts/launch_with_logs.sh slam
+# Disable recording only for temporary smoke tests, not formal acceptance
+FYP_SLAM_RECORD_BAG=false bash scripts/launch_with_logs.sh slam
 ```
 
 One-line command for indoor click-to-go navigation without GPS:
@@ -132,29 +137,41 @@ One-line command for prior-map Travel navigation:
 
 ```bash
 FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
-  map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
-  pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
 ```
 
 Notes:
-- `travel` uses the 2D `map.yaml` for Nav2 global planning and the 3D `map.pcd` for ICP point-cloud relocalization in `localizer`
+- `map_bundle` is the production input. Travel checks schema, `consistency_ok`, calibration acceptance, and the 2D map, localization PCD, alignment, descriptor, and destination artifacts. Separate `map_yaml/pcd_map` arguments remain only for compatibility debugging
 - `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
-- `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
-- After relocalization, Travel defaults to `continuous_icp: false`: `localizer` freezes the valid `map -> odom` correction and republishes it with the current ROS time at `tf_republish_hz`, avoiding map drift from partial local scans during navigation; sending `/initialpose` or calling `/localizer/relocalize` runs ICP again
-- Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
+- Startup queries several Scan Context candidates and refines them with ICP. An ambiguous repeated corridor enters `LOST`; use the region service or RViz `2D Pose Estimate` as a stopped fallback
+- After acceptance, the localizer matches at `1Hz`, admits only overlap/jump-gated results, and smooths `map -> odom` with `alpha=0.15`
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
 - Travel `NavigateToPose` / `NavigateThroughPoses` use dedicated fail-stop behavior trees: if the local controller or planner fails, navigation stops and returns failure instead of automatically running `Spin`, `BackUp`, or costmap-clearing recovery actions
-- Travel uses the MPPI indoor safety profile (`vx_max=0.35`, `wz_max=0.65`, `controller_frequency=20 Hz`) while keeping the fail-stop behavior trees and the `6 m x 6 m @ 0.05 m` local costmap
-- Before sending a navigation goal, verify in RViz that the live point cloud/scan overlaps the static map; Travel freezes the successful `map -> odom` correction by default, so a rough pose or heading error shifts the whole subsequent path
+- Travel uses the `650x500mm` envelope plus `25mm` polygon margin, 20Hz MPPI, and Collision Monitor slowdown/stop zones. A stale or non-`LOCALIZED` `/localizer/status` forces zero velocity before serial output
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
-- After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
+
+Localization status and region-assisted relocalization:
+
+```bash
+ros2 topic echo /localizer/status
+ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
+  "{descriptor_index: '', region: 'east_corridor', max_candidates: 5}"
+```
+
+RViz `2D Pose Estimate` remains a manual fallback. The legacy service can also be called directly:
 
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
-  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
+  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>/localization/map_localization.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
 ```
 
-For normal field operation, prefer RViz `2D Pose Estimate` over the manual service call: click the vehicle's current map position and drag the arrow along the vehicle heading.
+Named navigation without RViz:
+
+```bash
+ros2 action send_goal /navigate_named_destination \
+  interface/action/NavigateNamedDestination \
+  "{map_id: '<map_id>', destination_name: 'lab 101', backend: 'indoor'}" --feedback
+```
 
 Verification:
 
@@ -162,6 +179,7 @@ Verification:
 ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
 ros2 run tf2_ros tf2_monitor map odom
+ros2 topic echo /cmd_vel_safe
 ```
 
 One-line command for GPS Corridor v2:
@@ -299,23 +317,27 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 ## 8. Map Saving
 
 ```bash
-# Save the current SLAM session's 2D + 3D maps and write a manifest
+# Stop the vehicle, then generate and validate the full indoor map bundle
 scripts/save_mapping_session.sh <map_name>
+# Optional: label descriptor candidates with region polygons
+python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
 ```
 
 Output:
 
 ```text
-runtime-data/maps/<map_name>/manifest.yaml
-runtime-data/maps/2d/<map_name>/map.yaml
-runtime-data/maps/2d/<map_name>/map.pgm
-runtime-data/maps/3d/<map_name>/map.pcd
-runtime-data/maps/3d/<map_name>/poses.txt
-runtime-data/maps/3d/<map_name>/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/manifest.yaml
+runtime-data/maps/indoor/<map_name>/navigation/{map.yaml,map.pgm,slam_toolbox.posegraph,slam_toolbox.data}
+runtime-data/maps/indoor/<map_name>/localization/{map_raw.pcd,map_localization.pcd,poses.txt}
+runtime-data/maps/indoor/<map_name>/localization/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/localization/descriptor_index/scan_context.yaml
+runtime-data/maps/indoor/<map_name>/calibration/{map_3d_to_map_2d.yaml,alignment_report.yaml,alignment_overlay.png}
+runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 ```
 
 Notes:
-- `manifest.yaml` records `consistency_ok` to flag likely 2D/3D map drift; it is gated by the 2D/3D alignment diagnostic, patch/pose integrity, and frame checks. This is a save-time diagnostic, not a replacement for later relocalization validation
+- Saving checks FAST-LIO2 and `/odom_CBoar` twice while stationary; if live `/cmd_vel` is observed it must also be zero. Any hard-gate failure returns nonzero, and Travel rejects `consistency_ok=false`
+- Initial 2D-to-3D gates require global and configured-region wall RMSE `<=0.10m`, p95 `<=0.15m`, overlap `>=0.55`, and a first/second seed gap `>=0.001`; calibrate them from vehicle maps before acceptance
 - `patch_pose_integrity.ok` must be `true`, meaning `patches/*.pcd` and `poses.txt` keyframes are one-to-one
 - `frame_check.ok` must be `true`; by default `/scan.header.frame_id` and `/fastlio2/lio_odom.child_frame_id` are expected to be `base_footprint`. If the vehicle's FAST-LIO2 child frame is different, confirm it with `view_frames`/`tf2_echo` first, then save with `--expected-base-frame <frame>`
 - Later indoor/outdoor geo-registration must use RTK Fixed samples plus heading; indoor invalid/float RTK samples are records only, not strong constraints
@@ -328,10 +350,10 @@ ros2 run tf2_tools view_frames
 ros2 run tf2_ros tf2_echo odom base_footprint
 
 # Save 3D point cloud map; file_path must be absolute because ROS service requests do not expand ~
-ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>', save_patches: true}"
+ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/localization', save_patches: true}"
 
 # Save 2D occupancy grid map
-ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map --ros-args -p map_subscribe_transient_local:=true
+ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/navigation/map --ros-args -p map_subscribe_transient_local:=true
 
 # View PCD
 pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>

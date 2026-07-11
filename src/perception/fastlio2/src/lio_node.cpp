@@ -151,6 +151,7 @@ public:
 
         m_body_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", 500);
         m_world_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("world_cloud", 500);
+        m_localization_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_localization", 50);
         m_nav2_obstacle_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_nav2_obstacles", 50);
         m_path_pub = this->create_publisher<nav_msgs::msg::Path>("lio_path", 10000);
         m_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("lio_odom", 10000);
@@ -241,6 +242,12 @@ public:
             this->declare_parameter<double>("publish_cloud_min_z", -0.33);
         m_builder_config.publish_cloud_max_z =
             this->declare_parameter<double>("publish_cloud_max_z", 0.30);
+        m_builder_config.localization_cloud_enabled =
+            this->declare_parameter<bool>("localization_cloud_enabled", true);
+        m_builder_config.localization_cloud_min_z =
+            this->declare_parameter<double>("localization_cloud_min_z", -0.20);
+        m_builder_config.localization_cloud_max_z =
+            this->declare_parameter<double>("localization_cloud_max_z", 1.80);
         m_builder_config.nav2_obstacle_cloud_enabled =
             this->declare_parameter<bool>("nav2_obstacle_cloud_enabled", true);
         m_builder_config.nav2_obstacle_cloud_min_z =
@@ -346,6 +353,15 @@ public:
         if (config["publish_cloud_max_z"])
             m_builder_config.publish_cloud_max_z =
                 config["publish_cloud_max_z"].as<double>();
+        if (config["localization_cloud_enabled"])
+            m_builder_config.localization_cloud_enabled =
+                config["localization_cloud_enabled"].as<bool>();
+        if (config["localization_cloud_min_z"])
+            m_builder_config.localization_cloud_min_z =
+                config["localization_cloud_min_z"].as<double>();
+        if (config["localization_cloud_max_z"])
+            m_builder_config.localization_cloud_max_z =
+                config["localization_cloud_max_z"].as<double>();
         if (config["nav2_obstacle_cloud_enabled"])
             m_builder_config.nav2_obstacle_cloud_enabled =
                 config["nav2_obstacle_cloud_enabled"].as<bool>();
@@ -405,6 +421,9 @@ public:
             rclcpp::Parameter("publish_cloud_height_filter_enabled", m_builder_config.publish_cloud_height_filter_enabled),
             rclcpp::Parameter("publish_cloud_min_z", m_builder_config.publish_cloud_min_z),
             rclcpp::Parameter("publish_cloud_max_z", m_builder_config.publish_cloud_max_z),
+            rclcpp::Parameter("localization_cloud_enabled", m_builder_config.localization_cloud_enabled),
+            rclcpp::Parameter("localization_cloud_min_z", m_builder_config.localization_cloud_min_z),
+            rclcpp::Parameter("localization_cloud_max_z", m_builder_config.localization_cloud_max_z),
             rclcpp::Parameter("nav2_obstacle_cloud_enabled", m_builder_config.nav2_obstacle_cloud_enabled),
             rclcpp::Parameter("nav2_obstacle_cloud_min_z", m_builder_config.nav2_obstacle_cloud_min_z),
             rclcpp::Parameter("nav2_obstacle_cloud_max_z", m_builder_config.nav2_obstacle_cloud_max_z),
@@ -601,6 +620,25 @@ public:
             m_builder_config.nav2_obstacle_cloud_max_z,
             "FAST-LIO2 Nav2 obstacle cloud");
         publishCloud(m_nav2_obstacle_cloud_pub, nav2_body_cloud, m_node_config.body_frame, time);
+    }
+
+    void publishLocalizationCloud(
+        const CloudType::Ptr &body_cloud,
+        const CloudType::Ptr &world_cloud,
+        const double &time)
+    {
+        if (!m_builder_config.localization_cloud_enabled)
+            return;
+        if (m_localization_cloud_pub->get_subscription_count() <= 0)
+            return;
+
+        CloudType::Ptr localization_cloud = filterBodyCloudByRelativeHeight(
+            body_cloud,
+            world_cloud,
+            m_builder_config.localization_cloud_min_z,
+            m_builder_config.localization_cloud_max_z,
+            "FAST-LIO2 localization cloud");
+        publishCloud(m_localization_cloud_pub, localization_cloud, m_node_config.body_frame, time);
     }
 
     std::pair<CloudType::Ptr, CloudType::Ptr> filterPublishedClouds(
@@ -840,6 +878,7 @@ public:
             filterPublishedClouds(body_cloud, world_cloud);
 
         const double cloud_publish_time = this->now().seconds();
+        publishLocalizationCloud(body_cloud, world_cloud, cloud_publish_time);
         publishNav2ObstacleCloud(body_cloud, world_cloud, cloud_publish_time);
         publishCloud(m_body_cloud_pub, filtered_body_cloud, m_node_config.body_frame, cloud_publish_time);
         publishCloud(m_world_cloud_pub, filtered_world_cloud, m_node_config.world_frame, cloud_publish_time);
@@ -853,6 +892,7 @@ private:
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_body_cloud_pub;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_world_cloud_pub;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_localization_cloud_pub;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_nav2_obstacle_cloud_pub;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr m_path_pub;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr m_odom_pub;

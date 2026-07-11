@@ -22,6 +22,7 @@ install(DIRECTORY rviz/
 install(PROGRAMS
   scripts/initialpose_relocalize_bridge.py
   scripts/nav2_cloud_retime.py
+  scripts/localization_cmd_gate.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

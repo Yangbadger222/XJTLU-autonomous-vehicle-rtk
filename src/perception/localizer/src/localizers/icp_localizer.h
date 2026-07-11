@@ -4,6 +4,8 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/registration/icp.h>
 #include <pcl/filters/voxel_grid.h>
+#include <limits>
+#include <vector>
 
 struct ICPConfig
 {
@@ -28,9 +30,13 @@ public:
     void setInput(const CloudType::Ptr &cloud);
 
     bool align(M4F &guess);
+    bool alignCandidates(const std::vector<M4F> &guesses, M4F &best_guess, int &tested);
     ICPConfig &config() { return m_config; }
     CloudType::Ptr roughMap() { return m_rough_tgt; }
     CloudType::Ptr refineMap() { return m_refine_tgt; }
+    double lastRoughScore() const { return m_last_rough_score; }
+    double lastRefineScore() const { return m_last_refine_score; }
+    double lastOverlapRatio() const { return m_last_overlap_ratio; }
 
 
 private:
@@ -43,4 +49,7 @@ private:
     CloudType::Ptr m_refine_tgt;
     CloudType::Ptr m_rough_tgt;
     std::string m_pcd_path;
+    double m_last_rough_score = std::numeric_limits<double>::infinity();
+    double m_last_refine_score = std::numeric_limits<double>::infinity();
+    double m_last_overlap_ratio = 0.0;
 };

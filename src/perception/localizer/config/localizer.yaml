@@ -1,11 +1,19 @@
-cloud_topic: /fastlio2/body_cloud
+cloud_topic: /fastlio2/body_cloud_localization
 odom_topic: /fastlio2/lio_odom
 map_frame: map
 local_frame: lidar
 update_hz: 1.0
 max_tf_input_age_s: 2.0
 tf_republish_hz: 20.0
-continuous_icp: false
+status_hz: 5.0
+continuous_icp: true
+global_max_candidates: 5
+min_candidate_score_gap: 0.03
+min_overlap_ratio: 0.35
+correction_alpha: 0.15
+max_correction_translation_m: 0.30
+max_correction_yaw_rad: 0.20
+max_consecutive_failures: 5
 
 rough_scan_resolution: 0.25
 rough_map_resolution: 0.25

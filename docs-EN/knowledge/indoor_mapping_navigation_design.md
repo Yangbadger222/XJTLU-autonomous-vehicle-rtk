@@ -1,6 +1,6 @@
 # SLAM Mapping and Indoor Navigation Design Plan
 
-> Status: design baseline; not fully implemented
+> Status: phases 1-5 implemented in code; phase-0 vehicle evidence, Jetson build, parameter calibration, and vehicle acceptance remain
 > Date: 2026-07-11
 > Scope: `slam` mapping mode and `travel` indoor prior-map navigation mode
 > Out of scope: automatic indoor/outdoor switching, floor changes, elevator integration, and the outdoor RTK navigation algorithm
@@ -25,25 +25,27 @@ Design principles:
 
 ## 2. Current baseline
 
-### 2.1 Available now
+### 2.1 Implemented software baseline
 
 - `system_slam.launch.py` runs FAST-LIO2, PGO, pointcloud-to-LaserScan, Slam Toolbox, and the map saver.
 - `slam_toolbox_mapping.yaml` now versions the Humble async-mapper baseline in the repository and consistently uses `base_footprint`.
-- `save_mapping_session.py` saves 2D `map.yaml/map.pgm`, 3D `map.pcd`, `poses.txt`, `patches/*.pcd`, and a manifest.
-- `system_travel.launch.py` loads a 2D map and PCD and uses `/initialpose` to trigger ICP relocalization.
+- FAST-LIO2 publishes `/fastlio2/body_cloud_localization` independently from the low LaserScan slice and Nav2 obstacle cloud; PGO and localizer consume the same structural localization stream.
+- `save_mapping_session.py` produces a versioned indoor bundle with the 2D map, pose graph, raw/downsampled 3D PCD, keyframes, Scan Context index, regions, destinations, 2D-to-3D report, and overlay.
+- Saving enforces stationary, chassis feedback, frame, patch/pose, RMSE/p95/overlap, and artifact integrity gates; failures return nonzero and set `consistency_ok=false`.
+- `system_travel.launch.py` accepts `map_bundle` as the primary input and rejects unsupported schemas, failed consistency, unaccepted calibration, and missing artifacts.
+- The localizer supports RViz-seeded, region-assisted, and multi-candidate Scan Context startup, publishes structured status, and performs low-rate ICP correction with jump gates and low-pass updates.
 - Travel uses a static-only global costmap and live point cloud in the local costmap.
-- Travel uses MPPI, Savitzky-Golay path smoothing, and fail-stop trees without automatic reverse or spin recovery.
+- Travel uses a polygon footprint, MPPI, collision-checked smoothing, Collision Monitor, and fail-stop trees; unhealthy localization gates velocity before the serial controller.
 - Travel now runs its controller at `20Hz`, matching MPPI `model_dt=0.05s`.
+- `indoor_navigation_manager` exposes `NavigateNamedDestination` with map/backend validation, aliases, feedback, cancel, concurrency rejection, and cancellation on localization degradation.
 
-### 2.2 Missing capabilities
+### 2.2 Remaining vehicle work
 
-- A wide-height structural cloud dedicated to mapping and localization.
-- A repeatable 2D-to-3D registration tool with strict quality gates.
-- Stationary, optimization-stable, and artifact-completeness gates before map saving.
-- A downsampled localization PCD sized for fast Orin NX loading.
-- Scan Context candidate retrieval or equivalent arbitrary-start global localization.
-- Low-rate map matching, smoothed drift correction, and a complete localization state machine.
-- A measured polygon footprint, Collision Monitor, and named indoor navigation interface.
+- Build all ROS interfaces/C++ packages on Jetson Orin NX with `--parallel-workers 1` and complete a 30-minute resource run.
+- Calibrate localization height windows, voxel size, ICP score/overlap, candidate gap, and 2D-to-3D thresholds from real PCDs.
+- Measure the physical outer envelope and STM32 minimum effective speeds, then validate the provisional `650x500mm + 25mm` footprint and Collision Monitor zones.
+- Collect region/arbitrary-start datasets and report top-k recall, false localization, startup latency, and repeated-corridor rejection.
+- Pass narrow-door, in-place-turn, pedestrian crossing, sustained occlusion, localization-loss stop, and ten repeated-route tests.
 
 ## 3. Target architecture
 
@@ -115,6 +117,7 @@ runtime-data/maps/indoor/<map_id>/
     map.yaml
     map.pgm
     slam_toolbox.posegraph
+    slam_toolbox.data
   localization/
     map_raw.pcd
     map_localization.pcd
@@ -124,7 +127,9 @@ runtime-data/maps/indoor/<map_id>/
   calibration/
     map_3d_to_map_2d.yaml
     alignment_report.yaml
+    alignment_overlay.png
   destinations.yaml
+  regions.yaml
 ```
 
 Minimum manifest content:
@@ -344,9 +349,9 @@ The first implementation only calls indoor `NavigateToPose`. Keep `map_id` and a
 
 Acceptance: the current manual initialization flow does not regress, and both modes build and run on Jetson with `--parallel-workers 1`.
 
-### Phase 1: production map bundle
+### Phase 1: production map bundle (software complete)
 
-Expected files:
+Implemented scope:
 
 - `src/bringup/launch/system_slam.launch.py`
 - `src/bringup/config/slam_toolbox_mapping.yaml`
@@ -356,9 +361,9 @@ Expected files:
 
 Acceptance: one command generates the full bundle; failed gates return nonzero; Travel starts from `map_bundle`.
 
-### Phase 2: Travel safety and control
+### Phase 2: Travel safety and control (software complete)
 
-Expected files:
+Implemented scope:
 
 - `src/bringup/config/nav2_travel.yaml`
 - `src/bringup/behavior_trees/`
@@ -367,7 +372,7 @@ Expected files:
 
 Acceptance: straight, 90-degree turn, in-place turn, narrow doorway, pedestrian crossing, and U-shaped obstacle tests pass; localization failure reliably stops the vehicle.
 
-### Phase 3: localization state and low-rate drift correction
+### Phase 3: localization state and low-rate drift correction (software complete)
 
 - Extend `src/perception/localizer/`.
 - Add localization status messages/diagnostics.
@@ -375,7 +380,7 @@ Acceptance: straight, 90-degree turn, in-place turn, narrow doorway, pedestrian 
 
 Acceptance: map alignment stays within the agreed tolerance after a long corridor return; bad registration cannot be written directly to TF.
 
-### Phase 4: arbitrary-start global localization
+### Phase 4: arbitrary-start global localization (software complete)
 
 - Build the descriptor index.
 - Add multi-candidate retrieval, coarse/fine registration, and ambiguity rejection.
@@ -383,7 +388,7 @@ Acceptance: map alignment stays within the agreed tolerance after a long corrido
 
 Acceptance: measure top-k recall, success rate, false-localization rate, and startup latency on predefined unknown starts. False-localization rate has priority over success rate.
 
-### Phase 5: named-destination navigation
+### Phase 5: named-destination navigation (software complete)
 
 - Add the destination schema, loader, and Action server.
 - Test cancel, duplicate requests, unknown destinations, and localization degradation.
@@ -416,7 +421,7 @@ Formal acceptance includes at least ten repeated round trips on the same route. 
 
 ## 11. Definition of done
 
-Indoor/outdoor switching design starts only after:
+Software phases 1-5 are implemented. Indoor/outdoor switching design starts only after these vehicle conditions pass:
 
 - Mapping repeatably generates versioned, accepted map bundles.
 - The 2D navigation and 3D localization map relation is explicit and strictly validated.

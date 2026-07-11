@@ -68,6 +68,10 @@
       # FAST-LIO2 输出点云的最大相对高度窗口（相对车体原点，沿重力方向）。
       # 当前值用于剔除车体高度以上的高点，减少顶棚/高处杂点进入下游。
       publish_cloud_max_z: 0.30
+      # 建图与先验地图重定位专用结构云；保留墙面、门框和立柱等垂直结构。
+      localization_cloud_enabled: true
+      localization_cloud_min_z: -0.20
+      localization_cloud_max_z: 1.80
       # 是否额外发布 Nav2 专用障碍点云；该云不进入 PGO/LIO，仅供 costmap 感知活障碍。
       nav2_obstacle_cloud_enabled: true
       # Nav2 专用障碍点云的最小相对高度；保留低矮障碍和路沿附近点。

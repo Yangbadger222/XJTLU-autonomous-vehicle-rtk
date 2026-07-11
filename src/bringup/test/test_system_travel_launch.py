@@ -10,6 +10,7 @@ BRINGUP_CMAKE = Path("src/bringup/CMakeLists.txt")
 BRINGUP_PACKAGE = Path("src/bringup/package.xml")
 INITIALPOSE_BRIDGE = Path("src/bringup/scripts/initialpose_relocalize_bridge.py")
 NAV2_CLOUD_RETIME = Path("src/bringup/scripts/nav2_cloud_retime.py")
+LOCALIZATION_CMD_GATE = Path("src/bringup/scripts/localization_cmd_gate.py")
 TRAVEL_FAIL_STOP_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_fail_stop.xml")
 TRAVEL_THROUGH_POSES_FAIL_STOP_BT = Path(
     "src/bringup/behavior_trees/travel_nav_through_poses_fail_stop.xml"
@@ -101,6 +102,7 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "controller_frequency: 15.0" not in controller_text
     assert "required_movement_radius: 0.10" in controller_text
     assert "movement_time_allowance: 15.0" in controller_text
+    assert "yaw_goal_tolerance: 0.20" in controller_text
     assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
@@ -156,21 +158,44 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
     global_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[1]
 
-    assert "robot_radius: 0.38625" in local_costmap_text
-    assert "robot_radius: 0.22" in global_costmap_text
+    footprint = 'footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"'
+    assert footprint in local_costmap_text
+    assert footprint in global_costmap_text
     assert "inflation_radius: 0.40" in local_costmap_text
     assert "inflation_radius: 0.25" in global_costmap_text
-    assert "robot_radius: 0.38625" not in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
+    assert "consider_footprint: true" in local_costmap_text
 
 
-def test_travel_local_inflation_covers_real_vehicle_radius():
+def test_travel_uses_measured_polygon_with_local_safety_inflation():
     config = _nav2_travel_yaml()
     local = config["local_costmap"]["local_costmap"]["ros__parameters"]
-    local_inflation = local["inflation_layer"]["inflation_radius"]
-    local_robot_radius = local["robot_radius"]
 
-    assert local_inflation >= local_robot_radius
+    assert local["footprint"] == "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"
+    assert local["inflation_layer"]["inflation_radius"] >= 0.4
+
+
+def test_travel_loads_map_bundle_and_safety_output_chain():
+    launch_text = _travel_launch_text()
+    collision_text = Path("src/bringup/config/collision_monitor_travel.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"map_bundle"' in launch_text
+    assert "_resolve_map_bundle" in launch_text
+    assert '"alignment_file": LaunchConfiguration("map_alignment_file")' in launch_text
+    assert '"descriptor_index": LaunchConfiguration("descriptor_index")' in launch_text
+    assert 'executable="localization_cmd_gate.py"' in launch_text
+    assert 'package="nav2_collision_monitor"' in launch_text
+    assert 'remappings=[("/cmd_vel", "/cmd_vel_safe")]' in launch_text
+    assert 'cmd_vel_in_topic: /cmd_vel_localized' in collision_text
+    assert 'cmd_vel_out_topic: /cmd_vel_safe' in collision_text
+    assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
+
+
+def test_travel_smooth_path_checks_collisions():
+    for bt_file in (TRAVEL_FAIL_STOP_BT, TRAVEL_THROUGH_POSES_FAIL_STOP_BT):
+        assert 'check_for_collisions="true"' in bt_file.read_text(encoding="utf-8")
 
 
 def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
@@ -199,8 +224,11 @@ def test_bringup_installs_travel_runtime_helper_nodes():
 
     assert "scripts/initialpose_relocalize_bridge.py" in cmake_text
     assert "scripts/nav2_cloud_retime.py" in cmake_text
+    assert "scripts/localization_cmd_gate.py" in cmake_text
 
     for dependency in ("rclpy", "geometry_msgs", "sensor_msgs", "interface"):
+        assert f"<exec_depend>{dependency}</exec_depend>" in package_text
+    for dependency in ("nav2_collision_monitor", "indoor_navigation_manager"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package_text
 
 
@@ -222,6 +250,16 @@ def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():
     assert "cloud_in" in text
     assert "cloud_out" in text
     assert "out.header.stamp = self.get_clock().now().to_msg()" in text
+
+
+def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():
+    text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
+
+    assert "LocalizationStatus.LOCALIZED" in text
+    assert "msg.sensors_ready" in text
+    assert "status_timeout_s" in text
+    assert "if not self.is_allowed()" in text
+    assert "self.publisher.publish(Twist())" in text
 
 
 def test_launch_wrapper_forwards_extra_launch_arguments():

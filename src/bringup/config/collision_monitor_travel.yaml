@@ -1,0 +1,36 @@
+collision_monitor:
+  ros__parameters:
+    use_sim_time: false
+    base_frame_id: base_footprint
+    odom_frame_id: odom
+    cmd_vel_in_topic: /cmd_vel_localized
+    cmd_vel_out_topic: /cmd_vel_safe
+    transform_tolerance: 0.3
+    source_timeout: 0.5
+    base_shift_correction: true
+    stop_pub_timeout: 2.0
+    polygons: ["PolygonStop", "PolygonSlow"]
+    PolygonStop:
+      type: polygon
+      points: [0.40, 0.32, 0.40, -0.32, -0.40, -0.32, -0.40, 0.32]
+      action_type: stop
+      max_points: 3
+      visualize: true
+      polygon_pub_topic: /travel_safety/stop_zone
+      enabled: true
+    PolygonSlow:
+      type: polygon
+      points: [0.65, 0.48, 0.65, -0.48, -0.65, -0.48, -0.65, 0.48]
+      action_type: slowdown
+      max_points: 3
+      slowdown_ratio: 0.35
+      visualize: true
+      polygon_pub_topic: /travel_safety/slow_zone
+      enabled: true
+    observation_sources: ["pointcloud"]
+    pointcloud:
+      type: pointcloud
+      topic: /fastlio2/body_cloud_nav2
+      min_height: -0.20
+      max_height: 1.20
+      enabled: true

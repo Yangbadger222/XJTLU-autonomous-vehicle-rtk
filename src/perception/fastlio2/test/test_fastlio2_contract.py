@@ -26,9 +26,18 @@ def test_fastlio2_publishes_separate_nav2_obstacle_cloud():
     assert "topic: /fastlio2/body_cloud_nav2" in nav2_text
 
 
-def test_fastlio2_keeps_original_low_cloud_for_localizer_and_pgo():
+def test_fastlio2_publishes_dedicated_mapping_and_localization_cloud():
+    node_text = FASTLIO_NODE.read_text(encoding="utf-8")
+    commons_text = FASTLIO_COMMONS.read_text(encoding="utf-8")
     params_text = MASTER_PARAMS.read_text(encoding="utf-8")
 
-    assert "cloud_topic: /fastlio2/body_cloud" in params_text
+    assert "body_cloud_localization" in node_text
+    assert "m_localization_cloud_pub" in node_text
+    assert "publishLocalizationCloud" in node_text
+    assert "publishLocalizationCloud(body_cloud, world_cloud, cloud_publish_time)" in node_text
+    assert "localization_cloud_enabled" in commons_text
+    assert "localization_cloud_enabled: true" in params_text
+    assert "localization_cloud_min_z: -0.20" in params_text
+    assert "localization_cloud_max_z: 1.80" in params_text
     assert "publish_cloud_min_z: -0.33" in params_text
     assert "publish_cloud_max_z: 0.30" in params_text

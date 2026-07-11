@@ -121,6 +121,14 @@ def generate_launch_description():
     auto_global_localization_arg = DeclareLaunchArgument(
         "auto_global_localization", default_value="true"
     )
+    use_foxglove_arg = DeclareLaunchArgument(
+        "use_foxglove",
+        default_value=os.environ.get("FYP_USE_FOXGLOVE", "true"),
+        description="Start Foxglove Bridge on the vehicle for visualization and control panels.",
+    )
+    foxglove_port_arg = DeclareLaunchArgument(
+        "foxglove_port", default_value="8765"
+    )
     use_rviz_arg = DeclareLaunchArgument(
         "use_rviz",
         default_value="true",
@@ -267,6 +275,52 @@ def generate_launch_description():
         ),
     )
 
+    foxglove_navigation_adapter_node = launch_ros.actions.Node(
+        package="indoor_navigation_manager",
+        executable="foxglove_navigation_adapter_node",
+        name="foxglove_navigation_adapter",
+        output="screen",
+        parameters=[
+            {
+                "destinations_file": LaunchConfiguration("destinations_file"),
+                "map_id": LaunchConfiguration("map_id"),
+            }
+        ],
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration("destinations_file"), "' != ''"])
+        ),
+    )
+
+    foxglove_bridge_node = launch_ros.actions.Node(
+        package="foxglove_bridge",
+        executable="foxglove_bridge",
+        name="foxglove_bridge",
+        output="screen",
+        parameters=[
+            {
+                "port": ParameterValue(
+                    LaunchConfiguration("foxglove_port"), value_type=int
+                ),
+                "client_topic_whitelist": [
+                    "^/initialpose$",
+                    "^/foxglove/goal_pose$",
+                    "^/foxglove/named_destination$",
+                ],
+                "service_whitelist": [
+                    "^/foxglove/cancel_navigation$",
+                    "^/localizer/global_relocalize$",
+                ],
+                "capabilities": [
+                    "clientPublish",
+                    "services",
+                    "connectionGraph",
+                    "assets",
+                ],
+            }
+        ],
+        condition=IfCondition(LaunchConfiguration("use_foxglove")),
+    )
+
     serial_node = launch_ros.actions.Node(
         package="serial_twistctl",
         executable="serial_twistctl_node",
@@ -351,6 +405,8 @@ def generate_launch_description():
             destinations_file_arg,
             map_id_arg,
             auto_global_localization_arg,
+            use_foxglove_arg,
+            foxglove_port_arg,
             use_rviz_arg,
             use_pgo_arg,
             master_params_arg,
@@ -366,6 +422,8 @@ def generate_launch_description():
             collision_monitor_node,
             collision_monitor_lifecycle,
             indoor_navigation_manager_node,
+            foxglove_navigation_adapter_node,
+            foxglove_bridge_node,
             serial_node,
             serial_reader_node,
             pointcloud_to_laserscan_node,

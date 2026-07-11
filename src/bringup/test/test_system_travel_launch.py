@@ -193,6 +193,20 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
 
 
+def test_travel_exposes_foxglove_control_surface():
+    launch_text = _travel_launch_text()
+    wrapper_text = LAUNCH_WRAPPER.read_text(encoding="utf-8")
+    package_text = BRINGUP_PACKAGE.read_text(encoding="utf-8")
+    cmake_text = BRINGUP_CMAKE.read_text(encoding="utf-8")
+
+    assert 'default_value=os.environ.get("FYP_USE_FOXGLOVE", "true")' in launch_text
+    assert 'package="foxglove_bridge"' in launch_text
+    assert 'executable="foxglove_navigation_adapter_node"' in launch_text
+    assert "FYP_USE_FOXGLOVE" in wrapper_text
+    assert "<exec_depend>foxglove_bridge</exec_depend>" in package_text
+    assert "install(DIRECTORY foxglove/" in cmake_text
+
+
 def test_travel_smooth_path_checks_collisions():
     for bt_file in (TRAVEL_FAIL_STOP_BT, TRAVEL_THROUGH_POSES_FAIL_STOP_BT):
         assert 'check_for_collisions="true"' in bt_file.read_text(encoding="utf-8")

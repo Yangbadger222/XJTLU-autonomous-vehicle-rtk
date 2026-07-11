@@ -797,7 +797,43 @@ sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
 
-### Live Connection
+### Live Travel Indoor Navigation
+
+Travel starts Foxglove Bridge and the guarded navigation adapter by default, so a second bridge process is not required:
+
+```bash
+FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+Pass `foxglove_port:=8766` if the default port is occupied. To disable the Bridge temporarily:
+
+```bash
+FYP_USE_FOXGLOVE=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+Import the repository layout into Foxglove on first use:
+
+```text
+src/bringup/foxglove/indoor_navigation.json
+```
+
+The layout includes the 3D map, robot, point clouds, costmaps, path, safety zones, localization/navigation status, destination catalog, named-goal publishing, region relocalization, cancel, logs, and Topic Graph.
+
+Controls:
+
+- 3D `Publish -> 2D pose estimate` publishes `/initialpose` for manual localization fallback.
+- 3D `Publish -> 2D pose` publishes `/foxglove/goal_pose`, which the adapter converts into a Nav2 `NavigateToPose` Action.
+- Edit `data` in `Navigate to destination` to a destination ID, display name, or alias; it publishes `/foxglove/named_destination`.
+- `Relocalize in region` calls `/localizer/global_relocalize`; an empty `region` requests a whole-map search.
+- `Cancel navigation` calls `/foxglove/cancel_navigation` and only cancels the goal owned by this adapter.
+- `/foxglove/navigation/status` reports source, target, localization, remaining distance, and result; destinations appear as MarkerArray objects in 3D.
+
+Safety gate: the adapter never reads or writes `/cmd_vel*`. The Bridge client-publish whitelist only permits `/initialpose`, `/foxglove/goal_pose`, and `/foxglove/named_destination`, and parameter mutation is disabled. It only sends a goal when `/localizer/status` is `LOCALIZED` with `localized=true` and `sensors_ready=true`; degradation cancels the active goal, while the independent velocity gate still enforces zero output.
+
+### Manual Bridge Start (Other Modes)
 
 To start a connection, SSH into the Jetson and run:
 ```bash
@@ -805,6 +841,8 @@ ros2 run foxglove_bridge foxglove_bridge
 ```
 
 Then from your computer, open Foxglove and click on "Open Connection" -> "Foxglove WebSocket (default)" and enter `ws://100.79.128.22:8765`
+
+Foxglove Bridge has no project-level login authentication. Only expose it on a controlled LAN or Tailscale network; never publish port `8765` to the public internet.
 
 After entering, click anywhere on the center view, and the left panel will load many options. This may take some time, up to a minute.
 

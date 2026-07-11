@@ -20,6 +20,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SavePoses.srv"
   "srv/GlobalRelocalize.srv"
   "msg/LocalizationStatus.msg"
+  "msg/NavigationStatus.msg"
   "action/NavigateNamedDestination.action"
   DEPENDENCIES std_msgs builtin_interfaces action_msgs
 )

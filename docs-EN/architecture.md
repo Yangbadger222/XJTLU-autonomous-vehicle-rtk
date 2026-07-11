@@ -159,6 +159,7 @@ map -> odom -> base_footprint -> base_link
 - Travel mode bridges RViz `2D Pose Estimate` (`/initialpose`) into `/localizer/relocalize`, has FAST-LIO2 publish the taller Nav2 obstacle cloud `/fastlio2/body_cloud_nav2_obstacles`, and retimes it as `/fastlio2/body_cloud_nav2` for the local costmap. The global costmap stays static-map based so live point-cloud obstacles cannot mark the robot start cell and block NavFn planning.
 - Travel's velocity chain is `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe -> serial_twistctl`. Only fresh `LOCALIZED` status passes motion; the polygon footprint, collision-checked smoothing, and slowdown/stop zones provide close-range safety.
 - `indoor_navigation_manager` resolves bundle destinations/aliases into `NavigateToPose` and exposes feedback, cancellation, and cancellation on localization degradation through `/navigate_named_destination`.
+- Travel starts `foxglove_bridge:8765` and `foxglove_navigation_adapter` by default. Foxglove pose clicks and destination strings become `NavigateToPose` / `NavigateNamedDestination` Actions; the adapter publishes destination markers, catalog, and status, never accesses `/cmd_vel*`, and rejects or cancels goals when localization is unhealthy.
 - PGO is off by default, or runs only with `publish_tf=false`
 - `odom -> base_footprint` is published by FAST-LIO2, representing high-frequency local odometry; `base_footprint -> base_link` is provided by URDF static TF
 - The combination of both yields the global pose

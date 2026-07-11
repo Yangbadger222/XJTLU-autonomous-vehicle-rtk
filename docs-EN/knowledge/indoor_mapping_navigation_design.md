@@ -338,6 +338,8 @@ NavigateNamedDestination
 
 The first implementation only calls indoor `NavigateToPose`. Keep `map_id` and a backend field for future outdoor support, but do not implement switching in this phase.
 
+Foxglove uses a separate adapter without bypassing Actions or safety gates: a clicked `PoseStamped` becomes `NavigateToPose`, a destination string becomes `NavigateNamedDestination`, and a Trigger service cancels the current goal. The adapter sends only under healthy structured localization, publishes destination markers/catalog/status, and never subscribes or publishes to `/cmd_vel*`.
+
 ## 8. Development phases and file scope
 
 ### Phase 0: freeze the baseline and evidence

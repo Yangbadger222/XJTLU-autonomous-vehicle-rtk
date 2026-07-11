@@ -798,7 +798,43 @@ sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
 
-### 实时连接
+### Travel 室内导航实时连接
+
+Travel 默认启动 Foxglove Bridge 和受控导航适配器，不需要再单独运行 bridge：
+
+```bash
+FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+如端口冲突，可直接传 `foxglove_port:=8766`。临时完全关闭 Bridge：
+
+```bash
+FYP_USE_FOXGLOVE=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+首次使用在 Foxglove 中导入仓库布局：
+
+```text
+src/bringup/foxglove/indoor_navigation.json
+```
+
+布局包含 3D 地图/机器人/点云/costmap/路径/安全区、定位状态、导航状态、地点目录、地点名发送、区域重定位、取消、日志和 Topic Graph。
+
+操作约定：
+
+- 3D 面板 `Publish -> 2D pose estimate` 发布到 `/initialpose`，用于手动定位降级。
+- 3D 面板 `Publish -> 2D pose` 发布到 `/foxglove/goal_pose`，由适配器转换为 Nav2 `NavigateToPose` Action。
+- `Navigate to destination` 面板把 `data` 改成地点 ID、显示名或 alias，发布到 `/foxglove/named_destination`。
+- `Relocalize in region` 调 `/localizer/global_relocalize`；`region` 留空代表全图搜索。
+- `Cancel navigation` 调 `/foxglove/cancel_navigation`，只取消适配器当前持有的目标。
+- `/foxglove/navigation/status` 显示目标来源、目标、定位状态、剩余距离和结果；地点会以 MarkerArray 显示在 3D 地图。
+
+安全门：适配器不订阅或发布任何 `/cmd_vel*`，Bridge 的 client-publish 白名单也只允许 `/initialpose`、`/foxglove/goal_pose` 和 `/foxglove/named_destination`，且不开放参数修改能力。只有 `/localizer/status` 同时满足 `LOCALIZED`、`localized=true`、`sensors_ready=true` 才发送目标；定位降级会取消当前目标，底层速度门仍独立执行零速保护。
+
+### 手动启动 Bridge（其它模式）
 
 要建立连接，请通过 SSH 登录到 Jetson 并运行：
 
@@ -807,6 +843,8 @@ ros2 run foxglove_bridge foxglove_bridge
 ```
 
 然后在您的电脑上打开 Foxglove，点击 **“Open Connection”** -> **“Foxglove WebSocket (default)”**，并输入 `ws://100.79.128.22:8765`
+
+Foxglove Bridge 没有项目级登录认证；只应通过受控局域网或 Tailscale 访问，不要把 `8765` 暴露到公网。
 
 输入完成后，点击中间视图的任意位置，左侧面板将开始加载许多选项。这可能需要一些时间，最多可能需要一分钟。
 

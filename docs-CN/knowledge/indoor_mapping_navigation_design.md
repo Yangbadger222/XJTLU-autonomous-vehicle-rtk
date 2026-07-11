@@ -340,6 +340,8 @@ NavigateNamedDestination
 
 第一版只调用室内 `NavigateToPose`。接口中保留 `map_id` 和 backend 字段，未来室外算法完成后再增加切换，不在本阶段实现。
 
+Foxglove 操作面通过独立适配器接入，不绕过 Action 和安全门：`PoseStamped` 点击目标转 `NavigateToPose`，地点字符串转 `NavigateNamedDestination`，Trigger Service 取消当前目标。适配器只在结构化定位状态健康时发目标，发布地点 MarkerArray/目录/状态，不得订阅或发布 `/cmd_vel*`。
+
 ## 8. 开发阶段与文件范围
 
 ### 阶段 0：固定基线与实车证据

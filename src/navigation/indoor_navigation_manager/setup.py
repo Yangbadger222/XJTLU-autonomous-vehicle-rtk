@@ -21,6 +21,7 @@ setup(
     entry_points={
         "console_scripts": [
             "indoor_navigation_manager_node = indoor_navigation_manager.manager_node:main",
+            "foxglove_navigation_adapter_node = indoor_navigation_manager.foxglove_adapter_node:main",
         ],
     },
 )

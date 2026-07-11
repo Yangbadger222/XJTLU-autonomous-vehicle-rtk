@@ -1,0 +1,229 @@
+{
+  "configById": {
+    "3D!indoor": {
+      "layers": {
+        "indoor-grid": {
+          "visible": true,
+          "frameLocked": true,
+          "label": "Indoor grid",
+          "instanceId": "indoor-grid",
+          "layerId": "foxglove.Grid",
+          "size": 30,
+          "divisions": 30,
+          "lineWidth": 1,
+          "color": "#6f737aff",
+          "position": [0, 0, 0],
+          "rotation": [0, 0, 0],
+          "order": 1
+        }
+      },
+      "cameraState": {
+        "perspective": true,
+        "distance": 18,
+        "phi": 45,
+        "thetaOffset": 135,
+        "targetOffset": [0, 0, 0],
+        "target": [0, 0, 0],
+        "targetOrientation": [0, 0, 0, 1],
+        "fovy": 45,
+        "near": 0.2,
+        "far": 500
+      },
+      "followMode": "follow-pose",
+      "scene": {
+        "transforms": {
+          "showLabel": false,
+          "editable": false,
+          "labelSize": 0.05,
+          "enablePreloading": false,
+          "lineWidth": 2
+        }
+      },
+      "transforms": {
+        "frame:map": {"visible": true},
+        "frame:odom": {"visible": true},
+        "frame:base_footprint": {"visible": true},
+        "frame:base_link": {"visible": false}
+      },
+      "topics": {
+        "/map": {
+          "visible": true,
+          "minColor": "#ffffffff",
+          "maxColor": "#1b1d20ff",
+          "unknownColor": "#68707866",
+          "frameLocked": true,
+          "colorMode": "map"
+        },
+        "/localizer/map_cloud": {
+          "visible": true,
+          "colorField": "intensity",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "pointSize": 2
+        },
+        "/fastlio2/body_cloud_localization": {
+          "visible": true,
+          "colorField": "z",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "pointSize": 2
+        },
+        "/fastlio2/body_cloud_nav2": {
+          "visible": false,
+          "colorField": "z",
+          "colorMode": "colormap",
+          "colorMap": "turbo",
+          "pointSize": 3
+        },
+        "/global_costmap/costmap": {
+          "visible": true,
+          "maxColor": "#e5393566",
+          "unknownColor": "#5735ff33",
+          "minColor": "#ffffff22",
+          "invalidColor": "#ff00ff55",
+          "colorMode": "costmap",
+          "alpha": 0.25
+        },
+        "/local_costmap/costmap": {
+          "visible": true,
+          "maxColor": "#ff174488",
+          "unknownColor": "#5f636833",
+          "minColor": "#ffffff11",
+          "invalidColor": "#ff00ff55",
+          "colorMode": "costmap",
+          "alpha": 0.35
+        },
+        "/plan": {
+          "visible": true,
+          "gradient": ["#00c8ffff", "#b6ff00ff"],
+          "lineWidth": 0.08
+        },
+        "/foxglove/navigation/destination_markers": {
+          "visible": true
+        },
+        "/travel_safety/stop_zone": {
+          "visible": true,
+          "color": "#ff1744aa"
+        },
+        "/travel_safety/slow_zone": {
+          "visible": true,
+          "color": "#ffc40088"
+        },
+        "/robot_description": {
+          "visible": true
+        }
+      },
+      "publish": {
+        "type": "pose_estimate",
+        "poseTopic": "/foxglove/goal_pose",
+        "pointTopic": "",
+        "poseEstimateTopic": "/initialpose",
+        "poseEstimateXDeviation": 0.3,
+        "poseEstimateYDeviation": 0.3,
+        "poseEstimateThetaDeviation": 0.17
+      },
+      "followTf": "map"
+    },
+    "RawMessages!localization": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/localizer/status"
+    },
+    "RawMessages!navigation": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/foxglove/navigation/status"
+    },
+    "RawMessages!destinations": {
+      "diffEnabled": false,
+      "diffMethod": "custom",
+      "diffTopicPath": "",
+      "showFullMessageForDiff": false,
+      "topicPath": "/foxglove/navigation/destinations"
+    },
+    "Publish!named": {
+      "buttonText": "Navigate to destination",
+      "buttonTooltip": "Send a destination ID, display name, or alias",
+      "advancedView": true,
+      "value": "{\n  \"data\": \"lab_101\"\n}",
+      "topicName": "/foxglove/named_destination",
+      "datatype": "std_msgs/msg/String",
+      "buttonColor": "#2e7d32"
+    },
+    "CallService!cancel": {
+      "requestPayload": "{}",
+      "layout": "vertical",
+      "timeoutSeconds": 5,
+      "serviceName": "/foxglove/cancel_navigation",
+      "editingMode": false,
+      "buttonText": "Cancel navigation",
+      "buttonColor": "#c62828",
+      "buttonTooltip": "Cancel the active Foxglove navigation goal"
+    },
+    "CallService!region": {
+      "requestPayload": "{\n  \"descriptor_index\": \"\",\n  \"region\": \"\",\n  \"max_candidates\": 5\n}",
+      "layout": "vertical",
+      "timeoutSeconds": 20,
+      "serviceName": "/localizer/global_relocalize",
+      "editingMode": true,
+      "buttonText": "Relocalize in region",
+      "buttonColor": "#1565c0",
+      "buttonTooltip": "Leave region empty for a whole-map search"
+    },
+    "TopicGraph!indoor": {},
+    "RosOut!indoor": {
+      "searchTerms": [],
+      "minLogLevel": 2
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {},
+  "playbackConfig": {
+    "speed": 1
+  },
+  "layout": {
+    "first": "3D!indoor",
+    "second": {
+      "first": {
+        "first": "RawMessages!localization",
+        "second": "RawMessages!navigation",
+        "direction": "row",
+        "splitPercentage": 50
+      },
+      "second": {
+        "first": {
+          "first": "Publish!named",
+          "second": "CallService!cancel",
+          "direction": "row",
+          "splitPercentage": 62
+        },
+        "second": {
+          "first": {
+            "first": "CallService!region",
+            "second": "RawMessages!destinations",
+            "direction": "row",
+            "splitPercentage": 55
+          },
+          "second": {
+            "first": "TopicGraph!indoor",
+            "second": "RosOut!indoor",
+            "direction": "row",
+            "splitPercentage": 55
+          },
+          "direction": "column",
+          "splitPercentage": 46
+        },
+        "direction": "column",
+        "splitPercentage": 25
+      },
+      "direction": "column",
+      "splitPercentage": 31
+    },
+    "direction": "row",
+    "splitPercentage": 68
+  }
+}

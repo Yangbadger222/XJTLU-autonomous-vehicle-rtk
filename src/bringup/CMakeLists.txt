@@ -14,6 +14,9 @@ install(DIRECTORY config/
 install(DIRECTORY behavior_trees/
   DESTINATION share/${PROJECT_NAME}/behavior_trees
 )
+install(DIRECTORY foxglove/
+  DESTINATION share/${PROJECT_NAME}/foxglove
+)
 
 install(DIRECTORY rviz/
   DESTINATION share/${PROJECT_NAME}/rviz

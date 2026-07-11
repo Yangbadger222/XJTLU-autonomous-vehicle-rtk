@@ -17,7 +17,8 @@ def test_fastlio2_publishes_separate_nav2_obstacle_cloud():
 
     assert "body_cloud_nav2_obstacles" in node_text
     assert "m_nav2_obstacle_cloud_pub" in node_text
-    assert "filterNav2ObstacleCloud" in node_text
+    assert "publishNav2ObstacleCloud" in node_text
+    assert "publishNav2ObstacleCloud(body_cloud, world_cloud, cloud_publish_time)" in node_text
     assert "nav2_obstacle_cloud_enabled" in commons_text
     assert "nav2_obstacle_cloud_enabled: true" in params_text
     assert "nav2_obstacle_cloud_max_z: 1.20" in params_text

@@ -6,6 +6,7 @@ um982_raw_driver:
     frame_id: gnss_raw
     output_topic: /gnss/raw/frame
     observation_topic: /gnss/raw/observation_epoch
+    ephemeris_topic: /gnss/raw/ephemeris
     diagnostics_topic: /gnss/raw/diagnostics
     read_chunk_bytes: 4096
     max_read_batches_per_tick: 16

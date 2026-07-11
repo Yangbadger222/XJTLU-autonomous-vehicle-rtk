@@ -28,7 +28,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
-| RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame and observation-epoch capture/bagging on a dedicated 921600 binary port |
+| RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame, observation-epoch, and ephemeris capture/bagging on a dedicated 921600 binary port |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.

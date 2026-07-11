@@ -1,4 +1,5 @@
 #include "um982_raw_driver/binary_framer.hpp"
+#include "um982_raw_driver/ephemeris_decoder.hpp"
 #include "um982_raw_driver/epoch_deduplicator.hpp"
 #include "um982_raw_driver/observation_decoder.hpp"
 
@@ -15,6 +16,7 @@
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "gnss_raw_msgs/msg/ephemeris.hpp"
 #include "gnss_raw_msgs/msg/observation.hpp"
 #include "gnss_raw_msgs/msg/observation_epoch.hpp"
 #include "gnss_raw_msgs/msg/raw_frame.hpp"
@@ -54,6 +56,8 @@ public:
     output_topic_ = declare_parameter<std::string>("output_topic", "/gnss/raw/frame");
     observation_topic_ =
       declare_parameter<std::string>("observation_topic", "/gnss/raw/observation_epoch");
+    ephemeris_topic_ =
+      declare_parameter<std::string>("ephemeris_topic", "/gnss/raw/ephemeris");
     diagnostics_topic_ =
       declare_parameter<std::string>("diagnostics_topic", "/gnss/raw/diagnostics");
     read_chunk_bytes_ = declare_parameter<int>("read_chunk_bytes", 4096);
@@ -76,6 +80,7 @@ public:
     frame_pub_ = create_publisher<gnss_raw_msgs::msg::RawFrame>(output_topic_, 100);
     observation_pub_ =
       create_publisher<gnss_raw_msgs::msg::ObservationEpoch>(observation_topic_, 50);
+    ephemeris_pub_ = create_publisher<gnss_raw_msgs::msg::Ephemeris>(ephemeris_topic_, 50);
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
 
@@ -218,6 +223,7 @@ private:
     message.data = frame.bytes;
     frame_pub_->publish(std::move(message));
     publishObservationEpoch(frame, current_frame_index, reception_stamp);
+    publishEphemeris(frame, current_frame_index, reception_stamp);
     have_valid_frame_ = true;
     last_valid_frame_ = std::chrono::steady_clock::now();
   }
@@ -287,6 +293,82 @@ private:
     observation_pub_->publish(std::move(message));
   }
 
+  void publishEphemeris(
+    const BinaryFrame & frame,
+    const std::uint64_t current_frame_index,
+    const rclcpp::Time & reception_stamp)
+  {
+    if (!isEphemerisMessage(frame.header.message_id)) {
+      return;
+    }
+    ++ephemeris_frames_seen_;
+    const auto decoded = decodeEphemerisFrame(frame);
+    if (!decoded.ok()) {
+      ++ephemeris_decode_failures_;
+      last_ephemeris_decode_error_ = decoded.reason;
+      return;
+    }
+    const auto & source = *decoded.ephemeris;
+    gnss_raw_msgs::msg::Ephemeris message;
+    message.header.stamp = reception_stamp;
+    message.header.frame_id = frame_id_;
+    message.source_port = port_;
+    message.frame_index = current_frame_index;
+    message.stream_offset = frame.stream_offset;
+    message.source_message_id = frame.header.message_id;
+    message.time_reference = frame.header.time_reference;
+    message.time_status = frame.header.time_status;
+    message.header_week = frame.header.week;
+    message.header_milliseconds_of_week = frame.header.milliseconds_of_week;
+    message.constellation = static_cast<std::uint8_t>(source.constellation);
+    message.prn = source.prn;
+    message.model = static_cast<std::uint8_t>(source.model);
+    message.reference_frame = static_cast<std::uint8_t>(source.reference_frame);
+    message.health = source.health;
+    message.issue_of_data_ephemeris = source.issue_of_data_ephemeris;
+    message.issue_of_data_clock = source.issue_of_data_clock;
+    message.week = source.week;
+    message.toe_s = source.toe_s;
+    message.toc_s = source.toc_s;
+    message.semi_major_axis_m = source.semi_major_axis_m;
+    message.delta_mean_motion_rad_s = source.delta_mean_motion_rad_s;
+    message.mean_anomaly_rad = source.mean_anomaly_rad;
+    message.eccentricity = source.eccentricity;
+    message.argument_of_perigee_rad = source.argument_of_perigee_rad;
+    message.cuc_rad = source.cuc_rad;
+    message.cus_rad = source.cus_rad;
+    message.crc_m = source.crc_m;
+    message.crs_m = source.crs_m;
+    message.cic_rad = source.cic_rad;
+    message.cis_rad = source.cis_rad;
+    message.inclination_rad = source.inclination_rad;
+    message.inclination_rate_rad_s = source.inclination_rate_rad_s;
+    message.ascending_node_rad = source.ascending_node_rad;
+    message.ascending_node_rate_rad_s = source.ascending_node_rate_rad_s;
+    message.clock_bias_s = source.clock_bias_s;
+    message.clock_drift_s_s = source.clock_drift_s_s;
+    message.clock_drift_rate_s_s2 = source.clock_drift_rate_s_s2;
+    message.group_delay_1_s = source.group_delay_1_s;
+    message.group_delay_2_s = source.group_delay_2_s;
+    message.group_delay_1_valid = source.group_delay_1_valid;
+    message.group_delay_2_valid = source.group_delay_2_valid;
+    message.corrected_mean_motion_rad_s = source.corrected_mean_motion_rad_s;
+    message.ura_variance_m2 = source.ura_variance_m2;
+    message.ura_variance_valid = source.ura_variance_valid;
+    message.accuracy_index = source.accuracy_index;
+    message.glonass_frequency_channel = source.glonass_frequency_channel;
+    message.position_ecef_m = source.position_ecef_m;
+    message.velocity_ecef_m_s = source.velocity_ecef_m_s;
+    message.acceleration_ecef_m_s2 = source.acceleration_ecef_m_s2;
+    message.glonass_clock_bias_s = source.glonass_clock_bias_s;
+    message.glonass_relative_frequency_bias = source.glonass_relative_frequency_bias;
+    message.glonass_l1_l2_delay_s = source.glonass_l1_l2_delay_s;
+    message.glonass_frame_time_s = source.glonass_frame_time_s;
+    message.glonass_flags = source.glonass_flags;
+    ++ephemerides_published_;
+    ephemeris_pub_->publish(std::move(message));
+  }
+
   void publishDiagnostics()
   {
     diagnostic_msgs::msg::DiagnosticArray array;
@@ -305,9 +387,9 @@ private:
     } else if (!have_valid_frame_ || frame_age_s > stale_frame_timeout_s_) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
       status.message = "NO_RECENT_VALID_FRAME";
-    } else if (observation_decode_failures_ != 0U) {
+    } else if (observation_decode_failures_ != 0U || ephemeris_decode_failures_ != 0U) {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-      status.message = "OBSERVATION_DECODE_FAILURE";
+      status.message = "CANONICAL_DECODE_FAILURE";
     } else {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
       status.message = "STREAMING";
@@ -339,6 +421,12 @@ private:
       numericKeyValue("epoch_dedup_entries", epoch_deduplicator_->size()));
     status.values.push_back(
       keyValue("last_observation_decode_error", last_observation_decode_error_));
+    status.values.push_back(numericKeyValue("ephemeris_frames_seen", ephemeris_frames_seen_));
+    status.values.push_back(numericKeyValue("ephemerides_published", ephemerides_published_));
+    status.values.push_back(
+      numericKeyValue("ephemeris_decode_failures", ephemeris_decode_failures_));
+    status.values.push_back(
+      keyValue("last_ephemeris_decode_error", last_ephemeris_decode_error_));
     array.status.push_back(std::move(status));
     diagnostics_pub_->publish(std::move(array));
   }
@@ -348,6 +436,7 @@ private:
   std::string frame_id_;
   std::string output_topic_;
   std::string observation_topic_;
+  std::string ephemeris_topic_;
   std::string diagnostics_topic_;
   int read_chunk_bytes_ = 4096;
   int max_read_batches_ = 16;
@@ -372,11 +461,16 @@ private:
   std::uint64_t observation_decode_failures_ = 0;
   std::uint64_t duplicate_observation_epochs_ = 0;
   std::string last_observation_decode_error_;
+  std::uint64_t ephemeris_frames_seen_ = 0;
+  std::uint64_t ephemerides_published_ = 0;
+  std::uint64_t ephemeris_decode_failures_ = 0;
+  std::string last_ephemeris_decode_error_;
   std::unique_ptr<BinaryFramer> framer_;
   std::unique_ptr<EpochDeduplicator> epoch_deduplicator_;
 
   rclcpp::Publisher<gnss_raw_msgs::msg::RawFrame>::SharedPtr frame_pub_;
   rclcpp::Publisher<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr observation_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_pub_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
   rclcpp::TimerBase::SharedPtr read_timer_;
   rclcpp::TimerBase::SharedPtr diagnostics_timer_;

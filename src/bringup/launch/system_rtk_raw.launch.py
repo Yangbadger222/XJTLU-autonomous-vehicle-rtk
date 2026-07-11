@@ -43,6 +43,7 @@ def generate_launch_description():
             bag_dir,
             "/gnss/raw/frame",
             "/gnss/raw/observation_epoch",
+            "/gnss/raw/ephemeris",
             "/gnss/raw/diagnostics",
         ],
         output="log",

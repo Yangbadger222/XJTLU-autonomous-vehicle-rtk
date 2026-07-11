@@ -660,11 +660,13 @@ ros2 topic hz /gnss/raw/frame
 ros2 topic echo /gnss/raw/frame --once
 ros2 topic hz /gnss/raw/observation_epoch
 ros2 topic echo /gnss/raw/observation_epoch --once
+ros2 topic hz /gnss/raw/ephemeris
+ros2 topic echo /gnss/raw/ephemeris --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-Phase 1 and the uncompressed-observation subset of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs with normalized pseudorange, carrier phase, Doppler, standard deviations, C/N0, lock time, validity, constellation, and signal type, plus bounded receiver + week/TOW deduplication. Compressed observations, RTCM fallback, ephemerides, and satellite-state calculation remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
+Phase 1 plus the uncompressed-observation and broadcast-ephemeris canonicalization subsets of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Every payload receives exact-length, PRN, time, finite-value, and orbit-range validation. Compressed observations, RTCM fallback, satellite-state propagation, and a real UART fixture remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

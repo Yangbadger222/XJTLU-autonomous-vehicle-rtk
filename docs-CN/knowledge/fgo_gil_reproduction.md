@@ -8,7 +8,7 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 OBSVM/OBSVH/OBSVBASE 的 40-byte record 严格解码、物理量缩放、tracking-status 语义、星座/PRN 检查、非有限拒绝和 receiver + week/TOW 有界去重。尚未接入真实 raw UART fixture，也尚未实现 compressed observation、RTCM fallback、星历或 satellite-state。
+当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 OBSVM/OBSVH/OBSVBASE 严格解码与 receiver + week/TOW 有界去重，并将 GPSEPH/GLOEPH/BDSEPH/GALEPH/QZSSEPH 归一化为协议无关 broadcast ephemeris。尚未接入真实 raw UART fixture，也尚未实现 compressed observation、RTCM fallback 或 satellite-state 轨道传播。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -305,7 +305,8 @@ time_sync:
 - [ ] 固件支持时解码 OBSVMCMP/OBSVHCMP。
 - [x] 解码非压缩 OBSVBASE。
 - [ ] 若 CORS 不提供 OBSVBASE，增加 RTCM MSM 到 canonical epoch 的适配层。
-- [ ] 解码所用星座星历并计算 satellite state。
+- [x] 解码并归一化 GPS、GLONASS、BDS、Galileo、QZSS broadcast ephemeris。
+- [ ] 由 broadcast ephemeris 计算 satellite state。
 - [x] 保留 week/TOW/time status，并按 receiver + week/TOW 有界去重。
 - [ ] 增加显式 week rollover 和接收机时间重置策略。
 

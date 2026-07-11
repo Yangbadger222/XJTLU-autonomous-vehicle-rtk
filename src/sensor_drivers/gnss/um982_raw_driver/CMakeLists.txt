@@ -16,6 +16,7 @@ find_package(serial REQUIRED)
 
 add_library(um982_binary_framer
   src/binary_framer.cpp
+  src/ephemeris_decoder.cpp
   src/epoch_deduplicator.cpp
   src/observation_decoder.cpp
 )
@@ -65,6 +66,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_epoch_deduplicator test/test_epoch_deduplicator.cpp)
   target_include_directories(test_epoch_deduplicator PRIVATE include)
   target_link_libraries(test_epoch_deduplicator um982_binary_framer)
+
+  ament_add_gtest(test_ephemeris_decoder test/test_ephemeris_decoder.cpp)
+  target_include_directories(test_ephemeris_decoder PRIVATE include)
+  target_link_libraries(test_ephemeris_decoder um982_binary_framer)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

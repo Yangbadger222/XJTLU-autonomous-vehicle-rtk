@@ -661,11 +661,13 @@ ros2 topic hz /gnss/raw/frame
 ros2 topic echo /gnss/raw/frame --once
 ros2 topic hz /gnss/raw/observation_epoch
 ros2 topic echo /gnss/raw/observation_epoch --once
+ros2 topic hz /gnss/raw/ephemeris
+ros2 topic echo /gnss/raw/ephemeris --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-当前已完成 Phase 1 以及 Phase 2 的非压缩 observation 子集：ID 12/13/284 分别发布 master/secondary/base epoch，伪距、载波相位、Doppler、标准差、C/N0、lock time、validity、星座和 signal type 已规范化，并按 receiver + week/TOW 有界去重。compressed observation、RTCM fallback、星历和 satellite-state 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
+当前已完成 Phase 1、Phase 2 的非压缩 observation 和 broadcast ephemeris canonicalization：ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。所有 payload 都执行精确长度、PRN、时间、有限值和轨道范围检查。compressed observation、RTCM fallback、satellite-state 轨道传播和真实 UART fixture 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
 
 ## RTK FGO 紧耦合 shadow mode
 

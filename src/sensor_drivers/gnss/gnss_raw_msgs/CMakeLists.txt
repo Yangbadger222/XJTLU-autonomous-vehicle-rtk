@@ -10,6 +10,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Ephemeris.msg"
   "msg/Observation.msg"
   "msg/ObservationEpoch.msg"
   "msg/RawFrame.msg"

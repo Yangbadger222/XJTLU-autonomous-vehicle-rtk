@@ -25,6 +25,8 @@ def test_adapter_uses_actions_and_never_writes_velocity():
     assert "ChassisStatus.CTRL_MODE_HOST" in text
     assert '"chassis motors are disabled' in text
     assert '"chassis left host serial mode; canceling active goal"' in text
+    assert 'self.declare_parameter("chassis_cancel_grace_s", 1.0)' in text
+    assert "def enforce_chassis_mode_grace(self):" in text
     assert "lookup_transform(" in text
     assert '"map", source_frame, Time()' in text
     assert "do_transform_pose_stamped" in text

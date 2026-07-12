@@ -64,6 +64,7 @@ class FoxgloveNavigationAdapter(Node):
         self.declare_parameter("navigate_to_pose_action", "/navigate_to_pose")
         self.declare_parameter("named_navigation_action", "/navigate_named_destination")
         self.declare_parameter("localization_cancel_grace_s", 5.0)
+        self.declare_parameter("chassis_cancel_grace_s", 1.0)
 
         destinations_file = str(self.get_parameter("destinations_file").value)
         if not destinations_file:
@@ -102,6 +103,10 @@ class FoxgloveNavigationAdapter(Node):
             0.0,
             float(self.get_parameter("localization_cancel_grace_s").value),
         )
+        self.chassis_cancel_grace_s = max(
+            0.0,
+            float(self.get_parameter("chassis_cancel_grace_s").value),
+        )
         self.goal_pose_subscriptions = [
             self.create_subscription(
                 PoseStamped, goal_pose_topic, self.on_pose_goal, 10
@@ -136,6 +141,7 @@ class FoxgloveNavigationAdapter(Node):
         self.localized = False
         self.chassis_mode = None
         self.chassis_ready = False
+        self.chassis_not_ready_since = None
         self.last_localization_ready = None
         self.localization_not_ready_since = None
         self.localization_state = "UNINITIALIZED"
@@ -147,6 +153,7 @@ class FoxgloveNavigationAdapter(Node):
         self.active_target = ""
         self.remaining_distance = float("nan")
         self.create_timer(0.1, self.enforce_localization_loss_grace)
+        self.create_timer(0.1, self.enforce_chassis_mode_grace)
         self.publish_catalog()
         self.publish_destination_markers()
         self.publish_status("IDLE", "waiting for localization")
@@ -180,7 +187,7 @@ class FoxgloveNavigationAdapter(Node):
         self.status_pub.publish(msg)
         if state in ("REJECTED", "FAILED"):
             self.get_logger().warning(f"{state}: {message}")
-        elif state in ("SENDING", "SUCCEEDED", "CANCELED"):
+        elif state in ("SENDING", "CANCELING", "SUCCEEDED", "CANCELED"):
             self.get_logger().info(f"{state}: {message}")
 
     def publish_catalog(self):
@@ -309,26 +316,42 @@ class FoxgloveNavigationAdapter(Node):
     def on_chassis_status(self, msg):
         was_ready = self.chassis_ready
         self.chassis_mode = int(msg.ctrl_mode)
-        self.chassis_ready = self.chassis_mode == ChassisStatus.CTRL_MODE_HOST
-        if not self.chassis_ready and self.active_goal_handle is not None:
-            if not self.cancel_requested:
-                self.cancel_requested = True
-                self.active_goal_handle.cancel_goal_async()
-                self.publish_status(
-                    "CANCELING", "chassis left host serial mode; canceling active goal"
-                )
-        elif not self.chassis_ready and self.pending_goal:
-            self.cancel_when_accepted = True
-            self.publish_status(
-                "CANCELING", "chassis left host serial mode before goal acceptance"
-            )
-        elif was_ready != self.chassis_ready and self.active_goal_handle is None:
+        raw_ready = self.chassis_mode == ChassisStatus.CTRL_MODE_HOST
+        if raw_ready:
+            self.chassis_not_ready_since = None
+            self.chassis_ready = True
+        elif self.chassis_not_ready_since is None:
+            self.chassis_not_ready_since = self.get_clock().now()
+        if was_ready != self.chassis_ready and self.active_goal_handle is None:
             self.publish_status(
                 "IDLE",
                 "ready for navigation"
                 if self.chassis_ready and self.localized
                 else self.chassis_unavailable_message(),
             )
+
+    def enforce_chassis_mode_grace(self):
+        if self.chassis_not_ready_since is None or self.chassis_ready is False:
+            return
+        elapsed_s = (
+            self.get_clock().now() - self.chassis_not_ready_since
+        ).nanoseconds * 1.0e-9
+        if elapsed_s < self.chassis_cancel_grace_s:
+            return
+        self.chassis_ready = False
+        if self.active_goal_handle is not None and not self.cancel_requested:
+            self.cancel_requested = True
+            self.active_goal_handle.cancel_goal_async()
+            self.publish_status(
+                "CANCELING", "chassis left host serial mode; canceling active goal"
+            )
+        elif self.pending_goal:
+            self.cancel_when_accepted = True
+            self.publish_status(
+                "CANCELING", "chassis left host serial mode before goal acceptance"
+            )
+        else:
+            self.publish_status("IDLE", self.chassis_unavailable_message())
 
     def chassis_unavailable_message(self):
         if self.chassis_mode == ChassisStatus.CTRL_MODE_DISABLED:

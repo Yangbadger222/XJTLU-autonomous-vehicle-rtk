@@ -10,8 +10,11 @@ from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+from rclpy.time import Time
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+from tf2_geometry_msgs import do_transform_pose_stamped
+from tf2_ros import Buffer, TransformException, TransformListener
 from visualization_msgs.msg import Marker, MarkerArray
 
 from indoor_navigation_manager.destinations import load_destinations
@@ -114,6 +117,8 @@ class FoxgloveNavigationAdapter(Node):
         self.named_client = ActionClient(
             self, NavigateNamedDestination, named_action
         )
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.localized = False
         self.last_localization_ready = None
@@ -265,15 +270,13 @@ class FoxgloveNavigationAdapter(Node):
         return True
 
     def on_pose_goal(self, msg):
+        source_frame = (msg.header.frame_id or "map").lstrip("/")
         self.get_logger().info(
             "Received pose goal: "
-            f"frame={msg.header.frame_id or 'map'} "
+            f"frame={source_frame} "
             f"x={msg.pose.position.x:.3f} y={msg.pose.position.y:.3f}"
         )
         if not self.goal_is_available():
-            return
-        if msg.header.frame_id not in ("", "map"):
-            self.publish_status("REJECTED", "pose goal frame must be map")
             return
         if not pose_is_finite(msg.pose):
             self.publish_status("REJECTED", "pose goal is invalid")
@@ -281,14 +284,36 @@ class FoxgloveNavigationAdapter(Node):
         if not self.pose_client.server_is_ready():
             self.publish_status("REJECTED", "navigate_to_pose action is unavailable")
             return
+
+        pose_goal = msg
+        if source_frame != "map":
+            try:
+                transform = self.tf_buffer.lookup_transform(
+                    "map", source_frame, Time()
+                )
+                pose_goal = do_transform_pose_stamped(msg, transform)
+            except TransformException as exc:
+                self.publish_status(
+                    "REJECTED",
+                    f"cannot transform pose goal from {source_frame} to map: {exc}",
+                )
+                return
+            self.get_logger().info(
+                f"Transformed pose goal from {source_frame} to map: "
+                f"x={pose_goal.pose.position.x:.3f} "
+                f"y={pose_goal.pose.position.y:.3f}"
+            )
+
         goal = NavigateToPose.Goal()
-        goal.pose = msg
+        goal.pose = pose_goal
         goal.pose.header.frame_id = "map"
         goal.pose.header.stamp = self.get_clock().now().to_msg()
         goal.pose.pose.position.z = 0.0
         normalize_pose_quaternion(goal.pose.pose)
         self.active_source = "pose"
-        self.active_target = f"{msg.pose.position.x:.2f}, {msg.pose.position.y:.2f}"
+        self.active_target = (
+            f"{pose_goal.pose.position.x:.2f}, {pose_goal.pose.position.y:.2f}"
+        )
         self.send_goal(
             self.pose_client,
             goal,

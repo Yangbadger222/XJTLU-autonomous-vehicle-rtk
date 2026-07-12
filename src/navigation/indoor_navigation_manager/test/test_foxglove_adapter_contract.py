@@ -21,6 +21,9 @@ def test_adapter_uses_actions_and_never_writes_velocity():
     assert '"/move_base_simple/goal"' in text
     assert '"/foxglove/named_destination"' in text
     assert '"/foxglove/cancel_navigation"' in text
+    assert "lookup_transform(" in text
+    assert '"map", source_frame, Time()' in text
+    assert "do_transform_pose_stamped" in text
     assert '"/cmd_vel"' not in text
     assert '"/cmd_vel_safe"' not in text
 
@@ -80,7 +83,13 @@ def test_adapter_is_packaged_with_required_ros_dependencies():
     package_text = PACKAGE_XML.read_text(encoding="utf-8")
 
     assert "foxglove_navigation_adapter_node" in setup_text
-    for dependency in ("std_msgs", "std_srvs", "visualization_msgs"):
+    for dependency in (
+        "std_msgs",
+        "std_srvs",
+        "tf2_geometry_msgs",
+        "tf2_ros",
+        "visualization_msgs",
+    ):
         assert f"<depend>{dependency}</depend>" in package_text
 
 

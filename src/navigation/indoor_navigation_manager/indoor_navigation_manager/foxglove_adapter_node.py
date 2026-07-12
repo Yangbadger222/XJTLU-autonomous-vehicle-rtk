@@ -63,7 +63,7 @@ class FoxgloveNavigationAdapter(Node):
         self.declare_parameter("chassis_status_topic", "/chassis/status")
         self.declare_parameter("navigate_to_pose_action", "/navigate_to_pose")
         self.declare_parameter("named_navigation_action", "/navigate_named_destination")
-        self.declare_parameter("localization_cancel_grace_s", 2.5)
+        self.declare_parameter("localization_cancel_grace_s", 5.0)
 
         destinations_file = str(self.get_parameter("destinations_file").value)
         if not destinations_file:

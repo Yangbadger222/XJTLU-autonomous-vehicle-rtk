@@ -109,9 +109,10 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "rotate_to_heading_angular_vel: 0.30" in controller_text
     assert "max_angular_accel: 0.80" in controller_text
     assert "rotate_to_goal_heading: true" in controller_text
-    assert "time_steps: 48" in controller_text
+    assert "time_steps: 40" in controller_text
     assert "model_dt: 0.05" in controller_text
-    assert "batch_size: 300" in controller_text
+    assert "batch_size: 200" in controller_text
+    assert "failure_tolerance: 2.0" in controller_text
     assert "vx_std: 0.16" in controller_text
     assert "wz_std: 0.14" in controller_text
     assert "vx_max: 0.30" in controller_text

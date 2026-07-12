@@ -52,8 +52,8 @@ def test_localizer_config_enables_gated_runtime_correction():
     assert "correction_alpha: 0.15" in text
     assert "max_correction_translation_m: 0.30" in text
     assert "max_correction_yaw_rad: 0.20" in text
-    assert "max_consecutive_failures: 5" in text
-    assert "degraded_grace_s: 2.5" in text
+    assert "max_consecutive_failures: 8" in text
+    assert "degraded_grace_s: 5.0" in text
     assert "refine_score_thresh: 0.12" in text
     assert "global_retry_interval_s: 3.0" in text
     assert "global_max_automatic_attempts: 5" in text

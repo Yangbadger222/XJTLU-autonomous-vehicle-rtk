@@ -49,3 +49,10 @@ nav2_obstacle_self_filter_min_x: -0.40
 nav2_obstacle_self_filter_max_x: 0.40
 nav2_obstacle_self_filter_min_y: -0.30
 nav2_obstacle_self_filter_max_y: 0.30
+nav2_obstacle_self_patch_enabled: true
+nav2_obstacle_self_patch_min_x: 0.40
+nav2_obstacle_self_patch_max_x: 0.82
+nav2_obstacle_self_patch_min_y: -0.35
+nav2_obstacle_self_patch_max_y: -0.14
+nav2_obstacle_self_patch_min_z: 0.25
+nav2_obstacle_self_patch_max_z: 0.42

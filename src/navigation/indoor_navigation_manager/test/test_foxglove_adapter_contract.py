@@ -137,7 +137,7 @@ def test_importable_layout_contains_navigation_controls_and_views():
 def test_active_goal_uses_bounded_localization_loss_grace():
     text = ADAPTER.read_text(encoding="utf-8")
 
-    assert 'self.declare_parameter("localization_cancel_grace_s", 2.5)' in text
+    assert 'self.declare_parameter("localization_cancel_grace_s", 5.0)' in text
     assert "def enforce_localization_loss_grace(self):" in text
     assert "localization temporarily unavailable; holding position" in text
     assert "localization unavailable beyond grace period" in text

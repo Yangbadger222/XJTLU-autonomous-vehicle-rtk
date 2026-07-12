@@ -69,6 +69,13 @@ struct Config
     double nav2_obstacle_self_filter_max_x = 0.40;
     double nav2_obstacle_self_filter_min_y = -0.30;
     double nav2_obstacle_self_filter_max_y = 0.30;
+    bool nav2_obstacle_self_patch_enabled = false;
+    double nav2_obstacle_self_patch_min_x = 0.40;
+    double nav2_obstacle_self_patch_max_x = 0.82;
+    double nav2_obstacle_self_patch_min_y = -0.35;
+    double nav2_obstacle_self_patch_max_y = -0.14;
+    double nav2_obstacle_self_patch_min_z = 0.25;
+    double nav2_obstacle_self_patch_max_z = 0.42;
 };
 
 struct IMUData

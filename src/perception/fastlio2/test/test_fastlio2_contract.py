@@ -29,6 +29,11 @@ def test_fastlio2_publishes_separate_nav2_obstacle_cloud():
     assert "nav2_obstacle_self_filter_max_x: 0.40" in params_text
     assert "nav2_obstacle_self_filter_min_y: -0.30" in params_text
     assert "nav2_obstacle_self_filter_max_y: 0.30" in params_text
+    assert "nav2_obstacle_self_patch_enabled" in commons_text
+    assert "nav2_obstacle_self_patch_enabled: true" in params_text
+    assert "nav2_obstacle_self_patch_max_x: 0.82" in params_text
+    assert "nav2_obstacle_self_patch_min_z: 0.25" in params_text
+    assert "inside_measured_patch" in node_text
     assert '("cloud_in", "/fastlio2/body_cloud_nav2_obstacles")' in launch_text
     assert "topic: /fastlio2/body_cloud_nav2" in nav2_text
 

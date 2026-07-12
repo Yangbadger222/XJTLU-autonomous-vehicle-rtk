@@ -248,7 +248,7 @@ controller_server:
     min_theta_velocity_threshold: 0.001
     # 控制失败容忍度；决定局部控制短时失败时还能容忍多大误差。
     # 调大：系统更宽容、不易立刻失败；调小：更严格、更快进入恢复。
-    failure_tolerance: 0.6
+    failure_tolerance: 2.0
     # 进度检查器名称；用于选择 controller server 里启用哪一个卡住判定器。
     # 改错名称：控制器会找不到对应检查器并启动失败。
     progress_checker_plugin: "progress_checker"
@@ -297,9 +297,9 @@ controller_server:
       max_angular_accel: 0.80
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: true
-      time_steps: 48
+      time_steps: 40
       model_dt: 0.05
-      batch_size: 300
+      batch_size: 200
       vx_std: 0.16
       vy_std: 0.0
       wz_std: 0.14

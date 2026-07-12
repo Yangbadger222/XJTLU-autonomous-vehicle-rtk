@@ -40,7 +40,7 @@ Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud (2D LaserScan 低窗)
                                   -> /fastlio2/lio_odom
                                   -> TF: odom -> base_footprint -> base_link
 
-/fastlio2/body_cloud -> pointcloud_to_laserscan -> /scan
+/fastlio2/body_cloud -> pointcloud_to_laserscan（base_footprint 矩形车体自滤波）-> /scan
                                              |
                                              v
                                       SLAM Toolbox -> /map
@@ -56,7 +56,7 @@ scripts/save_mapping_session.sh <map_name>
   -> 写 manifest.yaml；静止、frame、完整性或标定门槛失败时拒绝 Travel 加载
 ```
 
-SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `slam_toolbox_mapping.yaml` 并独占 `map -> odom`，PGO 以 `publish_tf=false` 保存三维地图。launch 默认录制 lean 证据 bag，debug profile 才加入原始点云。保存脚本要求 FAST-LIO2 与底盘连续静止、frame 一致、关键帧完整且 2D/3D 配准通过。RTK `use_rtk:=true` 仅用于记录后续地理配准证据，室内 invalid/float 不作为强约束。
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `slam_toolbox_mapping.yaml` 并独占 `map -> odom`，PGO 以 `publish_tf=false` 保存三维地图。建图专用 LaserScan 参数先把点云变换到 `base_footprint`，再排除 `x=[-0.35,0.35]m, y=[-0.275,0.275]m` 的矩形车体外廓，防止车体反射随轨迹写入 2D 地图；该参数不影响 Travel/Corridor 实时障碍云。launch 默认录制 lean 证据 bag，debug profile 才加入原始点云。保存脚本要求 FAST-LIO2 与底盘连续静止、frame 一致、关键帧完整且 2D/3D 配准通过。RTK `use_rtk:=true` 仅用于记录后续地理配准证据，室内 invalid/float 不作为强约束。
 
 ## 5. Explore 模式数据流
 

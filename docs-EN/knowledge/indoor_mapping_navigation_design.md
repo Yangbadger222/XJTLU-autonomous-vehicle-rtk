@@ -175,6 +175,8 @@ One low-height cloud must not continue serving mapping, relocalization, and obst
 
 Exact height ranges must be determined from vehicle PCD statistics. Mapping and Travel must use identical localization-cloud filtering rules.
 
+Mapping projection enables a rectangular self-filter in `base_footprint`. The measured `650x500mm` body receives a `25mm` margin per side, excluding points inside `x=[-0.35,0.35]m, y=[-0.275,0.275]m`. A rectangle is preferable to one large `range_min`: covering the vehicle corners with a radius would also discard useful near-field wall returns beyond the rectangular front and sides. This filter affects mapping `/scan` only; it does not change FAST-LIO2 matching, the PGO localization structure cloud, or Travel/Corridor live obstacle clouds. A real overhanging object inside the body envelope will also be excluded, so the bounds must remain tied to measured dimensions plus a small margin rather than the Nav2 inflation radius. Rebuilt maps still require narrow-door, table-leg, and low-obstacle inspection.
+
 ### 6.2 Repository-owned Slam Toolbox configuration
 
 Add `slam_toolbox_mapping.yaml` under version control instead of loading the installed default YAML. At minimum, pin:

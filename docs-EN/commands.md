@@ -327,6 +327,12 @@ scripts/save_mapping_session.sh <map_name>
 python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
 # Recompute only calibration/overlay/descriptor region labels/manifest without ROS save calls
 scripts/save_mapping_session.sh <map_name> --recalibrate-only
+
+# Remove only isolated occupied components up to three cells from a saved PGM.
+# Always write a new image and inspect it before replacing the active map.
+python3 scripts/clean_occupancy_map.py \
+  runtime-data/maps/indoor/<map_name>/navigation/map.pgm \
+  runtime-data/maps/indoor/<map_name>/navigation/map.cleaned.pgm
 ```
 
 Output:
@@ -349,6 +355,7 @@ Notes:
 - `patch_pose_integrity.ok` must be `true`, meaning `patches/*.pcd` and `poses.txt` keyframes are one-to-one
 - `frame_check.ok` must be `true`; by default `/scan.header.frame_id` and `/fastlio2/lio_odom.child_frame_id` are expected to be `base_footprint`. If the vehicle's FAST-LIO2 child frame is different, confirm it with `view_frames`/`tf2_echo` first, then save with `--expected-base-frame <frame>`
 - Later indoor/outdoor geo-registration must use RTK Fixed samples plus heading; indoor invalid/float RTK samples are records only, not strong constraints
+- Isolated-point cleanup uses 8-connectivity and defaults to occupied components of only one to three cells (`0.0025~0.0075m2`). It restores each component from its boundary majority as either free or unknown, never paints all unknown edges free, and preserves columns, furniture, and walls larger than three cells. Back up `map.pgm` and inspect the result before replacing the active image
 
 Low-level troubleshooting commands:
 

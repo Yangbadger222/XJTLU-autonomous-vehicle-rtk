@@ -328,6 +328,11 @@ scripts/save_mapping_session.sh <map_name>
 python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
 # 已保存地图只重算标定/叠加图/描述子区域标签/manifest，不调用 ROS 保存服务
 scripts/save_mapping_session.sh <map_name> --recalibrate-only
+
+# 仅清除已保存 PGM 中最多 3 格的孤立占用块；始终输出到新文件，检查后再替换
+python3 scripts/clean_occupancy_map.py \
+  runtime-data/maps/indoor/<map_name>/navigation/map.pgm \
+  runtime-data/maps/indoor/<map_name>/navigation/map.cleaned.pgm
 ```
 
 输出：
@@ -350,6 +355,7 @@ runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 - `patch_pose_integrity.ok` 必须为 `true`，即 `patches/*.pcd` 与 `poses.txt` 关键帧一一对应
 - `frame_check.ok` 必须为 `true`，默认要求 `/scan.header.frame_id` 与 `/fastlio2/lio_odom.child_frame_id` 都是 `base_footprint`；如果现场 FAST-LIO2 使用别的子坐标系，先用 `view_frames`/`tf2_echo` 确认，再用 `--expected-base-frame <frame>` 保存
 - 后续室内外地理配准必须使用 RTK Fixed 样本和航向，室内 invalid/float RTK 只能记录，不能当强约束
+- 孤立点清理采用 8 连通域，默认只处理 1–3 格（`0.0025~0.0075m2`）的占用块，并按边界多数恢复为自由或未知；不会把未知区统一涂成自由。大于 3 格的柱子、家具和墙体原样保留。替换 `map.pgm` 前必须保留备份并检查可视化结果
 
 底层故障排查命令：
 

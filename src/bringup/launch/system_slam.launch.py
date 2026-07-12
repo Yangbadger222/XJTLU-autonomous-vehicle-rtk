@@ -115,7 +115,12 @@ def generate_launch_description():
         executable="pointcloud_to_laserscan_node",
         name="pointcloud_to_laserscan",
         output="screen",
-        parameters=[master_params_file],
+        parameters=[
+            master_params_file,
+            os.path.join(
+                bringup_share, "config", "pointcloud_to_laserscan_mapping.yaml"
+            ),
+        ],
         remappings=[
             ("cloud_in", "/fastlio2/body_cloud"),
             ("scan", "/scan"),

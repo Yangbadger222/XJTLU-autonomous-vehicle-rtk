@@ -6,6 +6,7 @@ import yaml
 SLAM_LAUNCH = Path("src/bringup/launch/system_slam.launch.py")
 SLAM_PARAMS = Path("src/bringup/config/slam_toolbox_mapping.yaml")
 PGO_SLAM_PARAMS = Path("src/perception/pgo/config/pgo_slam.yaml")
+SCAN_PARAMS = Path("src/bringup/config/pointcloud_to_laserscan_mapping.yaml")
 
 
 def _slam_config():
@@ -58,6 +59,20 @@ def test_slam_wires_fastlio_cloud_to_laserscan_and_delays_mapper_start():
     assert "map_saver_server" in text
     assert "lifecycle_manager_mapping" in text
     assert "robot_description.launch.py" in text
+
+
+def test_slam_scan_projection_filters_the_measured_vehicle_envelope():
+    launch_text = SLAM_LAUNCH.read_text(encoding="utf-8")
+    data = yaml.safe_load(SCAN_PARAMS.read_text(encoding="utf-8"))
+    config = data["/pointcloud_to_laserscan"]["ros__parameters"]
+
+    assert '"config", "pointcloud_to_laserscan_mapping.yaml"' in launch_text
+    assert config["target_frame"] == "base_footprint"
+    assert config["self_filter.enabled"] is True
+    assert config["self_filter.min_x"] == -0.35
+    assert config["self_filter.max_x"] == 0.35
+    assert config["self_filter.min_y"] == -0.275
+    assert config["self_filter.max_y"] == 0.275
 
 
 def test_slam_records_replayable_mapping_evidence_by_default():

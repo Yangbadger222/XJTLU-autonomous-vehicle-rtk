@@ -23,8 +23,11 @@ ament_auto_add_executable(dummy_pointcloud_publisher
 )
 
 if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+
+  ament_add_gtest(test_self_filter test/test_self_filter.cpp)
 endif()
 
 ament_auto_package(

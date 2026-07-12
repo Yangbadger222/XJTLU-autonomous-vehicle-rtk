@@ -177,6 +177,8 @@ Travel 必须拒绝缺文件、schema 不支持或 `calibration.accepted=false` 
 
 具体高度窗必须通过实车 PCD 统计确定，不能仅凭文档推测。建图和导航使用的 localization cloud 过滤规则必须相同。
 
+建图投影在 `base_footprint` 中启用矩形自滤波：实测车体 `650x500mm` 每侧增加 `25mm` 余量，因此排除 `x=[-0.35,0.35]m, y=[-0.275,0.275]m` 内的点。矩形优于单一 `range_min`：它不会为了覆盖车体四角而同时丢掉车头/车侧矩形外的有效近场墙面。过滤只作用于建图 `/scan`，不改 FAST-LIO2 内部匹配、PGO 定位结构云或 Travel/Corridor 活障碍云。风险是落入车体外廓内的真实悬垂物也会被排除，因此外廓只能来自实测尺寸和小余量，不能用 Nav2 膨胀半径代替；重建后仍需检查窄门、桌腿和低矮障碍。
+
 ### 6.2 Slam Toolbox 参数归档
 
 新增仓库内 `slam_toolbox_mapping.yaml`，不再直接依赖系统安装目录的默认 YAML。至少固定：

@@ -301,16 +301,17 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 First required changes:
 
 - Set `controller_frequency=20Hz` to match `model_dt=0.05s`.
+- Use MPPI `batch_size=160` to retain the two-second horizon while reducing control deadline misses on the Orin NX.
 - Configure a polygon footprint from the documented `650 x 500mm` dimensions and measured outermost body points, with safety margin.
 - Set MPPI `CostCritic.consider_footprint=true`.
 - Collision-check the smoothed path to prevent corner cutting.
 - Measure the STM32 minimum effective `vx/wz` before setting velocity deadbands.
 
-The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. A polygon footprint does not disable in-place turning; it makes rotational collision checking match the real body.
+The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. A polygon footprint does not disable in-place turning; it makes rotational collision checking match the real body. Every nonzero pure-rotation command is raised to at least `0.20rad/s`, and the progress checker also accepts `0.15rad` of angular motion, preventing chassis deadband and translation-only progress checks from blocking an in-place turn.
 
 ### 7.5 Dynamic obstacles and safety
 
-- The global costmap contains only the static map and static inflation.
+- The global costmap contains only the static map and `0.30m` static inflation, still above the `0.285m` inscribed radius; temporary people are not written into it.
 - The local costmap uses the Nav2 obstacle cloud for people, chairs, and temporary obstacles.
 - Add Collision Monitor with independent slowdown and stop zones.
 - Use bounded Travel recovery: no automatic BackUp; Spin must pass footprint collision checks; local/global clearing runs only after planner or controller failure and remains retry-limited.

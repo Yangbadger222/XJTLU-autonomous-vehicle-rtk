@@ -66,8 +66,6 @@ class PostCollisionCmdConditioner(Node):
         self.publisher.publish(self.condition_command(msg))
 
     def condition_command(self, msg):
-        if not self.is_slowdown_output(msg):
-            return msg
         linear_speed = math.hypot(msg.linear.x, msg.linear.y)
         angular_speed = abs(msg.angular.z)
         angular_requested = angular_speed > self.angular_zero_threshold
@@ -76,11 +74,17 @@ class PostCollisionCmdConditioner(Node):
             self.in_place_linear_threshold < linear_speed < self.linear_deadband
             and angular_speed >= self.turning_angular_threshold
         )
-        if not angular_requested or not (pure_rotation or stalled_turn):
+        boost_pure_rotation = (
+            angular_requested
+            and pure_rotation
+            and angular_speed < self.min_in_place_angular_speed
+        )
+        slowdown_stalled_turn = stalled_turn and self.is_slowdown_output(msg)
+        if not boost_pure_rotation and not slowdown_stalled_turn:
             return msg
 
         out = copy.deepcopy(msg)
-        if stalled_turn:
+        if slowdown_stalled_turn:
             out.linear.x = 0.0
             out.linear.y = 0.0
         if angular_speed < self.min_in_place_angular_speed:

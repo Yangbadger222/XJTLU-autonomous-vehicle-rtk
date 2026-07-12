@@ -263,10 +263,12 @@ controller_server:
     progress_checker:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
       # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_controller::SimpleProgressChecker"
+      plugin: "nav2_controller::PoseProgressChecker"
       # 最小有效移动半径；在该时间窗内位移小于此值会被视为没前进。
       # 调大：更容易判定卡住；调小：更不容易触发卡住。
       required_movement_radius: 0.10
+      # 原地转向超过该角度也视为有效进展，避免可原地转弯底盘被平移检查器误判卡住。
+      required_movement_angle: 0.15
       # 移动超时时间；决定多久没有明显进展就判定为卡住。
       # 调大：更宽容、更晚判定卡住；调小：更严格、更早进入恢复。
       movement_time_allowance: 15.0
@@ -301,7 +303,7 @@ controller_server:
       closed_loop: true
       time_steps: 40
       model_dt: 0.05
-      batch_size: 200
+      batch_size: 160
       vx_std: 0.16
       vy_std: 0.0
       wz_std: 0.10
@@ -588,7 +590,7 @@ global_costmap:
         cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.35
+        inflation_radius: 0.30
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。
       always_send_full_costmap: false

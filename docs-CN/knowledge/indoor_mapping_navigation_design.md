@@ -303,16 +303,17 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 首轮必须修正：
 
 - `controller_frequency=20Hz`，与 `model_dt=0.05s` 匹配。
+- MPPI `batch_size=160`，保留 2 秒预测时域，同时降低 Orin NX 上的控制周期超时。
 - 根据 `650 x 500mm` 整车尺寸和实测最外沿配置 polygon footprint，并增加安全余量。
 - MPPI `CostCritic.consider_footprint=true`。
 - 平滑路径执行碰撞检查，避免直角墙角切角。
 - 标定 STM32 最小有效 `vx/wz`，再配置速度 deadband。
 
-小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。polygon footprint 不会取消原地转向，只会让旋转碰撞检查符合真实车身。
+小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。polygon footprint 不会取消原地转向，只会让旋转碰撞检查符合真实车身。所有非零纯旋转命令至少补偿到 `0.20rad/s`，进度检查同时接受 `0.15rad` 角度变化，避免底盘死区和纯平移进度判定阻断原地转向。
 
 ### 7.5 动态障碍与安全
 
-- 全局 costmap 只包含静态地图和静态膨胀，不把临时人员写入全局地图。
+- 全局 costmap 只包含静态地图和 `0.30m` 静态膨胀，不把临时人员写入全局地图；该值仍高于 `0.285m` 内切半径。
 - local costmap 使用 Nav2 专用障碍点云，负责人员、椅子和临时障碍。
 - 增加 Collision Monitor 独立实现减速区和停车区。
 - Travel 使用有界恢复：不自动 BackUp；Spin 必须经过 footprint 碰撞检查；局部/全局清图只在规划或控制失败后按有限重试执行。

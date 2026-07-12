@@ -143,7 +143,10 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "closed_loop: true" in controller_text
     assert "time_steps: 40" in controller_text
     assert "model_dt: 0.05" in controller_text
-    assert "batch_size: 200" in controller_text
+    assert "batch_size: 160" in controller_text
+    assert 'plugin: "nav2_controller::PoseProgressChecker"' in controller_text
+    assert "required_movement_angle: 0.15" in controller_text
+    assert "batch_size: 200" not in controller_text
     assert "failure_tolerance: 2.0" in controller_text
     assert "vx_std: 0.16" in controller_text
     assert "wz_std: 0.10" in controller_text
@@ -215,7 +218,7 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     assert footprint in local_costmap_text
     assert footprint in global_costmap_text
     assert "inflation_radius: 0.40" in local_costmap_text
-    assert "inflation_radius: 0.35" in global_costmap_text
+    assert "inflation_radius: 0.30" in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
     assert "consider_footprint: true" in local_costmap_text
 
@@ -362,7 +365,8 @@ def test_post_collision_conditioner_turns_stalled_commands_in_place():
     assert 'declare_parameter("min_in_place_angular_speed", 0.20)' in text
     assert "def condition_command" in text
     assert "def is_slowdown_output" in text
-    assert "if not self.is_slowdown_output(msg):" in text
+    assert "boost_pure_rotation" in text
+    assert "slowdown_stalled_turn = stalled_turn and self.is_slowdown_output(msg)" in text
     assert "math.hypot(msg.linear.x, msg.linear.y)" in text
     assert "out.linear.x = 0.0" in text
     assert "math.copysign(" in text

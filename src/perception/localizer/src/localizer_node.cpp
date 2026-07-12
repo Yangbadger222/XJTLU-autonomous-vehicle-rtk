@@ -812,7 +812,7 @@ public:
         sendBroadCastTF(now);
         m_state.last_republish_tf_time = now;
     }
-    void publishMapCloud(builtin_interfaces::msg::Time &time)
+    void publishMapCloud(const builtin_interfaces::msg::Time &time)
     {
         if (m_map_cloud_pub->get_subscription_count() < 1)
             return;

@@ -141,3 +141,9 @@ def test_map_to_odom_is_projected_to_planar_se2():
     assert "map_body_t.head<2>() - predicted_t.head<2>()" in text
     assert "m_state.global_attempts" in text
     assert 'm_state.state_reason = "waiting_for_global_cloud"' in text
+
+
+def test_map_cloud_publish_accepts_read_only_timestamp():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+
+    assert "publishMapCloud(const builtin_interfaces::msg::Time &time)" in text

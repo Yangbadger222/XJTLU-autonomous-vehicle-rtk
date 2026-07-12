@@ -215,7 +215,7 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     assert footprint in local_costmap_text
     assert footprint in global_costmap_text
     assert "inflation_radius: 0.40" in local_costmap_text
-    assert "inflation_radius: 0.25" in global_costmap_text
+    assert "inflation_radius: 0.35" in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
     assert "consider_footprint: true" in local_costmap_text
 

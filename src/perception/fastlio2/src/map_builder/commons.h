@@ -64,6 +64,11 @@ struct Config
     bool nav2_obstacle_cloud_enabled = true;
     double nav2_obstacle_cloud_min_z = -0.20;
     double nav2_obstacle_cloud_max_z = 1.20;
+    bool nav2_obstacle_self_filter_enabled = false;
+    double nav2_obstacle_self_filter_min_x = -0.40;
+    double nav2_obstacle_self_filter_max_x = 0.40;
+    double nav2_obstacle_self_filter_min_y = -0.30;
+    double nav2_obstacle_self_filter_max_y = 0.30;
 };
 
 struct IMUData

@@ -151,6 +151,7 @@ Notes:
 - Before sending a goal, run `ros2 topic echo /chassis/status --once`; it must report `ctrl_mode: 0` (host serial mode). `ctrl_mode: 1` is gamepad mode and `ctrl_mode: 2` is motor-disabled/safety takeover. The adapter rejects goals in those states so enabling motors cannot unexpectedly release an already active goal
 - Travel's final serial limiter constrains acceleration recovery only; zero and deceleration remain immediate. Linear/angular recovery limits are `0.30m/s2` and `0.80rad/s2`, removing command jumps when Collision Monitor releases a Stop
 - The velocity gate also requires `/fastlio2/body_cloud_nav2` within 0.5s and `/cmd_vel` within 0.25s. `serial_twistctl` resends zero after 300 ms, and the STM32 independently clears commands after 500 ms. The firmware layer only takes effect after rebuilding and flashing `src/firmware/rm_c_board/`
+- The localizer publishes `map->odom` with a `0.10s` future tolerance. A single ICP failure may retain the latest trusted localization for at most `2.5s` in DEGRADED state; cloud/status freshness gates remain active, and expiry or LOST immediately cancels the goal and commands zero
 - Automatic global localization waits for at least 200 structural points and retries up to five times at 3s intervals; `map -> odom` is always projected to planar XY+yaw
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 

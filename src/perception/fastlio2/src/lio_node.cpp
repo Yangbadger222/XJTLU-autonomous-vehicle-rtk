@@ -254,6 +254,16 @@ public:
             this->declare_parameter<double>("nav2_obstacle_cloud_min_z", -0.20);
         m_builder_config.nav2_obstacle_cloud_max_z =
             this->declare_parameter<double>("nav2_obstacle_cloud_max_z", 1.20);
+        m_builder_config.nav2_obstacle_self_filter_enabled =
+            this->declare_parameter<bool>("nav2_obstacle_self_filter_enabled", false);
+        m_builder_config.nav2_obstacle_self_filter_min_x =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_min_x", -0.40);
+        m_builder_config.nav2_obstacle_self_filter_max_x =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_max_x", 0.40);
+        m_builder_config.nav2_obstacle_self_filter_min_y =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_min_y", -0.30);
+        m_builder_config.nav2_obstacle_self_filter_max_y =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_max_y", 0.30);
 
         auto t_il_vec = this->declare_parameter<std::vector<double>>("t_il", default_t_il);
         auto r_il_vec = this->declare_parameter<std::vector<double>>("r_il", default_r_il);
@@ -371,6 +381,21 @@ public:
         if (config["nav2_obstacle_cloud_max_z"])
             m_builder_config.nav2_obstacle_cloud_max_z =
                 config["nav2_obstacle_cloud_max_z"].as<double>();
+        if (config["nav2_obstacle_self_filter_enabled"])
+            m_builder_config.nav2_obstacle_self_filter_enabled =
+                config["nav2_obstacle_self_filter_enabled"].as<bool>();
+        if (config["nav2_obstacle_self_filter_min_x"])
+            m_builder_config.nav2_obstacle_self_filter_min_x =
+                config["nav2_obstacle_self_filter_min_x"].as<double>();
+        if (config["nav2_obstacle_self_filter_max_x"])
+            m_builder_config.nav2_obstacle_self_filter_max_x =
+                config["nav2_obstacle_self_filter_max_x"].as<double>();
+        if (config["nav2_obstacle_self_filter_min_y"])
+            m_builder_config.nav2_obstacle_self_filter_min_y =
+                config["nav2_obstacle_self_filter_min_y"].as<double>();
+        if (config["nav2_obstacle_self_filter_max_y"])
+            m_builder_config.nav2_obstacle_self_filter_max_y =
+                config["nav2_obstacle_self_filter_max_y"].as<double>();
 
         const std::vector<double> t_il_vec =
             config["t_il"] ? config["t_il"].as<std::vector<double>>() : std::vector<double>{m_builder_config.t_il.x(), m_builder_config.t_il.y(), m_builder_config.t_il.z()};
@@ -427,6 +452,11 @@ public:
             rclcpp::Parameter("nav2_obstacle_cloud_enabled", m_builder_config.nav2_obstacle_cloud_enabled),
             rclcpp::Parameter("nav2_obstacle_cloud_min_z", m_builder_config.nav2_obstacle_cloud_min_z),
             rclcpp::Parameter("nav2_obstacle_cloud_max_z", m_builder_config.nav2_obstacle_cloud_max_z),
+            rclcpp::Parameter("nav2_obstacle_self_filter_enabled", m_builder_config.nav2_obstacle_self_filter_enabled),
+            rclcpp::Parameter("nav2_obstacle_self_filter_min_x", m_builder_config.nav2_obstacle_self_filter_min_x),
+            rclcpp::Parameter("nav2_obstacle_self_filter_max_x", m_builder_config.nav2_obstacle_self_filter_max_x),
+            rclcpp::Parameter("nav2_obstacle_self_filter_min_y", m_builder_config.nav2_obstacle_self_filter_min_y),
+            rclcpp::Parameter("nav2_obstacle_self_filter_max_y", m_builder_config.nav2_obstacle_self_filter_max_y),
         });
     }
 
@@ -603,6 +633,46 @@ public:
         return filtered_body_cloud;
     }
 
+    CloudType::Ptr filterNav2VehicleReturns(const CloudType::Ptr &body_cloud)
+    {
+        if (!body_cloud || !m_builder_config.nav2_obstacle_self_filter_enabled)
+            return body_cloud;
+
+        CloudType::Ptr filtered_cloud(new CloudType);
+        filtered_cloud->reserve(body_cloud->size());
+        std::size_t dropped_points = 0;
+        for (const auto &point : body_cloud->points)
+        {
+            const bool inside_vehicle =
+                point.x >= m_builder_config.nav2_obstacle_self_filter_min_x &&
+                point.x <= m_builder_config.nav2_obstacle_self_filter_max_x &&
+                point.y >= m_builder_config.nav2_obstacle_self_filter_min_y &&
+                point.y <= m_builder_config.nav2_obstacle_self_filter_max_y;
+            if (inside_vehicle)
+            {
+                ++dropped_points;
+                continue;
+            }
+            filtered_cloud->points.push_back(point);
+        }
+        filtered_cloud->width = filtered_cloud->points.size();
+        filtered_cloud->height = 1;
+        filtered_cloud->is_dense = false;
+
+        RCLCPP_INFO_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            5000,
+            "FAST-LIO2 Nav2 vehicle filter removed %zu/%zu points in x=[%.2f, %.2f], y=[%.2f, %.2f]",
+            dropped_points,
+            body_cloud->size(),
+            m_builder_config.nav2_obstacle_self_filter_min_x,
+            m_builder_config.nav2_obstacle_self_filter_max_x,
+            m_builder_config.nav2_obstacle_self_filter_min_y,
+            m_builder_config.nav2_obstacle_self_filter_max_y);
+        return filtered_cloud;
+    }
+
     void publishNav2ObstacleCloud(
         const CloudType::Ptr &body_cloud,
         const CloudType::Ptr &world_cloud,
@@ -619,6 +689,7 @@ public:
             m_builder_config.nav2_obstacle_cloud_min_z,
             m_builder_config.nav2_obstacle_cloud_max_z,
             "FAST-LIO2 Nav2 obstacle cloud");
+        nav2_body_cloud = filterNav2VehicleReturns(nav2_body_cloud);
         publishCloud(m_nav2_obstacle_cloud_pub, nav2_body_cloud, m_node_config.body_frame, time);
     }
 

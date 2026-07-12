@@ -5,6 +5,7 @@ local_frame: lidar
 update_hz: 1.0
 max_tf_input_age_s: 2.0
 tf_republish_hz: 20.0
+tf_future_tolerance_s: 0.10
 status_hz: 5.0
 continuous_icp: true
 global_max_candidates: 5
@@ -17,6 +18,7 @@ correction_alpha: 0.15
 max_correction_translation_m: 0.30
 max_correction_yaw_rad: 0.20
 max_consecutive_failures: 5
+degraded_grace_s: 2.5
 
 rough_scan_resolution: 0.25
 rough_map_resolution: 0.25
@@ -26,4 +28,4 @@ rough_score_thresh: 0.2
 refine_scan_resolution: 0.1
 refine_map_resolution: 0.1
 refine_max_iteration: 10
-refine_score_thresh: 0.1
+refine_score_thresh: 0.12

@@ -78,6 +78,12 @@
       nav2_obstacle_cloud_min_z: -0.20
       # Nav2 专用障碍点云的最大相对高度；覆盖站立行人和常见户外路障。
       nav2_obstacle_cloud_max_z: 1.20
+      # Nav2 障碍云矩形本体滤波；边界覆盖实测车体及雷达右前缘约 4cm 的自反射。
+      nav2_obstacle_self_filter_enabled: true
+      nav2_obstacle_self_filter_min_x: -0.40
+      nav2_obstacle_self_filter_max_x: 0.40
+      nav2_obstacle_self_filter_min_y: -0.30
+      nav2_obstacle_self_filter_max_y: 0.30
 
 /pgo:
   pgo_node:

@@ -28,6 +28,8 @@ def test_manager_wraps_nav2_and_cancels_on_localization_loss():
     assert 'request.backend != "indoor"' in text
     assert "self.goal_reserved" in text
     assert "LocalizationStatus.LOCALIZED" in text
+    assert "LocalizationStatus.DEGRADED" in text
+    assert "msg.sensors_ready" in text
     assert "self.nav_goal_handle.cancel_goal_async()" in text
 
 

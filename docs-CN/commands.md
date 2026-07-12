@@ -152,6 +152,7 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - 发目标前检查 `ros2 topic echo /chassis/status --once`：必须为 `ctrl_mode: 0`（上位机串口模式）。`ctrl_mode: 1` 是手柄模式，`ctrl_mode: 2` 是电机禁用/安全接管；适配器会拒绝目标，避免先积压目标、使能电机后突然起步
 - Travel 的串口末级限制器只限制加速恢复；零速和降速立即执行。线/角加速恢复上限为 `0.30m/s2`、`0.80rad/s2`，用于消除 Collision Monitor Stop 解除后的速度跳变
 - 定位速度门还要求 `/fastlio2/body_cloud_nav2` 在 0.5s 内更新、`/cmd_vel` 在 0.25s 内更新；`serial_twistctl` 300ms 断流重发零速，STM32 500ms watchdog 再独立清零。固件层保护只有重新编译并烧录 `src/firmware/rm_c_board/` 后才生效
+- localizer 发布 `map->odom` 时使用 `0.10s` 未来容差；单次 ICP 失败进入 DEGRADED 后最多保留 `2.5s` 最近可信定位。窗口内点云/状态 freshness 门仍生效，超时或 LOST 立即取消目标并清零
 - 自动全局定位会等待至少 200 个结构点，以 3s 间隔最多尝试 5 次；`map -> odom` 始终投影为平面 XY+yaw
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 

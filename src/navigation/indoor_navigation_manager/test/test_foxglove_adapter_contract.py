@@ -55,6 +55,7 @@ def test_adapter_gates_and_cancels_on_localization_health():
     assert "msg.localized" in text
     assert "msg.sensors_ready" in text
     assert "LocalizationStatus.LOCALIZED" in text
+    assert "LocalizationStatus.DEGRADED" in text
     assert "if not self.localized:" in text
     assert "self.active_goal_handle.cancel_goal_async()" in text
     assert '"localization degraded; canceling active goal"' in text

@@ -46,6 +46,7 @@ struct NodeConfig
     double update_hz = 1.0;
     double max_tf_input_age_s = 2.0;
     double tf_republish_hz = 20.0;
+    double tf_future_tolerance_s = 0.10;
     double status_hz = 5.0;
     bool continuous_icp = true;
     bool auto_global_localization = true;
@@ -59,6 +60,7 @@ struct NodeConfig
     double max_correction_translation_m = 0.30;
     double max_correction_yaw_rad = 0.20;
     int max_consecutive_failures = 5;
+    double degraded_grace_s = 2.5;
 };
 
 struct NodeState
@@ -161,6 +163,8 @@ public:
             m_config.max_tf_input_age_s = config["max_tf_input_age_s"].as<double>();
         if (config["tf_republish_hz"])
             m_config.tf_republish_hz = config["tf_republish_hz"].as<double>();
+        if (config["tf_future_tolerance_s"])
+            m_config.tf_future_tolerance_s = config["tf_future_tolerance_s"].as<double>();
         if (config["status_hz"])
             m_config.status_hz = config["status_hz"].as<double>();
         if (config["continuous_icp"])
@@ -185,6 +189,8 @@ public:
             m_config.max_correction_yaw_rad = config["max_correction_yaw_rad"].as<double>();
         if (config["max_consecutive_failures"])
             m_config.max_consecutive_failures = config["max_consecutive_failures"].as<int>();
+        if (config["degraded_grace_s"])
+            m_config.degraded_grace_s = config["degraded_grace_s"].as<double>();
 
         m_localizer_config.rough_scan_resolution = config["rough_scan_resolution"].as<double>();
         m_localizer_config.rough_map_resolution = config["rough_map_resolution"].as<double>();
@@ -629,9 +635,22 @@ public:
             status.reason = m_state.state_reason;
             status.map_id = m_config.map_id;
             status.sensors_ready = sensors_ready;
+            const bool has_trusted_stamp =
+                m_state.last_trusted_stamp.sec != 0 || m_state.last_trusted_stamp.nanosec != 0;
+            const double trusted_stamp_seconds =
+                static_cast<double>(m_state.last_trusted_stamp.sec) +
+                static_cast<double>(m_state.last_trusted_stamp.nanosec) * 1.0e-9;
+            const double trusted_age_s = has_trusted_stamp
+                ? std::max(0.0, now.seconds() - trusted_stamp_seconds)
+                : std::numeric_limits<double>::infinity();
+            const bool trusted_degraded_state =
+                m_state.localization_state == interface::msg::LocalizationStatus::DEGRADED &&
+                m_config.degraded_grace_s > 0.0 &&
+                trusted_age_s <= m_config.degraded_grace_s;
             status.localized =
                 m_state.localize_success && status.sensors_ready &&
-                m_state.localization_state == interface::msg::LocalizationStatus::LOCALIZED;
+                (m_state.localization_state == interface::msg::LocalizationStatus::LOCALIZED ||
+                 trusted_degraded_state);
             status.input_age_s = static_cast<float>(input_age_s);
             status.rough_score = static_cast<float>(m_state.rough_score);
             status.refine_score = static_cast<float>(m_state.refine_score);
@@ -675,7 +694,8 @@ public:
         geometry_msgs::msg::TransformStamped transformStamped;
         transformStamped.header.frame_id = m_config.map_frame;
         transformStamped.child_frame_id = m_config.local_frame;
-        transformStamped.header.stamp = time;
+        transformStamped.header.stamp =
+            time + rclcpp::Duration::from_seconds(std::max(0.0, m_config.tf_future_tolerance_s));
         Eigen::Quaterniond q(m_state.last_offset_r);
         V3D t = m_state.last_offset_t;
         transformStamped.transform.translation.x = t.x();

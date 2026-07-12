@@ -41,6 +41,8 @@ def test_localizer_config_exposes_current_time_tf_republish_rate():
     text = LOCALIZER_CONFIG.read_text(encoding="utf-8")
 
     assert "tf_republish_hz" in text
+    assert "tf_future_tolerance_s: 0.10" in text
+    assert "rclcpp::Duration::from_seconds" in LOCALIZER_NODE.read_text(encoding="utf-8")
 
 
 def test_localizer_config_enables_gated_runtime_correction():
@@ -51,6 +53,8 @@ def test_localizer_config_enables_gated_runtime_correction():
     assert "max_correction_translation_m: 0.30" in text
     assert "max_correction_yaw_rad: 0.20" in text
     assert "max_consecutive_failures: 5" in text
+    assert "degraded_grace_s: 2.5" in text
+    assert "refine_score_thresh: 0.12" in text
     assert "global_retry_interval_s: 3.0" in text
     assert "global_max_automatic_attempts: 5" in text
     assert "global_min_cloud_points: 200" in text
@@ -114,6 +118,7 @@ def test_localizer_supports_map_alignment_global_search_and_structured_status():
     assert "min_candidate_score_gap" in text
     assert "min_overlap_ratio" in text
     assert "runtime_correction_jump" in text
+    assert "trusted_degraded_state" in text
 
 
 def test_localizer_tf_throttle_uses_node_clock_only():

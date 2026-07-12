@@ -56,7 +56,12 @@ class IndoorNavigationManager(Node):
 
     def on_localization(self, msg):
         self.localization_state = msg.state_label
-        self.localized = bool(msg.localized and msg.state == LocalizationStatus.LOCALIZED)
+        self.localized = bool(
+            msg.localized
+            and msg.sensors_ready
+            and msg.state
+            in (LocalizationStatus.LOCALIZED, LocalizationStatus.DEGRADED)
+        )
         if (
             not self.localized
             and self.nav_goal_handle is not None

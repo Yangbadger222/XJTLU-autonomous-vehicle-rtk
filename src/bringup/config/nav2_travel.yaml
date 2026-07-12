@@ -299,7 +299,7 @@ controller_server:
       rotate_to_goal_heading: true
       time_steps: 48
       model_dt: 0.05
-      batch_size: 500
+      batch_size: 300
       vx_std: 0.16
       vy_std: 0.0
       wz_std: 0.14
@@ -316,7 +316,7 @@ controller_server:
       temperature: 0.3
       gamma: 0.015
       motion_model: "DiffDrive"
-      publish_critics_stats: true
+      publish_critics_stats: false
       open_loop: true
       visualize: false
       reset_period: 1.0

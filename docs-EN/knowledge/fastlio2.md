@@ -53,6 +53,7 @@ If future field tests still show unstable pedestrian marking, inspect whether `/
 - `/fastlio2/body_cloud_localization` has an independent provisional `[-0.20, 1.80]m` window that retains walls, door frames, and columns. Both mapping PGO and the Travel localizer consume it, keeping descriptor, map, and live-scan semantics aligned.
 - `/fastlio2/body_cloud` remains the low LaserScan slice, while `body_cloud_nav2_obstacles` remains the dynamic local-obstacle stream; the three responsibilities no longer share one conflicting height window.
 - Filtering/publishing runs only with subscribers and does not alter the FAST-LIO2 IESKF. Finalize the window from vehicle PCD statistics instead of widening it blindly around glass, ceilings, or self-reflections.
+- After height filtering, the Nav2 obstacle cloud excludes `x=[-0.40,0.40]m, y=[-0.30,0.30]m` in `base_footprint`. On 2026-07-12, stop-zone flicker points were measured on the front-right body edge `(x=0.326~0.369m, y=-0.261~-0.276m, z about 0.32m)`. The box removes those body returns without changing internal LIO matching, the localization structure cloud, or the PGO cloud.
 
 ## LiDAR / IMU Sync Guard (2026-07-06)
 

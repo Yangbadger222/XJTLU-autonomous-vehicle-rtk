@@ -50,7 +50,8 @@ class LocalizationCmdGate(Node):
         self.allowed = bool(
             msg.localized
             and msg.sensors_ready
-            and msg.state == LocalizationStatus.LOCALIZED
+            and msg.state
+            in (LocalizationStatus.LOCALIZED, LocalizationStatus.DEGRADED)
         )
         self.last_status_time = self.get_clock().now()
         if not self.allowed:

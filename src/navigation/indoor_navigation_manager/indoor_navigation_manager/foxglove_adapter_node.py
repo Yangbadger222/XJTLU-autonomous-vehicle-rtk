@@ -246,7 +246,8 @@ class FoxgloveNavigationAdapter(Node):
         self.localized = bool(
             msg.localized
             and msg.sensors_ready
-            and msg.state == LocalizationStatus.LOCALIZED
+            and msg.state
+            in (LocalizationStatus.LOCALIZED, LocalizationStatus.DEGRADED)
         )
         localization_changed = self.localized != self.last_localization_ready
         self.last_localization_ready = self.localized

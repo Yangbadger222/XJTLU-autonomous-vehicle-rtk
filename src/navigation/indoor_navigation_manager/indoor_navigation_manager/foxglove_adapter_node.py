@@ -266,10 +266,9 @@ class FoxgloveNavigationAdapter(Node):
 
     def on_pose_goal(self, msg):
         self.get_logger().info(
-            "Received pose goal: frame=%s x=%.3f y=%.3f",
-            msg.header.frame_id or "map",
-            msg.pose.position.x,
-            msg.pose.position.y,
+            "Received pose goal: "
+            f"frame={msg.header.frame_id or 'map'} "
+            f"x={msg.pose.position.x:.3f} y={msg.pose.position.y:.3f}"
         )
         if not self.goal_is_available():
             return

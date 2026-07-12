@@ -1,3 +1,4 @@
+import ast
 import json
 from pathlib import Path
 
@@ -22,6 +23,23 @@ def test_adapter_uses_actions_and_never_writes_velocity():
     assert '"/foxglove/cancel_navigation"' in text
     assert '"/cmd_vel"' not in text
     assert '"/cmd_vel_safe"' not in text
+
+
+def test_adapter_logger_calls_use_rclpy_compatible_arguments():
+    tree = ast.parse(ADAPTER.read_text(encoding="utf-8"))
+    logger_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in {"debug", "info", "warning", "error", "fatal"}
+        and isinstance(node.func.value, ast.Call)
+        and isinstance(node.func.value.func, ast.Attribute)
+        and node.func.value.func.attr == "get_logger"
+    ]
+
+    assert logger_calls
+    assert all(len(call.args) == 1 for call in logger_calls)
 
 
 def test_adapter_gates_and_cancels_on_localization_health():

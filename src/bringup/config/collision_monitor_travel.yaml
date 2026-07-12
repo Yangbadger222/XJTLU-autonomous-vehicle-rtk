@@ -12,8 +12,9 @@ collision_monitor:
     polygons: ["PolygonStop", "PolygonSlow"]
     PolygonStop:
       type: polygon
-      # Starts outside the 0.40 x 0.30m self-filter and retains a real stop band.
-      points: [0.45, 0.35, 0.45, -0.35, -0.45, -0.35, -0.45, 0.35]
+      # Keep the lateral edge tight: wider zones repeatedly stop on traversable
+      # side returns while the costmap footprint already checks swept clearance.
+      points: [0.40, 0.32, 0.40, -0.32, -0.40, -0.32, -0.40, 0.32]
       action_type: stop
       max_points: 3
       visualize: true

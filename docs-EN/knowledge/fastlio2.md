@@ -76,6 +76,8 @@ The old `lidar_filter_num: 6` and `lidar_max_range: 15.0` profile was cheaper, b
 
 If future bags show CPU headroom while `/fastlio2/degeneracy` still reports frequent degeneracy, try `lidar_filter_num: 3`; if IMU/LiDAR sync windows start dropping samples or FAST-LIO2 latency rises, prefer returning to `4` or reducing `lidar_max_range`.
 
+FAST-LIO2 TF uses the current fused pose but may shift its timestamp forward through `tf_future_tolerance_s`. The shared runtime value is now `0.05s`, covering the observed 10–20ms scheduling skew between 10Hz LIO publication and 20Hz Nav2 controller queries. It does not extrapolate position or attitude and does not alter the sensor timestamp on `/fastlio2/lio_odom`.
+
 ## 1. Odom (Odometry) Data Interpretation
 
 The odom output from FASTLIO2 (`nav_msgs/Odometry`) contains two core data components:

@@ -70,6 +70,8 @@ RTK corridor 当前采用 CPU 友好的户外增强档：
 
 如果后续 rosbag 证明 CPU 仍有余量且 `/fastlio2/degeneracy` 仍频繁退化，可以再试 `lidar_filter_num: 3`；如果出现 IMU/LiDAR 同步窗口掉样或 FAST-LIO2 处理延迟上升，则优先回到 `4` 或缩短 `lidar_max_range`。
 
+FAST-LIO2 的 TF 使用当前融合位姿，但时间戳可通过 `tf_future_tolerance_s` 小幅前移。当前共享运行参数为 `0.05s`，用于覆盖 10Hz LIO 发布与 20Hz Nav2 controller 查询之间约 10–20ms 的调度差；它不外推位置或姿态，也不改变 `/fastlio2/lio_odom` 的传感器时间戳。
+
 ## 1. odom 里程计数据解读
 
 FASTLIO2 输出的 odom（`nav_msgs/Odometry`）包含两部分核心数据：

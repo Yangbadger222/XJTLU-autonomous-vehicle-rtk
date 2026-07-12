@@ -4,10 +4,13 @@
     <RecoveryNode number_of_retries="5" name="NavigateThroughPosesRecovery">
       <PipelineSequence name="NavigateThroughPosesWithReplanning">
         <RateController hz="1.0">
-          <RecoveryNode number_of_retries="1" name="ComputePath">
-            <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
-            <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
-          </RecoveryNode>
+          <Sequence name="PlanAndSmoothPath">
+            <RecoveryNode number_of_retries="1" name="ComputePath">
+              <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+              <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+            </RecoveryNode>
+            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="true"/>
+          </Sequence>
         </RateController>
         <RecoveryNode number_of_retries="2" name="FollowPathRecovery">
           <FollowPath path="{path}" controller_id="FollowPath"/>

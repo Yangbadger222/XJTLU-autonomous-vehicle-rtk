@@ -11,6 +11,8 @@
       world_frame: odom
       # 是否打印耗时日志；打开更利于诊断，但会增加终端噪声。
       print_time_cost: false
+      # TF 前向容差；覆盖 10Hz LIO 与 20Hz Nav2 查询之间的毫秒级调度差，不外推里程计状态本身。
+      tf_future_tolerance_s: 0.05
 
       # 点云抽样步长；调大可减负载，但会降低细节。户外 corridor 保留更多结构点以降低退化风险。
       lidar_filter_num: 4

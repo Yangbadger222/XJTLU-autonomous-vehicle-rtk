@@ -89,7 +89,7 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "rolling_window: true" in local_costmap_text
 
 
-def test_travel_uses_bounded_recovery_without_automatic_backup():
+def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
     launch_text = _travel_launch_text()
     nav2_text = NAV2_TRAVEL.read_text(encoding="utf-8")
     bt_navigator_text = nav2_text.split("# Navigate Through Poses", maxsplit=1)[0]
@@ -108,7 +108,9 @@ def test_travel_uses_bounded_recovery_without_automatic_backup():
     for bt_file, planner_node in bt_expectations.items():
         bt_text = bt_file.read_text(encoding="utf-8")
         assert planner_node in bt_text
-        assert "SmoothPath" not in bt_text
+        assert "SmoothPath" in bt_text
+        assert 'smoother_id="savitzky_golay_smoother"' in bt_text
+        assert 'check_for_collisions="true"' in bt_text
         assert "FollowPath" in bt_text
         assert 'RecoveryNode number_of_retries="5"' in bt_text
         assert '<Spin spin_dist="1.57"/>' in bt_text
@@ -177,7 +179,7 @@ def test_travel_local_costmap_uses_stable_field_runtime_rates():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
 
-    assert "update_frequency: 15.0" in local_costmap_text
+    assert "update_frequency: 10.0" in local_costmap_text
     assert "publish_frequency: 5.0" in local_costmap_text
     assert "width: 6" in local_costmap_text
     assert "height: 6" in local_costmap_text
@@ -272,11 +274,11 @@ def test_travel_exposes_foxglove_control_surface():
     assert "install(DIRECTORY foxglove/" in cmake_text
 
 
-def test_travel_follows_navfn_path_without_smoothing_or_backup():
+def test_travel_smooths_navfn_path_without_automatic_backup():
     for bt_file in (TRAVEL_RECOVERY_BT, TRAVEL_THROUGH_POSES_RECOVERY_BT):
         text = bt_file.read_text(encoding="utf-8")
         assert "ComputePath" in text
-        assert "SmoothPath" not in text
+        assert "SmoothPath" in text
         assert "FollowPath" in text
         assert "<BackUp" not in text
 
@@ -334,6 +336,18 @@ def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():
     assert "cloud_in" in text
     assert "cloud_out" in text
     assert "out.header.stamp = self.get_clock().now().to_msg()" in text
+
+
+def test_localization_gate_compensates_only_nonzero_in_place_rotation():
+    text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
+
+    assert 'declare_parameter("in_place_linear_threshold", 0.02)' in text
+    assert 'declare_parameter("angular_zero_threshold", 0.01)' in text
+    assert 'declare_parameter("min_in_place_angular_speed", 0.20)' in text
+    assert "def apply_in_place_angular_floor" in text
+    assert "math.hypot(msg.linear.x, msg.linear.y)" in text
+    assert "or abs(angular_z) <= self.angular_zero_threshold" in text
+    assert "math.copysign(self.min_in_place_angular_speed, angular_z)" in text
 
 
 def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():

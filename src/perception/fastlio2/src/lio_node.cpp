@@ -3,6 +3,7 @@
 // 文件最新改动人：Claude Sonnet 4.5
 // 操作者：You-guesssssss
 
+#include <algorithm>
 #include <mutex>
 #include <vector>
 #include <queue>
@@ -107,6 +108,7 @@ struct NodeConfig
     std::string body_frame = "base_link";
     std::string world_frame = "odom";
     bool print_time_cost = false;
+    double tf_future_tolerance_s = 0.0;
 };
 struct StateData
 {
@@ -215,6 +217,9 @@ public:
         m_node_config.body_frame = this->declare_parameter<std::string>("body_frame", "base_link");
         m_node_config.world_frame = this->declare_parameter<std::string>("world_frame", "odom");
         m_node_config.print_time_cost = this->declare_parameter<bool>("print_time_cost", false);
+        m_node_config.tf_future_tolerance_s = std::max(
+            0.0,
+            this->declare_parameter<double>("tf_future_tolerance_s", 0.0));
 
         m_builder_config.lidar_filter_num = this->declare_parameter<int>("lidar_filter_num", 6);
         m_builder_config.lidar_min_range = this->declare_parameter<double>("lidar_min_range", 0.5);
@@ -328,6 +333,10 @@ public:
             m_node_config.world_frame = config["world_frame"].as<std::string>();
         if (config["print_time_cost"])
             m_node_config.print_time_cost = config["print_time_cost"].as<bool>();
+        if (config["tf_future_tolerance_s"])
+            m_node_config.tf_future_tolerance_s = std::max(
+                0.0,
+                config["tf_future_tolerance_s"].as<double>());
 
         if (config["lidar_filter_num"])
             m_builder_config.lidar_filter_num = config["lidar_filter_num"].as<int>();
@@ -457,6 +466,7 @@ public:
             rclcpp::Parameter("body_frame", m_node_config.body_frame),
             rclcpp::Parameter("world_frame", m_node_config.world_frame),
             rclcpp::Parameter("print_time_cost", m_node_config.print_time_cost),
+            rclcpp::Parameter("tf_future_tolerance_s", m_node_config.tf_future_tolerance_s),
             rclcpp::Parameter("lidar_filter_num", m_builder_config.lidar_filter_num),
             rclcpp::Parameter("lidar_min_range", m_builder_config.lidar_min_range),
             rclcpp::Parameter("lidar_max_range", m_builder_config.lidar_max_range),
@@ -984,7 +994,11 @@ public:
             m_log_file.flush();
         }
 
-        broadCastTF(m_tf_broadcaster, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
+        broadCastTF(
+            m_tf_broadcaster,
+            m_node_config.world_frame,
+            m_node_config.body_frame,
+            this->now().seconds() + m_node_config.tf_future_tolerance_s);
 
         publishOdometry(m_odom_pub, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
 

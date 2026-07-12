@@ -53,3 +53,12 @@ def test_fastlio2_publishes_dedicated_mapping_and_localization_cloud():
     assert "localization_cloud_max_z: 1.80" in params_text
     assert "publish_cloud_min_z: -0.33" in params_text
     assert "publish_cloud_max_z: 0.30" in params_text
+
+
+def test_fastlio_tf_has_configurable_future_tolerance_for_nav2_queries():
+    node_text = FASTLIO_NODE.read_text(encoding="utf-8")
+    params_text = MASTER_PARAMS.read_text(encoding="utf-8")
+
+    assert 'declare_parameter<double>("tf_future_tolerance_s", 0.0)' in node_text
+    assert "this->now().seconds() + m_node_config.tf_future_tolerance_s" in node_text
+    assert "tf_future_tolerance_s: 0.05" in params_text

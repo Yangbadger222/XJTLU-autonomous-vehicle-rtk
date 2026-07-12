@@ -292,17 +292,19 @@ controller_server:
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       primary_controller: "nav2_mppi_controller::MPPIController"
       angular_dist_threshold: 0.35
+      angular_disengage_threshold: 0.15
       forward_sampling_distance: 0.50
       rotate_to_heading_angular_vel: 0.30
       max_angular_accel: 0.80
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: true
+      closed_loop: true
       time_steps: 40
       model_dt: 0.05
       batch_size: 200
       vx_std: 0.16
       vy_std: 0.0
-      wz_std: 0.14
+      wz_std: 0.10
       vx_max: 0.30
       vx_min: 0.0
       vy_max: 0.0
@@ -317,10 +319,10 @@ controller_server:
       gamma: 0.015
       motion_model: "DiffDrive"
       publish_critics_stats: false
-      open_loop: true
+      open_loop: false
       visualize: false
       reset_period: 1.0
-      regenerate_noises: true
+      regenerate_noises: false
 
       TrajectoryVisualizer:
         trajectory_step: 5

@@ -3,7 +3,7 @@
   <BehaviorTree ID="MainTree">
     <RecoveryNode number_of_retries="5" name="NavigateThroughPosesRecovery">
       <PipelineSequence name="NavigateThroughPosesWithReplanning">
-        <RateController hz="1.0">
+        <RateController hz="0.5">
           <Sequence name="PlanAndSmoothPath">
             <RecoveryNode number_of_retries="1" name="ComputePath">
               <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>

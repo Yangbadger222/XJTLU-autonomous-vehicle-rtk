@@ -12,6 +12,9 @@ BRINGUP_PACKAGE = Path("src/bringup/package.xml")
 INITIALPOSE_BRIDGE = Path("src/bringup/scripts/initialpose_relocalize_bridge.py")
 NAV2_CLOUD_RETIME = Path("src/bringup/scripts/nav2_cloud_retime.py")
 LOCALIZATION_CMD_GATE = Path("src/bringup/scripts/localization_cmd_gate.py")
+POST_COLLISION_CONDITIONER = Path(
+    "src/bringup/scripts/post_collision_cmd_conditioner.py"
+)
 TRAVEL_RECOVERY_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_recovery.xml")
 TRAVEL_THROUGH_POSES_RECOVERY_BT = Path(
     "src/bringup/behavior_trees/travel_nav_through_poses_recovery.xml"
@@ -111,6 +114,7 @@ def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
         assert "SmoothPath" in bt_text
         assert 'smoother_id="savitzky_golay_smoother"' in bt_text
         assert 'check_for_collisions="false"' in bt_text
+        assert '<RateController hz="0.5">' in bt_text
         assert "FollowPath" in bt_text
         assert 'RecoveryNode number_of_retries="5"' in bt_text
         assert '<Spin spin_dist="1.57"/>' in bt_text
@@ -132,15 +136,17 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert 'plugin: "nav2_rotation_shim_controller::RotationShimController"' in controller_text
     assert 'primary_controller: "nav2_mppi_controller::MPPIController"' in controller_text
     assert "angular_dist_threshold: 0.35" in controller_text
+    assert "angular_disengage_threshold: 0.15" in controller_text
     assert "rotate_to_heading_angular_vel: 0.30" in controller_text
     assert "max_angular_accel: 0.80" in controller_text
     assert "rotate_to_goal_heading: true" in controller_text
+    assert "closed_loop: true" in controller_text
     assert "time_steps: 40" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 200" in controller_text
     assert "failure_tolerance: 2.0" in controller_text
     assert "vx_std: 0.16" in controller_text
-    assert "wz_std: 0.14" in controller_text
+    assert "wz_std: 0.10" in controller_text
     assert "vx_max: 0.30" in controller_text
     assert "vx_min: 0.0" in controller_text
     assert "vy_max: 0.0" in controller_text
@@ -148,7 +154,8 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "ax_max: 0.40" in controller_text
     assert "ax_min: -0.8" in controller_text
     assert "az_max: 2.0" in controller_text
-    assert "regenerate_noises: true" in controller_text
+    assert "open_loop: false" in controller_text
+    assert "regenerate_noises: false" in controller_text
     assert "PathAlignCritic:" in controller_text
     assert "offset_from_furthest: 6" in controller_text
     assert "PathFollowCritic:" in controller_text
@@ -238,7 +245,8 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert '"max_linear_acceleration": 0.30' in launch_text
     assert '"max_angular_acceleration": 0.80' in launch_text
     assert 'cmd_vel_in_topic: /cmd_vel_localized' in collision_text
-    assert 'cmd_vel_out_topic: /cmd_vel_safe' in collision_text
+    assert 'cmd_vel_out_topic: /cmd_vel_safe_raw' in collision_text
+    assert 'executable="post_collision_cmd_conditioner.py"' in launch_text
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
 
     collision_config = yaml.safe_load(collision_text)["collision_monitor"]["ros__parameters"]
@@ -310,7 +318,9 @@ def test_bringup_installs_travel_runtime_helper_nodes():
     assert "scripts/initialpose_relocalize_bridge.py" in cmake_text
     assert "scripts/nav2_cloud_retime.py" in cmake_text
     assert "scripts/localization_cmd_gate.py" in cmake_text
+    assert "scripts/post_collision_cmd_conditioner.py" in cmake_text
     assert LOCALIZATION_CMD_GATE.stat().st_mode & stat.S_IXUSR
+    assert POST_COLLISION_CONDITIONER.stat().st_mode & stat.S_IXUSR
 
     for dependency in ("rclpy", "geometry_msgs", "sensor_msgs", "interface"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package_text
@@ -338,16 +348,25 @@ def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():
     assert "out.header.stamp = self.get_clock().now().to_msg()" in text
 
 
-def test_localization_gate_compensates_only_nonzero_in_place_rotation():
-    text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
+def test_post_collision_conditioner_turns_stalled_commands_in_place():
+    text = POST_COLLISION_CONDITIONER.read_text(encoding="utf-8")
 
+    assert 'declare_parameter("cmd_vel_in", "/cmd_vel_safe_raw")' in text
+    assert 'declare_parameter("cmd_vel_out", "/cmd_vel_safe")' in text
+    assert 'declare_parameter("reference_cmd_vel", "/cmd_vel_localized")' in text
+    assert 'declare_parameter("slowdown_ratio_threshold", 0.80)' in text
+    assert 'declare_parameter("linear_deadband", 0.14)' in text
     assert 'declare_parameter("in_place_linear_threshold", 0.02)' in text
+    assert 'declare_parameter("turning_angular_threshold", 0.08)' in text
     assert 'declare_parameter("angular_zero_threshold", 0.01)' in text
     assert 'declare_parameter("min_in_place_angular_speed", 0.20)' in text
-    assert "def apply_in_place_angular_floor" in text
+    assert "def condition_command" in text
+    assert "def is_slowdown_output" in text
+    assert "if not self.is_slowdown_output(msg):" in text
     assert "math.hypot(msg.linear.x, msg.linear.y)" in text
-    assert "or abs(angular_z) <= self.angular_zero_threshold" in text
-    assert "math.copysign(self.min_in_place_angular_speed, angular_z)" in text
+    assert "out.linear.x = 0.0" in text
+    assert "math.copysign(" in text
+    assert "self.min_in_place_angular_speed, msg.angular.z" in text
 
 
 def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():
@@ -377,4 +396,5 @@ def test_runtime_cleanup_includes_travel_localizer_and_direct_ros2_launch():
         assert "[r]os2 launch" in text
         assert "[i]nitialpose_relocalize_bridge" in text
         assert "[n]av2_cloud_retime" in text
+        assert "[p]ost_collision_cmd_conditioner" in text
         assert "[j]oint_state_publisher" in text

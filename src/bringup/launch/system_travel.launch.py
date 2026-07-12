@@ -32,6 +32,7 @@ _TRAVEL_BAG_BASE_TOPICS = [
     "/cmd_vel",
     "/cmd_vel_nav",
     "/cmd_vel_localized",
+    "/cmd_vel_safe_raw",
     "/cmd_vel_safe",
     "/plan",
     "/local_plan",
@@ -316,6 +317,12 @@ def generate_launch_description():
         output="screen",
         parameters=[{"autostart": True, "node_names": ["collision_monitor"]}],
     )
+    post_collision_cmd_conditioner_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="post_collision_cmd_conditioner.py",
+        name="post_collision_cmd_conditioner",
+        output="screen",
+    )
 
     indoor_navigation_manager_node = launch_ros.actions.Node(
         package="indoor_navigation_manager",
@@ -496,6 +503,7 @@ def generate_launch_description():
             localization_cmd_gate_node,
             collision_monitor_node,
             collision_monitor_lifecycle,
+            post_collision_cmd_conditioner_node,
             indoor_navigation_manager_node,
             foxglove_navigation_adapter_node,
             foxglove_bridge_node,

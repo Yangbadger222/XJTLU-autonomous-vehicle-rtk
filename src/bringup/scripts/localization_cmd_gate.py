@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import copy
-import math
-
 import rclpy
 from geometry_msgs.msg import Twist
 from interface.msg import LocalizationStatus
@@ -22,9 +19,6 @@ class LocalizationCmdGate(Node):
         self.declare_parameter("obstacle_timeout_s", 0.5)
         self.declare_parameter("cmd_timeout_s", 0.25)
         self.declare_parameter("publish_hz", 20.0)
-        self.declare_parameter("in_place_linear_threshold", 0.02)
-        self.declare_parameter("angular_zero_threshold", 0.01)
-        self.declare_parameter("min_in_place_angular_speed", 0.20)
 
         cmd_vel_in = str(self.get_parameter("cmd_vel_in").value)
         cmd_vel_out = str(self.get_parameter("cmd_vel_out").value)
@@ -35,18 +29,6 @@ class LocalizationCmdGate(Node):
             self.get_parameter("obstacle_timeout_s").value
         )
         self.cmd_timeout_s = float(self.get_parameter("cmd_timeout_s").value)
-        self.in_place_linear_threshold = max(
-            0.0,
-            float(self.get_parameter("in_place_linear_threshold").value),
-        )
-        self.angular_zero_threshold = max(
-            0.0,
-            float(self.get_parameter("angular_zero_threshold").value),
-        )
-        self.min_in_place_angular_speed = max(
-            0.0,
-            float(self.get_parameter("min_in_place_angular_speed").value),
-        )
         publish_hz = float(self.get_parameter("publish_hz").value)
 
         self.allowed = False
@@ -77,22 +59,7 @@ class LocalizationCmdGate(Node):
 
     def on_cmd_vel(self, msg):
         self.last_cmd_time = self.get_clock().now()
-        self.publisher.publish(
-            self.apply_in_place_angular_floor(msg) if self.is_allowed() else Twist()
-        )
-
-    def apply_in_place_angular_floor(self, msg):
-        angular_z = float(msg.angular.z)
-        if (
-            math.hypot(msg.linear.x, msg.linear.y)
-            > self.in_place_linear_threshold
-            or abs(angular_z) <= self.angular_zero_threshold
-            or abs(angular_z) >= self.min_in_place_angular_speed
-        ):
-            return msg
-        out = copy.deepcopy(msg)
-        out.angular.z = math.copysign(self.min_in_place_angular_speed, angular_z)
-        return out
+        self.publisher.publish(msg if self.is_allowed() else Twist())
 
     def on_obstacle(self, _msg):
         self.last_obstacle_time = self.get_clock().now()

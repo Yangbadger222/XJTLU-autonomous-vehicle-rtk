@@ -4,7 +4,7 @@ collision_monitor:
     base_frame_id: base_footprint
     odom_frame_id: odom
     cmd_vel_in_topic: /cmd_vel_localized
-    cmd_vel_out_topic: /cmd_vel_safe
+    cmd_vel_out_topic: /cmd_vel_safe_raw
     transform_tolerance: 0.3
     source_timeout: 0.5
     base_shift_correction: true

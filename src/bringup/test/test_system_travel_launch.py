@@ -1,3 +1,4 @@
+import stat
 from pathlib import Path
 
 import yaml
@@ -247,6 +248,7 @@ def test_bringup_installs_travel_runtime_helper_nodes():
     assert "scripts/initialpose_relocalize_bridge.py" in cmake_text
     assert "scripts/nav2_cloud_retime.py" in cmake_text
     assert "scripts/localization_cmd_gate.py" in cmake_text
+    assert LOCALIZATION_CMD_GATE.stat().st_mode & stat.S_IXUSR
 
     for dependency in ("rclpy", "geometry_msgs", "sensor_msgs", "interface"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package_text

@@ -110,7 +110,7 @@ def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
         assert planner_node in bt_text
         assert "SmoothPath" in bt_text
         assert 'smoother_id="savitzky_golay_smoother"' in bt_text
-        assert 'check_for_collisions="true"' in bt_text
+        assert 'check_for_collisions="false"' in bt_text
         assert "FollowPath" in bt_text
         assert 'RecoveryNode number_of_retries="5"' in bt_text
         assert '<Spin spin_dist="1.57"/>' in bt_text

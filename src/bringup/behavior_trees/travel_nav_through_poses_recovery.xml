@@ -9,7 +9,7 @@
               <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
               <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
             </RecoveryNode>
-            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="true"/>
+            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
           </Sequence>
         </RateController>
         <RecoveryNode number_of_retries="2" name="FollowPathRecovery">

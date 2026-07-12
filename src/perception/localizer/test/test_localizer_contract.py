@@ -48,7 +48,7 @@ def test_localizer_config_exposes_current_time_tf_republish_rate():
 def test_localizer_config_enables_gated_runtime_correction():
     text = LOCALIZER_CONFIG.read_text(encoding="utf-8")
 
-    assert "continuous_icp: true" in text
+    assert "continuous_icp: false" in text
     assert "correction_alpha: 0.15" in text
     assert "max_correction_translation_m: 0.30" in text
     assert "max_correction_yaw_rad: 0.20" in text

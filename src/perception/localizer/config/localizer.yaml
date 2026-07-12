@@ -7,7 +7,9 @@ max_tf_input_age_s: 2.0
 tf_republish_hz: 20.0
 tf_future_tolerance_s: 0.10
 status_hz: 5.0
-continuous_icp: true
+# Manual/automatic startup ICP establishes map->odom. Runtime motion is then
+# propagated by FAST-LIO2; the current continuous ICP loses valid TF in motion.
+continuous_icp: false
 global_max_candidates: 5
 global_retry_interval_s: 3.0
 global_max_automatic_attempts: 5

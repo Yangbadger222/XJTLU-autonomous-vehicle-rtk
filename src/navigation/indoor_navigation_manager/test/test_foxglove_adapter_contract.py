@@ -58,7 +58,8 @@ def test_adapter_gates_and_cancels_on_localization_health():
     assert "LocalizationStatus.DEGRADED" in text
     assert "if not self.localized:" in text
     assert "self.active_goal_handle.cancel_goal_async()" in text
-    assert '"localization degraded; canceling active goal"' in text
+    assert '"localization temporarily unavailable; holding position"' in text
+    assert '"localization unavailable beyond grace period; canceling active goal"' in text
     assert "cancel_when_accepted" in text
     assert "if self.pending_goal:" in text
 
@@ -131,3 +132,12 @@ def test_importable_layout_contains_navigation_controls_and_views():
     assert configs["CallService!cancel"]["serviceName"] == "/foxglove/cancel_navigation"
     assert configs["CallService!region"]["serviceName"] == "/localizer/global_relocalize"
     assert "TopicGraph!indoor" in configs
+
+
+def test_active_goal_uses_bounded_localization_loss_grace():
+    text = ADAPTER.read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("localization_cancel_grace_s", 2.5)' in text
+    assert "def enforce_localization_loss_grace(self):" in text
+    assert "localization temporarily unavailable; holding position" in text
+    assert "localization unavailable beyond grace period" in text

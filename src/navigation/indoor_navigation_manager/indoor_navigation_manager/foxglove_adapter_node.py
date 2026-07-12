@@ -63,6 +63,7 @@ class FoxgloveNavigationAdapter(Node):
         self.declare_parameter("chassis_status_topic", "/chassis/status")
         self.declare_parameter("navigate_to_pose_action", "/navigate_to_pose")
         self.declare_parameter("named_navigation_action", "/navigate_named_destination")
+        self.declare_parameter("localization_cancel_grace_s", 2.5)
 
         destinations_file = str(self.get_parameter("destinations_file").value)
         if not destinations_file:
@@ -96,6 +97,10 @@ class FoxgloveNavigationAdapter(Node):
         localization_topic = str(self.get_parameter("localization_topic").value)
         chassis_status_topic = str(
             self.get_parameter("chassis_status_topic").value
+        )
+        self.localization_cancel_grace_s = max(
+            0.0,
+            float(self.get_parameter("localization_cancel_grace_s").value),
         )
         self.goal_pose_subscriptions = [
             self.create_subscription(
@@ -132,6 +137,7 @@ class FoxgloveNavigationAdapter(Node):
         self.chassis_mode = None
         self.chassis_ready = False
         self.last_localization_ready = None
+        self.localization_not_ready_since = None
         self.localization_state = "UNINITIALIZED"
         self.pending_goal = False
         self.cancel_when_accepted = False
@@ -140,6 +146,7 @@ class FoxgloveNavigationAdapter(Node):
         self.active_source = ""
         self.active_target = ""
         self.remaining_distance = float("nan")
+        self.create_timer(0.1, self.enforce_localization_loss_grace)
         self.publish_catalog()
         self.publish_destination_markers()
         self.publish_status("IDLE", "waiting for localization")
@@ -251,17 +258,20 @@ class FoxgloveNavigationAdapter(Node):
         )
         localization_changed = self.localized != self.last_localization_ready
         self.last_localization_ready = self.localized
+        if self.localized:
+            self.localization_not_ready_since = None
+            if localization_changed and self.active_goal_handle is not None:
+                self.publish_status(
+                    "NAVIGATING", "localization recovered; resuming navigation"
+                )
+        elif self.localization_not_ready_since is None:
+            self.localization_not_ready_since = self.get_clock().now()
+            if self.active_goal_handle is not None and not self.cancel_requested:
+                self.publish_status(
+                    "NAVIGATING",
+                    "localization temporarily unavailable; holding position",
+                )
         if (
-            not self.localized
-            and self.active_goal_handle is not None
-            and not self.cancel_requested
-        ):
-            self.cancel_requested = True
-            self.active_goal_handle.cancel_goal_async()
-            self.publish_status(
-                "CANCELING", "localization degraded; canceling active goal"
-            )
-        elif (
             localization_changed
             and not self.pending_goal
             and self.active_goal_handle is None
@@ -275,6 +285,25 @@ class FoxgloveNavigationAdapter(Node):
             self.publish_status(
                 "IDLE",
                 idle_message,
+            )
+
+    def enforce_localization_loss_grace(self):
+        if (
+            self.localized
+            or self.localization_not_ready_since is None
+            or self.active_goal_handle is None
+            or self.cancel_requested
+        ):
+            return
+        elapsed_s = (
+            self.get_clock().now() - self.localization_not_ready_since
+        ).nanoseconds * 1.0e-9
+        if elapsed_s >= self.localization_cancel_grace_s:
+            self.cancel_requested = True
+            self.active_goal_handle.cancel_goal_async()
+            self.publish_status(
+                "CANCELING",
+                "localization unavailable beyond grace period; canceling active goal",
             )
 
     def on_chassis_status(self, msg):
@@ -410,18 +439,23 @@ class FoxgloveNavigationAdapter(Node):
             return
         self.active_goal_handle = goal_handle
         self.cancel_requested = False
-        if self.cancel_when_accepted or not self.localized:
+        if self.cancel_when_accepted:
             self.cancel_requested = True
             self.cancel_when_accepted = False
             goal_handle.cancel_goal_async()
             self.publish_status(
                 "CANCELING",
-                "canceling goal accepted after the request"
-                if self.localized
-                else "localization degraded before goal acceptance",
+                "canceling goal accepted after the request",
             )
         else:
-            self.publish_status("NAVIGATING", "navigation goal accepted")
+            if not self.localized and self.localization_not_ready_since is None:
+                self.localization_not_ready_since = self.get_clock().now()
+            self.publish_status(
+                "NAVIGATING",
+                "navigation goal accepted"
+                if self.localized
+                else "goal accepted; waiting for localization recovery",
+            )
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.on_result)
 
@@ -456,6 +490,9 @@ class FoxgloveNavigationAdapter(Node):
         self.cancel_when_accepted = False
         self.active_goal_handle = None
         self.cancel_requested = False
+        self.localization_not_ready_since = (
+            None if self.localized else self.get_clock().now()
+        )
         self.remaining_distance = float("nan")
         self.publish_status(state, message)
 

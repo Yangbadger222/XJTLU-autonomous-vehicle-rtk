@@ -16,7 +16,9 @@ collision_monitor:
       # side returns while the costmap footprint already checks swept clearance.
       points: [0.40, 0.32, 0.40, -0.32, -0.40, -0.32, -0.40, 0.32]
       action_type: stop
-      max_points: 3
+      # Static vehicle-edge returns measured 0-6 points/frame; require a
+      # denser cluster before applying an emergency stop.
+      max_points: 10
       visualize: true
       polygon_pub_topic: /travel_safety/stop_zone
       enabled: true
@@ -26,7 +28,7 @@ collision_monitor:
       # not reverse, so rear/side returns must not permanently throttle forward motion.
       points: [0.85, 0.30, 0.85, -0.30, 0.45, -0.30, 0.45, 0.30]
       action_type: slowdown
-      max_points: 3
+      max_points: 10
       slowdown_ratio: 0.60
       visualize: true
       polygon_pub_topic: /travel_safety/slow_zone

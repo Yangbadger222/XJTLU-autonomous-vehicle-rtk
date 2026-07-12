@@ -214,7 +214,9 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     stop = collision_config["PolygonStop"]
     slow = collision_config["PolygonSlow"]
     assert stop["points"] == [0.40, 0.32, 0.40, -0.32, -0.40, -0.32, -0.40, 0.32]
+    assert stop["max_points"] == 10
     assert slow["points"] == [0.85, 0.30, 0.85, -0.30, 0.45, -0.30, 0.45, 0.30]
+    assert slow["max_points"] == 10
     assert slow["slowdown_ratio"] == 0.60
     assert min(slow["points"][::2]) > 0.35
 

@@ -141,11 +141,26 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
   map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
 ```
 
+Travel 默认把每个启动会话的导航诊断 rosbag 写到
+`runtime-data/logs/latest/data/travel_bag/`。lean profile 记录目标、导航状态、TF、
+FAST-LIO2/底盘里程计、全局/局部路径、代价地图、激光扫描和四级速度命令，足以复盘
+轨迹扭动、停车和恢复行为，同时不录原始 Livox 点云。需要检查点云障碍输入时使用：
+
+```bash
+FYP_TRAVEL_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
+
+# 仅在明确不需要复盘时关闭自动录包
+FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
+```
+
 说明：
 - `map_bundle` 是正式入口；Travel 会检查 schema、`consistency_ok`、标定接受状态以及 2D map、定位 PCD、标定、描述子和地点文件。分开传 `map_yaml/pcd_map` 只保留给兼容调试
 - `localizer` 负责发布 `map -> odom`；FAST-LIO2 负责发布 `odom -> base_footprint`，URDF 再提供 `base_footprint -> base_link`
 - 默认先用 Scan Context 检索多个候选并做 ICP；重复走廊候选不唯一时进入 `LOST`，此时用区域 service 或 RViz `2D Pose Estimate` 降级，不会带着歧义开车
-- 定位成功后默认以 `1Hz` 做连续地图匹配，只接受重叠率和跳变门槛内的结果，并以 `alpha=0.15` 平滑 `map -> odom`
+- 定位成功后保持已接受的 `map -> odom` 偏移，由 FAST-LIO2 高频 `odom -> base_footprint` 传播运动；当前禁用运行中连续 ICP，避免匹配失败时撤掉 TF
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用有限恢复行为树并直接跟踪 NavFn 路径：持续 1Hz 重规划，规划失败清全局代价，控制失败清局部代价，随后按等待 1 秒、原地转 90 度、清局部/全局代价的顺序有限重试。Spin 经过 footprint 碰撞检查，仍禁止自动 BackUp 和路径平滑
 - Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、`vx_max=0.30m/s` 的 20Hz MPPI、车头方向 Slow 区和车体近场 Stop 区；路径方向误差超过 `0.35rad` 时先以 `0.30rad/s` 原地对准，避免低速线/角速度混合造成单侧车轮卡在静摩擦区；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度

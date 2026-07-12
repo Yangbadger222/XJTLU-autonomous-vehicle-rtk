@@ -33,6 +33,28 @@ def test_travel_launch_exposes_prior_map_arguments():
         assert f'"{argument_name}"' in text
 
 
+def test_travel_records_low_load_navigation_evidence_by_default():
+    text = _travel_launch_text()
+
+    assert 'os.environ.get("FYP_TRAVEL_RECORD_BAG", "true")' in text
+    assert 'os.environ.get("FYP_TRAVEL_BAG_PROFILE", "lean")' in text
+    assert 'os.path.join(bag_session_dir, "travel_bag")' in text
+    assert '"/fastlio2/lio_odom"' in text
+    assert '"/odom_CBoar"' in text
+    assert '"/cmd_vel_nav"' in text
+    assert '"/cmd_vel_localized"' in text
+    assert '"/cmd_vel_safe"' in text
+    assert '"/plan"' in text
+    assert '"/local_plan"' in text
+    assert '"/local_costmap/costmap"' in text
+    assert '"/localizer/status"' in text
+    assert '"/foxglove/navigation/status"' in text
+    assert '"/chassis/status"' in text
+    assert '"/fastlio2/body_cloud"' in text
+    assert "_TRAVEL_BAG_DEBUG_TOPICS" in text
+    assert "*_travel_bag_topics(bag_profile)" in text
+
+
 def test_travel_launch_wires_localizer_and_nav2():
     text = _travel_launch_text()
 

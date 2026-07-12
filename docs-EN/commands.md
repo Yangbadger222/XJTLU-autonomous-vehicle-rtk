@@ -140,11 +140,28 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
   map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
 ```
 
+Travel records a navigation diagnostic rosbag for every launch session at
+`runtime-data/logs/latest/data/travel_bag/` by default. The lean profile captures goals,
+navigation status, TF, FAST-LIO2/chassis odometry, global/local paths, costmaps, laser
+scan, and all four velocity-command stages. This is enough to diagnose weaving, stops,
+and recoveries without recording raw Livox point clouds. Use the debug profile when the
+point-cloud obstacle input must also be replayed:
+
+```bash
+FYP_TRAVEL_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
+
+# Disable automatic recording only when replay evidence is explicitly unnecessary
+FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
+```
+
 Notes:
 - `map_bundle` is the production input. Travel checks schema, `consistency_ok`, calibration acceptance, and the 2D map, localization PCD, alignment, descriptor, and destination artifacts. Separate `map_yaml/pcd_map` arguments remain only for compatibility debugging
 - `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
 - Startup queries several Scan Context candidates and refines them with ICP. An ambiguous repeated corridor enters `LOST`; use the region service or RViz `2D Pose Estimate` as a stopped fallback
-- After acceptance, the localizer matches at `1Hz`, admits only overlap/jump-gated results, and smooths `map -> odom` with `alpha=0.15`
+- After acceptance, the localizer holds the accepted `map -> odom` offset while FAST-LIO2 propagates motion through high-rate `odom -> base_footprint`. Runtime continuous ICP is currently disabled so a failed match cannot withdraw TF
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
 - Travel `NavigateToPose` / `NavigateThroughPoses` use bounded-recovery trees and follow NavFn paths directly. They replan at 1Hz; planning failure clears the global costmap, controller failure clears the local costmap, and outer recovery performs a bounded sequence of a one-second wait, a collision-checked 90-degree in-place Spin, and local/global clearing. Automatic BackUp and path smoothing remain disabled
 - Travel uses the `650x500mm` envelope plus `25mm` polygon margin, 20Hz MPPI with `vx_max=0.30m/s`, a forward slowdown zone, and a close-body stop zone. A path-heading error above `0.35rad` is aligned in place at `0.30rad/s` first, avoiding low simultaneous linear/angular commands that hold one wheel in static friction. A stale or non-`LOCALIZED` `/localizer/status` forces zero velocity before serial output

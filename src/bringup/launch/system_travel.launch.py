@@ -7,13 +7,59 @@ import launch
 import launch_ros.actions
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction, TimerAction
+from launch.actions import (
+    DeclareLaunchArgument,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    LogInfo,
+    OpaqueFunction,
+    TimerAction,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.parameter_descriptions import ParameterValue
 from nav2_common.launch import RewrittenYaml
+
+
+_TRAVEL_BAG_BASE_TOPICS = [
+    "/tf",
+    "/tf_static",
+    "/fastlio2/lio_odom",
+    "/odom_CBoar",
+    "/scan",
+    "/cmd_vel",
+    "/cmd_vel_nav",
+    "/cmd_vel_localized",
+    "/cmd_vel_safe",
+    "/plan",
+    "/local_plan",
+    "/local_costmap/costmap",
+    "/global_costmap/costmap",
+    "/localizer/status",
+    "/foxglove/navigation/status",
+    "/chassis/status",
+    "/foxglove/goal_pose",
+    "/move_base_simple/goal",
+    "/navigate_to_pose/_action/status",
+    "/follow_path/_action/status",
+    "/behavior_tree_log",
+    "/diagnostics",
+]
+
+_TRAVEL_BAG_DEBUG_TOPICS = [
+    "/fastlio2/body_cloud_nav2",
+    "/fastlio2/body_cloud_nav2_obstacles",
+    "/fastlio2/body_cloud",
+]
+
+
+def _travel_bag_topics(profile):
+    topics = list(_TRAVEL_BAG_BASE_TOPICS)
+    if (profile or "lean").strip().lower() in {"debug", "full", "raw"}:
+        topics.extend(_TRAVEL_BAG_DEBUG_TOPICS)
+    return topics
 
 
 def _resolve_map_bundle(context):
@@ -97,6 +143,13 @@ def generate_launch_description():
     pgo_no_tf_config_path = PathJoinSubstitution(
         [FindPackageShare("pgo"), "config", "pgo_slam.yaml"]
     )
+    bag_profile = os.environ.get("FYP_TRAVEL_BAG_PROFILE", "lean")
+    bag_session_dir = os.environ.get("FYP_LOG_SESSION_DIR")
+    bag_output = (
+        os.path.join(bag_session_dir, "travel_bag")
+        if bag_session_dir
+        else os.path.join("/tmp", f"travel_bag_{os.getpid()}")
+    )
 
     map_bundle_arg = DeclareLaunchArgument(
         "map_bundle",
@@ -138,6 +191,11 @@ def generate_launch_description():
         "use_pgo",
         default_value="false",
         description="Whether to launch PGO without TF for map visualization/save-map support.",
+    )
+    record_bag_arg = DeclareLaunchArgument(
+        "record_bag",
+        default_value=os.environ.get("FYP_TRAVEL_RECORD_BAG", "true"),
+        description="Record lean/debug Travel navigation evidence for this session.",
     )
     master_params_arg = DeclareLaunchArgument(
         "master_params_file",
@@ -403,6 +461,11 @@ def generate_launch_description():
             os.path.join(bringup_share, "launch", "robot_description.launch.py")
         )
     )
+    bag_recorder = ExecuteProcess(
+        cmd=["ros2", "bag", "record", "-o", bag_output, *_travel_bag_topics(bag_profile)],
+        output="log",
+        condition=IfCondition(LaunchConfiguration("record_bag")),
+    )
 
     return LaunchDescription(
         [
@@ -418,9 +481,12 @@ def generate_launch_description():
             foxglove_port_arg,
             use_rviz_arg,
             use_pgo_arg,
+            record_bag_arg,
             master_params_arg,
             rviz_config_arg,
             OpaqueFunction(function=_resolve_map_bundle),
+            LogInfo(msg=f"Travel bag profile: {bag_profile}; output: {bag_output}"),
+            bag_recorder,
             livox_launch,
             fastlio_launch,
             pgo_node,

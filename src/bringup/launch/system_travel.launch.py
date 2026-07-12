@@ -84,12 +84,12 @@ def generate_launch_description():
     travel_bt_xml = os.path.join(
         bringup_share,
         "behavior_trees",
-        "travel_nav_to_pose_fail_stop.xml",
+        "travel_nav_to_pose_recovery.xml",
     )
     travel_through_poses_bt_xml = os.path.join(
         bringup_share,
         "behavior_trees",
-        "travel_nav_through_poses_fail_stop.xml",
+        "travel_nav_through_poses_recovery.xml",
     )
     localizer_config_path = PathJoinSubstitution(
         [FindPackageShare("localizer"), "config", "localizer.yaml"]

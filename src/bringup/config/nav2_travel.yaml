@@ -708,7 +708,9 @@ behavior_server:
     cycle_frequency: 10.0
     # 恢复行为列表；决定 behavior server 可提供哪些动作。
     # 增删行为：会直接改变恢复和辅助动作集合。
-    behavior_plugins: ["wait"]
+    behavior_plugins: ["spin", "wait"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
     # Wait 恢复行为参数块；负责等待动作。
     # 改错结构或参数：等待行为可能不可用。
     wait:
@@ -732,13 +734,13 @@ behavior_server:
     simulate_ahead_time: 2.0
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_rotational_vel: 1.0
+    max_rotational_vel: 0.50
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    min_rotational_vel: 0.4
+    min_rotational_vel: 0.20
     # 恢复行为角加速度上限；限制转向提速的快慢。
     # 调大：转向响应更快但更猛；调小：更柔和但更慢。
-    rotational_acc_lim: 3.5
+    rotational_acc_lim: 0.80
 # Robot State Publisher 参数块；负责基础状态发布的 ROS 参数。
 # 改错节点名或层级：节点会读不到参数。
 robot_state_publisher:

@@ -35,7 +35,7 @@
 - `system_travel.launch.py` 以 `map_bundle` 为主入口，拒绝 schema 不支持、整体门槛未通过、标定未接受或文件缺失的地图包。
 - localizer 支持 RViz 初值、区域辅助和 Scan Context 多候选自动定位，发布结构化状态，并以低频 ICP、跳变门控和低通更新 `map -> odom`。
 - Travel 的全局代价地图只使用静态地图；局部代价地图使用实时点云。
-- Travel 使用真实矩形 footprint、MPPI、碰撞检查路径平滑、Collision Monitor 和无自动倒车/旋转的 fail-stop 行为树；定位异常会在串口前切断速度。
+- Travel 使用真实矩形 footprint、MPPI、Collision Monitor 和有限恢复行为树；允许经过 footprint 碰撞检查的原地 Spin、等待和代价图清理重试，仍禁止自动倒车，定位异常会在串口前切断速度。
 - Travel 控制周期已使用 `20Hz`，与 MPPI `model_dt=0.05s` 匹配。
 - `indoor_navigation_manager` 提供 `NavigateNamedDestination` Action，支持地图/backend 校验、别名、反馈、取消、并发拒绝和定位降级取消。
 
@@ -315,7 +315,7 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 - 全局 costmap 只包含静态地图和静态膨胀，不把临时人员写入全局地图。
 - local costmap 使用 Nav2 专用障碍点云，负责人员、椅子和临时障碍。
 - 增加 Collision Monitor 独立实现减速区和停车区。
-- 保留 Travel fail-stop：不自动 BackUp、不盲目 Spin、不自动清除全部地图。
+- Travel 使用有界恢复：不自动 BackUp；Spin 必须经过 footprint 碰撞检查；局部/全局清图只在规划或控制失败后按有限重试执行。
 - PS2 `X` 是最高优先级软件失能；红色物理急停覆盖全部软件。
 - 定位状态必须进入速度输出安全链，不能只在界面提示。
 

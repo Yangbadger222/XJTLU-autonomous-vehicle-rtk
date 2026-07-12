@@ -35,7 +35,7 @@ Design principles:
 - `system_travel.launch.py` accepts `map_bundle` as the primary input and rejects unsupported schemas, failed consistency, unaccepted calibration, and missing artifacts.
 - The localizer supports RViz-seeded, region-assisted, and multi-candidate Scan Context startup, publishes structured status, and performs low-rate ICP correction with jump gates and low-pass updates.
 - Travel uses a static-only global costmap and live point cloud in the local costmap.
-- Travel uses a polygon footprint, MPPI, collision-checked smoothing, Collision Monitor, and fail-stop trees; unhealthy localization gates velocity before the serial controller.
+- Travel uses a polygon footprint, MPPI, Collision Monitor, and bounded-recovery trees. Collision-checked in-place Spin, waiting, and costmap-clearing retries are allowed; automatic reversing remains disabled, and unhealthy localization gates velocity before the serial controller.
 - Travel now runs its controller at `20Hz`, matching MPPI `model_dt=0.05s`.
 - `indoor_navigation_manager` exposes `NavigateNamedDestination` with map/backend validation, aliases, feedback, cancel, concurrency rejection, and cancellation on localization degradation.
 
@@ -313,7 +313,7 @@ The vehicle can turn in place, so the controller retains the `DiffDrive` motion 
 - The global costmap contains only the static map and static inflation.
 - The local costmap uses the Nav2 obstacle cloud for people, chairs, and temporary obstacles.
 - Add Collision Monitor with independent slowdown and stop zones.
-- Preserve Travel fail-stop behavior: no automatic BackUp, blind Spin, or full-map clear.
+- Use bounded Travel recovery: no automatic BackUp; Spin must pass footprint collision checks; local/global clearing runs only after planner or controller failure and remains retry-limited.
 - PS2 `X` is the highest-priority software disable; the physical red e-stop overrides all software.
 - Localization state must gate the velocity chain, not only display a warning.
 

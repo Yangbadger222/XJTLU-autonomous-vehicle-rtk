@@ -12,9 +12,9 @@ BRINGUP_PACKAGE = Path("src/bringup/package.xml")
 INITIALPOSE_BRIDGE = Path("src/bringup/scripts/initialpose_relocalize_bridge.py")
 NAV2_CLOUD_RETIME = Path("src/bringup/scripts/nav2_cloud_retime.py")
 LOCALIZATION_CMD_GATE = Path("src/bringup/scripts/localization_cmd_gate.py")
-TRAVEL_FAIL_STOP_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_fail_stop.xml")
-TRAVEL_THROUGH_POSES_FAIL_STOP_BT = Path(
-    "src/bringup/behavior_trees/travel_nav_through_poses_fail_stop.xml"
+TRAVEL_RECOVERY_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_recovery.xml")
+TRAVEL_THROUGH_POSES_RECOVERY_BT = Path(
+    "src/bringup/behavior_trees/travel_nav_through_poses_recovery.xml"
 )
 
 
@@ -67,30 +67,32 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "rolling_window: true" in local_costmap_text
 
 
-def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
+def test_travel_uses_bounded_recovery_without_automatic_backup():
     launch_text = _travel_launch_text()
     nav2_text = NAV2_TRAVEL.read_text(encoding="utf-8")
     bt_navigator_text = nav2_text.split("# Navigate Through Poses", maxsplit=1)[0]
 
-    assert "travel_nav_to_pose_fail_stop.xml" in launch_text
-    assert "travel_nav_through_poses_fail_stop.xml" in launch_text
+    assert "travel_nav_to_pose_recovery.xml" in launch_text
+    assert "travel_nav_through_poses_recovery.xml" in launch_text
     assert '"default_nav_to_pose_bt_xml": travel_bt_xml' in launch_text
     assert '"default_nav_through_poses_bt_xml": travel_through_poses_bt_xml' in launch_text
     assert "default_nav_to_pose_bt_xml:" in bt_navigator_text
     assert "default_nav_through_poses_bt_xml:" in bt_navigator_text
 
     bt_expectations = {
-        TRAVEL_FAIL_STOP_BT: "ComputePathToPose",
-        TRAVEL_THROUGH_POSES_FAIL_STOP_BT: "ComputePathThroughPoses",
+        TRAVEL_RECOVERY_BT: "ComputePathToPose",
+        TRAVEL_THROUGH_POSES_RECOVERY_BT: "ComputePathThroughPoses",
     }
     for bt_file, planner_node in bt_expectations.items():
         bt_text = bt_file.read_text(encoding="utf-8")
         assert planner_node in bt_text
         assert "SmoothPath" not in bt_text
         assert "FollowPath" in bt_text
-
-        for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
-            assert unsafe_motion_recovery not in bt_text
+        assert 'RecoveryNode number_of_retries="5"' in bt_text
+        assert '<Spin spin_dist="1.57"/>' in bt_text
+        assert "ClearEntireCostmap" in bt_text
+        assert '<Wait wait_duration="1"/>' in bt_text
+        assert "<BackUp" not in bt_text
 
 
 def test_travel_uses_smooth_low_load_mppi_controller_profile():
@@ -129,7 +131,11 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "cost_weight: 16.0" in controller_text
     assert '        - "VelocityDeadbandCritic"' in controller_text
     assert "deadband_velocities: [0.14, 0.0, 0.18]" in controller_text
-    assert 'behavior_plugins: ["wait"]' in behavior_text
+    assert 'behavior_plugins: ["spin", "wait"]' in behavior_text
+    assert 'plugin: "nav2_behaviors/Spin"' in behavior_text
+    assert "max_rotational_vel: 0.50" in behavior_text
+    assert "min_rotational_vel: 0.20" in behavior_text
+    assert "rotational_acc_lim: 0.80" in behavior_text
 
     assert 'plugin: "dwb_core::DWBLocalPlanner"' not in controller_text
     assert "vx_samples:" not in controller_text
@@ -244,12 +250,13 @@ def test_travel_exposes_foxglove_control_surface():
     assert "install(DIRECTORY foxglove/" in cmake_text
 
 
-def test_travel_follows_collision_checked_navfn_path_without_unsafe_recovery():
-    for bt_file in (TRAVEL_FAIL_STOP_BT, TRAVEL_THROUGH_POSES_FAIL_STOP_BT):
+def test_travel_follows_navfn_path_without_smoothing_or_backup():
+    for bt_file in (TRAVEL_RECOVERY_BT, TRAVEL_THROUGH_POSES_RECOVERY_BT):
         text = bt_file.read_text(encoding="utf-8")
         assert "ComputePath" in text
         assert "SmoothPath" not in text
         assert "FollowPath" in text
+        assert "<BackUp" not in text
 
 
 def test_travel_keeps_velocity_smoothing_for_indoor_navigation():

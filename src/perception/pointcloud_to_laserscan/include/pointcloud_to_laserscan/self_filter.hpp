@@ -1,3 +1,5 @@
+// Copyright 2026 XJTLU Autonomous Vehicle Team
+
 #ifndef POINTCLOUD_TO_LASERSCAN__SELF_FILTER_HPP_
 #define POINTCLOUD_TO_LASERSCAN__SELF_FILTER_HPP_
 

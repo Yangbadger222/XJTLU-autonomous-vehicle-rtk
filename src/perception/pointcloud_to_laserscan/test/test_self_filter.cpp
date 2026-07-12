@@ -1,3 +1,5 @@
+// Copyright 2026 XJTLU Autonomous Vehicle Team
+
 #include <gtest/gtest.h>
 
 #include "pointcloud_to_laserscan/self_filter.hpp"

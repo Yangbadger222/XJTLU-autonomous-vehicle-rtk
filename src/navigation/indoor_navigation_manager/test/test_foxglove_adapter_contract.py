@@ -21,6 +21,10 @@ def test_adapter_uses_actions_and_never_writes_velocity():
     assert '"/move_base_simple/goal"' in text
     assert '"/foxglove/named_destination"' in text
     assert '"/foxglove/cancel_navigation"' in text
+    assert '"/chassis/status"' in text
+    assert "ChassisStatus.CTRL_MODE_HOST" in text
+    assert '"chassis motors are disabled' in text
+    assert '"chassis left host serial mode; canceling active goal"' in text
     assert "lookup_transform(" in text
     assert '"map", source_frame, Time()' in text
     assert "do_transform_pose_stamped" in text
@@ -86,6 +90,7 @@ def test_adapter_is_packaged_with_required_ros_dependencies():
     for dependency in (
         "std_msgs",
         "std_srvs",
+        "frc_msgs",
         "tf2_geometry_msgs",
         "tf2_ros",
         "visualization_msgs",

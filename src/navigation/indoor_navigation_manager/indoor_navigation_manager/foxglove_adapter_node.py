@@ -3,6 +3,7 @@ import math
 
 import rclpy
 from action_msgs.msg import GoalStatus
+from frc_msgs.msg import ChassisStatus
 from geometry_msgs.msg import PoseStamped
 from interface.action import NavigateNamedDestination
 from interface.msg import LocalizationStatus, NavigationStatus
@@ -59,6 +60,7 @@ class FoxgloveNavigationAdapter(Node):
         )
         self.declare_parameter("named_destination_topic", "/foxglove/named_destination")
         self.declare_parameter("localization_topic", "/localizer/status")
+        self.declare_parameter("chassis_status_topic", "/chassis/status")
         self.declare_parameter("navigate_to_pose_action", "/navigate_to_pose")
         self.declare_parameter("named_navigation_action", "/navigate_named_destination")
 
@@ -92,6 +94,9 @@ class FoxgloveNavigationAdapter(Node):
         ).strip()
         named_topic = str(self.get_parameter("named_destination_topic").value)
         localization_topic = str(self.get_parameter("localization_topic").value)
+        chassis_status_topic = str(
+            self.get_parameter("chassis_status_topic").value
+        )
         self.goal_pose_subscriptions = [
             self.create_subscription(
                 PoseStamped, goal_pose_topic, self.on_pose_goal, 10
@@ -107,6 +112,9 @@ class FoxgloveNavigationAdapter(Node):
         self.create_subscription(
             LocalizationStatus, localization_topic, self.on_localization, 10
         )
+        self.create_subscription(
+            ChassisStatus, chassis_status_topic, self.on_chassis_status, 10
+        )
         self.cancel_service = self.create_service(
             Trigger, "/foxglove/cancel_navigation", self.on_cancel
         )
@@ -121,6 +129,8 @@ class FoxgloveNavigationAdapter(Node):
         self.tf_listener = TransformListener(self.tf_buffer, self)
 
         self.localized = False
+        self.chassis_mode = None
+        self.chassis_ready = False
         self.last_localization_ready = None
         self.localization_state = "UNINITIALIZED"
         self.pending_goal = False
@@ -255,14 +265,54 @@ class FoxgloveNavigationAdapter(Node):
             and not self.pending_goal
             and self.active_goal_handle is None
         ):
+            if not self.localized:
+                idle_message = "localization is not ready"
+            elif not self.chassis_ready:
+                idle_message = self.chassis_unavailable_message()
+            else:
+                idle_message = "ready for navigation"
             self.publish_status(
                 "IDLE",
-                "ready for navigation" if self.localized else "localization is not ready",
+                idle_message,
             )
+
+    def on_chassis_status(self, msg):
+        was_ready = self.chassis_ready
+        self.chassis_mode = int(msg.ctrl_mode)
+        self.chassis_ready = self.chassis_mode == ChassisStatus.CTRL_MODE_HOST
+        if not self.chassis_ready and self.active_goal_handle is not None:
+            if not self.cancel_requested:
+                self.cancel_requested = True
+                self.active_goal_handle.cancel_goal_async()
+                self.publish_status(
+                    "CANCELING", "chassis left host serial mode; canceling active goal"
+                )
+        elif not self.chassis_ready and self.pending_goal:
+            self.cancel_when_accepted = True
+            self.publish_status(
+                "CANCELING", "chassis left host serial mode before goal acceptance"
+            )
+        elif was_ready != self.chassis_ready and self.active_goal_handle is None:
+            self.publish_status(
+                "IDLE",
+                "ready for navigation"
+                if self.chassis_ready and self.localized
+                else self.chassis_unavailable_message(),
+            )
+
+    def chassis_unavailable_message(self):
+        if self.chassis_mode == ChassisStatus.CTRL_MODE_DISABLED:
+            return "chassis motors are disabled; enable motors, then select host serial mode"
+        if self.chassis_mode == ChassisStatus.CTRL_MODE_GAMEPAD:
+            return "chassis is in gamepad mode; select host serial mode"
+        return "chassis status is unavailable"
 
     def goal_is_available(self):
         if not self.localized:
             self.publish_status("REJECTED", "localization is not ready")
+            return False
+        if not self.chassis_ready:
+            self.publish_status("REJECTED", self.chassis_unavailable_message())
             return False
         if self.pending_goal or self.active_goal_handle is not None:
             self.publish_status("REJECTED", "another navigation goal is active")

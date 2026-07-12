@@ -327,7 +327,15 @@ def generate_launch_description():
         executable="serial_twistctl_node",
         name="serial_twistctl_node",
         output="screen",
-        parameters=[LaunchConfiguration("master_params_file")],
+        parameters=[
+            LaunchConfiguration("master_params_file"),
+            {
+                "enable_acceleration_limit": True,
+                "max_linear_acceleration": 0.30,
+                "max_angular_acceleration": 0.80,
+                "acceleration_dt_cap_s": 0.10,
+            },
+        ],
         remappings=[("/cmd_vel", "/cmd_vel_safe")],
     )
 

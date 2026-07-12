@@ -107,13 +107,13 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 500" in controller_text
-    assert "vx_std: 0.20" in controller_text
+    assert "vx_std: 0.16" in controller_text
     assert "wz_std: 0.14" in controller_text
-    assert "vx_max: 0.45" in controller_text
+    assert "vx_max: 0.30" in controller_text
     assert "vx_min: 0.0" in controller_text
     assert "vy_max: 0.0" in controller_text
     assert "wz_max: 0.65" in controller_text
-    assert "ax_max: 0.70" in controller_text
+    assert "ax_max: 0.40" in controller_text
     assert "ax_min: -0.8" in controller_text
     assert "az_max: 2.0" in controller_text
     assert "regenerate_noises: true" in controller_text
@@ -189,6 +189,9 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert 'executable="localization_cmd_gate.py"' in launch_text
     assert 'package="nav2_collision_monitor"' in launch_text
     assert 'remappings=[("/cmd_vel", "/cmd_vel_safe")]' in launch_text
+    assert '"enable_acceleration_limit": True' in launch_text
+    assert '"max_linear_acceleration": 0.30' in launch_text
+    assert '"max_angular_acceleration": 0.80' in launch_text
     assert 'cmd_vel_in_topic: /cmd_vel_localized' in collision_text
     assert 'cmd_vel_out_topic: /cmd_vel_safe' in collision_text
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
@@ -244,9 +247,9 @@ def test_travel_keeps_velocity_smoothing_for_indoor_navigation():
     assert "do_refinement: true" in smoother_text
     assert "refinement_num: 2" in smoother_text
 
-    assert "max_velocity: [0.45, 0.0, 0.65]" in velocity_text
+    assert "max_velocity: [0.30, 0.0, 0.65]" in velocity_text
     assert "min_velocity: [0.0, 0.0, -0.65]" in velocity_text
-    assert "max_accel: [0.70, 0.0, 1.4]" in velocity_text
+    assert "max_accel: [0.40, 0.0, 1.4]" in velocity_text
     assert "max_decel: [-0.8, 0.0, -1.8]" in velocity_text
 
 

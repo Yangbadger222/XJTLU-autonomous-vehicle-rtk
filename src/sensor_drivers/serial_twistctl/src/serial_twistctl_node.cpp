@@ -122,6 +122,7 @@ public:
     {
         // 初始化最后消息时间为当前时间
         last_message_time_ = std::chrono::steady_clock::now();
+        last_output_time_ = last_message_time_;
         // 记录节点启动成功信息
         RCLCPP_INFO(this->get_logger(), "Node 文件运行成功");
 
@@ -152,6 +153,10 @@ public:
         this->declare_parameter<double>("angular_z_scale", 1.0);
         this->declare_parameter<int>("command_timeout_ms", 300);
         this->declare_parameter<int>("watchdog_period_ms", 100);
+        this->declare_parameter<bool>("enable_acceleration_limit", false);
+        this->declare_parameter<double>("max_linear_acceleration", 0.30);
+        this->declare_parameter<double>("max_angular_acceleration", 0.80);
+        this->declare_parameter<double>("acceleration_dt_cap_s", 0.10);
 
         // 获取端口参数值
         port_ = this->get_parameter("port").as_string();
@@ -167,6 +172,14 @@ public:
             1, static_cast<int>(this->get_parameter("command_timeout_ms").as_int()));
         watchdog_period_ms_ = std::max(
             1, static_cast<int>(this->get_parameter("watchdog_period_ms").as_int()));
+        enable_acceleration_limit_ =
+            this->get_parameter("enable_acceleration_limit").as_bool();
+        max_linear_acceleration_ = std::max(
+            0.0, this->get_parameter("max_linear_acceleration").as_double());
+        max_angular_acceleration_ = std::max(
+            0.0, this->get_parameter("max_angular_acceleration").as_double());
+        acceleration_dt_cap_s_ = std::max(
+            0.001, this->get_parameter("acceleration_dt_cap_s").as_double());
 
         // 设置串口端口
         try {
@@ -251,6 +264,7 @@ private:
                 "No velocity command for %ld ms; enforcing zero velocity",
                 time_since_last_msg);
             try {
+                reset_acceleration_limiter(now);
                 send_command(0.0, 0.0, false);
             } catch (const std::exception& error) {
                 RCLCPP_ERROR_THROTTLE(
@@ -267,10 +281,26 @@ private:
     void twist_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         // 更新最后消息时间
-        last_message_time_ = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
+        last_message_time_ = now;
+
+        double linear_x = msg->linear.x;
+        double angular_z = msg->angular.z;
+        if (enable_acceleration_limit_) {
+            const double elapsed_s = std::chrono::duration<double>(
+                now - last_output_time_).count();
+            const double dt_s = std::min(acceleration_dt_cap_s_, std::max(0.0, elapsed_s));
+            linear_x = serial_twistctl::limitCommandAcceleration(
+                previous_linear_x_, linear_x, max_linear_acceleration_ * dt_s);
+            angular_z = serial_twistctl::limitCommandAcceleration(
+                previous_angular_z_, angular_z, max_angular_acceleration_ * dt_s);
+        }
+        previous_linear_x_ = linear_x;
+        previous_angular_z_ = angular_z;
+        last_output_time_ = now;
 
         try {
-            send_command(msg->linear.x, msg->angular.z, true);
+            send_command(linear_x, angular_z, true);
         } catch (const std::exception& error) {
             RCLCPP_ERROR_THROTTLE(
                 this->get_logger(),
@@ -279,6 +309,14 @@ private:
                 "Velocity command serial write failed: %s",
                 error.what());
         }
+    }
+
+    void reset_acceleration_limiter(
+        const std::chrono::steady_clock::time_point& now)
+    {
+        previous_linear_x_ = 0.0;
+        previous_angular_z_ = 0.0;
+        last_output_time_ = now;
     }
 
     void send_command(double linear_x, double angular_z, bool verbose_log)
@@ -354,6 +392,7 @@ private:
     rclcpp::TimerBase::SharedPtr watchdog_timer_;
     // 最后接收消息的时间
     std::chrono::steady_clock::time_point last_message_time_;
+    std::chrono::steady_clock::time_point last_output_time_;
     // 日志文件输出流
     std::ofstream log_file_;
 
@@ -369,6 +408,12 @@ private:
     double angular_z_scale_;
     int command_timeout_ms_;
     int watchdog_period_ms_;
+    bool enable_acceleration_limit_;
+    double max_linear_acceleration_;
+    double max_angular_acceleration_;
+    double acceleration_dt_cap_s_;
+    double previous_linear_x_{0.0};
+    double previous_angular_z_{0.0};
 };
 
 // 主函数

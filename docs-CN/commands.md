@@ -148,7 +148,9 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
 - 定位成功后默认以 `1Hz` 做连续地图匹配，只接受重叠率和跳变门槛内的结果，并以 `alpha=0.15` 平滑 `map -> odom`
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用专用 fail-stop 行为树，直接跟踪 NavFn 路径；局部控制器或规划器失败时停止并返回失败，不自动执行 `Spin`、`BackUp`、路径平滑或清图恢复动作
-- Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、`vx_max=0.45m/s` 的 20Hz MPPI、车头方向 Slow 区和车体近场 Stop 区；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度
+- Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、`vx_max=0.30m/s` 的 20Hz MPPI、车头方向 Slow 区和车体近场 Stop 区；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度
+- 发目标前检查 `ros2 topic echo /chassis/status --once`：必须为 `ctrl_mode: 0`（上位机串口模式）。`ctrl_mode: 1` 是手柄模式，`ctrl_mode: 2` 是电机禁用/安全接管；适配器会拒绝目标，避免先积压目标、使能电机后突然起步
+- Travel 的串口末级限制器只限制加速恢复；零速和降速立即执行。线/角加速恢复上限为 `0.30m/s2`、`0.80rad/s2`，用于消除 Collision Monitor Stop 解除后的速度跳变
 - 定位速度门还要求 `/fastlio2/body_cloud_nav2` 在 0.5s 内更新、`/cmd_vel` 在 0.25s 内更新；`serial_twistctl` 300ms 断流重发零速，STM32 500ms watchdog 再独立清零。固件层保护只有重新编译并烧录 `src/firmware/rm_c_board/` 后才生效
 - 自动全局定位会等待至少 200 个结构点，以 3s 间隔最多尝试 5 次；`map -> odom` 始终投影为平面 XY+yaw
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`

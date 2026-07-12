@@ -157,7 +157,7 @@ map -> odom -> base_footprint -> base_link
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - Travel 下 `map -> odom` 由 localizer 独占。地图包加载后优先执行 Scan Context 多候选 + ICP 自动定位；可用区域 service 或 RViz 初值降级。定位后以 1Hz 低频匹配，重叠率/score/跳变门控通过后以 `alpha=0.15` 平滑释放修正。
 - Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并让 FAST-LIO2 额外发布高窗 Nav2 障碍点云 `/fastlio2/body_cloud_nav2_obstacles`，再重时间戳为 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
-- Travel 的速度链为 `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe -> serial_twistctl`。速度门同时要求结构化定位状态、Nav2 障碍点云和输入速度命令新鲜；任一超时都持续输出零速。`serial_twistctl` 在 300ms 断流后重发零速，STM32 固件再以 500ms watchdog 清零 `Vcx/Wc`。真实 polygon footprint、路径碰撞检查和减速/停车区共同提供近场安全。
+- Travel 的速度链为 `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe -> serial_twistctl`。速度门同时要求结构化定位状态、Nav2 障碍点云和输入速度命令新鲜；任一超时都持续输出零速。Travel 在 `serial_twistctl` 启用末级加速限制：零速、降速和安全停车立即执行，Stop 释放后的非零命令按 `0.30m/s2`、`0.80rad/s2` 从零恢复，避免 Collision Monitor 上游 smoother 保留旧高速后突然放行。`serial_twistctl` 在 300ms 断流后重发零速，STM32 固件再以 500ms watchdog 清零 `Vcx/Wc`。Foxglove 适配器还要求 `/chassis/status.ctrl_mode=0`，底盘未使能或仍在手柄模式时拒绝/取消目标。
 - `indoor_navigation_manager` 把地图包中的地点/别名解析为 `NavigateToPose`，通过 `/navigate_named_destination` 提供反馈、取消和定位降级取消。
 - Travel 默认启动 `foxglove_bridge:8765` 与 `foxglove_navigation_adapter`。适配器同时接收仓库布局的 `/foxglove/goal_pose` 和 Foxglove 默认布局的 `/move_base_simple/goal`，通过 TF 将 `base_link`、`odom` 等来源坐标系的位姿转换到 `map`，再统一转换为受定位门控的 `NavigateToPose`；地点字符串转换为 `NavigateNamedDestination`。适配器发布地点 MarkerArray、目录和状态，但永不访问 `/cmd_vel*`，定位非健康或目标坐标系无法转换时拒绝或取消目标。
 - PGO 默认不启动，或只以 `publish_tf=false` 运行

@@ -154,7 +154,7 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "ax_max: 0.40" in controller_text
     assert "ax_min: -0.8" in controller_text
     assert "az_max: 2.0" in controller_text
-    assert "open_loop: false" in controller_text
+    assert "open_loop:" not in controller_text
     assert "regenerate_noises: false" in controller_text
     assert "PathAlignCritic:" in controller_text
     assert "offset_from_furthest: 6" in controller_text

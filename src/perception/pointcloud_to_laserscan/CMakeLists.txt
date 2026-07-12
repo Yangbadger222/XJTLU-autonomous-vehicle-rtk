@@ -28,6 +28,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   ament_add_gtest(test_self_filter test/test_self_filter.cpp)
+  target_include_directories(test_self_filter PRIVATE include)
 endif()
 
 ament_auto_package(

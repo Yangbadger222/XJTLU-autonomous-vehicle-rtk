@@ -324,6 +324,8 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 scripts/save_mapping_session.sh <map_name>
 # 可选：用区域多边形给描述子候选加标签
 python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
+# 已保存地图只重算标定/叠加图/描述子区域标签/manifest，不调用 ROS 保存服务
+scripts/save_mapping_session.sh <map_name> --recalibrate-only
 ```
 
 输出：
@@ -340,6 +342,8 @@ runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 
 说明：
 - 保存前连续两次检查 FAST-LIO2 和 `/odom_CBoar` 速度；存在实时 `/cmd_vel` 时也必须为零。任一硬门槛失败会返回非零，Travel 不加载 `consistency_ok=false` 的地图包
+- 2D↔3D 标定不再直接投影整个 PCD：默认在 `0.06m` XY 栅格中保留至少 3 点且垂直跨度 `>=0.50m` 的强墙面单元，以排除地面、桌面和单层动态杂点；该设置对应默认 `0.10m` 定位 PCD 体素
+- `--recalibrate-only` 保留原始 `created_at`、保存输出、静止/frame/patch 证据和地图资产，只原子更新 manifest，并重建标定文件、叠加图及 Scan Context 区域标签
 - 2D↔3D 标定默认要求全图及已配置区域的墙面 RMSE `<=0.10m`、p95 `<=0.15m`、重叠率 `>=0.55`，且第一/第二初值候选差距 `>=0.001`；这些是首轮安全值，必须用实车地图收口
 - `patch_pose_integrity.ok` 必须为 `true`，即 `patches/*.pcd` 与 `poses.txt` 关键帧一一对应
 - `frame_check.ok` 必须为 `true`，默认要求 `/scan.header.frame_id` 与 `/fastlio2/lio_odom.child_frame_id` 都是 `base_footprint`；如果现场 FAST-LIO2 使用别的子坐标系，先用 `view_frames`/`tf2_echo` 确认，再用 `--expected-base-frame <frame>` 保存

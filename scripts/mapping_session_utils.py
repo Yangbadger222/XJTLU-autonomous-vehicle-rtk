@@ -250,8 +250,10 @@ def estimate_planar_alignment(
 def transform_xy(points_xy: np.ndarray, x: float, y: float, yaw: float) -> np.ndarray:
     c = math.cos(yaw)
     s = math.sin(yaw)
-    rotation = np.array([[c, -s], [s, c]], dtype=np.float64)
-    return points_xy @ rotation.T + np.array([x, y], dtype=np.float64)
+    points = np.asarray(points_xy, dtype=np.float64)
+    transformed_x = c * points[:, 0] - s * points[:, 1] + x
+    transformed_y = s * points[:, 0] + c * points[:, 1] + y
+    return np.column_stack([transformed_x, transformed_y])
 
 
 def nearest_distances(source_xy: np.ndarray, target_xy: np.ndarray, *, chunk_size: int = 512) -> np.ndarray:
@@ -265,6 +267,44 @@ def nearest_distances(source_xy: np.ndarray, target_xy: np.ndarray, *, chunk_siz
     return distances
 
 
+class _PlanarNearestIndex:
+    """Exact nearest distances up to a fixed radius using a uniform grid."""
+
+    def __init__(self, target_xy: np.ndarray, *, radius_m: float = 0.50):
+        self.radius_m = float(radius_m)
+        self.target_xy = np.asarray(target_xy, dtype=np.float64)
+        self.buckets: dict[tuple[int, int], np.ndarray] = {}
+        if len(self.target_xy) == 0:
+            return
+        keys = np.floor(self.target_xy / self.radius_m).astype(np.int64)
+        unique_keys, inverse = np.unique(keys, axis=0, return_inverse=True)
+        for index, key in enumerate(unique_keys):
+            self.buckets[(int(key[0]), int(key[1]))] = self.target_xy[inverse == index]
+
+    def query(self, source_xy: np.ndarray) -> np.ndarray:
+        source = np.asarray(source_xy, dtype=np.float64)
+        distances = np.full(len(source), self.radius_m, dtype=np.float64)
+        if len(source) == 0 or not self.buckets:
+            return distances
+        source_keys = np.floor(source / self.radius_m).astype(np.int64)
+        unique_keys, inverse = np.unique(source_keys, axis=0, return_inverse=True)
+        for index, key in enumerate(unique_keys):
+            source_indices = np.flatnonzero(inverse == index)
+            candidates = [
+                self.buckets[(int(key[0]) + dx, int(key[1]) + dy)]
+                for dx in (-1, 0, 1)
+                for dy in (-1, 0, 1)
+                if (int(key[0]) + dx, int(key[1]) + dy) in self.buckets
+            ]
+            if not candidates:
+                continue
+            target = np.vstack(candidates)
+            delta = source[source_indices, None, :] - target[None, :, :]
+            nearest = np.sqrt(np.min(np.sum(delta * delta, axis=2), axis=1))
+            distances[source_indices] = np.minimum(nearest, self.radius_m)
+        return distances
+
+
 def _sample_evenly(points: np.ndarray, maximum: int) -> np.ndarray:
     if len(points) <= maximum:
         return points
@@ -276,7 +316,7 @@ def register_planar_maps(
     occupied_2d_xy: np.ndarray,
     cloud_3d_xy: np.ndarray,
     *,
-    max_points: int = 4000,
+    max_points: int = 12000,
     max_rmse_m: float = 0.10,
     max_p95_m: float = 0.15,
     min_overlap_ratio: float = 0.55,
@@ -292,9 +332,11 @@ def register_planar_maps(
     source_center = source.mean(axis=0)
     yaw_seed = _normalize_half_turn(_principal_yaw(target) - _principal_yaw(source))
 
+    nearest_index = _PlanarNearestIndex(target)
+
     def evaluate(x: float, y: float, yaw: float) -> tuple[float, np.ndarray]:
         transformed = transform_xy(source, x, y, yaw)
-        distances = nearest_distances(transformed, target)
+        distances = nearest_index.query(transformed)
         clipped = np.minimum(distances, 0.50)
         return float(np.mean(clipped * clipped)), distances
 
@@ -313,16 +355,29 @@ def register_planar_maps(
         translation = target_center - rotated_center
         score, distances = evaluate(float(translation[0]), float(translation[1]), yaw)
         candidates.append((score, float(translation[0]), float(translation[1]), yaw, distances))
+    identity_score, identity_distances = evaluate(0.0, 0.0, 0.0)
+    candidates.append((identity_score, 0.0, 0.0, 0.0, identity_distances))
 
     candidates.sort(key=lambda item: item[0])
     initial_best_score = float(candidates[0][0])
-    initial_second_score = float(candidates[1][0]) if len(candidates) > 1 else float("inf")
+    best_seed = candidates[0]
+    distinct_candidates = [
+        candidate
+        for candidate in candidates[1:]
+        if math.hypot(candidate[1] - best_seed[1], candidate[2] - best_seed[2]) >= 0.25
+        or abs(_normalize_angle(candidate[3] - best_seed[3])) >= math.radians(5.0)
+    ]
+    initial_second_score = (
+        float(distinct_candidates[0][0]) if distinct_candidates else float("inf")
+    )
     candidate_score_gap = initial_second_score - initial_best_score
     score, x, y, yaw, distances = candidates[0]
     for translation_step, yaw_step_deg in ((0.50, 5.0), (0.20, 2.0), (0.10, 1.0), (0.05, 0.5)):
         improved = True
         yaw_step = math.radians(yaw_step_deg)
-        while improved:
+        refinement_iterations = 0
+        while improved and refinement_iterations < 200:
+            refinement_iterations += 1
             improved = False
             for dx, dy, dyaw in (
                 (translation_step, 0.0, 0.0),
@@ -602,6 +657,63 @@ def sample_cloud_xy_from_pcd(
         stride = max(1, len(xy) // max_points)
         xy = xy[::stride]
     return xy.astype(np.float64, copy=False)
+
+
+def extract_vertical_structure_xy(
+    xyz: np.ndarray,
+    *,
+    cell_size_m: float = 0.06,
+    min_vertical_span_m: float = 0.50,
+    min_points_per_cell: int = 3,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Collapse XY cells with repeated returns over a wall-like vertical span."""
+    points = np.asarray(xyz, dtype=np.float64)
+    points = points[np.isfinite(points).all(axis=1)]
+    if cell_size_m <= 0.0:
+        raise ValueError("cell_size_m must be positive")
+    if min_vertical_span_m < 0.0:
+        raise ValueError("min_vertical_span_m must be non-negative")
+    if min_points_per_cell < 1:
+        raise ValueError("min_points_per_cell must be at least one")
+    if len(points) == 0:
+        return np.empty((0, 2), dtype=np.float64), {
+            "method": "vertical_span_grid",
+            "input_points": 0,
+            "output_cells": 0,
+            "cell_size_m": float(cell_size_m),
+            "min_vertical_span_m": float(min_vertical_span_m),
+            "min_points_per_cell": int(min_points_per_cell),
+        }
+
+    keys = np.floor(points[:, :2] / float(cell_size_m)).astype(np.int64)
+    unique_keys, inverse = np.unique(keys, axis=0, return_inverse=True)
+    counts = np.bincount(inverse)
+    z_min = np.full(len(unique_keys), np.inf, dtype=np.float64)
+    z_max = np.full(len(unique_keys), -np.inf, dtype=np.float64)
+    np.minimum.at(z_min, inverse, points[:, 2])
+    np.maximum.at(z_max, inverse, points[:, 2])
+    xy_sums = np.zeros((len(unique_keys), 2), dtype=np.float64)
+    np.add.at(xy_sums, inverse, points[:, :2])
+    keep = (
+        (counts >= max(1, int(min_points_per_cell)))
+        & ((z_max - z_min) >= float(min_vertical_span_m))
+    )
+    wall_xy = xy_sums[keep] / counts[keep, None]
+    return wall_xy, {
+        "method": "vertical_span_grid",
+        "input_points": int(len(points)),
+        "output_cells": int(len(wall_xy)),
+        "cell_size_m": float(cell_size_m),
+        "min_vertical_span_m": float(min_vertical_span_m),
+        "min_points_per_cell": int(min_points_per_cell),
+    }
+
+
+def extract_vertical_structure_xy_from_pcd(
+    pcd_path: Path,
+    **kwargs: Any,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    return extract_vertical_structure_xy(read_pcd_xyz(pcd_path), **kwargs)
 
 
 def _clean_ros_scalar(value: str) -> str:

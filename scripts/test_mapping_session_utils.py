@@ -6,10 +6,12 @@ import yaml
 from PIL import Image
 
 from mapping_session_utils import (
+    _PlanarNearestIndex,
     build_scan_context_index,
     downsample_pcd,
     evaluate_frame_snapshot,
     estimate_planar_alignment,
+    extract_vertical_structure_xy,
     load_occupied_points_from_map,
     patch_pose_integrity,
     read_pcd_xyz,
@@ -107,6 +109,41 @@ def test_downsample_pcd_writes_localization_copy(tmp_path):
     assert result["input_points"] == 3
     assert result["output_points"] == 2
     assert len(read_pcd_xyz(destination)) == 2
+
+
+def test_extract_vertical_structure_rejects_single_height_clutter():
+    wall = np.array(
+        [
+            [x, 0.0, z]
+            for x in np.linspace(0.0, 1.0, 11)
+            for z in (0.0, 0.3, 0.6)
+        ],
+        dtype=np.float64,
+    )
+    clutter = np.array(
+        [[x, 1.0, 0.1] for x in np.linspace(0.0, 1.0, 11)], dtype=np.float64
+    )
+
+    extracted, diagnostics = extract_vertical_structure_xy(
+        np.vstack([wall, clutter]),
+        cell_size_m=0.1,
+        min_vertical_span_m=0.5,
+        min_points_per_cell=3,
+    )
+
+    assert len(extracted) >= 10
+    assert np.max(np.abs(extracted[:, 1])) < 0.01
+    assert diagnostics["method"] == "vertical_span_grid"
+    assert diagnostics["output_cells"] == len(extracted)
+
+
+def test_planar_nearest_index_matches_clipped_exact_distance():
+    target = np.array([[0.0, 0.0], [1.0, 0.0], [-0.6, 0.2]], dtype=np.float64)
+    source = np.array([[0.1, 0.0], [0.6, 0.0], [10.0, 10.0]], dtype=np.float64)
+
+    distances = _PlanarNearestIndex(target, radius_m=0.5).query(source)
+
+    np.testing.assert_allclose(distances, [0.1, 0.4, 0.5])
 
 
 def test_register_planar_maps_recovers_rigid_transform(tmp_path):

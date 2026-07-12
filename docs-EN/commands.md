@@ -323,6 +323,8 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 scripts/save_mapping_session.sh <map_name>
 # Optional: label descriptor candidates with region polygons
 python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
+# Recompute only calibration/overlay/descriptor region labels/manifest without ROS save calls
+scripts/save_mapping_session.sh <map_name> --recalibrate-only
 ```
 
 Output:
@@ -339,6 +341,8 @@ runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 
 Notes:
 - Saving checks FAST-LIO2 and `/odom_CBoar` twice while stationary; if live `/cmd_vel` is observed it must also be zero. Any hard-gate failure returns nonzero, and Travel rejects `consistency_ok=false`
+- 2D-to-3D calibration no longer projects the complete PCD. It keeps strong wall cells containing at least three points over a `>=0.50m` vertical span in a `0.06m` XY grid, rejecting floors, tabletops, and single-height dynamic clutter. These defaults correspond to the default `0.10m` localization-PCD voxel
+- `--recalibrate-only` preserves the original `created_at`, save outputs, stationary/frame/patch evidence, and map assets. It atomically replaces only the manifest while rebuilding calibration files, overlay, and Scan Context region labels
 - Initial 2D-to-3D gates require global and configured-region wall RMSE `<=0.10m`, p95 `<=0.15m`, overlap `>=0.55`, and a first/second seed gap `>=0.001`; calibrate them from vehicle maps before acceptance
 - `patch_pose_integrity.ok` must be `true`, meaning `patches/*.pcd` and `poses.txt` keyframes are one-to-one
 - `frame_check.ok` must be `true`; by default `/scan.header.frame_id` and `/fastlio2/lio_odom.child_frame_id` are expected to be `base_footprint`. If the vehicle's FAST-LIO2 child frame is different, confirm it with `view_frames`/`tf2_echo` first, then save with `--expected-base-frame <frame>`

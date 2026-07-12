@@ -221,8 +221,8 @@ The clean Slam Toolbox OccupancyGrid remains the 2D map. A simple raw PGO projec
 The registration tool must:
 
 1. Extract occupied wall points from PGM/YAML.
-2. Select a stable wall-height band from the localization PCD and project it to XY.
-3. Solve `SE(2)` with multi-start NDT/GICP or feature matching.
+2. Extract walls by vertical span in localization-PCD XY cells: default `0.06m` cells, at least three points, and `>=0.50m` z span, rejecting single-height floor/furniture projections.
+3. Solve planar `SE(2)` with multiple seeds. Because both maps start from a shared session origin, explicitly include identity while retaining principal-axis/centroid seeds for nonzero offsets.
 4. Report the first and second candidate scores and final transform.
 5. Compute global and regional RMSE, p95 wall distance, and overlap.
 6. Produce a visual overlay for manual review.
@@ -235,6 +235,8 @@ Initial thresholds, to be finalized using the first vehicle maps:
 - The first candidate must clearly outperform the second, otherwise manual approval is required.
 
 A rigid transform cannot repair nonlinear deformation from two different optimizers. If regional metrics fail, reduce map extent, remap, or adopt a shared trajectory solution; do not only loosen thresholds.
+
+Quality evaluation uses the complete wall sample (up to 12,000 points) and exact nearest neighbors within 0.50m through a spatial grid. `alignment_report.yaml` records the extraction method, input count, output-cell count, and parameters; the overlay uses the same wall sample.
 
 ## 7. Travel indoor navigation design
 

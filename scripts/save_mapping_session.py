@@ -18,12 +18,12 @@ from mapping_session_utils import (
     build_scan_context_index,
     downsample_pcd,
     evaluate_frame_snapshot,
+    extract_vertical_structure_xy_from_pcd,
     load_occupied_points_from_map,
     load_regions,
     patch_pose_integrity,
     register_planar_maps,
     save_alignment_overlay,
-    sample_cloud_xy_from_pcd,
     validate_map_name,
 )
 
@@ -215,8 +215,122 @@ def compute_consistency(
     if not map_yaml.exists() or not map_pcd.exists():
         return {"ok": False, "reason": "missing_2d_or_3d_artifact"}
     occupied_2d = load_occupied_points_from_map(map_yaml)
-    cloud_xy = sample_cloud_xy_from_pcd(map_pcd, z_min=0.05, z_max=1.80)
-    return register_planar_maps(occupied_2d, cloud_xy, regions=load_regions(regions_path))
+    cloud_xy, extraction = extract_vertical_structure_xy_from_pcd(map_pcd)
+    result = register_planar_maps(
+        occupied_2d, cloud_xy, regions=load_regions(regions_path)
+    )
+    result["source_extraction"] = extraction
+    return result
+
+
+def write_alignment_artifacts(
+    map2d_dir: Path,
+    localization_pcd: Path,
+    consistency: dict[str, Any],
+    calibration_dir: Path,
+) -> None:
+    calibration_dir.mkdir(parents=True, exist_ok=True)
+    transform = consistency.get(
+        "transform_map_2d_from_map_3d", {"x": 0.0, "y": 0.0, "yaw": 0.0}
+    )
+    alignment_payload = {
+        "schema_version": 1,
+        "parent_frame": "map_2d",
+        "child_frame": "map_3d",
+        "transform": transform,
+        "quality": consistency,
+        "accepted": bool(consistency.get("ok")),
+    }
+    (calibration_dir / "map_3d_to_map_2d.yaml").write_text(
+        yaml.safe_dump(alignment_payload, sort_keys=False), encoding="utf-8"
+    )
+    (calibration_dir / "alignment_report.yaml").write_text(
+        yaml.safe_dump(consistency, sort_keys=False), encoding="utf-8"
+    )
+    if consistency.get("transform_map_2d_from_map_3d") and localization_pcd.exists():
+        save_alignment_overlay(
+            load_occupied_points_from_map(map2d_dir / "map.yaml"),
+            extract_vertical_structure_xy_from_pcd(localization_pcd)[0],
+            consistency["transform_map_2d_from_map_3d"],
+            calibration_dir / "alignment_overlay.png",
+        )
+
+
+def recalibrate_existing_bundle(map_root: Path) -> int:
+    manifest_path = map_root / "manifest.yaml"
+    if not manifest_path.exists():
+        raise RuntimeError(f"existing map manifest not found: {manifest_path}")
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+    if manifest.get("schema_version") != 1:
+        raise RuntimeError("recalibration requires indoor map bundle schema_version 1")
+    if manifest.get("map_id") != map_root.name:
+        raise RuntimeError("manifest map_id does not match bundle directory")
+
+    map2d_dir = map_root / "navigation"
+    map3d_dir = map_root / "localization"
+    localization_pcd = map3d_dir / "map_localization.pcd"
+    regions_path = map_root / "regions.yaml"
+    consistency = compute_consistency(map2d_dir, localization_pcd, regions_path)
+    write_alignment_artifacts(
+        map2d_dir, localization_pcd, consistency, map_root / "calibration"
+    )
+
+    descriptor_path = map3d_dir / "descriptor_index" / "scan_context.yaml"
+    if descriptor_path.exists() and consistency.get("transform_map_2d_from_map_3d"):
+        descriptor_config = yaml.safe_load(
+            descriptor_path.read_text(encoding="utf-8")
+        ) or {}
+        descriptor_result = build_scan_context_index(
+            map3d_dir,
+            descriptor_path,
+            keyframe_stride=int(descriptor_config.get("keyframe_stride", 5)),
+            rings=int(descriptor_config.get("rings", 20)),
+            sectors=int(descriptor_config.get("sectors", 60)),
+            max_radius_m=float(descriptor_config.get("max_radius_m", 20.0)),
+            regions_file=regions_path,
+            map2d_from_map3d=consistency["transform_map_2d_from_map_3d"],
+        )
+        manifest.setdefault("processing_outputs", {})[
+            "descriptor_index"
+        ] = descriptor_result
+
+    errors = [
+        error
+        for error in manifest.get("errors", [])
+        if not str(error).startswith("2D/3D alignment failed:")
+    ]
+    manifest["errors"] = errors
+    manifest["alignment_diagnostic"] = consistency
+    manifest["calibration"] = {
+        "file": "calibration/map_3d_to_map_2d.yaml",
+        "accepted": bool(consistency.get("ok")),
+    }
+    manifest.setdefault("processing_outputs", {})["alignment_recalibration"] = {
+        "at": datetime.now(timezone.utc).isoformat(),
+        "source_extraction": consistency.get("source_extraction", {}),
+    }
+    manifest["consistency_ok"] = bool(
+        consistency.get("ok")
+        and manifest.get("artifact_integrity", {}).get("ok")
+        and manifest.get("stationary_check", {}).get("ok")
+        and manifest.get("patch_pose_integrity", {}).get("ok")
+        and manifest.get("frame_check", {}).get("ok")
+        and not errors
+    )
+    temporary_path = manifest_path.with_suffix(".yaml.tmp")
+    temporary_path.write_text(
+        yaml.safe_dump(manifest, sort_keys=False, allow_unicode=True), encoding="utf-8"
+    )
+    temporary_path.replace(manifest_path)
+    print(f"Recalibrated manifest: {manifest_path}")
+    if not manifest["consistency_ok"]:
+        print(
+            "Recalibration completed, but consistency_ok=false. Check alignment_report.yaml.",
+            file=sys.stderr,
+        )
+        return 3
+    print("Mapping session recalibrated successfully.")
+    return 0
 
 
 def build_manifest(
@@ -274,32 +388,14 @@ def build_manifest(
         and not errors
     )
     calibration_dir = map_root / "calibration"
-    calibration_dir.mkdir(parents=True, exist_ok=True)
-    transform = consistency.get(
-        "transform_map_2d_from_map_3d", {"x": 0.0, "y": 0.0, "yaw": 0.0}
-    )
-    alignment_payload = {
-        "schema_version": 1,
-        "parent_frame": "map_2d",
-        "child_frame": "map_3d",
-        "transform": transform,
-        "quality": consistency,
-        "accepted": bool(consistency.get("ok")),
-    }
     alignment_file = calibration_dir / "map_3d_to_map_2d.yaml"
-    alignment_file.write_text(yaml.safe_dump(alignment_payload, sort_keys=False), encoding="utf-8")
     alignment_report = calibration_dir / "alignment_report.yaml"
-    alignment_report.write_text(yaml.safe_dump(consistency, sort_keys=False), encoding="utf-8")
-    if consistency.get("transform_map_2d_from_map_3d") and localization_pcd.exists():
-        try:
-            save_alignment_overlay(
-                load_occupied_points_from_map(map2d_dir / "map.yaml"),
-                sample_cloud_xy_from_pcd(localization_pcd, z_min=0.05, z_max=1.80),
-                consistency["transform_map_2d_from_map_3d"],
-                calibration_dir / "alignment_overlay.png",
-            )
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"alignment overlay generation failed: {exc}")
+    try:
+        write_alignment_artifacts(
+            map2d_dir, localization_pcd, consistency, calibration_dir
+        )
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"alignment artifact generation failed: {exc}")
 
     git_commit = capture_optional(["git", "rev-parse", "HEAD"], timeout_s=2.0)
     git_branch = capture_optional(["git", "branch", "--show-current"], timeout_s=2.0)
@@ -400,6 +496,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-3d", action="store_true", help="Do not call /pgo/save_maps.")
     parser.add_argument("--skip-pose-graph", action="store_true", help="Do not serialize the Slam Toolbox pose graph.")
     parser.add_argument("--skip-stationary-check", action="store_true")
+    parser.add_argument(
+        "--recalibrate-only",
+        action="store_true",
+        help="Recompute calibration and manifest from an existing bundle without ROS saves.",
+    )
     return parser.parse_args()
 
 
@@ -415,6 +516,12 @@ def main() -> int:
     map_root = runtime_root / "maps" / "indoor" / map_name
     map2d_dir = map_root / "navigation"
     map3d_dir = map_root / "localization"
+    if args.recalibrate_only:
+        try:
+            return recalibrate_existing_bundle(map_root)
+        except Exception as exc:  # noqa: BLE001
+            print(f"Recalibration failed: {exc}", file=sys.stderr)
+            return 1
     map_root.mkdir(parents=True, exist_ok=True)
 
     save_outputs: dict[str, str] = {}

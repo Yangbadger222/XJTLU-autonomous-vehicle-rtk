@@ -19,6 +19,7 @@ def test_mapping_session_generates_versioned_indoor_bundle_artifacts():
     assert '"/odom_CBoar"' in text
     assert '"/cmd_vel"' in text
     assert "register_planar_maps" in text
+    assert "extract_vertical_structure_xy_from_pcd" in text
     assert '"map_3d_to_map_2d.yaml"' in text
     assert '"artifact_integrity"' in text
     assert '"Scan Context index contains no candidates"' in text

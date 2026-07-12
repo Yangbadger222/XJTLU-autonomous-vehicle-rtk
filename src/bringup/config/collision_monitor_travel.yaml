@@ -20,10 +20,12 @@ collision_monitor:
       enabled: true
     PolygonSlow:
       type: polygon
-      points: [0.65, 0.48, 0.65, -0.48, -0.65, -0.48, -0.65, 0.48]
+      # Forward-only buffer outside the 0.35m front footprint. Travel MPPI does
+      # not reverse, so rear/side returns must not permanently throttle forward motion.
+      points: [0.85, 0.30, 0.85, -0.30, 0.45, -0.30, 0.45, 0.30]
       action_type: slowdown
       max_points: 3
-      slowdown_ratio: 0.35
+      slowdown_ratio: 0.60
       visualize: true
       polygon_pub_topic: /travel_safety/slow_zone
       enabled: true

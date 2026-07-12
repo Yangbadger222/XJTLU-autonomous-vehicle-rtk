@@ -86,8 +86,7 @@ def test_travel_uses_fail_stop_behavior_tree_without_motion_recovery():
     for bt_file, planner_node in bt_expectations.items():
         bt_text = bt_file.read_text(encoding="utf-8")
         assert planner_node in bt_text
-        assert "SmoothPath" in bt_text
-        assert 'smoother_id="savitzky_golay_smoother"' in bt_text
+        assert "SmoothPath" not in bt_text
         assert "FollowPath" in bt_text
 
         for unsafe_motion_recovery in ("<Spin", "<BackUp", "RecoveryNode", "ClearEntireCostmap"):
@@ -108,15 +107,16 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 500" in controller_text
-    assert "vx_std: 0.14" in controller_text
+    assert "vx_std: 0.20" in controller_text
     assert "wz_std: 0.14" in controller_text
-    assert "vx_max: 0.35" in controller_text
+    assert "vx_max: 0.45" in controller_text
     assert "vx_min: 0.0" in controller_text
     assert "vy_max: 0.0" in controller_text
     assert "wz_max: 0.65" in controller_text
-    assert "ax_max: 0.45" in controller_text
+    assert "ax_max: 0.70" in controller_text
     assert "ax_min: -0.8" in controller_text
     assert "az_max: 2.0" in controller_text
+    assert "regenerate_noises: true" in controller_text
     assert "PathAlignCritic:" in controller_text
     assert "offset_from_furthest: 6" in controller_text
     assert "PathFollowCritic:" in controller_text
@@ -193,6 +193,12 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert 'cmd_vel_out_topic: /cmd_vel_safe' in collision_text
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
 
+    collision_config = yaml.safe_load(collision_text)["collision_monitor"]["ros__parameters"]
+    slow = collision_config["PolygonSlow"]
+    assert slow["points"] == [0.85, 0.30, 0.85, -0.30, 0.45, -0.30, 0.45, 0.30]
+    assert slow["slowdown_ratio"] == 0.60
+    assert min(slow["points"][::2]) > 0.35
+
     gate_text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
     assert '"/fastlio2/body_cloud_nav2"' in gate_text
     assert 'declare_parameter("obstacle_timeout_s", 0.5)' in gate_text
@@ -216,12 +222,15 @@ def test_travel_exposes_foxglove_control_surface():
     assert "install(DIRECTORY foxglove/" in cmake_text
 
 
-def test_travel_smooth_path_checks_collisions():
+def test_travel_follows_collision_checked_navfn_path_without_unsafe_recovery():
     for bt_file in (TRAVEL_FAIL_STOP_BT, TRAVEL_THROUGH_POSES_FAIL_STOP_BT):
-        assert 'check_for_collisions="true"' in bt_file.read_text(encoding="utf-8")
+        text = bt_file.read_text(encoding="utf-8")
+        assert "ComputePath" in text
+        assert "SmoothPath" not in text
+        assert "FollowPath" in text
 
 
-def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
+def test_travel_keeps_velocity_smoothing_for_indoor_navigation():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     smoother_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[0].split(
         "# Smoother Server 节点参数块", maxsplit=1
@@ -235,9 +244,9 @@ def test_travel_uses_path_and_velocity_smoothing_for_indoor_navigation():
     assert "do_refinement: true" in smoother_text
     assert "refinement_num: 2" in smoother_text
 
-    assert "max_velocity: [0.35, 0.0, 0.65]" in velocity_text
+    assert "max_velocity: [0.45, 0.0, 0.65]" in velocity_text
     assert "min_velocity: [0.0, 0.0, -0.65]" in velocity_text
-    assert "max_accel: [0.45, 0.0, 1.4]" in velocity_text
+    assert "max_accel: [0.70, 0.0, 1.4]" in velocity_text
     assert "max_decel: [-0.8, 0.0, -1.8]" in velocity_text
 
 

@@ -9,10 +9,7 @@
   <BehaviorTree ID="MainTree">
     <PipelineSequence name="NavigateWithFailStop">
       <RateController hz="1.0">
-        <Sequence name="ComputeAndSmoothPath">
-          <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
-          <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="true"/>
-        </Sequence>
+        <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
       </RateController>
       <FollowPath path="{path}" controller_id="FollowPath"/>
     </PipelineSequence>

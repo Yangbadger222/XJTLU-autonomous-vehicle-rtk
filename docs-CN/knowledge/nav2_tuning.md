@@ -167,8 +167,8 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
 8. Corridor 与 nav-gps 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug` 或 `FYP_NAV_GPS_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
-9. Travel 是独立的室内地图包 profile。global costmap 只用静态地图/膨胀，local costmap 读取 `/fastlio2/body_cloud_nav2`。低负载 MPPI 保持 `0.35m/s`、`0.65rad/s`、`20Hz`、`batch_size=500`；真实外廓按 `650x500mm` 加每侧 `25mm` 配为 polygon，`CostCritic.consider_footprint=true`，终点 yaw 容差为 `0.20rad`，SmoothPath 开启碰撞检查。这些外廓/容差仍需实车窄门和原地转向验收。
-10. Travel 使用 fail-stop 行为树，不提供自动 Spin、BackUp 或清图恢复。定位以 1Hz 连续 ICP、`overlap>=0.35`、最大单次修正 `0.30m/0.20rad` 和 `alpha=0.15` 平滑；非 `LOCALIZED` 状态由速度门强制停车，Collision Monitor 再提供 `0.65x0.48m` 减速区和 `0.40x0.32m` 停车区。安全区是首轮保守值，必须按 Livox 盲区和实际制动距离调整。
+9. Travel 是独立的室内地图包 profile。global costmap 只用静态地图/膨胀，local costmap 读取 `/fastlio2/body_cloud_nav2`。实车首轮发现 `0.35m/s`、`vx_std=0.14` 再叠加 35% Slow 区后，串口仅收到约 `0.02-0.034m/s`，底盘无法起步；因此低负载 MPPI 调整为 `0.45m/s`、`vx_std=0.20`、`ax_max=0.70m/s2`、`20Hz`、`batch_size=500`，并启用 `regenerate_noises`。真实外廓仍按 `650x500mm` 加每侧 `25mm` 配为 polygon，`CostCritic.consider_footprint=true`，终点 yaw 容差为 `0.20rad`。
+10. Travel 使用 fail-stop 行为树，不提供自动 Spin、BackUp 或清图恢复。实车日志显示 Savitzky-Golay 会把原本可规划的 NavFn 路径平滑到障碍内，因此 Travel 直接跟踪 NavFn 的碰撞可行路径。定位以 1Hz 连续 ICP、`overlap>=0.35`、最大单次修正 `0.30m/0.20rad` 和 `alpha=0.15` 平滑；非 `LOCALIZED` 状态由速度门强制停车。Collision Monitor 保留 `0.40x0.32m` Stop 区，Slow 区改为车体前方 `x=0.45~0.85m, y=+-0.30m`、60% 限速，避免车后/侧方点云在只前进的 Travel 控制模型中永久压低前进速度。
 
 ## 8. 航点系统
 

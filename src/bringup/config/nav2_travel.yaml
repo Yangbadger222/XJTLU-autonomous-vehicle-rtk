@@ -294,14 +294,14 @@ controller_server:
       time_steps: 48
       model_dt: 0.05
       batch_size: 500
-      vx_std: 0.14
+      vx_std: 0.20
       vy_std: 0.0
       wz_std: 0.14
-      vx_max: 0.35
+      vx_max: 0.45
       vx_min: 0.0
       vy_max: 0.0
       wz_max: 0.65
-      ax_max: 0.45
+      ax_max: 0.70
       ax_min: -0.8
       az_max: 2.0
       iteration_count: 1
@@ -314,7 +314,7 @@ controller_server:
       open_loop: true
       visualize: false
       reset_period: 1.0
-      regenerate_noises: false
+      regenerate_noises: true
 
       TrajectoryVisualizer:
         trajectory_step: 5
@@ -785,13 +785,13 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_velocity: [0.35, 0.0, 0.65]
+    max_velocity: [0.45, 0.0, 0.65]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
     min_velocity: [0.0, 0.0, -0.65]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
-    max_accel: [0.45, 0.0, 1.4]
+    max_accel: [0.70, 0.0, 1.4]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。
     max_decel: [-0.8, 0.0, -1.8]

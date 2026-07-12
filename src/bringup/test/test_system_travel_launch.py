@@ -103,7 +103,12 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "required_movement_radius: 0.10" in controller_text
     assert "movement_time_allowance: 15.0" in controller_text
     assert "yaw_goal_tolerance: 0.20" in controller_text
-    assert 'plugin: "nav2_mppi_controller::MPPIController"' in controller_text
+    assert 'plugin: "nav2_rotation_shim_controller::RotationShimController"' in controller_text
+    assert 'primary_controller: "nav2_mppi_controller::MPPIController"' in controller_text
+    assert "angular_dist_threshold: 0.35" in controller_text
+    assert "rotate_to_heading_angular_vel: 0.30" in controller_text
+    assert "max_angular_accel: 0.80" in controller_text
+    assert "rotate_to_goal_heading: true" in controller_text
     assert "time_steps: 48" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 500" in controller_text
@@ -121,6 +126,8 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "offset_from_furthest: 6" in controller_text
     assert "PathFollowCritic:" in controller_text
     assert "cost_weight: 16.0" in controller_text
+    assert '        - "VelocityDeadbandCritic"' in controller_text
+    assert "deadband_velocities: [0.14, 0.0, 0.18]" in controller_text
     assert 'behavior_plugins: ["wait"]' in behavior_text
 
     assert 'plugin: "dwb_core::DWBLocalPlanner"' not in controller_text
@@ -128,6 +135,13 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "BaseObstacle.scale:" not in controller_text
     assert "batch_size: 1000" not in controller_text
     assert "vx_max: 1.0" not in controller_text
+
+
+def test_travel_declares_runtime_controller_plugins():
+    package_text = BRINGUP_PACKAGE.read_text(encoding="utf-8")
+
+    assert "<exec_depend>nav2_mppi_controller</exec_depend>" in package_text
+    assert "<exec_depend>nav2_rotation_shim_controller</exec_depend>" in package_text
 
 
 def test_travel_local_costmap_uses_stable_field_runtime_rates():

@@ -288,9 +288,15 @@ controller_server:
     # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。
     # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。
     FollowPath:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。
-      plugin: "nav2_mppi_controller::MPPIController"
+      # 先原地对准路径，再交给 MPPI，避免低速线/角速度混合后单侧车轮落入静摩擦死区。
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "nav2_mppi_controller::MPPIController"
+      angular_dist_threshold: 0.35
+      forward_sampling_distance: 0.50
+      rotate_to_heading_angular_vel: 0.30
+      max_angular_accel: 0.80
+      simulate_ahead_time: 1.0
+      rotate_to_goal_heading: true
       time_steps: 48
       model_dt: 0.05
       batch_size: 500
@@ -329,6 +335,7 @@ controller_server:
         - "PathFollowCritic"
         - "PathAngleCritic"
         - "PreferForwardCritic"
+        - "VelocityDeadbandCritic"
 
       ConstraintCritic:
         enabled: true
@@ -362,6 +369,12 @@ controller_server:
         cost_power: 1
         cost_weight: 5.0
         threshold_to_consider: 0.5
+
+      VelocityDeadbandCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 35.0
+        deadband_velocities: [0.14, 0.0, 0.18]
 
       PathAlignCritic:
         enabled: true

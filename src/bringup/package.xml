@@ -33,6 +33,8 @@
   <exec_depend>nav2_map_server</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
   <exec_depend>nav2_collision_monitor</exec_depend>
+  <exec_depend>nav2_mppi_controller</exec_depend>
+  <exec_depend>nav2_rotation_shim_controller</exec_depend>
   <exec_depend>foxglove_bridge</exec_depend>
   <exec_depend>waypoint_collector</exec_depend>
   <exec_depend>gps_waypoint_dispatcher</exec_depend>

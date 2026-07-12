@@ -51,6 +51,9 @@ class FoxgloveNavigationAdapter(Node):
         self.declare_parameter("destinations_file", "")
         self.declare_parameter("map_id", "")
         self.declare_parameter("goal_pose_topic", "/foxglove/goal_pose")
+        self.declare_parameter(
+            "compat_goal_pose_topic", "/move_base_simple/goal"
+        )
         self.declare_parameter("named_destination_topic", "/foxglove/named_destination")
         self.declare_parameter("localization_topic", "/localizer/status")
         self.declare_parameter("navigate_to_pose_action", "/navigate_to_pose")
@@ -81,9 +84,22 @@ class FoxgloveNavigationAdapter(Node):
         )
 
         goal_pose_topic = str(self.get_parameter("goal_pose_topic").value)
+        compat_goal_pose_topic = str(
+            self.get_parameter("compat_goal_pose_topic").value
+        ).strip()
         named_topic = str(self.get_parameter("named_destination_topic").value)
         localization_topic = str(self.get_parameter("localization_topic").value)
-        self.create_subscription(PoseStamped, goal_pose_topic, self.on_pose_goal, 10)
+        self.goal_pose_subscriptions = [
+            self.create_subscription(
+                PoseStamped, goal_pose_topic, self.on_pose_goal, 10
+            )
+        ]
+        if compat_goal_pose_topic and compat_goal_pose_topic != goal_pose_topic:
+            self.goal_pose_subscriptions.append(
+                self.create_subscription(
+                    PoseStamped, compat_goal_pose_topic, self.on_pose_goal, 10
+                )
+            )
         self.create_subscription(String, named_topic, self.on_named_goal, 10)
         self.create_subscription(
             LocalizationStatus, localization_topic, self.on_localization, 10
@@ -140,6 +156,10 @@ class FoxgloveNavigationAdapter(Node):
             self.remaining_distance if msg.has_remaining_distance else 0.0
         )
         self.status_pub.publish(msg)
+        if state in ("REJECTED", "FAILED"):
+            self.get_logger().warning(f"{state}: {message}")
+        elif state in ("SENDING", "SUCCEEDED", "CANCELED"):
+            self.get_logger().info(f"{state}: {message}")
 
     def publish_catalog(self):
         destinations = []
@@ -245,6 +265,12 @@ class FoxgloveNavigationAdapter(Node):
         return True
 
     def on_pose_goal(self, msg):
+        self.get_logger().info(
+            "Received pose goal: frame=%s x=%.3f y=%.3f",
+            msg.header.frame_id or "map",
+            msg.pose.position.x,
+            msg.pose.position.y,
+        )
         if not self.goal_is_available():
             return
         if msg.header.frame_id not in ("", "map"):

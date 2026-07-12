@@ -832,13 +832,13 @@ src/bringup/foxglove/indoor_navigation.json
 操作约定：
 
 - 3D 面板 `Publish -> 2D pose estimate` 发布到 `/initialpose`，用于手动定位降级。
-- 3D 面板 `Publish -> 2D pose` 发布到 `/foxglove/goal_pose`，由适配器转换为 Nav2 `NavigateToPose` Action。
+- 仓库布局的 3D 面板 `Publish -> 2D pose` 发布到 `/foxglove/goal_pose`；Foxglove 默认 3D 布局常发布 `/move_base_simple/goal`。两者都由同一个定位门控适配器转换为 Nav2 `NavigateToPose` Action。
 - `Navigate to destination` 面板把 `data` 改成地点 ID、显示名或 alias，发布到 `/foxglove/named_destination`。
 - `Relocalize in region` 调 `/localizer/global_relocalize`；`region` 留空代表全图搜索。
 - `Cancel navigation` 调 `/foxglove/cancel_navigation`，只取消适配器当前持有的目标。
 - `/foxglove/navigation/status` 显示目标来源、目标、定位状态、剩余距离和结果；地点会以 MarkerArray 显示在 3D 地图。
 
-安全门：适配器不订阅或发布任何 `/cmd_vel*`，Bridge 的 client-publish 白名单也只允许 `/initialpose`、`/foxglove/goal_pose` 和 `/foxglove/named_destination`，且不开放参数修改能力。只有 `/localizer/status` 同时满足 `LOCALIZED`、`localized=true`、`sensors_ready=true` 才发送目标；定位降级会取消当前目标，底层速度门仍独立执行零速保护。
+安全门：适配器不订阅或发布任何 `/cmd_vel*`，Bridge 的 client-publish 白名单只允许 `/initialpose`、`/foxglove/goal_pose`、`/move_base_simple/goal` 和 `/foxglove/named_destination`，且不开放参数修改能力。两个 Pose 入口都经过相同的定位/并发/Action 门控；只有 `/localizer/status` 同时满足 `LOCALIZED`、`localized=true`、`sensors_ready=true` 才发送目标，定位降级会取消当前目标，底层速度门仍独立执行零速保护。
 
 ### 手动启动 Bridge（其它模式）
 

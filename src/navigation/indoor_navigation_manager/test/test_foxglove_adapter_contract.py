@@ -17,6 +17,7 @@ def test_adapter_uses_actions_and_never_writes_velocity():
     assert "ActionClient(self, NavigateToPose" in text
     assert "NavigateNamedDestination" in text
     assert '"/foxglove/goal_pose"' in text
+    assert '"/move_base_simple/goal"' in text
     assert '"/foxglove/named_destination"' in text
     assert '"/foxglove/cancel_navigation"' in text
     assert '"/cmd_vel"' not in text
@@ -76,6 +77,7 @@ def test_travel_starts_official_bridge_and_adapter():
     assert '"client_topic_whitelist"' in text
     assert '"^/initialpose$"' in text
     assert '"^/foxglove/goal_pose$"' in text
+    assert '"^/move_base_simple/goal$"' in text
     assert '"^/foxglove/named_destination$"' in text
     assert '"service_whitelist"' in text
     assert '"parameters"' not in text.split('"capabilities": [', maxsplit=1)[1].split(

@@ -831,13 +831,13 @@ The layout includes the 3D map, robot, point clouds, costmaps, path, safety zone
 Controls:
 
 - 3D `Publish -> 2D pose estimate` publishes `/initialpose` for manual localization fallback.
-- 3D `Publish -> 2D pose` publishes `/foxglove/goal_pose`, which the adapter converts into a Nav2 `NavigateToPose` Action.
+- The repository layout's 3D `Publish -> 2D pose` publishes `/foxglove/goal_pose`; Foxglove's default 3D layout commonly publishes `/move_base_simple/goal`. The same guarded adapter converts both into a Nav2 `NavigateToPose` Action.
 - Edit `data` in `Navigate to destination` to a destination ID, display name, or alias; it publishes `/foxglove/named_destination`.
 - `Relocalize in region` calls `/localizer/global_relocalize`; an empty `region` requests a whole-map search.
 - `Cancel navigation` calls `/foxglove/cancel_navigation` and only cancels the goal owned by this adapter.
 - `/foxglove/navigation/status` reports source, target, localization, remaining distance, and result; destinations appear as MarkerArray objects in 3D.
 
-Safety gate: the adapter never reads or writes `/cmd_vel*`. The Bridge client-publish whitelist only permits `/initialpose`, `/foxglove/goal_pose`, and `/foxglove/named_destination`, and parameter mutation is disabled. It only sends a goal when `/localizer/status` is `LOCALIZED` with `localized=true` and `sensors_ready=true`; degradation cancels the active goal, while the independent velocity gate still enforces zero output.
+Safety gate: the adapter never reads or writes `/cmd_vel*`. The Bridge client-publish whitelist only permits `/initialpose`, `/foxglove/goal_pose`, `/move_base_simple/goal`, and `/foxglove/named_destination`, and parameter mutation is disabled. Both Pose inputs use identical localization/concurrency/Action gates. A goal is sent only when `/localizer/status` is `LOCALIZED` with `localized=true` and `sensors_ready=true`; degradation cancels it, while the independent velocity gate still enforces zero output.
 
 ### Manual Bridge Start (Other Modes)
 

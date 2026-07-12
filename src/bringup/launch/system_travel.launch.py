@@ -304,6 +304,7 @@ def generate_launch_description():
                 "client_topic_whitelist": [
                     "^/initialpose$",
                     "^/foxglove/goal_pose$",
+                    "^/move_base_simple/goal$",
                     "^/foxglove/named_destination$",
                 ],
                 "service_whitelist": [

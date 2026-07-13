@@ -406,6 +406,27 @@ def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():
     assert "out.header.stamp = self.get_clock().now().to_msg()" in text
 
 
+def test_travel_python_nodes_do_not_double_shutdown_ros_context():
+    paths = (
+        INITIALPOSE_BRIDGE,
+        NAV2_CLOUD_RETIME,
+        LOCALIZATION_CMD_GATE,
+        POST_COLLISION_CONDITIONER,
+        PRIOR_MAP_TF_AUTHORITY,
+        Path(
+            "src/navigation/indoor_navigation_manager/"
+            "indoor_navigation_manager/manager_node.py"
+        ),
+        Path(
+            "src/navigation/indoor_navigation_manager/"
+            "indoor_navigation_manager/foxglove_adapter_node.py"
+        ),
+    )
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        assert "if rclpy.ok():\n            rclpy.shutdown()" in text
+
+
 def test_post_collision_conditioner_turns_stalled_commands_in_place():
     text = POST_COLLISION_CONDITIONER.read_text(encoding="utf-8")
 

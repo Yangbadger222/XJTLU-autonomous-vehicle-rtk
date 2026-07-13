@@ -20,6 +20,7 @@ from prior_map_tf_math import (
     compose_se2,
     map_to_odom_from_poses,
     pose_residual,
+    should_activate_localizer_seed,
     stable_se2_window,
 )
 
@@ -207,12 +208,16 @@ class PriorMapTfAuthority(Node):
         )
         self.localizer_state = msg.state_label or str(msg.state)
         self.localizer_reason = msg.reason or "unspecified"
-        if self.localizer_allowed and not was_allowed:
-            if self.current_map_to_odom is None or self.manual_relocalization_pending:
-                self.pending_localizer_seed = True
-                self.try_activate_localizer_seed()
-            else:
-                self.state = "LOCALIZER_RECOVERED_HOLD"
+        if should_activate_localizer_seed(
+            self.current_map_to_odom is not None,
+            self.manual_relocalization_pending,
+            self.localizer_allowed,
+            self.localizer_reason,
+        ):
+            self.pending_localizer_seed = True
+            self.try_activate_localizer_seed()
+        elif self.localizer_allowed and not was_allowed:
+            self.state = "LOCALIZER_RECOVERED_HOLD"
         elif not self.localizer_allowed:
             self.state = (
                 "MANUAL_RELOCALIZING"

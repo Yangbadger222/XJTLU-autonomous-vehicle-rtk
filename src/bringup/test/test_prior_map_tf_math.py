@@ -11,6 +11,7 @@ from prior_map_tf_math import (  # noqa: E402
     map_to_odom_from_poses,
     median_se2,
     pose_residual,
+    should_activate_localizer_seed,
     stable_se2_window,
 )
 
@@ -138,3 +139,27 @@ def test_bounded_update_applies_translation_and_yaw_deadbands_independently():
         max_base_step_m=1.0,
     )
     assert yaw_only == (0.0, 0.0, 0.20)
+
+
+def test_localizer_seed_decision_accepts_manual_pose_while_already_localized():
+    assert should_activate_localizer_seed(
+        current_exists=True,
+        manual_relocalization_pending=True,
+        localizer_allowed=True,
+        localizer_reason="relocalization_accepted",
+    )
+
+
+def test_localizer_seed_decision_rejects_background_recovery_and_unready_pose():
+    assert not should_activate_localizer_seed(
+        current_exists=True,
+        manual_relocalization_pending=False,
+        localizer_allowed=True,
+        localizer_reason="relocalization_accepted",
+    )
+    assert not should_activate_localizer_seed(
+        current_exists=True,
+        manual_relocalization_pending=True,
+        localizer_allowed=False,
+        localizer_reason="manual_initial_pose_received",
+    )

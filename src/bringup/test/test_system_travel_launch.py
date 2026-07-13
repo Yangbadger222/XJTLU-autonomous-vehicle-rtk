@@ -525,6 +525,7 @@ def test_prior_map_tf_authority_gates_amcl_and_is_the_only_travel_tf_owner():
     assert "apply_correction_target" in authority_text
     assert 'declare_parameter("initialpose_topic", "/initialpose")' in authority_text
     assert "manual_relocalization_pending" in authority_text
+    assert "should_activate_localizer_seed" in authority_text
     assert "LOCALIZER_RECOVERED_HOLD" in authority_text
     assert "max_translation_correction_speed_mps" in authority_text
     assert "max_yaw_correction_speed_rps" in authority_text

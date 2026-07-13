@@ -40,6 +40,22 @@ def pose_residual(reference, candidate):
     )
 
 
+def should_activate_localizer_seed(
+    current_exists,
+    manual_relocalization_pending,
+    localizer_allowed,
+    localizer_reason,
+):
+    if not localizer_allowed:
+        return False
+    if not current_exists:
+        return True
+    return bool(
+        manual_relocalization_pending
+        and localizer_reason == "relocalization_accepted"
+    )
+
+
 def median_se2(poses):
     if not poses:
         raise ValueError("poses must not be empty")

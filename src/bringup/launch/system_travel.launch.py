@@ -44,6 +44,7 @@ _TRAVEL_BAG_BASE_TOPICS = [
     "/amcl_pose",
     "/travel/prior_map_tf/status",
     "/travel/control_gate/status",
+    "/initialpose",
     "/foxglove/navigation/status",
     "/chassis/status",
     "/foxglove/goal_pose",
@@ -295,6 +296,7 @@ def generate_launch_description():
         name="initialpose_relocalize_bridge",
         output="screen",
         parameters=[
+            rewritten_nav2_params,
             {
                 "pcd_map": LaunchConfiguration("pcd_map"),
             }

@@ -184,6 +184,10 @@ ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
 
 RViz `2D Pose Estimate` 仍可作为手动降级入口；也可直接调用旧重定位 service：
 
+Travel 按 `/initialpose` 的标准语义把位姿数值解释为 `map` 坐标。Foxglove 若把消息
+标成当前显示坐标系（例如 `base_link`），bridge 会记录警告并规范化为 `map` 后再送入
+localizer 和 AMCL；这是因为初始定位前尚不存在可用于转换的 `map -> base_link`。
+
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
   "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>/localization/map_localization.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"

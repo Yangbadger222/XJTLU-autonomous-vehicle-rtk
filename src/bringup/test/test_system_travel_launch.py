@@ -57,6 +57,7 @@ def test_travel_records_low_load_navigation_evidence_by_default():
     assert '"/amcl_pose"' in text
     assert '"/travel/prior_map_tf/status"' in text
     assert '"/travel/control_gate/status"' in text
+    assert '"/initialpose"' in text
     assert '"/foxglove/navigation/status"' in text
     assert '"/chassis/status"' in text
     assert '"/fastlio2/body_cloud"' in text
@@ -393,8 +394,12 @@ def test_initialpose_bridge_calls_localizer_relocalize_from_rviz_pose():
     assert "req.pcd_path" in text
     assert "req.yaw = yaw_from_quaternion" in text
     assert 'amcl_initialpose_topic", "/amcl/initialpose"' in text
-    assert 'msg.header.frame_id.lstrip("/") != "map"' in text
-    assert "self.amcl_initialpose_publisher.publish(msg)" in text
+    assert 'declare_parameter("assume_initialpose_is_map", True)' in text
+    assert 'normalized_msg.header.frame_id = "map"' in text
+    assert "self.amcl_initialpose_publisher.publish(normalized_msg)" in text
+    config = _nav2_travel_yaml()
+    bridge = config["initialpose_relocalize_bridge"]["ros__parameters"]
+    assert bridge["assume_initialpose_is_map"] is True
 
 
 def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():

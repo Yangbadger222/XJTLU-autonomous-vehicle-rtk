@@ -175,6 +175,13 @@ post_collision_cmd_conditioner:
     turning_angular_threshold: 0.16
     angular_zero_threshold: 0.01
 
+# Foxglove may label the coarse-pose tool with its selected display frame even
+# though /initialpose values are global-map coordinates. Before map->odom exists
+# that frame cannot be transformed, so Travel normalizes the message to map.
+initialpose_relocalize_bridge:
+  ros__parameters:
+    assume_initialpose_is_map: true
+
 # BT Navigator 节点参数块；负责组织规划、控制和恢复动作。
 # 改错节点名或层级：导航行为树会读不到参数或启动失败。
 bt_navigator:

@@ -185,6 +185,11 @@ ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
 
 RViz `2D Pose Estimate` remains a manual fallback. The legacy service can also be called directly:
 
+Travel follows `/initialpose` semantics and interprets its pose values as map coordinates. If
+Foxglove labels the message with its current display frame, such as `base_link`, the bridge logs
+a warning and normalizes it to `map` before sending it to localizer and AMCL. A TF conversion is
+not possible here because `map -> base_link` does not exist before initial localization.
+
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
   "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>/localization/map_localization.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"

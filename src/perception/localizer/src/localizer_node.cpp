@@ -21,6 +21,7 @@
 #include <pcl/common/transforms.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 
 #include "localizers/commons.h"
 #include "localizers/icp_localizer.h"
@@ -48,6 +49,8 @@ struct NodeConfig
     double tf_republish_hz = 20.0;
     double tf_future_tolerance_s = 0.10;
     double status_hz = 5.0;
+    bool publish_tf = true;
+    std::string transform_topic = "map_to_odom";
     bool continuous_icp = true;
     bool auto_global_localization = true;
     int global_max_candidates = 5;
@@ -131,6 +134,9 @@ public:
 
         m_map_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", 10);
         m_status_pub = this->create_publisher<interface::msg::LocalizationStatus>("status", 10);
+        m_transform_pub = this->create_publisher<geometry_msgs::msg::TransformStamped>(
+            m_config.transform_topic,
+            rclcpp::QoS(1).reliable().transient_local());
 
         m_timer = this->create_wall_timer(10ms, std::bind(&LocalizerNode::timerCB, this));
     }
@@ -146,6 +152,9 @@ public:
         m_config.descriptor_index = this->declare_parameter<std::string>("descriptor_index", "");
         m_config.auto_global_localization =
             this->declare_parameter<bool>("auto_global_localization", true);
+        m_config.publish_tf = this->declare_parameter<bool>("publish_tf", true);
+        m_config.transform_topic =
+            this->declare_parameter<std::string>("transform_topic", "map_to_odom");
         YAML::Node config = YAML::LoadFile(config_path);
         if (!config)
         {
@@ -705,7 +714,9 @@ public:
         transformStamped.transform.rotation.y = q.y();
         transformStamped.transform.rotation.z = q.z();
         transformStamped.transform.rotation.w = q.w();
-        m_tf_broadcaster->sendTransform(transformStamped);
+        m_transform_pub->publish(transformStamped);
+        if (m_config.publish_tf)
+            m_tf_broadcaster->sendTransform(transformStamped);
     }
 
     void relocCB(const std::shared_ptr<interface::srv::Relocalize::Request> request, std::shared_ptr<interface::srv::Relocalize::Response> response)
@@ -868,6 +879,7 @@ private:
     rclcpp::Service<interface::srv::GlobalRelocalize>::SharedPtr m_global_reloc_srv;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_map_cloud_pub;
     rclcpp::Publisher<interface::msg::LocalizationStatus>::SharedPtr m_status_pub;
+    rclcpp::Publisher<geometry_msgs::msg::TransformStamped>::SharedPtr m_transform_pub;
 };
 int main(int argc, char **argv)
 {

@@ -19,7 +19,7 @@ Design principles:
 - The Slam Toolbox 2D OccupancyGrid is the authoritative Nav2 navigation map.
 - The PGO-optimized 3D PCD and keyframes are the authoritative map for 3D global relocalization.
 - The maps are not assumed to share a coordinate frame. The bundle must store and validate `T_map_2d_map_3d`.
-- Only the localizer may publish indoor `map -> odom`; FAST-LIO2 publishes `odom -> base_footprint`.
+- Only `prior_map_tf_authority` may publish indoor `map -> odom` in Travel. The localizer and AMCL provide candidates, while FAST-LIO2 publishes `odom -> base_footprint`.
 - Motion output is prohibited when localization quality is not accepted, localization is lost, or TF ownership conflicts.
 - The vehicle is a build, runtime, and validation target only; code is not edited directly on it.
 
@@ -33,7 +33,7 @@ Design principles:
 - `save_mapping_session.py` produces a versioned indoor bundle with the 2D map, pose graph, raw/downsampled 3D PCD, keyframes, Scan Context index, regions, destinations, 2D-to-3D report, and overlay.
 - Saving enforces stationary, chassis feedback, frame, patch/pose, RMSE/p95/overlap, and artifact integrity gates; failures return nonzero and set `consistency_ok=false`.
 - `system_travel.launch.py` accepts `map_bundle` as the primary input and rejects unsupported schemas, failed consistency, unaccepted calibration, and missing artifacts.
-- The localizer supports RViz-seeded, region-assisted, and multi-candidate Scan Context startup, publishes structured status, and performs low-rate ICP correction with jump gates and low-pass updates.
+- The localizer supports RViz-seeded, region-assisted, and multi-candidate Scan Context startup and supplies a latched initial `map -> odom` candidate to the authority. AMCL supplies runtime candidates against the 2D static map.
 - Travel uses a static-only global costmap and live point cloud in the local costmap.
 - Travel uses a polygon footprint, MPPI, Collision Monitor, and bounded-recovery trees. Collision-checked in-place Spin, waiting, and costmap-clearing retries are allowed; automatic reversing remains disabled, and unhealthy localization gates velocity before the serial controller.
 - Travel now runs its controller at `20Hz`, matching MPPI `model_dt=0.05s`.
@@ -69,6 +69,7 @@ localization cloud + FAST-LIO2 odom
     -> fine ICP/GICP
     -> compose T_map_2d_odom
     -> localization quality gate
+    -> prior-map TF authority <- bounded AMCL correction
     -> Nav2 static planner + MPPI + local obstacle costmap
     -> velocity smoother -> serial_twistctl -> STM32
 ```
@@ -100,11 +101,11 @@ map -> odom -> base_footprint -> base_link -> sensor frames
 
 | TF | Sole publisher |
 |---|---|
-| `map -> odom` | indoor localization manager/localizer |
+| `map -> odom` | `prior_map_tf_authority` |
 | `odom -> base_footprint` | FAST-LIO2 |
 | `base_footprint -> base_link` and static sensor TF | robot_state_publisher |
 
-AMCL and PGO must not broadcast `map -> odom` in Travel. Launch tests and runtime health checks must verify a single owner.
+The localizer, AMCL, and PGO must not directly broadcast `map -> odom` in Travel. The localizer publishes a latched seed on `/localizer/map_to_odom`, AMCL publishes candidates on `/amcl_pose`, and launch/runtime checks verify the authority is the sole TF publisher.
 
 ## 5. Indoor map bundle contract
 
@@ -280,11 +281,13 @@ Automatic localization must not blindly accept the highest score. Ambiguous repe
 
 ### 7.3 Runtime drift control
 
-Freezing one successful ICP correction is appropriate for the early safety baseline, but not for long operation. Target behavior:
+The implemented runtime design combines a 3D startup seed with bounded AMCL correction:
 
 - FAST-LIO2 provides high-rate continuous local motion.
-- The localizer performs low-rate prior-map matching.
-- Small, continuous, trusted corrections update `map -> odom` through rate limiting and low-pass filtering.
+- The localizer performs 3D prior-map matching at startup; continuous ICP remains off because its motion failures previously withdrew TF.
+- AMCL uses `/scan`, the static 2D map, and FAST-LIO2 odometry to produce low-rate prior-map candidates.
+- The authority checks AMCL covariance, odometry timestamp skew, and `0.75m/0.45rad` target jumps, then applies accepted updates with `alpha=0.15`, `0.03m` translation steps, and `0.01rad` yaw steps.
+- The equivalent current-base displacement is additionally capped at `0.04m`, preventing a small `map -> odom` yaw correction from being amplified by a long odometry-origin lever arm.
 - Large jumps, candidate switches, and low-overlap results are not written directly to TF.
 - Indoor `map -> odom` must be projected to planar `SE(2)`: retain only XY and yaw, and never let ICP write z, roll, or pitch into Nav2's global TF.
 - Large corrections require a stop and multi-frame-consistent relocalization.
@@ -301,20 +304,20 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 First required changes:
 
 - Set `controller_frequency=20Hz` to match `model_dt=0.05s`.
-- Use MPPI `batch_size=160` to retain the two-second horizon while reducing control deadline misses on the Orin NX.
+- Use MPPI `batch_size=160` and `time_steps=32` for a 1.6-second horizon, reducing candidate points per cycle from 6400 to 5120 on the Orin NX.
 - Configure a polygon footprint from the documented `650 x 500mm` dimensions and measured outermost body points, with safety margin.
 - Set MPPI `CostCritic.consider_footprint=true`.
 - Collision-check the smoothed path to prevent corner cutting.
 - Measure the STM32 minimum effective `vx/wz` before setting velocity deadbands.
 
-The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. A polygon footprint does not disable in-place turning; it makes rotational collision checking match the real body. Every nonzero pure-rotation command is raised to at least `0.20rad/s`, and the progress checker also accepts `0.15rad` of angular motion, preventing chassis deadband and translation-only progress checks from blocking an in-place turn.
+The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. Rotation Shim handles only large initial errors above `0.65rad`; MPPI handles ordinary turns and final heading. VelocityDeadbandCritic is reduced to weight `15` and `[0.12,0,0.08]` so it does not fight the shim. The post-processor no longer amplifies pure-rotation commands; after confirmed collision slowdown it may only remove an unexecutable linear component. The progress checker still accepts `0.15rad` of angular motion.
 
 ### 7.5 Dynamic obstacles and safety
 
 - The global costmap contains only the static map and `0.30m` static inflation, still above the `0.285m` inscribed radius; temporary people are not written into it.
 - The local costmap uses the Nav2 obstacle cloud for people, chairs, and temporary obstacles.
 - Add Collision Monitor with independent slowdown and stop zones.
-- Use bounded Travel recovery: no automatic BackUp; Spin must pass footprint collision checks; local/global clearing runs only after planner or controller failure and remains retry-limited.
+- Use bounded Travel recovery: a controller failure first clears the local costmap and immediately replans; only a subsequent `IsStuck` condition permits a `0.52rad` short Spin. There is no automatic BackUp, and wait/both-costmap clearing remain final bounded actions.
 - PS2 `X` is the highest-priority software disable; the physical red e-stop overrides all software.
 - Localization state must gate the velocity chain, not only display a warning.
 

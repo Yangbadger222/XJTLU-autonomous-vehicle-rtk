@@ -3,13 +3,14 @@ from pathlib import Path
 
 import yaml
 
-import launch
 import launch_ros.actions
+from launch_ros.actions import SetRemap
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    GroupAction,
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
@@ -39,6 +40,10 @@ _TRAVEL_BAG_BASE_TOPICS = [
     "/local_costmap/costmap",
     "/global_costmap/costmap",
     "/localizer/status",
+    "/localizer/map_to_odom",
+    "/amcl_pose",
+    "/travel/prior_map_tf/status",
+    "/travel/control_gate/status",
     "/foxglove/navigation/status",
     "/chassis/status",
     "/foxglove/goal_pose",
@@ -116,7 +121,8 @@ def generate_launch_description():
     Travel mode: prior-map navigation.
 
     TF ownership:
-    - localizer publishes map -> odom after /localizer/relocalize loads a PCD map
+    - localizer provides the trusted startup map -> odom candidate without broadcasting TF
+    - prior_map_tf_authority owns map -> odom and applies bounded AMCL corrections
     - FAST-LIO2 publishes odom -> base_footprint, with URDF static TF to base_link
     - PGO is optional and must not publish TF in this mode
     """
@@ -269,8 +275,18 @@ def generate_launch_description():
                 "auto_global_localization": ParameterValue(
                     LaunchConfiguration("auto_global_localization"), value_type=bool
                 ),
+                "publish_tf": False,
+                "transform_topic": "map_to_odom",
             }
         ],
+    )
+
+    prior_map_tf_authority_node = launch_ros.actions.Node(
+        package="bringup",
+        executable="prior_map_tf_authority.py",
+        name="prior_map_tf_authority",
+        output="screen",
+        parameters=[rewritten_nav2_params],
     )
 
     initialpose_relocalize_bridge_node = launch_ros.actions.Node(
@@ -301,6 +317,7 @@ def generate_launch_description():
         executable="localization_cmd_gate.py",
         name="localization_cmd_gate",
         output="screen",
+        parameters=[rewritten_nav2_params],
     )
 
     collision_monitor_node = launch_ros.actions.Node(
@@ -322,6 +339,7 @@ def generate_launch_description():
         executable="post_collision_cmd_conditioner.py",
         name="post_collision_cmd_conditioner",
         output="screen",
+        parameters=[rewritten_nav2_params],
     )
 
     indoor_navigation_manager_node = launch_ros.actions.Node(
@@ -424,19 +442,28 @@ def generate_launch_description():
         ],
     )
 
-    localization_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                PathJoinSubstitution(
-                    [FindPackageShare("nav2_bringup"), "launch", "localization_launch.py"]
-                )
-            ]
-        ),
-        launch_arguments={
-            "map": LaunchConfiguration("map_yaml"),
-            "use_sim_time": "false",
-            "params_file": rewritten_nav2_params,
-        }.items(),
+    localization_launch = GroupAction(
+        actions=[
+            SetRemap(src="/initialpose", dst="/amcl/initialpose"),
+            IncludeLaunchDescription(
+                PythonLaunchDescriptionSource(
+                    [
+                        PathJoinSubstitution(
+                            [
+                                FindPackageShare("nav2_bringup"),
+                                "launch",
+                                "localization_launch.py",
+                            ]
+                        )
+                    ]
+                ),
+                launch_arguments={
+                    "map": LaunchConfiguration("map_yaml"),
+                    "use_sim_time": "false",
+                    "params_file": rewritten_nav2_params,
+                }.items(),
+            ),
+        ]
     )
 
     navigation_launch = IncludeLaunchDescription(
@@ -498,6 +525,7 @@ def generate_launch_description():
             fastlio_launch,
             pgo_node,
             localizer_node,
+            prior_map_tf_authority_node,
             initialpose_relocalize_bridge_node,
             nav2_cloud_retime_node,
             localization_cmd_gate_node,

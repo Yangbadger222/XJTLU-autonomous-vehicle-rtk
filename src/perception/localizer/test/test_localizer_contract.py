@@ -91,6 +91,16 @@ def test_localizer_republishes_last_valid_map_to_odom_with_current_time():
     assert "this->now()" in republish_block
 
 
+def test_localizer_can_publish_candidate_without_competing_for_tf():
+    text = LOCALIZER_NODE.read_text(encoding="utf-8")
+
+    assert 'declare_parameter<bool>("publish_tf", true)' in text
+    assert 'declare_parameter<std::string>("transform_topic", "map_to_odom")' in text
+    assert "m_transform_pub->publish(transformStamped)" in text
+    assert "if (m_config.publish_tf)" in text
+    assert "m_tf_broadcaster->sendTransform(transformStamped)" in text
+
+
 def test_localizer_can_freeze_map_to_odom_after_relocalize():
     text = LOCALIZER_NODE.read_text(encoding="utf-8")
 

@@ -1,9 +1,9 @@
 <!-- Travel prior-map navigation with bounded, forward-safe recovery. -->
 <root main_tree_to_execute="MainTree">
   <BehaviorTree ID="MainTree">
-    <RecoveryNode number_of_retries="5" name="NavigateRecovery">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
       <PipelineSequence name="NavigateWithReplanning">
-        <RateController hz="0.5">
+        <RateController hz="1.0">
           <Sequence name="PlanAndSmoothPath">
             <RecoveryNode number_of_retries="1" name="ComputePath">
               <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
@@ -14,16 +14,29 @@
         </RateController>
         <RecoveryNode number_of_retries="2" name="FollowPathRecovery">
           <FollowPath path="{path}" controller_id="FollowPath"/>
-          <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+          <Sequence name="ClearLocalAndReplan-Context">
+            <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
+          </Sequence>
         </RecoveryNode>
       </PipelineSequence>
       <ReactiveFallback name="RecoveryFallback">
         <GoalUpdated/>
         <RoundRobin name="RecoveryActions">
-          <Wait wait_duration="1"/>
-          <Spin spin_dist="1.57"/>
-          <Sequence name="ClearAndReplan">
+          <Sequence name="ClearLocalAndReplan-Recovery">
             <ClearEntireCostmap name="ClearLocalCostmap-Recovery" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
+          </Sequence>
+          <Sequence name="ConditionalShortSpin">
+            <IsStuck/>
+            <Spin spin_dist="0.52"/>
+            <ClearEntireCostmap name="ClearLocalCostmap-AfterSpin" service_name="local_costmap/clear_entirely_local_costmap"/>
+          </Sequence>
+          <Wait wait_duration="0.5"/>
+          <Sequence name="ClearBothCostmaps-Final">
+            <ClearEntireCostmap name="ClearLocalCostmap-Final" service_name="local_costmap/clear_entirely_local_costmap"/>
             <ClearEntireCostmap name="ClearGlobalCostmap-Recovery" service_name="global_costmap/clear_entirely_global_costmap"/>
           </Sequence>
         </RoundRobin>

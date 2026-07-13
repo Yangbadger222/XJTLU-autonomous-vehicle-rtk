@@ -8,7 +8,7 @@ amcl:
   ros__parameters:
     # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
     # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
-    use_sim_time: true
+    use_sim_time: false
     # alpha1 表示机器人转动时的转角噪声系数；决定 AMCL 对转角里程计的信任程度。
     # 调大：更不相信转角里程计、粒子更分散；调小：更相信转角里程计、收敛更紧。
     alpha1: 0.2
@@ -38,7 +38,7 @@ amcl:
     beam_skip_threshold: 0.3
     # 是否启用 beam skip；用于处理局部遮挡或动态障碍导致的异常激光束。
     # 改为 true：对异常束更宽容；改为 false：所有束都严格参与匹配。
-    do_beamskip: false
+    do_beamskip: true
     # AMCL 输出的全局坐标系；通常与地图坐标系一致。
     # 改成其它坐标系：下游导航的 TF 链会对不上。
     global_frame_id: "map"
@@ -50,7 +50,7 @@ amcl:
     laser_likelihood_max_dist: 2.0
     # 定位时接受的最大激光距离；超过该值的量测不会参与 AMCL。
     # 调大：可利用更远量测但噪声也更多；调小：更保守但远距信息更少。
-    laser_max_range: 100.0
+    laser_max_range: 20.0
     # 定位时接受的最小激光距离；用于过滤本体附近或近场噪声。
     # 调大：更能滤掉近场噪声；调小：会保留更多近距离量测。
     laser_min_range: -1.0
@@ -59,13 +59,13 @@ amcl:
     laser_model_type: "likelihood_field"
     # 单次参与 AMCL 匹配的最大激光束数量；用于平衡定位信息量和算力开销。
     # 调大：匹配更细致但 CPU 更高；调小：计算更省但匹配信息更少。
-    max_beams: 60
+    max_beams: 50
     # 最大粒子数；决定 AMCL 最多可以保留多少候选位姿。
     # 调大：定位更稳但算力和内存更高；调小：更省资源但复杂场景更易丢定位。
-    max_particles: 2000
+    max_particles: 1000
     # 最小粒子数；决定 AMCL 至少保留多少候选位姿。
     # 调大：低不确定性时也保持更稳但更耗资源；调小：更省资源但抗突发误差更弱。
-    min_particles: 500
+    min_particles: 300
     # 里程计坐标系；AMCL 会基于该坐标系接收运动信息。
     # 改成错误坐标系：定位更新会与里程计链路错位。
     odom_frame_id: "odom"
@@ -95,17 +95,17 @@ amcl:
     sigma_hit: 0.2
     # 是否广播 map 到 odom 的 TF；决定 AMCL 是否直接输出定位变换。
     # 改为 true：由 AMCL 提供 TF；改为 false：需要外部链路自行维护该 TF。
-    # Travel 先验点云模式由 localizer 发布 map -> odom，AMCL 不抢 TF。
+    # Travel 中 localizer 与 AMCL 都不直接发 TF；prior_map_tf_authority 是唯一 map -> odom owner。
     tf_broadcast: false
     # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。
     # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。
     transform_tolerance: 1.0
     # 最小更新或进展阈值；低于它时系统通常认为变化不够明显。
     # 调大：更不敏感；调小：更敏感。
-    update_min_a: 0.2
+    update_min_a: 0.05
     # 最小更新或进展阈值；低于它时系统通常认为变化不够明显。
     # 调大：更不敏感；调小：更敏感。
-    update_min_d: 0.25
+    update_min_d: 0.05
     # 命中项权重；决定与地图精确对齐的量测在总评分中的影响。
     # 调大：更强调精确命中；调小：命中项影响减弱。
     z_hit: 0.5
@@ -121,6 +121,60 @@ amcl:
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。
     # 改错话题：上下游节点会直接断链。
     scan_topic: scan
+
+# Travel 唯一 map -> odom 发布者。localizer 提供初始种子，AMCL 提供运行中先验地图校正。
+prior_map_tf_authority:
+  ros__parameters:
+    use_sim_time: false
+    map_frame: map
+    odom_frame: odom
+    localizer_transform_topic: /localizer/map_to_odom
+    localizer_status_topic: /localizer/status
+    odom_topic: /fastlio2/lio_odom
+    amcl_pose_topic: /amcl_pose
+    amcl_initialpose_topic: /amcl/initialpose
+    status_topic: /travel/prior_map_tf/status
+    publish_hz: 20.0
+    status_hz: 5.0
+    tf_future_tolerance_s: 0.10
+    max_odom_pose_skew_s: 0.15
+    amcl_settle_s: 0.75
+    amcl_stale_s: 3.0
+    max_position_variance: 0.25
+    max_yaw_variance: 0.12
+    # 拒绝走廊对称结构导致的大范围粒子跳变；可信小校正仍会逐步释放。
+    max_target_base_jump_m: 0.75
+    max_target_yaw_jump_rad: 0.45
+    correction_alpha: 0.15
+    translation_deadband_m: 0.02
+    yaw_deadband_rad: 0.015
+    max_translation_step_m: 0.03
+    max_yaw_step_rad: 0.01
+    # map -> odom 的小角度变化会被长 odom 杠杆臂放大，因此直接限制车体等效跳变。
+    max_base_step_m: 0.04
+
+# 控制门同时输出可机读停车原因；0.40s 指令窗容忍偶发 MPPI 漏周期但不保持旧非零速度。
+localization_cmd_gate:
+  ros__parameters:
+    status_timeout_s: 0.5
+    authority_status_topic: /travel/prior_map_tf/status
+    authority_timeout_s: 0.6
+    obstacle_timeout_s: 0.5
+    cmd_timeout_s: 0.40
+    output_timeout_s: 0.25
+    publish_hz: 20.0
+    status_publish_hz: 5.0
+
+# 碰撞后处理只移除无法越过线速度死区的混合平移分量，不再放大角速度。
+post_collision_cmd_conditioner:
+  ros__parameters:
+    reference_timeout_s: 0.20
+    slowdown_ratio_threshold: 0.80
+    linear_deadband: 0.14
+    in_place_linear_threshold: 0.02
+    turning_angular_threshold: 0.16
+    angular_zero_threshold: 0.01
+
 # BT Navigator 节点参数块；负责组织规划、控制和恢复动作。
 # 改错节点名或层级：导航行为树会读不到参数或启动失败。
 bt_navigator:
@@ -290,18 +344,19 @@ controller_server:
     # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。
     # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。
     FollowPath:
-      # 先原地对准路径，再交给 MPPI，避免低速线/角速度混合后单侧车轮落入静摩擦死区。
+      # Rotation Shim 只处理大角度初始偏差；普通弯道和终点朝向交给 MPPI，避免多层控制器反复抢占。
       plugin: "nav2_rotation_shim_controller::RotationShimController"
       primary_controller: "nav2_mppi_controller::MPPIController"
-      angular_dist_threshold: 0.35
-      angular_disengage_threshold: 0.15
-      forward_sampling_distance: 0.50
-      rotate_to_heading_angular_vel: 0.30
-      max_angular_accel: 0.80
+      angular_dist_threshold: 0.65
+      angular_disengage_threshold: 0.35
+      forward_sampling_distance: 0.65
+      rotate_to_heading_angular_vel: 0.24
+      max_angular_accel: 0.65
       simulate_ahead_time: 1.0
-      rotate_to_goal_heading: true
+      rotate_to_goal_heading: false
       closed_loop: true
-      time_steps: 40
+      # 1.6s horizon keeps indoor stopping margin while reducing each 20Hz MPPI cycle by about 20%.
+      time_steps: 32
       model_dt: 0.05
       batch_size: 160
       vx_std: 0.16
@@ -337,7 +392,6 @@ controller_server:
         - "PathAlignCritic"
         - "PathFollowCritic"
         - "PathAngleCritic"
-        - "PreferForwardCritic"
         - "VelocityDeadbandCritic"
 
       ConstraintCritic:
@@ -353,7 +407,6 @@ controller_server:
         consider_footprint: true
         collision_cost: 1000000.0
         near_goal_distance: 1.0
-        trajectory_point_step: 2
 
       GoalCritic:
         enabled: true
@@ -367,24 +420,20 @@ controller_server:
         cost_weight: 3.0
         threshold_to_consider: 0.5
 
-      PreferForwardCritic:
-        enabled: true
-        cost_power: 1
-        cost_weight: 5.0
-        threshold_to_consider: 0.5
-
       VelocityDeadbandCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 35.0
-        deadband_velocities: [0.14, 0.0, 0.18]
+        # Only discourage commands below measured breakaway speed; do not force every small steering correction into a spin.
+        cost_weight: 15.0
+        deadband_velocities: [0.12, 0.0, 0.08]
 
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 12.0
+        # Lower path-center pressure lets MPPI take a smooth local detour around desks and corridor obstacles.
+        cost_weight: 6.0
         max_path_occupancy_ratio: 0.05
-        trajectory_point_step: 4
+        trajectory_point_step: 5
         threshold_to_consider: 0.5
         offset_from_furthest: 6
         use_path_orientations: false
@@ -392,7 +441,7 @@ controller_server:
       PathFollowCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 16.0
+        cost_weight: 12.0
         offset_from_furthest: 5
         threshold_to_consider: 1.4
 
@@ -418,7 +467,7 @@ local_costmap:
       update_frequency: 10.0
       # 代价地图发布频率；决定对外发布地图消息的频率。
       # 调大：下游拿到新地图更快；调小：带宽和 CPU 开销更低。
-      publish_frequency: 5.0
+      publish_frequency: 2.0
       # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
       # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
       global_frame: odom
@@ -538,10 +587,10 @@ global_costmap:
     ros__parameters:
       # 代价地图更新频率；决定障碍信息每秒刷新多少次。
       # 调大：环境更新更及时但 CPU 更高；调小：更省资源但环境变化反映更慢。
-      update_frequency: 5.0
+      update_frequency: 1.0
       # 代价地图发布频率；决定对外发布地图消息的频率。
       # 调大：下游拿到新地图更快；调小：带宽和 CPU 开销更低。
-      publish_frequency: 5.0
+      publish_frequency: 1.0
       # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。
       # 改成错误坐标系：地图、路径和机器人位姿会整体错位。
       global_frame: map

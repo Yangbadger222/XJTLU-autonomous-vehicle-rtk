@@ -15,6 +15,8 @@ LOCALIZATION_CMD_GATE = Path("src/bringup/scripts/localization_cmd_gate.py")
 POST_COLLISION_CONDITIONER = Path(
     "src/bringup/scripts/post_collision_cmd_conditioner.py"
 )
+PRIOR_MAP_TF_AUTHORITY = Path("src/bringup/scripts/prior_map_tf_authority.py")
+PRIOR_MAP_TF_MATH = Path("src/bringup/scripts/prior_map_tf_math.py")
 TRAVEL_RECOVERY_BT = Path("src/bringup/behavior_trees/travel_nav_to_pose_recovery.xml")
 TRAVEL_THROUGH_POSES_RECOVERY_BT = Path(
     "src/bringup/behavior_trees/travel_nav_through_poses_recovery.xml"
@@ -51,6 +53,10 @@ def test_travel_records_low_load_navigation_evidence_by_default():
     assert '"/local_plan"' in text
     assert '"/local_costmap/costmap"' in text
     assert '"/localizer/status"' in text
+    assert '"/localizer/map_to_odom"' in text
+    assert '"/amcl_pose"' in text
+    assert '"/travel/prior_map_tf/status"' in text
+    assert '"/travel/control_gate/status"' in text
     assert '"/foxglove/navigation/status"' in text
     assert '"/chassis/status"' in text
     assert '"/fastlio2/body_cloud"' in text
@@ -64,6 +70,9 @@ def test_travel_launch_wires_localizer_and_nav2():
     assert 'package="localizer"' in text
     assert 'executable="localizer_node"' in text
     assert 'executable="initialpose_relocalize_bridge.py"' in text
+    assert 'executable="prior_map_tf_authority.py"' in text
+    assert '"publish_tf": False' in text
+    assert 'SetRemap(src="/initialpose", dst="/amcl/initialpose")' in text
     assert '"pcd_map": LaunchConfiguration("pcd_map")' in text
     assert 'executable="nav2_cloud_retime.py"' in text
     assert '("cloud_in", "/fastlio2/body_cloud_nav2_obstacles")' in text
@@ -76,12 +85,13 @@ def test_travel_launch_wires_localizer_and_nav2():
     assert "travel_rviz" in text
 
 
-def test_travel_nav2_config_lets_localizer_own_map_to_odom():
+def test_travel_nav2_config_reserves_map_to_odom_for_guarded_authority():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
     global_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[1]
 
     assert "tf_broadcast: false" in text
+    assert "prior_map_tf_authority" in text
     assert "topic: /fastlio2/body_cloud_nav2" in text
     assert "topic: /fastlio2/body_cloud\n" not in text
     assert 'plugins: ["static_layer", "inflation_layer"]' in global_costmap_text
@@ -90,6 +100,20 @@ def test_travel_nav2_config_lets_localizer_own_map_to_odom():
     assert "topic: /fastlio2/body_cloud_nav2" not in global_costmap_text
     assert "rolling_window: false" in global_costmap_text
     assert "rolling_window: true" in local_costmap_text
+
+    config = _nav2_travel_yaml()
+    amcl = config["amcl"]["ros__parameters"]
+    authority = config["prior_map_tf_authority"]["ros__parameters"]
+    assert amcl["tf_broadcast"] is False
+    assert amcl["max_particles"] == 1000
+    assert amcl["min_particles"] == 300
+    assert amcl["max_beams"] == 50
+    assert amcl["update_min_d"] == 0.05
+    assert amcl["update_min_a"] == 0.05
+    assert authority["max_target_base_jump_m"] == 0.75
+    assert authority["max_translation_step_m"] == 0.03
+    assert authority["max_yaw_step_rad"] == 0.01
+    assert authority["max_base_step_m"] == 0.04
 
 
 def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
@@ -114,12 +138,14 @@ def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
         assert "SmoothPath" in bt_text
         assert 'smoother_id="savitzky_golay_smoother"' in bt_text
         assert 'check_for_collisions="false"' in bt_text
-        assert '<RateController hz="0.5">' in bt_text
+        assert '<RateController hz="1.0">' in bt_text
         assert "FollowPath" in bt_text
-        assert 'RecoveryNode number_of_retries="5"' in bt_text
-        assert '<Spin spin_dist="1.57"/>' in bt_text
+        assert 'RecoveryNode number_of_retries="6"' in bt_text
+        assert '<IsStuck/>' in bt_text
+        assert '<Spin spin_dist="0.52"/>' in bt_text
         assert "ClearEntireCostmap" in bt_text
-        assert '<Wait wait_duration="1"/>' in bt_text
+        assert '<Wait wait_duration="0.5"/>' in bt_text
+        assert "ClearLocalAndReplan" in bt_text
         assert "<BackUp" not in bt_text
 
 
@@ -135,13 +161,13 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "yaw_goal_tolerance: 0.20" in controller_text
     assert 'plugin: "nav2_rotation_shim_controller::RotationShimController"' in controller_text
     assert 'primary_controller: "nav2_mppi_controller::MPPIController"' in controller_text
-    assert "angular_dist_threshold: 0.35" in controller_text
-    assert "angular_disengage_threshold: 0.15" in controller_text
-    assert "rotate_to_heading_angular_vel: 0.30" in controller_text
-    assert "max_angular_accel: 0.80" in controller_text
-    assert "rotate_to_goal_heading: true" in controller_text
+    assert "angular_dist_threshold: 0.65" in controller_text
+    assert "angular_disengage_threshold: 0.35" in controller_text
+    assert "rotate_to_heading_angular_vel: 0.24" in controller_text
+    assert "max_angular_accel: 0.65" in controller_text
+    assert "rotate_to_goal_heading: false" in controller_text
     assert "closed_loop: true" in controller_text
-    assert "time_steps: 40" in controller_text
+    assert "time_steps: 32" in controller_text
     assert "model_dt: 0.05" in controller_text
     assert "batch_size: 160" in controller_text
     assert 'plugin: "nav2_controller::PoseProgressChecker"' in controller_text
@@ -160,11 +186,14 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "open_loop:" not in controller_text
     assert "regenerate_noises: false" in controller_text
     assert "PathAlignCritic:" in controller_text
-    assert "offset_from_furthest: 6" in controller_text
+    assert "cost_weight: 6.0" in controller_text
+    assert "trajectory_point_step: 5" in controller_text
     assert "PathFollowCritic:" in controller_text
-    assert "cost_weight: 16.0" in controller_text
+    assert "cost_weight: 12.0" in controller_text
     assert '        - "VelocityDeadbandCritic"' in controller_text
-    assert "deadband_velocities: [0.14, 0.0, 0.18]" in controller_text
+    assert "deadband_velocities: [0.12, 0.0, 0.08]" in controller_text
+    assert '        - "PreferForwardCritic"' not in controller_text
+    assert "trajectory_point_step: 2" not in controller_text
     assert 'behavior_plugins: ["spin", "wait"]' in behavior_text
     assert 'plugin: "nav2_behaviors/Spin"' in behavior_text
     assert "max_rotational_vel: 0.50" in behavior_text
@@ -190,7 +219,7 @@ def test_travel_local_costmap_uses_stable_field_runtime_rates():
     local_costmap_text = text.split("# 全局代价地图参数块", maxsplit=1)[0]
 
     assert "update_frequency: 10.0" in local_costmap_text
-    assert "publish_frequency: 5.0" in local_costmap_text
+    assert "publish_frequency: 2.0" in local_costmap_text
     assert "width: 6" in local_costmap_text
     assert "height: 6" in local_costmap_text
     assert "resolution: 0.05" in local_costmap_text
@@ -250,6 +279,7 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert 'cmd_vel_in_topic: /cmd_vel_localized' in collision_text
     assert 'cmd_vel_out_topic: /cmd_vel_safe_raw' in collision_text
     assert 'executable="post_collision_cmd_conditioner.py"' in launch_text
+    assert 'executable="prior_map_tf_authority.py"' in launch_text
     assert 'topic: /fastlio2/body_cloud_nav2' in collision_text
 
     collision_config = yaml.safe_load(collision_text)["collision_monitor"]["ros__parameters"]
@@ -265,10 +295,20 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     gate_text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
     assert '"/fastlio2/body_cloud_nav2"' in gate_text
     assert 'declare_parameter("obstacle_timeout_s", 0.5)' in gate_text
-    assert 'declare_parameter("cmd_timeout_s", 0.25)' in gate_text
+    assert 'declare_parameter("cmd_timeout_s", 0.40)' in gate_text
+    assert '"/travel/control_gate/status"' in gate_text
+    assert '"/travel/prior_map_tf/status"' in gate_text
+    for reason in (
+        "LOCALIZATION_BLOCKED",
+        "LOCALIZATION_AUTHORITY_TIMEOUT",
+        "POINTCLOUD_TIMEOUT",
+        "COLLISION_STOP",
+        "COMMAND_TIMEOUT",
+    ):
+        assert reason in gate_text
     assert "self.last_obstacle_time" in gate_text
     assert "self.last_cmd_time" in gate_text
-    assert "self.publisher.publish(Twist())" in gate_text
+    assert "self.publish_gated(Twist())" in gate_text
 
 
 def test_travel_exposes_foxglove_control_surface():
@@ -322,10 +362,22 @@ def test_bringup_installs_travel_runtime_helper_nodes():
     assert "scripts/nav2_cloud_retime.py" in cmake_text
     assert "scripts/localization_cmd_gate.py" in cmake_text
     assert "scripts/post_collision_cmd_conditioner.py" in cmake_text
+    assert "scripts/prior_map_tf_authority.py" in cmake_text
+    assert "scripts/prior_map_tf_math.py" in cmake_text
     assert LOCALIZATION_CMD_GATE.stat().st_mode & stat.S_IXUSR
     assert POST_COLLISION_CONDITIONER.stat().st_mode & stat.S_IXUSR
+    assert PRIOR_MAP_TF_AUTHORITY.stat().st_mode & stat.S_IXUSR
 
-    for dependency in ("rclpy", "geometry_msgs", "sensor_msgs", "interface"):
+    for dependency in (
+        "rclpy",
+        "geometry_msgs",
+        "sensor_msgs",
+        "interface",
+        "diagnostic_msgs",
+        "std_msgs",
+        "nav_msgs",
+        "tf2_ros",
+    ):
         assert f"<exec_depend>{dependency}</exec_depend>" in package_text
     for dependency in ("nav2_collision_monitor", "indoor_navigation_manager"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package_text
@@ -340,6 +392,9 @@ def test_initialpose_bridge_calls_localizer_relocalize_from_rviz_pose():
     assert "Relocalize.Request()" in text
     assert "req.pcd_path" in text
     assert "req.yaw = yaw_from_quaternion" in text
+    assert 'amcl_initialpose_topic", "/amcl/initialpose"' in text
+    assert 'msg.header.frame_id.lstrip("/") != "map"' in text
+    assert "self.amcl_initialpose_publisher.publish(msg)" in text
 
 
 def test_nav2_cloud_retime_republishes_pointcloud_with_current_stamp():
@@ -360,17 +415,15 @@ def test_post_collision_conditioner_turns_stalled_commands_in_place():
     assert 'declare_parameter("slowdown_ratio_threshold", 0.80)' in text
     assert 'declare_parameter("linear_deadband", 0.14)' in text
     assert 'declare_parameter("in_place_linear_threshold", 0.02)' in text
-    assert 'declare_parameter("turning_angular_threshold", 0.08)' in text
+    assert 'declare_parameter("turning_angular_threshold", 0.16)' in text
     assert 'declare_parameter("angular_zero_threshold", 0.01)' in text
-    assert 'declare_parameter("min_in_place_angular_speed", 0.20)' in text
     assert "def condition_command" in text
     assert "def is_slowdown_output" in text
-    assert "boost_pure_rotation" in text
     assert "slowdown_stalled_turn = stalled_turn and self.is_slowdown_output(msg)" in text
     assert "math.hypot(msg.linear.x, msg.linear.y)" in text
     assert "out.linear.x = 0.0" in text
-    assert "math.copysign(" in text
-    assert "self.min_in_place_angular_speed, msg.angular.z" in text
+    assert "out.angular.z =" not in text
+    assert "min_in_place_angular_speed" not in text
 
 
 def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():
@@ -380,8 +433,24 @@ def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():
     assert "LocalizationStatus.DEGRADED" in text
     assert "msg.sensors_ready" in text
     assert "status_timeout_s" in text
+    assert "authority_timeout_s" in text
+    assert "self.authority_active" in text
     assert "if not self.is_allowed()" in text
-    assert "self.publisher.publish(Twist())" in text
+    assert "self.publish_gated(Twist())" in text
+
+
+def test_prior_map_tf_authority_gates_amcl_and_is_the_only_travel_tf_owner():
+    launch_text = _travel_launch_text()
+    authority_text = PRIOR_MAP_TF_AUTHORITY.read_text(encoding="utf-8")
+
+    assert '"publish_tf": False' in launch_text
+    assert "tf_broadcast: false" in NAV2_TRAVEL.read_text(encoding="utf-8")
+    assert "TransformBroadcaster" in authority_text
+    assert "bounded_map_to_odom_update" in authority_text
+    assert "AMCL_REJECTED_COVARIANCE" in authority_text
+    assert "AMCL_REJECTED_ODOM_SKEW" in authority_text
+    assert "AMCL_REJECTED_TARGET_JUMP" in authority_text
+    assert '"/travel/prior_map_tf/status"' in authority_text
 
 
 def test_launch_wrapper_forwards_extra_launch_arguments():
@@ -401,4 +470,5 @@ def test_runtime_cleanup_includes_travel_localizer_and_direct_ros2_launch():
         assert "[i]nitialpose_relocalize_bridge" in text
         assert "[n]av2_cloud_retime" in text
         assert "[p]ost_collision_cmd_conditioner" in text
+        assert "[p]rior_map_tf_authority" in text
         assert "[j]oint_state_publisher" in text

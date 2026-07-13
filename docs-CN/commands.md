@@ -158,16 +158,17 @@ FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
 
 说明：
 - `map_bundle` 是正式入口；Travel 会检查 schema、`consistency_ok`、标定接受状态以及 2D map、定位 PCD、标定、描述子和地点文件。分开传 `map_yaml/pcd_map` 只保留给兼容调试
-- `localizer` 负责发布 `map -> odom`；FAST-LIO2 负责发布 `odom -> base_footprint`，URDF 再提供 `base_footprint -> base_link`
+- `prior_map_tf_authority` 是 Travel 中唯一的 `map -> odom` 发布者；localizer 提供初始 3D 重定位候选，AMCL 提供运行中 2D 先验地图候选，FAST-LIO2 负责 `odom -> base_footprint`
 - 默认先用 Scan Context 检索多个候选并做 ICP；重复走廊候选不唯一时进入 `LOST`，此时用区域 service 或 RViz `2D Pose Estimate` 降级，不会带着歧义开车
-- 定位成功后保持已接受的 `map -> odom` 偏移，由 FAST-LIO2 高频 `odom -> base_footprint` 传播运动；当前禁用运行中连续 ICP，避免匹配失败时撤掉 TF
+- localizer 成功后把锁存的 `map -> odom` 种子交给 authority，并自动初始化 AMCL；AMCL 修正必须通过协方差、时间同步、`0.75m/0.45rad` 目标跳变和单步车体 `0.04m` 限制，拒绝时保持最近可信 TF
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
-- Travel 的 `NavigateToPose` / `NavigateThroughPoses` 使用有限恢复行为树：以 `0.5Hz` 重规划，每条 NavFn 路径先经过 Savitzky-Golay 几何平滑再跟踪；MPPI 保持 `20Hz/model_dt=0.05s`、`batch_size=160` 和固定采样噪声，Rotation Shim 使用闭环里程计与迟滞。碰撞安全仍由 local costmap、MPPI footprint critic 和 Collision Monitor 检查，仍禁止自动 BackUp
-- Travel 使用 `650x500mm` 外廓加 `25mm` 余量的 polygon footprint、`vx_max=0.30m/s` 的 20Hz MPPI、`0.30m` 全局静态膨胀、车头方向 Slow 区和车体近场 Stop 区；路径方向误差超过 `0.35rad` 时先以 `0.30rad/s` 原地对准。所有非零纯旋转命令至少为 `0.20rad/s`，`PoseProgressChecker` 将 `0.15rad` 转向也算作有效进展；`/localizer/status` 非 `LOCALIZED` 或超时会在串口前强制零速度
+- Travel 的有限恢复树以 `1Hz` 重规划；控制失败先清 local costmap、立即重规划和平滑，仍失败后只有 `IsStuck` 成立才短转 `0.52rad`，最后才等待/清双图，始终禁止自动 BackUp
+- MPPI 保持 `20Hz/model_dt=0.05s`，用 `time_steps=32`、`batch_size=160` 的 `1.6s` 时域降低单周期负载；PathAlign 权重 `6`、PathFollow 权重 `12`，允许自然绕开局部障碍。Rotation Shim 只在路径误差超过 `0.65rad` 时以 `0.24rad/s` 介入，不再负责终点朝向
+- 速度后处理器不再放大任何小角速度；只有 Collision Monitor 确认减速且线速度落入 `0.14m/s` 死区、角速度至少 `0.16rad/s` 时，才移除平移分量并保留原始角速度。`PoseProgressChecker` 仍把 `0.15rad` 转向算作进展
 - 发目标前检查 `ros2 topic echo /chassis/status --once`：必须为 `ctrl_mode: 0`（上位机串口模式）。`ctrl_mode: 1` 是手柄模式，`ctrl_mode: 2` 是电机禁用/安全接管；适配器会拒绝目标，避免先积压目标、使能电机后突然起步
 - Travel 的串口末级限制器只限制加速恢复；零速和降速立即执行。线/角加速恢复上限为 `0.30m/s2`、`0.80rad/s2`，用于消除 Collision Monitor Stop 解除后的速度跳变
-- 定位速度门还要求 `/fastlio2/body_cloud_nav2` 在 0.5s 内更新、`/cmd_vel` 在 0.25s 内更新；`serial_twistctl` 300ms 断流重发零速，STM32 500ms watchdog 再独立清零。固件层保护只有重新编译并烧录 `src/firmware/rm_c_board/` 后才生效
-- localizer 发布 `map->odom` 时使用 `0.10s` 未来容差；单次 ICP 失败进入 DEGRADED 后最多保留 `2.5s` 最近可信定位。窗口内点云/状态 freshness 门仍生效，超时或 LOST 立即取消目标并清零
+- 定位速度门要求 localizer 状态在 0.5s 内、authority 状态在 0.6s 内且 `tf_active=true`、`/fastlio2/body_cloud_nav2` 在 0.5s 内更新，`/cmd_vel` 的容忍窗为 0.40s；它在 `/travel/control_gate/status` 与 `/diagnostics` 明确报告 `LOCALIZATION_*`、`POINTCLOUD_TIMEOUT`、`COLLISION_STOP/SLOWDOWN` 或 `COMMAND_TIMEOUT`
+- authority 以 `20Hz` 和 `0.10s` 未来容差持续发布 TF；localizer 状态超时或 LOST 仍会让速度门立即清零，authority 只保持 TF 供地图显示和诊断，不允许继续运动
 - 自动全局定位会等待至少 200 个结构点，以 3s 间隔最多尝试 5 次；`map -> odom` 始终投影为平面 XY+yaw
 - PGO 默认不启动；如果用 `use_pgo:=true`，只使用不发布 TF 的 `pgo_slam.yaml`
 
@@ -175,6 +176,8 @@ FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
 
 ```bash
 ros2 topic echo /localizer/status
+ros2 topic echo /travel/prior_map_tf/status
+ros2 topic echo /travel/control_gate/status
 ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
   "{descriptor_index: '', region: 'east_corridor', max_candidates: 5}"
 ```
@@ -200,6 +203,9 @@ ros2 action send_goal /navigate_named_destination \
 ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
 ros2 run tf2_ros tf2_monitor map odom
+ros2 topic echo /amcl_pose --once
+ros2 topic echo /travel/prior_map_tf/status --once
+ros2 topic echo /travel/control_gate/status --once
 ros2 topic echo /cmd_vel_safe
 ```
 

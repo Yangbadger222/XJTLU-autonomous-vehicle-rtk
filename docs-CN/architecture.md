@@ -155,7 +155,7 @@ map -> odom -> base_footprint -> base_link
 - Explore / explore-gps 等生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
-- Travel 下 `map -> odom` 由 localizer 独占。地图包加载后优先执行 Scan Context 多候选 + ICP 自动定位；可用区域 service 或 RViz 初值降级。当前定位接受后保持固定偏移，由 FAST-LIO2 传播运动，运行中连续 ICP 暂停。
+- Travel 下 `map -> odom` 由 `prior_map_tf_authority` 独占。地图包加载后 localizer 执行 Scan Context 多候选 + ICP 并发布锁存种子；authority 用该种子初始化 AMCL，再对 `/amcl_pose` 候选做协方差、同步、跳变和单步门控后平滑校正。localizer 与 AMCL 均不直接广播 TF。
 - Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并让 FAST-LIO2 额外发布高窗 Nav2 障碍点云 `/fastlio2/body_cloud_nav2_obstacles`，再重时间戳为 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
 - Travel 的速度链为 `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe_raw -> post_collision_cmd_conditioner -> /cmd_vel_safe -> serial_twistctl`。定位门要求定位状态、障碍云和命令新鲜，任一超时持续输出零。末级条件器在 Collision Monitor 减速之后处理底盘死区：若线速度落在 `(0.02,0.14)m/s` 且仍明确要求转向（`|w|>=0.08rad/s`），就清零线速度并以至少 `0.20rad/s` 原地转向；纯旋转被减速到静摩擦区时同样恢复角速度。零命令、直线低速和 Collision Monitor Stop 均不被放大。`serial_twistctl` 继续负责加速限制和 300ms 断流零速，STM32 以 500ms watchdog 独立清零。
 - `indoor_navigation_manager` 把地图包中的地点/别名解析为 `NavigateToPose`，通过 `/navigate_named_destination` 提供反馈、取消和定位降级取消。

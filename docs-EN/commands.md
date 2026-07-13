@@ -159,16 +159,17 @@ FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
 
 Notes:
 - `map_bundle` is the production input. Travel checks schema, `consistency_ok`, calibration acceptance, and the 2D map, localization PCD, alignment, descriptor, and destination artifacts. Separate `map_yaml/pcd_map` arguments remain only for compatibility debugging
-- `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
+- `prior_map_tf_authority` is Travel's sole `map -> odom` publisher. The localizer supplies the initial 3D candidate, AMCL supplies runtime 2D prior-map candidates, and FAST-LIO2 owns `odom -> base_footprint`
 - Startup queries several Scan Context candidates and refines them with ICP. An ambiguous repeated corridor enters `LOST`; use the region service or RViz `2D Pose Estimate` as a stopped fallback
-- After acceptance, the localizer holds the accepted `map -> odom` offset while FAST-LIO2 propagates motion through high-rate `odom -> base_footprint`. Runtime continuous ICP is currently disabled so a failed match cannot withdraw TF
+- After localizer acceptance, its latched `map -> odom` seed initializes both the authority and AMCL. AMCL corrections must pass covariance, timestamp synchronization, `0.75m/0.45rad` target-jump, and `0.04m` equivalent base-step gates; rejection holds the last trusted TF
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
-- Travel `NavigateToPose` / `NavigateThroughPoses` use bounded-recovery trees with `0.5Hz` replanning and Savitzky-Golay smoothing. MPPI remains at `20Hz/model_dt=0.05s`, uses `batch_size=160` and fixed sampling noise, while Rotation Shim uses closed-loop odometry and hysteresis. Collision safety remains enforced by the local costmap, MPPI footprint critic, and Collision Monitor; automatic BackUp remains disabled
-- Travel uses the `650x500mm` envelope plus `25mm` polygon margin, 20Hz MPPI with `vx_max=0.30m/s`, `0.30m` global static inflation, a forward slowdown zone, and a close-body stop zone. A path-heading error above `0.35rad` is aligned in place at `0.30rad/s`; every nonzero pure-rotation command is at least `0.20rad/s`, and `PoseProgressChecker` counts `0.15rad` of rotation as progress. A stale or non-`LOCALIZED` `/localizer/status` forces zero velocity before serial output
+- Travel's bounded-recovery trees replan at `1Hz`. A controller failure first clears the local costmap and immediately replans/smooths; only a subsequent `IsStuck` condition permits a short `0.52rad` spin, followed by wait/final clearing. Automatic BackUp remains disabled
+- MPPI remains at `20Hz/model_dt=0.05s` with `time_steps=32`, `batch_size=160`, and a `1.6s` horizon to reduce per-cycle load. PathAlign weight `6` and PathFollow weight `12` permit natural local detours. Rotation Shim only handles path errors above `0.65rad` at `0.24rad/s` and no longer owns final heading alignment
+- The post-processor no longer amplifies any small angular command. It removes translation only after Collision Monitor confirms slowdown, linear speed falls below the `0.14m/s` breakaway range, and angular speed is at least `0.16rad/s`; the original angular command is preserved. `PoseProgressChecker` still counts `0.15rad` rotation as progress
 - Before sending a goal, run `ros2 topic echo /chassis/status --once`; it must report `ctrl_mode: 0` (host serial mode). `ctrl_mode: 1` is gamepad mode and `ctrl_mode: 2` is motor-disabled/safety takeover. The adapter rejects goals in those states so enabling motors cannot unexpectedly release an already active goal
 - Travel's final serial limiter constrains acceleration recovery only; zero and deceleration remain immediate. Linear/angular recovery limits are `0.30m/s2` and `0.80rad/s2`, removing command jumps when Collision Monitor releases a Stop
-- The velocity gate also requires `/fastlio2/body_cloud_nav2` within 0.5s and `/cmd_vel` within 0.25s. `serial_twistctl` resends zero after 300 ms, and the STM32 independently clears commands after 500 ms. The firmware layer only takes effect after rebuilding and flashing `src/firmware/rm_c_board/`
-- The localizer publishes `map->odom` with a `0.10s` future tolerance. A single ICP failure may retain the latest trusted localization for at most `2.5s` in DEGRADED state; cloud/status freshness gates remain active, and expiry or LOST immediately cancels the goal and commands zero
+- The velocity gate requires localizer status within 0.5s, authority status within 0.6s with `tf_active=true`, `/fastlio2/body_cloud_nav2` within 0.5s, and allows 0.40s between `/cmd_vel` messages. `/travel/control_gate/status` and `/diagnostics` identify `LOCALIZATION_*`, `POINTCLOUD_TIMEOUT`, `COLLISION_STOP/SLOWDOWN`, or `COMMAND_TIMEOUT`
+- The authority republishes TF at `20Hz` with `0.10s` future tolerance. A stale or LOST localizer still forces zero velocity; the authority only holds TF for map display and diagnostics and cannot authorize motion
 - Automatic global localization waits for at least 200 structural points and retries up to five times at 3s intervals; `map -> odom` is always projected to planar XY+yaw
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
 
@@ -176,6 +177,8 @@ Localization status and region-assisted relocalization:
 
 ```bash
 ros2 topic echo /localizer/status
+ros2 topic echo /travel/prior_map_tf/status
+ros2 topic echo /travel/control_gate/status
 ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
   "{descriptor_index: '', region: 'east_corridor', max_candidates: 5}"
 ```
@@ -201,6 +204,9 @@ Verification:
 ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
 ros2 run tf2_ros tf2_monitor map odom
+ros2 topic echo /amcl_pose --once
+ros2 topic echo /travel/prior_map_tf/status --once
+ros2 topic echo /travel/control_gate/status --once
 ros2 topic echo /cmd_vel_safe
 ```
 

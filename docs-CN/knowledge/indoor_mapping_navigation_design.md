@@ -19,7 +19,7 @@
 - Slam Toolbox 的 2D OccupancyGrid 是 Nav2 的权威导航地图。
 - PGO 优化后的 3D PCD 和关键帧是三维全局重定位的权威地图。
 - 两张地图不假设天然同坐标系，地图包必须保存并验证 `T_map_2d_map_3d`。
-- 运行时只有 localizer 可以发布室内 `map -> odom`；FAST-LIO2 发布 `odom -> base_footprint`。
+- Travel 运行时只有 `prior_map_tf_authority` 可以发布室内 `map -> odom`；localizer 和 AMCL 只提供候选，FAST-LIO2 发布 `odom -> base_footprint`。
 - 定位质量未通过、定位丢失或 TF 所有权冲突时，车辆不得输出运动命令。
 - 车端只用于构建、运行和实车验证，不直接修改代码。
 
@@ -33,7 +33,7 @@
 - `save_mapping_session.py` 生成版本化室内地图包：2D map、pose graph、原始/降采样 3D PCD、关键帧、Scan Context 索引、区域、地点、2D↔3D 标定报告和叠加图。
 - 保存流程具有连续静止、底盘反馈、frame、patch/pose、配准 RMSE/p95/重叠率和文件完整性门槛；失败返回非零且 `consistency_ok=false`。
 - `system_travel.launch.py` 以 `map_bundle` 为主入口，拒绝 schema 不支持、整体门槛未通过、标定未接受或文件缺失的地图包。
-- localizer 支持 RViz 初值、区域辅助和 Scan Context 多候选自动定位，发布结构化状态，并以低频 ICP、跳变门控和低通更新 `map -> odom`。
+- localizer 支持 RViz 初值、区域辅助和 Scan Context 多候选自动定位，并把锁存的初始 `map -> odom` 候选交给 authority；AMCL 根据 2D 静态地图提供运行中校正候选。
 - Travel 的全局代价地图只使用静态地图；局部代价地图使用实时点云。
 - Travel 使用真实矩形 footprint、MPPI、Collision Monitor 和有限恢复行为树；允许经过 footprint 碰撞检查的原地 Spin、等待和代价图清理重试，仍禁止自动倒车，定位异常会在串口前切断速度。
 - Travel 控制周期已使用 `20Hz`，与 MPPI `model_dt=0.05s` 匹配。
@@ -69,6 +69,7 @@ localization cloud + FAST-LIO2 odom
     -> fine ICP/GICP
     -> compose T_map_2d_odom
     -> localization quality gate
+    -> prior-map TF authority <- bounded AMCL correction
     -> Nav2 static planner + MPPI + local obstacle costmap
     -> velocity smoother -> serial_twistctl -> STM32
 ```
@@ -102,11 +103,11 @@ map -> odom -> base_footprint -> base_link -> sensor frames
 
 | TF | 唯一发布者 |
 |---|---|
-| `map -> odom` | 室内定位管理器/localizer |
+| `map -> odom` | `prior_map_tf_authority` |
 | `odom -> base_footprint` | FAST-LIO2 |
 | `base_footprint -> base_link` 与传感器静态 TF | robot_state_publisher |
 
-AMCL 和 PGO 在 Travel 中不得广播 `map -> odom`。启动测试和运行时健康检查都要验证唯一发布者。
+localizer、AMCL 和 PGO 在 Travel 中不得直接广播 `map -> odom`。localizer 通过 `/localizer/map_to_odom` 提供锁存种子，AMCL 通过 `/amcl_pose` 提供候选；启动测试和运行时健康检查都要验证 authority 是唯一 TF 发布者。
 
 ## 5. 室内地图包契约
 
@@ -282,11 +283,13 @@ UNINITIALIZED
 
 ### 7.3 运行中防漂移
 
-当前冻结一次 ICP 修正适合初期安全测试，但不能承担长时间运行。目标策略：
+当前实现使用 3D 初始种子加受限 AMCL 运行时校正：
 
 - FAST-LIO2 提供高频连续局部运动。
-- localizer 以低频执行先验地图匹配。
-- 小且连续的可信修正通过限速/低通平滑更新 `map -> odom`。
+- localizer 负责初始 3D 先验地图匹配，不启用会在运动中撤掉 TF 的 continuous ICP。
+- AMCL 使用 `/scan`、2D 静态地图和 FAST-LIO2 odom 生成低频先验地图候选。
+- authority 对 AMCL 候选检查协方差、odom 时间差、`0.75m/0.45rad` 目标跳变，再以 `alpha=0.15`、平移单步 `0.03m`、yaw 单步 `0.01rad` 平滑更新。
+- authority 额外限制当前车体在 `map` 中的单步等效位移不超过 `0.04m`，避免车辆远离 odom 原点后 yaw 修正被杠杆臂放大。
 - 大跳变、候选切换或低重叠结果不得直接写入 TF。
 - 室内 `map -> odom` 必须投影为平面 `SE(2)`：只保留 XY 和 yaw，禁止 ICP 把 z、roll 或 pitch 写入 Nav2 全局 TF。
 - 大修正需要停车、多帧一致后重新定位。
@@ -303,20 +306,20 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 首轮必须修正：
 
 - `controller_frequency=20Hz`，与 `model_dt=0.05s` 匹配。
-- MPPI `batch_size=160`，保留 2 秒预测时域，同时降低 Orin NX 上的控制周期超时。
+- MPPI `batch_size=160`、`time_steps=32`，使用 1.6 秒预测时域，把每周期候选点从 6400 降到 5120，降低 Orin NX 单线程控制周期超时。
 - 根据 `650 x 500mm` 整车尺寸和实测最外沿配置 polygon footprint，并增加安全余量。
 - MPPI `CostCritic.consider_footprint=true`。
 - 平滑路径执行碰撞检查，避免直角墙角切角。
 - 标定 STM32 最小有效 `vx/wz`，再配置速度 deadband。
 
-小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。polygon footprint 不会取消原地转向，只会让旋转碰撞检查符合真实车身。所有非零纯旋转命令至少补偿到 `0.20rad/s`，进度检查同时接受 `0.15rad` 角度变化，避免底盘死区和纯平移进度判定阻断原地转向。
+小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。Rotation Shim 只处理 `>0.65rad` 的大初始偏差，普通转弯和终点朝向由 MPPI 处理；VelocityDeadbandCritic 降到权重 `15` 和 `[0.12,0,0.08]`，防止与 Shim 抢控制。速度后处理不再放大纯旋转角速度，只在确认碰撞减速后移除无法越过线速度死区的平移分量。进度检查仍接受 `0.15rad` 角度变化。
 
 ### 7.5 动态障碍与安全
 
 - 全局 costmap 只包含静态地图和 `0.30m` 静态膨胀，不把临时人员写入全局地图；该值仍高于 `0.285m` 内切半径。
 - local costmap 使用 Nav2 专用障碍点云，负责人员、椅子和临时障碍。
 - 增加 Collision Monitor 独立实现减速区和停车区。
-- Travel 使用有界恢复：不自动 BackUp；Spin 必须经过 footprint 碰撞检查；局部/全局清图只在规划或控制失败后按有限重试执行。
+- Travel 使用有界恢复：控制失败先清 local costmap 并立即重规划；再次失败且 `IsStuck` 成立时才执行 `0.52rad` 短 Spin；不自动 BackUp，最后才等待或清双图。
 - PS2 `X` 是最高优先级软件失能；红色物理急停覆盖全部软件。
 - 定位状态必须进入速度输出安全链，不能只在界面提示。
 

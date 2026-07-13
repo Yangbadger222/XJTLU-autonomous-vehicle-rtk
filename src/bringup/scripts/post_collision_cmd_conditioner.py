@@ -18,9 +18,8 @@ class PostCollisionCmdConditioner(Node):
         self.declare_parameter("slowdown_ratio_threshold", 0.80)
         self.declare_parameter("linear_deadband", 0.14)
         self.declare_parameter("in_place_linear_threshold", 0.02)
-        self.declare_parameter("turning_angular_threshold", 0.08)
+        self.declare_parameter("turning_angular_threshold", 0.16)
         self.declare_parameter("angular_zero_threshold", 0.01)
-        self.declare_parameter("min_in_place_angular_speed", 0.20)
 
         cmd_vel_in = str(self.get_parameter("cmd_vel_in").value)
         cmd_vel_out = str(self.get_parameter("cmd_vel_out").value)
@@ -44,10 +43,6 @@ class PostCollisionCmdConditioner(Node):
         self.angular_zero_threshold = max(
             0.0, float(self.get_parameter("angular_zero_threshold").value)
         )
-        self.min_in_place_angular_speed = max(
-            0.0, float(self.get_parameter("min_in_place_angular_speed").value)
-        )
-
         self.publisher = self.create_publisher(Twist, cmd_vel_out, 10)
         self.last_reference = None
         self.last_reference_time = None
@@ -68,29 +63,20 @@ class PostCollisionCmdConditioner(Node):
     def condition_command(self, msg):
         linear_speed = math.hypot(msg.linear.x, msg.linear.y)
         angular_speed = abs(msg.angular.z)
-        angular_requested = angular_speed > self.angular_zero_threshold
-        pure_rotation = linear_speed <= self.in_place_linear_threshold
         stalled_turn = (
             self.in_place_linear_threshold < linear_speed < self.linear_deadband
             and angular_speed >= self.turning_angular_threshold
         )
-        boost_pure_rotation = (
-            angular_requested
-            and pure_rotation
-            and angular_speed < self.min_in_place_angular_speed
-        )
         slowdown_stalled_turn = stalled_turn and self.is_slowdown_output(msg)
-        if not boost_pure_rotation and not slowdown_stalled_turn:
+        if not slowdown_stalled_turn:
             return msg
 
         out = copy.deepcopy(msg)
-        if slowdown_stalled_turn:
-            out.linear.x = 0.0
-            out.linear.y = 0.0
-        if angular_speed < self.min_in_place_angular_speed:
-            out.angular.z = math.copysign(
-                self.min_in_place_angular_speed, msg.angular.z
-            )
+        # Preserve the controller's angular command exactly. The conditioner only
+        # removes a collision-slowed linear component that cannot break static
+        # friction; it must never turn a small steering correction into a spin.
+        out.linear.x = 0.0
+        out.linear.y = 0.0
         return out
 
     def is_slowdown_output(self, msg):

@@ -20,15 +20,20 @@ class InitialPoseRelocalizeBridge(Node):
 
         self.declare_parameter("pcd_map", "")
         self.declare_parameter("initialpose_topic", "/initialpose")
+        self.declare_parameter("amcl_initialpose_topic", "/amcl/initialpose")
         self.declare_parameter("relocalize_service", "/localizer/relocalize")
         self.declare_parameter("service_wait_s", 2.0)
 
         self.pcd_map = self.get_parameter("pcd_map").value
         initialpose_topic = self.get_parameter("initialpose_topic").value
+        amcl_initialpose_topic = self.get_parameter("amcl_initialpose_topic").value
         relocalize_service = self.get_parameter("relocalize_service").value
         self.service_wait_s = float(self.get_parameter("service_wait_s").value)
 
         self.client = self.create_client(Relocalize, relocalize_service)
+        self.amcl_initialpose_publisher = self.create_publisher(
+            PoseWithCovarianceStamped, amcl_initialpose_topic, 10
+        )
         self.subscription = self.create_subscription(
             PoseWithCovarianceStamped,
             initialpose_topic,
@@ -41,9 +46,16 @@ class InitialPoseRelocalizeBridge(Node):
         )
 
     def on_initial_pose(self, msg):
+        if msg.header.frame_id.lstrip("/") != "map":
+            self.get_logger().error(
+                "Initial pose must use frame_id=map; refusing ambiguous coordinates"
+            )
+            return
         if not self.pcd_map:
             self.get_logger().error("pcd_map is empty; cannot call /localizer/relocalize")
             return
+
+        self.amcl_initialpose_publisher.publish(msg)
 
         if not self.client.wait_for_service(timeout_sec=self.service_wait_s):
             self.get_logger().error("/localizer/relocalize service is not available")

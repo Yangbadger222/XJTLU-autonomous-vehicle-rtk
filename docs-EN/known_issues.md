@@ -66,7 +66,7 @@
     - Status: Awaiting tuning
 
 10. **[Medium] Travel prior-map mode still needs on-vehicle validation**
-    - Description: `system_travel.launch.py` has been restored as an experimental prior-map chain: the 2D `map.yaml` feeds Nav2 global planning, while the 3D `map.pcd` feeds `localizer` ICP relocalization and `map -> odom`.
+    - Description: `system_travel.launch.py` uses a prior-map chain: the 2D `map.yaml` feeds Nav2/AMCL, the 3D `map.pcd` feeds initial localizer ICP, and `prior_map_tf_authority` gates both candidates while exclusively owning `map -> odom`.
     - Status: Software wiring restored and built on the Jetson; further indoor prior-map navigation validation is still needed.
 
 11. **[Medium] GPS route-graph still needs further collection and refinement**

@@ -27,6 +27,12 @@ install(PROGRAMS
   scripts/nav2_cloud_retime.py
   scripts/localization_cmd_gate.py
   scripts/post_collision_cmd_conditioner.py
+  scripts/prior_map_tf_authority.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(FILES
+  scripts/prior_map_tf_math.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

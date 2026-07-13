@@ -29,6 +29,12 @@
             <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
             <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
           </Sequence>
+          <Sequence name="ShortBackUpAndReplan">
+            <BackUp backup_dist="-0.20" backup_speed="0.08" time_allowance="4.0"/>
+            <ClearEntireCostmap name="ClearLocalCostmap-AfterBackUp" service_name="local_costmap/clear_entirely_local_costmap"/>
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <SmoothPath unsmoothed_path="{path}" smoothed_path="{path}" smoother_id="savitzky_golay_smoother" check_for_collisions="false"/>
+          </Sequence>
           <Sequence name="ConditionalShortSpin">
             <IsStuck/>
             <Spin spin_dist="0.52"/>

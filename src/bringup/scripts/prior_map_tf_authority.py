@@ -49,6 +49,7 @@ class PriorMapTfAuthority(Node):
         self.declare_parameter("odom_topic", "/fastlio2/lio_odom")
         self.declare_parameter("amcl_pose_topic", "/amcl_pose")
         self.declare_parameter("amcl_initialpose_topic", "/amcl/initialpose")
+        self.declare_parameter("initialpose_topic", "/initialpose")
         self.declare_parameter("status_topic", "/travel/prior_map_tf/status")
         self.declare_parameter("publish_hz", 20.0)
         self.declare_parameter("status_hz", 5.0)
@@ -75,6 +76,9 @@ class PriorMapTfAuthority(Node):
         self.declare_parameter("max_translation_step_m", 0.03)
         self.declare_parameter("max_yaw_step_rad", 0.01)
         self.declare_parameter("max_base_step_m", 0.04)
+        self.declare_parameter("max_translation_correction_speed_mps", 0.015)
+        self.declare_parameter("max_yaw_correction_speed_rps", 0.006)
+        self.declare_parameter("max_base_correction_speed_mps", 0.02)
 
         def param(name):
             return self.get_parameter(name).value
@@ -116,6 +120,15 @@ class PriorMapTfAuthority(Node):
         self.max_translation_step_m = max(0.0, float(param("max_translation_step_m")))
         self.max_yaw_step_rad = max(0.0, float(param("max_yaw_step_rad")))
         self.max_base_step_m = max(0.0, float(param("max_base_step_m")))
+        self.max_translation_correction_speed_mps = max(
+            0.0, float(param("max_translation_correction_speed_mps"))
+        )
+        self.max_yaw_correction_speed_rps = max(
+            0.0, float(param("max_yaw_correction_speed_rps"))
+        )
+        self.max_base_correction_speed_mps = max(
+            0.0, float(param("max_base_correction_speed_mps"))
+        )
 
         latched_qos = QoSProfile(depth=1)
         latched_qos.reliability = ReliabilityPolicy.RELIABLE
@@ -148,6 +161,12 @@ class PriorMapTfAuthority(Node):
             self.on_amcl_pose,
             10,
         )
+        self.create_subscription(
+            PoseWithCovarianceStamped,
+            str(param("initialpose_topic")),
+            self.on_initial_pose,
+            10,
+        )
 
         self.current_map_to_odom = None
         self.localizer_map_to_odom = None
@@ -169,6 +188,8 @@ class PriorMapTfAuthority(Node):
         self.last_amcl_window_translation_spread_m = None
         self.last_amcl_window_yaw_spread_rad = None
         self.amcl_candidates = deque(maxlen=self.amcl_candidate_window_size)
+        self.correction_target_map_to_odom = None
+        self.manual_relocalization_pending = False
         self.state = "WAITING_LOCALIZER"
         self.last_logged_state = None
 
@@ -187,10 +208,21 @@ class PriorMapTfAuthority(Node):
         self.localizer_state = msg.state_label or str(msg.state)
         self.localizer_reason = msg.reason or "unspecified"
         if self.localizer_allowed and not was_allowed:
-            self.pending_localizer_seed = True
-            self.try_activate_localizer_seed()
+            if self.current_map_to_odom is None or self.manual_relocalization_pending:
+                self.pending_localizer_seed = True
+                self.try_activate_localizer_seed()
+            else:
+                self.state = "LOCALIZER_RECOVERED_HOLD"
         elif not self.localizer_allowed:
-            self.state = "LOCALIZER_LOST_HOLD" if self.current_map_to_odom else "WAITING_LOCALIZER"
+            self.state = (
+                "MANUAL_RELOCALIZING"
+                if self.manual_relocalization_pending
+                else (
+                    "LOCALIZER_DEGRADED_HOLD"
+                    if self.current_map_to_odom
+                    else "WAITING_LOCALIZER"
+                )
+            )
 
     def on_localizer_transform(self, msg):
         if msg.header.frame_id != self.map_frame or msg.child_frame_id != self.odom_frame:
@@ -206,6 +238,14 @@ class PriorMapTfAuthority(Node):
             yaw_from_quaternion(transform.rotation),
         )
         self.try_activate_localizer_seed()
+
+    def on_initial_pose(self, _msg):
+        self.manual_relocalization_pending = True
+        self.pending_localizer_seed = False
+        self.pending_amcl_seed = None
+        self.correction_target_map_to_odom = None
+        self.amcl_candidates.clear()
+        self.state = "MANUAL_RELOCALIZING"
 
     def on_odom(self, msg):
         pose = msg.pose.pose
@@ -233,6 +273,7 @@ class PriorMapTfAuthority(Node):
             return
         self.current_map_to_odom = self.localizer_map_to_odom
         self.pending_localizer_seed = False
+        self.manual_relocalization_pending = False
         self.pending_amcl_seed = None
         self.waiting_odom_for_seed = True
         self.amcl_seed_attempts = 0
@@ -247,6 +288,7 @@ class PriorMapTfAuthority(Node):
         self.last_amcl_window_translation_spread_m = None
         self.last_amcl_window_yaw_spread_rad = None
         self.amcl_candidates.clear()
+        self.correction_target_map_to_odom = None
         self.state = "LOCALIZER_SEED"
         self.prepare_amcl_seed()
 
@@ -285,7 +327,7 @@ class PriorMapTfAuthority(Node):
     def on_amcl_pose(self, msg):
         now = self.get_clock().now()
         self.last_amcl_pose_time = now
-        if self.current_map_to_odom is None or not self.localizer_allowed:
+        if self.current_map_to_odom is None or self.manual_relocalization_pending:
             return
         if self.ignore_amcl_until is not None and now < self.ignore_amcl_until:
             return
@@ -345,6 +387,8 @@ class PriorMapTfAuthority(Node):
         self.last_amcl_window_translation_spread_m = translation_spread
         self.last_amcl_window_yaw_spread_rad = yaw_spread
         if stable_target is None:
+            if len(self.amcl_candidates) >= self.amcl_min_consistent_samples:
+                self.correction_target_map_to_odom = None
             self.state = (
                 "AMCL_ACCUMULATING"
                 if len(self.amcl_candidates) < self.amcl_min_consistent_samples
@@ -360,6 +404,7 @@ class PriorMapTfAuthority(Node):
             residual_m <= self.translation_deadband_m
             and residual_yaw <= self.yaw_deadband_rad
         ):
+            self.correction_target_map_to_odom = None
             self.state = "AMCL_STABLE_HOLD"
             return
 
@@ -371,23 +416,58 @@ class PriorMapTfAuthority(Node):
                 self.state = "AMCL_RATE_LIMITED"
                 return
 
+        # Accept a stable target here, but never change the published TF in the
+        # AMCL callback. The 20 Hz publisher approaches it with correction-rate
+        # limits so Foxglove, costmaps, and planners do not see centimetre steps.
+        self.correction_target_map_to_odom = stable_target
+        self.last_amcl_correction_time = now
+        self.state = "AMCL_TARGET_ACCEPTED"
+
+    def apply_correction_target(self):
+        if (
+            self.current_map_to_odom is None
+            or self.correction_target_map_to_odom is None
+            or not self.odom_history
+        ):
+            return
+        if (
+            self.last_amcl_valid_time is None
+            or self.age_s(self.last_amcl_valid_time) > self.amcl_stale_s
+        ):
+            self.correction_target_map_to_odom = None
+            self.state = "AMCL_STALE_HOLD"
+            return
+
+        cycle_s = 1.0 / self.publish_hz
+        translation_step = min(
+            self.max_translation_step_m,
+            self.max_translation_correction_speed_mps * cycle_s,
+        )
+        yaw_step = min(
+            self.max_yaw_step_rad,
+            self.max_yaw_correction_speed_rps * cycle_s,
+        )
+        base_step = min(
+            self.max_base_step_m,
+            self.max_base_correction_speed_mps * cycle_s,
+        )
         updated = bounded_map_to_odom_update(
             self.current_map_to_odom,
-            stable_target,
-            odom_pose,
+            self.correction_target_map_to_odom,
+            self.odom_history[-1][1],
             self.correction_alpha,
             self.translation_deadband_m,
             self.yaw_deadband_rad,
-            self.max_translation_step_m,
-            self.max_yaw_step_rad,
-            self.max_base_step_m,
+            translation_step,
+            yaw_step,
+            base_step,
         )
         if updated == self.current_map_to_odom:
+            self.correction_target_map_to_odom = None
             self.state = "AMCL_STABLE_HOLD"
             return
         self.current_map_to_odom = updated
-        self.last_amcl_correction_time = now
-        self.state = "AMCL_CORRECTING"
+        self.state = "AMCL_SMOOTHING"
 
     def publish_amcl_seed_if_needed(self):
         if self.pending_amcl_seed is None:
@@ -412,6 +492,7 @@ class PriorMapTfAuthority(Node):
         self.publish_amcl_seed_if_needed()
         if self.current_map_to_odom is None:
             return
+        self.apply_correction_target()
         now = self.get_clock().now()
         msg = TransformStamped()
         msg.header.frame_id = self.map_frame
@@ -437,13 +518,19 @@ class PriorMapTfAuthority(Node):
         reported_state = self.state
         if (
             self.current_map_to_odom is not None
+            and not self.manual_relocalization_pending
             and amcl_valid_age is not None
             and amcl_valid_age > self.amcl_stale_s
         ):
             reported_state = "AMCL_STALE_HOLD"
+        tf_active = bool(
+            self.current_map_to_odom is not None
+            and not self.manual_relocalization_pending
+        )
         payload = {
             "state": reported_state,
-            "tf_active": self.current_map_to_odom is not None,
+            "tf_active": tf_active,
+            "manual_relocalization_pending": self.manual_relocalization_pending,
             "localizer_state": self.localizer_state,
             "localizer_reason": self.localizer_reason,
             "amcl_seed_attempts": self.amcl_seed_attempts,
@@ -458,6 +545,12 @@ class PriorMapTfAuthority(Node):
                 self.last_amcl_window_translation_spread_m
             ),
             "amcl_window_yaw_spread_rad": self.last_amcl_window_yaw_spread_rad,
+            "correction_pending": self.correction_target_map_to_odom is not None,
+            "max_translation_correction_speed_mps": (
+                self.max_translation_correction_speed_mps
+            ),
+            "max_yaw_correction_speed_rps": self.max_yaw_correction_speed_rps,
+            "max_base_correction_speed_mps": self.max_base_correction_speed_mps,
         }
         self.status_publisher.publish(String(data=json.dumps(payload, sort_keys=True)))
 
@@ -465,13 +558,15 @@ class PriorMapTfAuthority(Node):
         diagnostic.name = "travel/prior_map_tf_authority"
         diagnostic.hardware_id = "prior_map_localization"
         diagnostic.message = reported_state
-        if reported_state in {"WAITING_LOCALIZER", "LOCALIZER_LOST_HOLD"}:
+        if reported_state == "WAITING_LOCALIZER":
             diagnostic.level = DiagnosticStatus.ERROR
         elif reported_state.startswith("AMCL_REJECTED") or reported_state in {
             "AMCL_ACCUMULATING",
             "AMCL_SEED_TIMEOUT",
             "AMCL_STALE_HOLD",
             "WAITING_AMCL",
+            "LOCALIZER_DEGRADED_HOLD",
+            "MANUAL_RELOCALIZING",
         }:
             diagnostic.level = DiagnosticStatus.WARN
         else:

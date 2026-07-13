@@ -35,8 +35,8 @@
 - `system_travel.launch.py` 以 `map_bundle` 为主入口，拒绝 schema 不支持、整体门槛未通过、标定未接受或文件缺失的地图包。
 - localizer 支持 RViz 初值、区域辅助和 Scan Context 多候选自动定位，并把锁存的初始 `map -> odom` 候选交给 authority；AMCL 根据 2D 静态地图提供运行中校正候选。
 - Travel 的全局代价地图只使用静态地图；局部代价地图使用实时点云。
-- Travel 使用真实矩形 footprint、MPPI、Collision Monitor 和有限恢复行为树；允许经过 footprint 碰撞检查的原地 Spin、等待和代价图清理重试，仍禁止自动倒车，定位异常会在串口前切断速度。
-- Travel 控制周期已使用 `20Hz`，与 MPPI `model_dt=0.05s` 匹配。
+- Travel 使用真实矩形 footprint、MPPI、Collision Monitor 和有限恢复行为树；正常 MPPI 不倒车，恢复树允许一次经过 footprint 碰撞检查的 `0.20m / 0.08m/s` 低速后退来腾出转向空间，定位/传感器/authority 异常仍会在串口前切断速度。
+- Travel 控制周期使用 `15Hz`，与 MPPI `model_dt=0.0666667s` 匹配。
 - `indoor_navigation_manager` 提供 `NavigateNamedDestination` Action，支持地图/backend 校验、别名、反馈、取消、并发拒绝和定位降级取消。
 
 ### 2.2 尚待实车完成
@@ -289,10 +289,11 @@ UNINITIALIZED
 - localizer 负责初始 3D 先验地图匹配，不启用会在运动中撤掉 TF 的 continuous ICP。
 - AMCL 使用 `/scan`、2D 静态地图和 FAST-LIO2 odom 生成低频先验地图候选；`/scan` 的 `scan_time=0.1s` 与 MID360/FAST-LIO2 实测 10Hz 输出一致。
 - authority 对 AMCL 候选检查协方差、odom 时间差和 `0.75m/0.45rad` 目标跳变，再用 5 帧窗口要求至少 3 帧一致并取 SE(2) 中值；窗口平移/yaw 分散度上限为 `0.05m/0.04rad`。
-- 稳定候选最多每秒释放一次，平移和 yaw 分别使用 `0.05m/0.035rad` 死区，再以 `alpha=0.15`、平移单步 `0.03m`、yaw 单步 `0.01rad` 平滑更新。
+- 稳定候选最多每秒接受一次，平移和 yaw 分别使用 `0.05m/0.035rad` 死区；AMCL 回调只更新目标，20Hz TF 发布周期再以 `alpha=0.15` 和 `0.015m/s` 平移、`0.006rad/s` yaw、`0.02m/s` 车体等效位移速度上限连续靠近，原有 `0.03m/0.01rad/0.04m` 单步上限保留为第二层硬限制。
 - authority 额外限制当前车体在 `map` 中的单步等效位移不超过 `0.04m`，避免车辆远离 odom 原点后 yaw 修正被杠杆臂放大。
 - 大跳变、候选切换或低重叠结果不得直接写入 TF。
 - 室内 `map -> odom` 必须投影为平面 `SE(2)`：只保留 XY 和 yaw，禁止 ICP 把 z、roll 或 pitch 写入 Nav2 全局 TF。
+- `/initialpose` 会显式进入手动重定位 pending，保持 TF 可视但令 authority `tf_active=false`，直到 localizer 接受新种子。已有可信 TF 后，后台 localizer 的 `ambiguous_global_candidates` 只降级保持，不得再次直接播种；AMCL 仍可继续提供运行中校正。
 - 大修正需要停车、多帧一致后重新定位。
 - 所有门控基于 `map -> base_footprint` 的实际影响，而不只看原始 `map -> odom` 数值。
 
@@ -320,7 +321,7 @@ NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 - 全局 costmap 只包含静态地图和 `0.30m` 静态膨胀，不把临时人员写入全局地图；该值仍高于 `0.285m` 内切半径。
 - local costmap 使用 Nav2 专用障碍点云，负责人员、椅子和临时障碍。
 - 增加 Collision Monitor 独立实现减速区和停车区。
-- Travel 使用有界恢复：控制失败先清 local costmap 并立即重规划；再次失败且 `IsStuck` 成立时才执行 `0.52rad` 短 Spin；不自动 BackUp，最后才等待或清双图。
+- Travel 使用有界恢复：控制失败先清 local costmap 并立即重规划；仍失败时先尝试一次经 local footprint 碰撞预判的 `0.20m / 0.08m/s` 短后退并再次规划，之后才允许 `IsStuck` 条件下的 `0.52rad` 短 Spin，最后等待或清双图。global static layer 只清机器人当前 footprint 下的旧静态残留，现场障碍仍由 local costmap、MPPI 和 Collision Monitor 阻挡。
 - PS2 `X` 是最高优先级软件失能；红色物理急停覆盖全部软件。
 - 定位状态必须进入速度输出安全链，不能只在界面提示。
 

@@ -133,6 +133,7 @@ prior_map_tf_authority:
     odom_topic: /fastlio2/lio_odom
     amcl_pose_topic: /amcl_pose
     amcl_initialpose_topic: /amcl/initialpose
+    initialpose_topic: /initialpose
     status_topic: /travel/prior_map_tf/status
     publish_hz: 20.0
     status_hz: 5.0
@@ -160,6 +161,10 @@ prior_map_tf_authority:
     max_yaw_step_rad: 0.01
     # map -> odom 的小角度变化会被长 odom 杠杆臂放大，因此直接限制车体等效跳变。
     max_base_step_m: 0.04
+    # 稳定 AMCL 目标只在 20Hz TF 发布周期连续追踪；三重速度上限避免厘米级离散地图跳变。
+    max_translation_correction_speed_mps: 0.015
+    max_yaw_correction_speed_rps: 0.006
+    max_base_correction_speed_mps: 0.02
 
 # 控制门同时输出可机读停车原因；0.40s 指令窗容忍偶发 MPPI 漏周期但不保持旧非零速度。
 localization_cmd_gate:
@@ -642,6 +647,9 @@ global_costmap:
         plugin: "nav2_costmap_2d::StaticLayer"
         # 是否使用 transient local 订阅地图；决定晚加入节点能否拿到已发布地图。
         map_subscribe_transient_local: true
+        # 仅清除机器人当前真实 footprint 下的静态地图残留，避免起点落入旧黑点后 NavFn 自锁。
+        # local costmap、MPPI footprint critic 和 Collision Monitor 仍保留实时障碍安全边界。
+        footprint_clearing_enabled: true
       # 膨胀层参数块；负责给障碍物外围增加安全缓冲。
       # 改错结构或参数：障碍安全边界会偏大或偏小。
       inflation_layer:
@@ -775,9 +783,12 @@ behavior_server:
     cycle_frequency: 10.0
     # 恢复行为列表；决定 behavior server 可提供哪些动作。
     # 增删行为：会直接改变恢复和辅助动作集合。
-    behavior_plugins: ["spin", "wait"]
+    behavior_plugins: ["spin", "backup", "wait"]
     spin:
       plugin: "nav2_behaviors/Spin"
+    # 仅由 Travel 恢复树调用的短距离低速后退；行为服务器会用 local costmap 做全车体碰撞预判。
+    backup:
+      plugin: "nav2_behaviors/BackUp"
     # Wait 恢复行为参数块；负责等待动作。
     # 改错结构或参数：等待行为可能不可用。
     wait:

@@ -123,9 +123,24 @@ def test_travel_nav2_config_reserves_map_to_odom_for_guarded_authority():
     assert authority["max_translation_step_m"] == 0.03
     assert authority["max_yaw_step_rad"] == 0.01
     assert authority["max_base_step_m"] == 0.04
+    assert authority["max_translation_correction_speed_mps"] == 0.015
+    assert authority["max_yaw_correction_speed_rps"] == 0.006
+    assert authority["max_base_correction_speed_mps"] == 0.02
+    assert (
+        authority["max_translation_correction_speed_mps"] / authority["publish_hz"]
+        <= 0.00075
+    )
+    assert (
+        authority["max_yaw_correction_speed_rps"] / authority["publish_hz"]
+        <= 0.0003000001
+    )
+    assert (
+        authority["max_base_correction_speed_mps"] / authority["publish_hz"]
+        <= 0.001
+    )
 
 
-def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
+def test_travel_uses_smoothed_paths_and_bounded_reverse_recovery():
     launch_text = _travel_launch_text()
     nav2_text = NAV2_TRAVEL.read_text(encoding="utf-8")
     bt_navigator_text = nav2_text.split("# Navigate Through Poses", maxsplit=1)[0]
@@ -155,7 +170,9 @@ def test_travel_uses_smoothed_paths_and_bounded_recovery_without_backup():
         assert "ClearEntireCostmap" in bt_text
         assert '<Wait wait_duration="0.5"/>' in bt_text
         assert "ClearLocalAndReplan" in bt_text
-        assert "<BackUp" not in bt_text
+        assert '<BackUp backup_dist="-0.20" backup_speed="0.08" time_allowance="4.0"/>' in bt_text
+        assert "ClearLocalCostmap-AfterBackUp" in bt_text
+        assert "ShortBackUpAndReplan" in bt_text
 
 
 def test_travel_uses_smooth_low_load_mppi_controller_profile():
@@ -206,8 +223,9 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "deadband_velocities: [0.12, 0.0, 0.08]" in controller_text
     assert '        - "PreferForwardCritic"' not in controller_text
     assert "trajectory_point_step: 2" not in controller_text
-    assert 'behavior_plugins: ["spin", "wait"]' in behavior_text
+    assert 'behavior_plugins: ["spin", "backup", "wait"]' in behavior_text
     assert 'plugin: "nav2_behaviors/Spin"' in behavior_text
+    assert 'plugin: "nav2_behaviors/BackUp"' in behavior_text
     assert "max_rotational_vel: 0.50" in behavior_text
     assert "min_rotational_vel: 0.20" in behavior_text
     assert "rotational_acc_lim: 0.80" in behavior_text
@@ -265,6 +283,7 @@ def test_travel_global_costmap_uses_lower_static_map_inflation_than_local():
     footprint = 'footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"'
     assert footprint in local_costmap_text
     assert footprint in global_costmap_text
+    assert "footprint_clearing_enabled: true" in global_costmap_text
     assert "inflation_radius: 0.40" in local_costmap_text
     assert "inflation_radius: 0.30" in global_costmap_text
     assert "inflation_radius: 0.4" not in global_costmap_text
@@ -318,7 +337,7 @@ def test_travel_loads_map_bundle_and_safety_output_chain():
     assert '"/travel/control_gate/status"' in gate_text
     assert '"/travel/prior_map_tf/status"' in gate_text
     for reason in (
-        "LOCALIZATION_BLOCKED",
+        "LOCALIZATION_SENSORS_BLOCKED",
         "LOCALIZATION_AUTHORITY_TIMEOUT",
         "POINTCLOUD_TIMEOUT",
         "COLLISION_STOP",
@@ -344,13 +363,14 @@ def test_travel_exposes_foxglove_control_surface():
     assert "install(DIRECTORY foxglove/" in cmake_text
 
 
-def test_travel_smooths_navfn_path_without_automatic_backup():
+def test_travel_smooths_navfn_path_with_bounded_backup_recovery():
     for bt_file in (TRAVEL_RECOVERY_BT, TRAVEL_THROUGH_POSES_RECOVERY_BT):
         text = bt_file.read_text(encoding="utf-8")
         assert "ComputePath" in text
         assert "SmoothPath" in text
         assert "FollowPath" in text
-        assert "<BackUp" not in text
+        assert '<BackUp backup_dist="-0.20" backup_speed="0.08"' in text
+        assert "ClearLocalCostmap-AfterBackUp" in text
 
 
 def test_travel_keeps_velocity_smoothing_for_indoor_navigation():
@@ -475,9 +495,11 @@ def test_post_collision_conditioner_turns_stalled_commands_in_place():
 def test_localization_cmd_gate_fails_closed_on_missing_or_stale_status():
     text = LOCALIZATION_CMD_GATE.read_text(encoding="utf-8")
 
-    assert "LocalizationStatus.LOCALIZED" in text
-    assert "LocalizationStatus.DEGRADED" in text
     assert "msg.sensors_ready" in text
+    assert "self.sensors_ready" in text
+    assert "LOCALIZATION_SENSORS_BLOCKED" in text
+    assert "LocalizationStatus.LOCALIZED" not in text
+    assert "LocalizationStatus.DEGRADED" not in text
     assert "status_timeout_s" in text
     assert "authority_timeout_s" in text
     assert "self.authority_active" in text
@@ -498,6 +520,15 @@ def test_prior_map_tf_authority_gates_amcl_and_is_the_only_travel_tf_owner():
     assert "AMCL_REJECTED_TARGET_JUMP" in authority_text
     assert "AMCL_REJECTED_UNSTABLE" in authority_text
     assert "AMCL_RATE_LIMITED" in authority_text
+    assert "AMCL_TARGET_ACCEPTED" in authority_text
+    assert "AMCL_SMOOTHING" in authority_text
+    assert "apply_correction_target" in authority_text
+    assert 'declare_parameter("initialpose_topic", "/initialpose")' in authority_text
+    assert "manual_relocalization_pending" in authority_text
+    assert "LOCALIZER_RECOVERED_HOLD" in authority_text
+    assert "max_translation_correction_speed_mps" in authority_text
+    assert "max_yaw_correction_speed_rps" in authority_text
+    assert "max_base_correction_speed_mps" in authority_text
     assert "stable_se2_window" in authority_text
     assert '"/travel/prior_map_tf/status"' in authority_text
 

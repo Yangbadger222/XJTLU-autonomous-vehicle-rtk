@@ -35,8 +35,8 @@ Design principles:
 - `system_travel.launch.py` accepts `map_bundle` as the primary input and rejects unsupported schemas, failed consistency, unaccepted calibration, and missing artifacts.
 - The localizer supports RViz-seeded, region-assisted, and multi-candidate Scan Context startup and supplies a latched initial `map -> odom` candidate to the authority. AMCL supplies runtime candidates against the 2D static map.
 - Travel uses a static-only global costmap and live point cloud in the local costmap.
-- Travel uses a polygon footprint, MPPI, Collision Monitor, and bounded-recovery trees. Collision-checked in-place Spin, waiting, and costmap-clearing retries are allowed; automatic reversing remains disabled, and unhealthy localization gates velocity before the serial controller.
-- Travel now runs its controller at `20Hz`, matching MPPI `model_dt=0.05s`.
+- Travel uses a polygon footprint, MPPI, Collision Monitor, and bounded-recovery trees. Normal MPPI tracking does not reverse, while recovery may make one footprint-collision-checked `0.20m` backup at `0.08m/s` to regain turning space. Unhealthy sensors or authority still gate velocity before the serial controller.
+- Travel runs its controller at `15Hz`, matching MPPI `model_dt=0.0666667s`.
 - `indoor_navigation_manager` exposes `NavigateNamedDestination` with map/backend validation, aliases, feedback, cancel, concurrency rejection, and cancellation on localization degradation.
 
 ### 2.2 Remaining vehicle work
@@ -287,10 +287,11 @@ The implemented runtime design combines a 3D startup seed with bounded AMCL corr
 - The localizer performs 3D prior-map matching at startup; continuous ICP remains off because its motion failures previously withdrew TF.
 - AMCL uses `/scan`, the static 2D map, and FAST-LIO2 odometry to produce low-rate prior-map candidates. `/scan` now reports `scan_time=0.1s`, matching the measured 10Hz MID360/FAST-LIO2 output.
 - The authority checks AMCL covariance, odometry timestamp skew, and `0.75m/0.45rad` target jumps, then requires at least three consistent samples in a five-sample window and takes their SE(2) median. Translation/yaw spread is capped at `0.05m/0.04rad`.
-- A stable candidate is released at most once per second with independent `0.05m/0.035rad` translation/yaw deadbands, followed by `alpha=0.15`, `0.03m` translation steps, and `0.01rad` yaw steps.
+- A stable target is accepted at most once per second with independent `0.05m/0.035rad` translation/yaw deadbands. The AMCL callback changes only the target; the 20Hz TF timer approaches it with `alpha=0.15` under `0.015m/s` translation, `0.006rad/s` yaw, and `0.02m/s` equivalent-base rate limits. The existing `0.03m/0.01rad/0.04m` per-step caps remain secondary hard limits.
 - The equivalent current-base displacement is additionally capped at `0.04m`, preventing a small `map -> odom` yaw correction from being amplified by a long odometry-origin lever arm.
 - Large jumps, candidate switches, and low-overlap results are not written directly to TF.
 - Indoor `map -> odom` must be projected to planar `SE(2)`: retain only XY and yaw, and never let ICP write z, roll, or pitch into Nav2's global TF.
+- `/initialpose` explicitly enters manual-relocalization pending: TF remains visible but authority reports `tf_active=false` until the localizer accepts the new seed. Once a trusted TF exists, background `ambiguous_global_candidates` only causes degraded hold and cannot directly reseed it; AMCL may continue supplying runtime correction.
 - Large corrections require a stop and multi-frame-consistent relocalization.
 - Gates consider the actual effect on `map -> base_footprint`, not only raw `map -> odom` values.
 
@@ -318,7 +319,7 @@ The vehicle can turn in place, so the controller retains the `DiffDrive` motion 
 - The global costmap contains only the static map and `0.30m` static inflation, still above the `0.285m` inscribed radius; temporary people are not written into it.
 - The local costmap uses the Nav2 obstacle cloud for people, chairs, and temporary obstacles.
 - Add Collision Monitor with independent slowdown and stop zones.
-- Use bounded Travel recovery: a controller failure first clears the local costmap and immediately replans; only a subsequent `IsStuck` condition permits a `0.52rad` short Spin. There is no automatic BackUp, and wait/both-costmap clearing remain final bounded actions.
+- Use bounded Travel recovery: a controller failure first clears the local costmap and replans; if that still fails, try one local-footprint-collision-checked `0.20m` backup at `0.08m/s` and replan again before conditional `0.52rad` Spin and final Wait/clearing. The global static layer clears stale occupancy only under the current robot footprint; local costmap, MPPI, and Collision Monitor still block real obstacles.
 - PS2 `X` is the highest-priority software disable; the physical red e-stop overrides all software.
 - Localization state must gate the velocity chain, not only display a warning.
 

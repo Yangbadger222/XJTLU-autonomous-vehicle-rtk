@@ -58,7 +58,7 @@ class LocalizationCmdGate(Node):
         publish_hz = float(self.get_parameter("publish_hz").value)
         status_publish_hz = float(self.get_parameter("status_publish_hz").value)
 
-        self.allowed = False
+        self.sensors_ready = False
         self.localizer_state = "UNINITIALIZED"
         self.localizer_reason = "no_status"
         self.authority_active = False
@@ -98,16 +98,11 @@ class LocalizationCmdGate(Node):
         )
 
     def on_status(self, msg):
-        self.allowed = bool(
-            msg.localized
-            and msg.sensors_ready
-            and msg.state
-            in (LocalizationStatus.LOCALIZED, LocalizationStatus.DEGRADED)
-        )
+        self.sensors_ready = bool(msg.sensors_ready)
         self.localizer_state = msg.state_label or str(msg.state)
         self.localizer_reason = msg.reason or "unspecified"
         self.last_status_time = self.get_clock().now()
-        if not self.allowed:
+        if not self.sensors_ready:
             self.publish_gated(Twist())
 
     def on_cmd_vel(self, msg):
@@ -149,7 +144,7 @@ class LocalizationCmdGate(Node):
 
     def is_allowed(self):
         return bool(
-            self.allowed
+            self.sensors_ready
             and self.is_fresh(self.last_status_time, self.status_timeout_s)
             and self.authority_active
             and self.is_fresh(self.last_authority_time, self.authority_timeout_s)
@@ -194,8 +189,8 @@ class LocalizationCmdGate(Node):
     def control_reason(self):
         if not self.is_fresh(self.last_status_time, self.status_timeout_s):
             return "LOCALIZATION_STATUS_TIMEOUT"
-        if not self.allowed:
-            return "LOCALIZATION_BLOCKED"
+        if not self.sensors_ready:
+            return "LOCALIZATION_SENSORS_BLOCKED"
         if not self.is_fresh(self.last_authority_time, self.authority_timeout_s):
             return "LOCALIZATION_AUTHORITY_TIMEOUT"
         if not self.authority_active:
@@ -234,6 +229,7 @@ class LocalizationCmdGate(Node):
             "motion_requested": self.command_magnitude(self.last_input) > 1.0e-4,
             "localizer_state": self.localizer_state,
             "localizer_reason": self.localizer_reason,
+            "sensors_ready": self.sensors_ready,
             "authority_state": self.authority_state,
             "authority_active": self.authority_active,
             "status_age_s": self.age_s(self.last_status_time),
@@ -250,7 +246,7 @@ class LocalizationCmdGate(Node):
         status.message = reason
         if reason in {
             "LOCALIZATION_STATUS_TIMEOUT",
-            "LOCALIZATION_BLOCKED",
+            "LOCALIZATION_SENSORS_BLOCKED",
             "LOCALIZATION_AUTHORITY_TIMEOUT",
             "LOCALIZATION_AUTHORITY_BLOCKED",
             "POINTCLOUD_TIMEOUT",

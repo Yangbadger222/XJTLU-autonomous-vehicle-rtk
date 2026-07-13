@@ -424,6 +424,8 @@ def test_travel_python_nodes_do_not_double_shutdown_ros_context():
     )
     for path in paths:
         text = path.read_text(encoding="utf-8")
+        assert "except KeyboardInterrupt:\n        pass" in text
+        assert "except Exception:\n        if rclpy.ok():\n            raise" in text
         assert "if rclpy.ok():\n            rclpy.shutdown()" in text
 
 

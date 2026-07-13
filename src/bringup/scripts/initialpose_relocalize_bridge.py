@@ -95,6 +95,11 @@ def main(args=None):
     node = InitialPoseRelocalizeBridge()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    except Exception:
+        if rclpy.ok():
+            raise
     finally:
         node.destroy_node()
         if rclpy.ok():

@@ -68,7 +68,9 @@ def test_localizer_uses_dedicated_structural_cloud():
 
 def test_localizer_does_not_publish_stale_or_unvalidated_map_to_odom():
     text = LOCALIZER_NODE.read_text(encoding="utf-8")
-    non_update_branch = text.split("if (!update_tf)", maxsplit=1)[1].split("m_state.last_send_tf_time", maxsplit=1)[0]
+    non_update_branch = text.split("if (!update_tf)", maxsplit=1)[1].split(
+        "m_state.last_send_tf_time", maxsplit=1
+    )[0]
 
     assert "sendBroadCastTF(m_state.last_message_time)" not in non_update_branch
     assert "if (!localize_success && !service_received)" in text

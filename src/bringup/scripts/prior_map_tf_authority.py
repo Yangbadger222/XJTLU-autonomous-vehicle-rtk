@@ -20,6 +20,7 @@ from prior_map_tf_math import (
     compose_se2,
     map_to_odom_from_poses,
     pose_residual,
+    stable_se2_window,
 )
 
 
@@ -56,6 +57,12 @@ class PriorMapTfAuthority(Node):
         self.declare_parameter("max_odom_pose_skew_s", 0.15)
         self.declare_parameter("amcl_settle_s", 0.75)
         self.declare_parameter("amcl_stale_s", 3.0)
+        self.declare_parameter("amcl_candidate_window_size", 5)
+        self.declare_parameter("amcl_min_consistent_samples", 3)
+        self.declare_parameter("amcl_window_reset_s", 1.5)
+        self.declare_parameter("max_amcl_window_translation_spread_m", 0.05)
+        self.declare_parameter("max_amcl_window_yaw_spread_rad", 0.04)
+        self.declare_parameter("min_correction_interval_s", 1.0)
         self.declare_parameter("amcl_seed_retry_s", 1.0)
         self.declare_parameter("amcl_seed_max_attempts", 5)
         self.declare_parameter("max_position_variance", 0.25)
@@ -63,8 +70,8 @@ class PriorMapTfAuthority(Node):
         self.declare_parameter("max_target_base_jump_m", 0.75)
         self.declare_parameter("max_target_yaw_jump_rad", 0.45)
         self.declare_parameter("correction_alpha", 0.15)
-        self.declare_parameter("translation_deadband_m", 0.02)
-        self.declare_parameter("yaw_deadband_rad", 0.015)
+        self.declare_parameter("translation_deadband_m", 0.05)
+        self.declare_parameter("yaw_deadband_rad", 0.035)
         self.declare_parameter("max_translation_step_m", 0.03)
         self.declare_parameter("max_yaw_step_rad", 0.01)
         self.declare_parameter("max_base_step_m", 0.04)
@@ -80,6 +87,23 @@ class PriorMapTfAuthority(Node):
         self.max_odom_pose_skew_s = max(0.0, float(param("max_odom_pose_skew_s")))
         self.amcl_settle_s = max(0.0, float(param("amcl_settle_s")))
         self.amcl_stale_s = max(0.1, float(param("amcl_stale_s")))
+        self.amcl_candidate_window_size = max(
+            1, int(param("amcl_candidate_window_size"))
+        )
+        self.amcl_min_consistent_samples = min(
+            self.amcl_candidate_window_size,
+            max(1, int(param("amcl_min_consistent_samples"))),
+        )
+        self.amcl_window_reset_s = max(0.1, float(param("amcl_window_reset_s")))
+        self.max_amcl_window_translation_spread_m = max(
+            0.0, float(param("max_amcl_window_translation_spread_m"))
+        )
+        self.max_amcl_window_yaw_spread_rad = max(
+            0.0, float(param("max_amcl_window_yaw_spread_rad"))
+        )
+        self.min_correction_interval_s = max(
+            0.0, float(param("min_correction_interval_s"))
+        )
         self.amcl_seed_retry_s = max(0.1, float(param("amcl_seed_retry_s")))
         self.amcl_seed_max_attempts = max(1, int(param("amcl_seed_max_attempts")))
         self.max_position_variance = max(0.0, float(param("max_position_variance")))
@@ -138,9 +162,13 @@ class PriorMapTfAuthority(Node):
         self.last_amcl_seed_time = None
         self.ignore_amcl_until = None
         self.last_amcl_pose_time = None
-        self.last_amcl_accepted_time = None
+        self.last_amcl_valid_time = None
+        self.last_amcl_correction_time = None
         self.last_amcl_residual_m = None
         self.last_amcl_residual_yaw = None
+        self.last_amcl_window_translation_spread_m = None
+        self.last_amcl_window_yaw_spread_rad = None
+        self.amcl_candidates = deque(maxlen=self.amcl_candidate_window_size)
         self.state = "WAITING_LOCALIZER"
         self.last_logged_state = None
 
@@ -212,9 +240,13 @@ class PriorMapTfAuthority(Node):
             seconds=self.amcl_settle_s
         )
         self.last_amcl_pose_time = None
-        self.last_amcl_accepted_time = None
+        self.last_amcl_valid_time = None
+        self.last_amcl_correction_time = None
         self.last_amcl_residual_m = None
         self.last_amcl_residual_yaw = None
+        self.last_amcl_window_translation_spread_m = None
+        self.last_amcl_window_yaw_spread_rad = None
+        self.amcl_candidates.clear()
         self.state = "LOCALIZER_SEED"
         self.prepare_amcl_seed()
 
@@ -293,9 +325,55 @@ class PriorMapTfAuthority(Node):
             self.state = "AMCL_REJECTED_TARGET_JUMP"
             return
 
-        self.current_map_to_odom = bounded_map_to_odom_update(
+        # A valid AMCL result confirms that the seed was consumed. Stop retrying
+        # while the temporal window decides whether the correction is stable.
+        self.pending_amcl_seed = None
+        if (
+            self.last_amcl_valid_time is not None
+            and (now - self.last_amcl_valid_time).nanoseconds * 1.0e-9
+            > self.amcl_window_reset_s
+        ):
+            self.amcl_candidates.clear()
+        self.last_amcl_valid_time = now
+        self.amcl_candidates.append(target_map_to_odom)
+        stable_target, translation_spread, yaw_spread = stable_se2_window(
+            list(self.amcl_candidates),
+            self.amcl_min_consistent_samples,
+            self.max_amcl_window_translation_spread_m,
+            self.max_amcl_window_yaw_spread_rad,
+        )
+        self.last_amcl_window_translation_spread_m = translation_spread
+        self.last_amcl_window_yaw_spread_rad = yaw_spread
+        if stable_target is None:
+            self.state = (
+                "AMCL_ACCUMULATING"
+                if len(self.amcl_candidates) < self.amcl_min_consistent_samples
+                else "AMCL_REJECTED_UNSTABLE"
+            )
+            return
+
+        stable_base = compose_se2(stable_target, odom_pose)
+        residual_m, residual_yaw = pose_residual(current_base, stable_base)
+        self.last_amcl_residual_m = residual_m
+        self.last_amcl_residual_yaw = residual_yaw
+        if (
+            residual_m <= self.translation_deadband_m
+            and residual_yaw <= self.yaw_deadband_rad
+        ):
+            self.state = "AMCL_STABLE_HOLD"
+            return
+
+        if self.last_amcl_correction_time is not None:
+            correction_age_s = (
+                now - self.last_amcl_correction_time
+            ).nanoseconds * 1.0e-9
+            if correction_age_s < self.min_correction_interval_s:
+                self.state = "AMCL_RATE_LIMITED"
+                return
+
+        updated = bounded_map_to_odom_update(
             self.current_map_to_odom,
-            target_map_to_odom,
+            stable_target,
             odom_pose,
             self.correction_alpha,
             self.translation_deadband_m,
@@ -304,8 +382,11 @@ class PriorMapTfAuthority(Node):
             self.max_yaw_step_rad,
             self.max_base_step_m,
         )
-        self.pending_amcl_seed = None
-        self.last_amcl_accepted_time = now
+        if updated == self.current_map_to_odom:
+            self.state = "AMCL_STABLE_HOLD"
+            return
+        self.current_map_to_odom = updated
+        self.last_amcl_correction_time = now
         self.state = "AMCL_CORRECTING"
 
     def publish_amcl_seed_if_needed(self):
@@ -351,12 +432,13 @@ class PriorMapTfAuthority(Node):
         return max(0.0, (self.get_clock().now() - stamp).nanoseconds * 1.0e-9)
 
     def publish_status(self):
-        amcl_age = self.age_s(self.last_amcl_accepted_time)
+        amcl_valid_age = self.age_s(self.last_amcl_valid_time)
+        correction_age = self.age_s(self.last_amcl_correction_time)
         reported_state = self.state
         if (
-            reported_state == "AMCL_CORRECTING"
-            and amcl_age is not None
-            and amcl_age > self.amcl_stale_s
+            self.current_map_to_odom is not None
+            and amcl_valid_age is not None
+            and amcl_valid_age > self.amcl_stale_s
         ):
             reported_state = "AMCL_STALE_HOLD"
         payload = {
@@ -366,9 +448,16 @@ class PriorMapTfAuthority(Node):
             "localizer_reason": self.localizer_reason,
             "amcl_seed_attempts": self.amcl_seed_attempts,
             "amcl_pose_age_s": self.age_s(self.last_amcl_pose_time),
-            "amcl_accepted_age_s": amcl_age,
+            "amcl_valid_age_s": amcl_valid_age,
+            "amcl_accepted_age_s": amcl_valid_age,
+            "amcl_correction_age_s": correction_age,
             "amcl_residual_m": self.last_amcl_residual_m,
             "amcl_residual_yaw_rad": self.last_amcl_residual_yaw,
+            "amcl_window_samples": len(self.amcl_candidates),
+            "amcl_window_translation_spread_m": (
+                self.last_amcl_window_translation_spread_m
+            ),
+            "amcl_window_yaw_spread_rad": self.last_amcl_window_yaw_spread_rad,
         }
         self.status_publisher.publish(String(data=json.dumps(payload, sort_keys=True)))
 
@@ -379,6 +468,7 @@ class PriorMapTfAuthority(Node):
         if reported_state in {"WAITING_LOCALIZER", "LOCALIZER_LOST_HOLD"}:
             diagnostic.level = DiagnosticStatus.ERROR
         elif reported_state.startswith("AMCL_REJECTED") or reported_state in {
+            "AMCL_ACCUMULATING",
             "AMCL_SEED_TIMEOUT",
             "AMCL_STALE_HOLD",
             "WAITING_AMCL",

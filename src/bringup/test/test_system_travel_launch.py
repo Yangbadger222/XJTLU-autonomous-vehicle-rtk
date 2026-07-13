@@ -6,6 +6,7 @@ import yaml
 
 TRAVEL_LAUNCH = Path("src/bringup/launch/system_travel.launch.py")
 NAV2_TRAVEL = Path("src/bringup/config/nav2_travel.yaml")
+MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 LAUNCH_WRAPPER = Path("scripts/launch_with_logs.sh")
 BRINGUP_CMAKE = Path("src/bringup/CMakeLists.txt")
 BRINGUP_PACKAGE = Path("src/bringup/package.xml")
@@ -112,6 +113,13 @@ def test_travel_nav2_config_reserves_map_to_odom_for_guarded_authority():
     assert amcl["update_min_d"] == 0.05
     assert amcl["update_min_a"] == 0.05
     assert authority["max_target_base_jump_m"] == 0.75
+    assert authority["amcl_candidate_window_size"] == 5
+    assert authority["amcl_min_consistent_samples"] == 3
+    assert authority["max_amcl_window_translation_spread_m"] == 0.05
+    assert authority["max_amcl_window_yaw_spread_rad"] == 0.04
+    assert authority["min_correction_interval_s"] == 1.0
+    assert authority["translation_deadband_m"] == 0.05
+    assert authority["yaw_deadband_rad"] == 0.035
     assert authority["max_translation_step_m"] == 0.03
     assert authority["max_yaw_step_rad"] == 0.01
     assert authority["max_base_step_m"] == 0.04
@@ -154,9 +162,12 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     text = NAV2_TRAVEL.read_text(encoding="utf-8")
     controller_text = text.split("# 局部代价地图参数块", maxsplit=1)[0]
     behavior_text = text.split("# Behavior Server 节点参数块", maxsplit=1)[1]
+    controller = _nav2_travel_yaml()["controller_server"]["ros__parameters"]
+    follow_path = controller["FollowPath"]
 
-    assert "controller_frequency: 20.0" in controller_text
-    assert "controller_frequency: 15.0" not in controller_text
+    assert "controller_frequency: 15.0" in controller_text
+    assert abs(1.0 / controller["controller_frequency"] - follow_path["model_dt"]) < 1e-6
+    assert abs(follow_path["time_steps"] * follow_path["model_dt"] - 1.6) < 1e-5
     assert "required_movement_radius: 0.10" in controller_text
     assert "movement_time_allowance: 15.0" in controller_text
     assert "yaw_goal_tolerance: 0.20" in controller_text
@@ -167,10 +178,10 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "rotate_to_heading_angular_vel: 0.24" in controller_text
     assert "max_angular_accel: 0.65" in controller_text
     assert "rotate_to_goal_heading: false" in controller_text
-    assert "closed_loop: true" in controller_text
-    assert "time_steps: 32" in controller_text
-    assert "model_dt: 0.05" in controller_text
-    assert "batch_size: 160" in controller_text
+    assert "closed_loop: false" in controller_text
+    assert "time_steps: 24" in controller_text
+    assert "model_dt: 0.0666667" in controller_text
+    assert "batch_size: 128" in controller_text
     assert 'plugin: "nav2_controller::PoseProgressChecker"' in controller_text
     assert "required_movement_angle: 0.15" in controller_text
     assert "batch_size: 200" not in controller_text
@@ -206,6 +217,13 @@ def test_travel_uses_smooth_low_load_mppi_controller_profile():
     assert "BaseObstacle.scale:" not in controller_text
     assert "batch_size: 1000" not in controller_text
     assert "vx_max: 1.0" not in controller_text
+
+
+def test_master_laserscan_timing_matches_measured_mid360_rate():
+    config = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    scan = config["/pointcloud_to_laserscan"]["ros__parameters"]
+
+    assert scan["scan_time"] == 0.1
 
 
 def test_travel_declares_runtime_controller_plugins():
@@ -478,6 +496,9 @@ def test_prior_map_tf_authority_gates_amcl_and_is_the_only_travel_tf_owner():
     assert "AMCL_REJECTED_COVARIANCE" in authority_text
     assert "AMCL_REJECTED_ODOM_SKEW" in authority_text
     assert "AMCL_REJECTED_TARGET_JUMP" in authority_text
+    assert "AMCL_REJECTED_UNSTABLE" in authority_text
+    assert "AMCL_RATE_LIMITED" in authority_text
+    assert "stable_se2_window" in authority_text
     assert '"/travel/prior_map_tf/status"' in authority_text
 
 

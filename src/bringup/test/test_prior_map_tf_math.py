@@ -9,7 +9,9 @@ from prior_map_tf_math import (  # noqa: E402
     bounded_map_to_odom_update,
     compose_se2,
     map_to_odom_from_poses,
+    median_se2,
     pose_residual,
+    stable_se2_window,
 )
 
 
@@ -66,3 +68,73 @@ def test_bounded_update_ignores_small_amcl_noise_inside_deadband():
     )
 
     assert updated == current
+
+
+def test_stable_window_rejects_outlier_then_returns_median_candidate():
+    noisy = [
+        (1.00, 2.00, 0.10),
+        (1.01, 2.01, 0.11),
+        (1.30, 1.70, 0.40),
+    ]
+    candidate, translation_spread, yaw_spread = stable_se2_window(
+        noisy,
+        min_samples=3,
+        max_translation_spread_m=0.05,
+        max_yaw_spread_rad=0.04,
+    )
+    assert candidate is None
+    assert translation_spread > 0.05
+    assert yaw_spread > 0.04
+
+    stable = noisy[:2] + [(0.99, 2.005, 0.095)]
+    candidate, translation_spread, yaw_spread = stable_se2_window(
+        stable,
+        min_samples=3,
+        max_translation_spread_m=0.05,
+        max_yaw_spread_rad=0.04,
+    )
+    assert candidate == median_se2(stable)
+    assert translation_spread < 0.05
+    assert yaw_spread < 0.04
+
+
+def test_median_se2_handles_yaw_wraparound():
+    candidate = median_se2(
+        [
+            (0.0, 0.0, math.radians(179.0)),
+            (0.0, 0.0, math.radians(-179.0)),
+            (0.0, 0.0, math.radians(178.0)),
+        ]
+    )
+    assert abs(abs(math.degrees(candidate[2])) - 179.0) < 1.0e-6
+
+
+def test_bounded_update_applies_translation_and_yaw_deadbands_independently():
+    current = (0.0, 0.0, 0.0)
+    odom_from_base = (0.0, 0.0, 0.0)
+
+    translation_only = bounded_map_to_odom_update(
+        current,
+        target=(0.20, 0.0, 0.01),
+        odom_from_base=odom_from_base,
+        alpha=1.0,
+        translation_deadband_m=0.05,
+        yaw_deadband_rad=0.035,
+        max_translation_step_m=1.0,
+        max_yaw_step_rad=1.0,
+        max_base_step_m=1.0,
+    )
+    assert translation_only == (0.20, 0.0, 0.0)
+
+    yaw_only = bounded_map_to_odom_update(
+        current,
+        target=(0.01, 0.0, 0.20),
+        odom_from_base=odom_from_base,
+        alpha=1.0,
+        translation_deadband_m=0.05,
+        yaw_deadband_rad=0.035,
+        max_translation_step_m=1.0,
+        max_yaw_step_rad=1.0,
+        max_base_step_m=1.0,
+    )
+    assert yaw_only == (0.0, 0.0, 0.20)

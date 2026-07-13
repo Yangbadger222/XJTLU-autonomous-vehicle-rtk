@@ -140,14 +140,22 @@ prior_map_tf_authority:
     max_odom_pose_skew_s: 0.15
     amcl_settle_s: 0.75
     amcl_stale_s: 3.0
+    # AMCL 在走廊和桌椅附近会产生厘米/角度级来回波动；先对候选做短窗一致性检查。
+    amcl_candidate_window_size: 5
+    amcl_min_consistent_samples: 3
+    amcl_window_reset_s: 1.5
+    max_amcl_window_translation_spread_m: 0.05
+    max_amcl_window_yaw_spread_rad: 0.04
+    # 稳定候选最多每秒释放一次，避免 map -> odom 在 5Hz AMCL burst 中连续移动。
+    min_correction_interval_s: 1.0
     max_position_variance: 0.25
     max_yaw_variance: 0.12
     # 拒绝走廊对称结构导致的大范围粒子跳变；可信小校正仍会逐步释放。
     max_target_base_jump_m: 0.75
     max_target_yaw_jump_rad: 0.45
     correction_alpha: 0.15
-    translation_deadband_m: 0.02
-    yaw_deadband_rad: 0.015
+    translation_deadband_m: 0.05
+    yaw_deadband_rad: 0.035
     max_translation_step_m: 0.03
     max_yaw_step_rad: 0.01
     # map -> odom 的小角度变化会被长 odom 杠杆臂放大，因此直接限制车体等效跳变。
@@ -295,9 +303,8 @@ controller_server:
     # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。
     # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
     use_sim_time: false
-    # 控制循环频率；决定局部控制器每秒更新多少次速度指令。
-    # 必须不低于 1/model_dt；model_dt=0.05s 时使用 20Hz，避免 MPPI lifecycle 配置失败。
-    controller_frequency: 20.0
+    # 15Hz 与 model_dt=1/15s 配对；实车 20Hz 持续漏周期，稳定 15Hz 比抖动的 20Hz 更平滑。
+    controller_frequency: 15.0
     # 前向速度死区阈值；低于该值的前向速度会被视为零。
     # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
     min_x_velocity_threshold: 0.001
@@ -361,11 +368,12 @@ controller_server:
       max_angular_accel: 0.65
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: false
-      closed_loop: true
-      # 1.6s horizon keeps indoor stopping margin while reducing each 20Hz MPPI cycle by about 20%.
-      time_steps: 32
-      model_dt: 0.05
-      batch_size: 160
+      # 使用上一条 shim 命令爬升，避免闭环反馈在静摩擦区每周期都重置为 0.65/15 rad/s。
+      closed_loop: false
+      # 保持约 1.6s horizon，同时降低单核采样与 critic 负载，消除持续漏周期。
+      time_steps: 24
+      model_dt: 0.0666667
+      batch_size: 128
       vx_std: 0.16
       vy_std: 0.0
       wz_std: 0.10

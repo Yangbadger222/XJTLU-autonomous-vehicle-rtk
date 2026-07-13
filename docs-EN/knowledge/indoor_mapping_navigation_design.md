@@ -285,8 +285,9 @@ The implemented runtime design combines a 3D startup seed with bounded AMCL corr
 
 - FAST-LIO2 provides high-rate continuous local motion.
 - The localizer performs 3D prior-map matching at startup; continuous ICP remains off because its motion failures previously withdrew TF.
-- AMCL uses `/scan`, the static 2D map, and FAST-LIO2 odometry to produce low-rate prior-map candidates.
-- The authority checks AMCL covariance, odometry timestamp skew, and `0.75m/0.45rad` target jumps, then applies accepted updates with `alpha=0.15`, `0.03m` translation steps, and `0.01rad` yaw steps.
+- AMCL uses `/scan`, the static 2D map, and FAST-LIO2 odometry to produce low-rate prior-map candidates. `/scan` now reports `scan_time=0.1s`, matching the measured 10Hz MID360/FAST-LIO2 output.
+- The authority checks AMCL covariance, odometry timestamp skew, and `0.75m/0.45rad` target jumps, then requires at least three consistent samples in a five-sample window and takes their SE(2) median. Translation/yaw spread is capped at `0.05m/0.04rad`.
+- A stable candidate is released at most once per second with independent `0.05m/0.035rad` translation/yaw deadbands, followed by `alpha=0.15`, `0.03m` translation steps, and `0.01rad` yaw steps.
 - The equivalent current-base displacement is additionally capped at `0.04m`, preventing a small `map -> odom` yaw correction from being amplified by a long odometry-origin lever arm.
 - Large jumps, candidate switches, and low-overlap results are not written directly to TF.
 - Indoor `map -> odom` must be projected to planar `SE(2)`: retain only XY and yaw, and never let ICP write z, roll, or pitch into Nav2's global TF.
@@ -301,16 +302,16 @@ Retain:
 NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 ```
 
-First required changes:
+Current implementation:
 
-- Set `controller_frequency=20Hz` to match `model_dt=0.05s`.
-- Use MPPI `batch_size=160` and `time_steps=32` for a 1.6-second horizon, reducing candidate points per cycle from 6400 to 5120 on the Orin NX.
+- Set `controller_frequency=15Hz` to match `model_dt=0.0666667s`.
+- Use MPPI `batch_size=128` and `time_steps=24` for an approximately 1.6-second horizon and 3072 candidate points per cycle on the Orin NX.
 - Configure a polygon footprint from the documented `650 x 500mm` dimensions and measured outermost body points, with safety margin.
 - Set MPPI `CostCritic.consider_footprint=true`.
 - Collision-check the smoothed path to prevent corner cutting.
 - Measure the STM32 minimum effective `vx/wz` before setting velocity deadbands.
 
-The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. Rotation Shim handles only large initial errors above `0.65rad`; MPPI handles ordinary turns and final heading. VelocityDeadbandCritic is reduced to weight `15` and `[0.12,0,0.08]` so it does not fight the shim. The post-processor no longer amplifies pure-rotation commands; after confirmed collision slowdown it may only remove an unexecutable linear component. The progress checker still accepts `0.15rad` of angular motion.
+The vehicle can turn in place, so the controller retains the `DiffDrive` motion model and zero-linear-speed rotation samples. Rotation Shim handles only large initial errors above `0.65rad` and uses open-loop command ramping to cross static friction; MPPI handles ordinary turns and final heading. VelocityDeadbandCritic is reduced to weight `15` and `[0.12,0,0.08]` so it does not fight the shim. The post-processor no longer amplifies pure-rotation commands; after confirmed collision slowdown it may only remove an unexecutable linear component. The progress checker still accepts `0.15rad` of angular motion.
 
 ### 7.5 Dynamic obstacles and safety
 

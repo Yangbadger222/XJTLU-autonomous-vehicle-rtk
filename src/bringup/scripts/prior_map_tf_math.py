@@ -1,4 +1,5 @@
 import math
+import statistics
 
 
 def normalize_angle(angle):
@@ -39,6 +40,42 @@ def pose_residual(reference, candidate):
     )
 
 
+def median_se2(poses):
+    if not poses:
+        raise ValueError("poses must not be empty")
+
+    reference_yaw = poses[-1][2]
+    unwrapped_yaws = [
+        reference_yaw + normalize_angle(pose[2] - reference_yaw) for pose in poses
+    ]
+    return (
+        statistics.median(pose[0] for pose in poses),
+        statistics.median(pose[1] for pose in poses),
+        normalize_angle(statistics.median(unwrapped_yaws)),
+    )
+
+
+def stable_se2_window(
+    poses,
+    min_samples,
+    max_translation_spread_m,
+    max_yaw_spread_rad,
+):
+    if len(poses) < min_samples:
+        return None, None, None
+
+    center = median_se2(poses)
+    residuals = [pose_residual(center, pose) for pose in poses]
+    translation_spread = max(residual[0] for residual in residuals)
+    yaw_spread = max(residual[1] for residual in residuals)
+    if (
+        translation_spread > max_translation_spread_m
+        or yaw_spread > max_yaw_spread_rad
+    ):
+        return None, translation_spread, yaw_spread
+    return center, translation_spread, yaw_spread
+
+
 def _interpolate_se2(current, target, fraction):
     return (
         current[0] + fraction * (target[0] - current[0]),
@@ -63,11 +100,17 @@ def bounded_map_to_odom_update(
     current_base = compose_se2(current, odom_from_base)
     target_base = compose_se2(target, odom_from_base)
     base_translation_error, base_yaw_error = pose_residual(current_base, target_base)
-    if (
-        base_translation_error <= translation_deadband_m
-        and base_yaw_error <= yaw_deadband_rad
-    ):
+    translation_active = base_translation_error > translation_deadband_m
+    yaw_active = base_yaw_error > yaw_deadband_rad
+    if not translation_active and not yaw_active:
         return current
+
+    filtered_target_base = (
+        target_base[0] if translation_active else current_base[0],
+        target_base[1] if translation_active else current_base[1],
+        target_base[2] if yaw_active else current_base[2],
+    )
+    target = map_to_odom_from_poses(filtered_target_base, odom_from_base)
 
     translation_error, yaw_error = pose_residual(current, target)
     fraction = min(1.0, max(0.0, alpha))

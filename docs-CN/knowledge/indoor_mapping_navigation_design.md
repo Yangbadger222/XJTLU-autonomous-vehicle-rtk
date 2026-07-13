@@ -287,8 +287,9 @@ UNINITIALIZED
 
 - FAST-LIO2 提供高频连续局部运动。
 - localizer 负责初始 3D 先验地图匹配，不启用会在运动中撤掉 TF 的 continuous ICP。
-- AMCL 使用 `/scan`、2D 静态地图和 FAST-LIO2 odom 生成低频先验地图候选。
-- authority 对 AMCL 候选检查协方差、odom 时间差、`0.75m/0.45rad` 目标跳变，再以 `alpha=0.15`、平移单步 `0.03m`、yaw 单步 `0.01rad` 平滑更新。
+- AMCL 使用 `/scan`、2D 静态地图和 FAST-LIO2 odom 生成低频先验地图候选；`/scan` 的 `scan_time=0.1s` 与 MID360/FAST-LIO2 实测 10Hz 输出一致。
+- authority 对 AMCL 候选检查协方差、odom 时间差和 `0.75m/0.45rad` 目标跳变，再用 5 帧窗口要求至少 3 帧一致并取 SE(2) 中值；窗口平移/yaw 分散度上限为 `0.05m/0.04rad`。
+- 稳定候选最多每秒释放一次，平移和 yaw 分别使用 `0.05m/0.035rad` 死区，再以 `alpha=0.15`、平移单步 `0.03m`、yaw 单步 `0.01rad` 平滑更新。
 - authority 额外限制当前车体在 `map` 中的单步等效位移不超过 `0.04m`，避免车辆远离 odom 原点后 yaw 修正被杠杆臂放大。
 - 大跳变、候选切换或低重叠结果不得直接写入 TF。
 - 室内 `map -> odom` 必须投影为平面 `SE(2)`：只保留 XY 和 yaw，禁止 ICP 把 z、roll 或 pitch 写入 Nav2 全局 TF。
@@ -303,16 +304,16 @@ UNINITIALIZED
 NavFn/A* -> Savitzky-Golay SmoothPath -> MPPI -> velocity_smoother
 ```
 
-首轮必须修正：
+当前实现：
 
-- `controller_frequency=20Hz`，与 `model_dt=0.05s` 匹配。
-- MPPI `batch_size=160`、`time_steps=32`，使用 1.6 秒预测时域，把每周期候选点从 6400 降到 5120，降低 Orin NX 单线程控制周期超时。
+- `controller_frequency=15Hz`，与 `model_dt=0.0666667s` 匹配。
+- MPPI `batch_size=128`、`time_steps=24`，保持约 1.6 秒预测时域，把每周期候选点降到 3072，降低 Orin NX 单线程控制周期超时。
 - 根据 `650 x 500mm` 整车尺寸和实测最外沿配置 polygon footprint，并增加安全余量。
 - MPPI `CostCritic.consider_footprint=true`。
 - 平滑路径执行碰撞检查，避免直角墙角切角。
 - 标定 STM32 最小有效 `vx/wz`，再配置速度 deadband。
 
-小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。Rotation Shim 只处理 `>0.65rad` 的大初始偏差，普通转弯和终点朝向由 MPPI 处理；VelocityDeadbandCritic 降到权重 `15` 和 `[0.12,0,0.08]`，防止与 Shim 抢控制。速度后处理不再放大纯旋转角速度，只在确认碰撞减速后移除无法越过线速度死区的平移分量。进度检查仍接受 `0.15rad` 角度变化。
+小车具备原地转向能力，因此控制器保持 `DiffDrive` 运动模型和零线速度转向采样。Rotation Shim 只处理 `>0.65rad` 的大初始偏差，并用开环命令爬升越过静摩擦区；普通转弯和终点朝向由 MPPI 处理。VelocityDeadbandCritic 降到权重 `15` 和 `[0.12,0,0.08]`，防止与 Shim 抢控制。速度后处理不再放大纯旋转角速度，只在确认碰撞减速后移除无法越过线速度死区的平移分量。进度检查仍接受 `0.15rad` 角度变化。
 
 ### 7.5 动态障碍与安全
 

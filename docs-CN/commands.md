@@ -160,10 +160,10 @@ FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
 - `map_bundle` 是正式入口；Travel 会检查 schema、`consistency_ok`、标定接受状态以及 2D map、定位 PCD、标定、描述子和地点文件。分开传 `map_yaml/pcd_map` 只保留给兼容调试
 - `prior_map_tf_authority` 是 Travel 中唯一的 `map -> odom` 发布者；localizer 提供初始 3D 重定位候选，AMCL 提供运行中 2D 先验地图候选，FAST-LIO2 负责 `odom -> base_footprint`
 - 默认先用 Scan Context 检索多个候选并做 ICP；重复走廊候选不唯一时进入 `LOST`，此时用区域 service 或 RViz `2D Pose Estimate` 降级，不会带着歧义开车
-- localizer 成功后把锁存的 `map -> odom` 种子交给 authority，并自动初始化 AMCL；AMCL 修正必须通过协方差、时间同步、`0.75m/0.45rad` 目标跳变和单步车体 `0.04m` 限制，拒绝时保持最近可信 TF
+- localizer 成功后把锁存的 `map -> odom` 种子交给 authority，并自动初始化 AMCL；AMCL 候选必须通过协方差、时间同步和 `0.75m/0.45rad` 目标跳变门限，再由 5 帧短窗取至少 3 帧一致候选的中值。窗口平移/yaw 分散度不得超过 `0.05m/0.04rad`，稳定校正最多每秒释放一次，平移/yaw 分别使用 `0.05m/0.035rad` 死区，单步车体位移仍限制为 `0.04m`
 - Travel 也会启动 `nav2_cloud_retime.py`；local costmap 使用 `/fastlio2/body_cloud_nav2`，这是 `/fastlio2/body_cloud_nav2_obstacles` 的当前时间戳副本；global costmap 只基于静态 2D 地图做全局规划，`localizer` 和建图相关节点继续使用原始 `/fastlio2/body_cloud`
 - Travel 的有限恢复树以 `1Hz` 重规划；控制失败先清 local costmap、立即重规划和平滑，仍失败后只有 `IsStuck` 成立才短转 `0.52rad`，最后才等待/清双图，始终禁止自动 BackUp
-- MPPI 保持 `20Hz/model_dt=0.05s`，用 `time_steps=32`、`batch_size=160` 的 `1.6s` 时域降低单周期负载；PathAlign 权重 `6`、PathFollow 权重 `12`，允许自然绕开局部障碍。Rotation Shim 只在路径误差超过 `0.65rad` 时以 `0.24rad/s` 介入，不再负责终点朝向
+- MPPI 使用匹配的 `15Hz/model_dt=0.0666667s`，以 `time_steps=24`、`batch_size=128` 保持约 `1.6s` 时域并降低单核截止时间压力；PathAlign 权重 `6`、PathFollow 权重 `12`。Rotation Shim 只在路径误差超过 `0.65rad` 时以 `0.24rad/s` 介入，不负责终点朝向，并使用 `closed_loop=false` 让命令跨周期爬升越过底盘静摩擦区
 - 速度后处理器不再放大任何小角速度；只有 Collision Monitor 确认减速且线速度落入 `0.14m/s` 死区、角速度至少 `0.16rad/s` 时，才移除平移分量并保留原始角速度。`PoseProgressChecker` 仍把 `0.15rad` 转向算作进展
 - 发目标前检查 `ros2 topic echo /chassis/status --once`：必须为 `ctrl_mode: 0`（上位机串口模式）。`ctrl_mode: 1` 是手柄模式，`ctrl_mode: 2` 是电机禁用/安全接管；适配器会拒绝目标，避免先积压目标、使能电机后突然起步
 - Travel 的串口末级限制器只限制加速恢复；零速和降速立即执行。线/角加速恢复上限为 `0.30m/s2`、`0.80rad/s2`，用于消除 Collision Monitor Stop 解除后的速度跳变

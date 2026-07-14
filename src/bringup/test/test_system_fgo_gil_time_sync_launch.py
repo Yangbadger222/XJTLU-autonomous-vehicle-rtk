@@ -8,6 +8,7 @@ LAUNCH_FILE = REPO_ROOT / "src/bringup/launch/system_fgo_gil_time_sync.launch.py
 LIDAR_LAUNCH_FILE = (
     REPO_ROOT / "src/bringup/launch/system_fgo_gil_lidar_frontend.launch.py"
 )
+FLOAT_LAUNCH_FILE = REPO_ROOT / "src/bringup/launch/system_fgo_gil_float.launch.py"
 CONFIG_FILE = REPO_ROOT / "src/bringup/config/fgo_gil.yaml"
 MAKEFILE = REPO_ROOT / "Makefile"
 LAUNCH_WRAPPER = REPO_ROOT / "scripts/launch_with_logs.sh"
@@ -42,7 +43,7 @@ def test_phase3_build_launch_and_cleanup_entry_points_exist():
     wrapper = LAUNCH_WRAPPER.read_text(encoding="utf-8")
 
     assert "build-fgo-gil:" in makefile
-    assert "gnss_raw_msgs fgo_gil_localizer bringup" in makefile
+    assert "gnss_raw_msgs fgo_gil_msgs fgo_gil_localizer bringup" in makefile
     assert "launch-fgo-gil-time-sync" in makefile
     assert "fgo-gil-time-sync)" in wrapper
     assert "[f]go_gil_time_sync_node" in makefile
@@ -80,3 +81,40 @@ def test_phase4_launch_and_cleanup_entry_points_exist():
     assert "fgo-gil-lidar)" in wrapper
     assert "[f]go_gil_lidar_frontend_node" in makefile
     assert "[f]go_gil_lidar_frontend_node" in wrapper
+
+
+def test_phase5_launch_remains_shadow_only():
+    text = FLOAT_LAUNCH_FILE.read_text(encoding="utf-8")
+
+    assert 'executable="fgo_gil_time_sync_node"' in text
+    assert 'executable="fgo_gil_lidar_frontend_node"' in text
+    assert 'executable="fgo_gil_float_fgo_node"' in text
+    assert "tf2_ros" not in text
+    assert "cmd_vel" not in text
+    assert "nav2" not in text.lower()
+
+
+def test_phase5_config_fails_closed_and_bounds_the_float_window():
+    config = yaml.safe_load(CONFIG_FILE.read_text(encoding="utf-8"))
+    parameters = config["fgo_gil_float_fgo"]["ros__parameters"]
+
+    calibration = parameters["calibration"]
+    assert calibration["ecef_from_lidar_world"]["calibrated"] is False
+    assert calibration["gnss"]["base_ecef_calibrated"] is False
+    assert calibration["gnss"]["base_ecef_m"] == [0.0, 0.0, 0.0]
+    assert calibration["gnss"]["master_in_imu_m"] == [0.0, -0.184, 0.134]
+    assert parameters["window"]["duration_s"] == 10.0
+    assert parameters["window"]["maximum_states"] == 20
+    assert parameters["gnss"]["maximum_baseline_m"] == 20000.0
+    assert parameters["topics"]["odometry"] == "/fgo_gil/float_odom_ecef"
+
+
+def test_phase5_launch_and_cleanup_entry_points_exist():
+    makefile = MAKEFILE.read_text(encoding="utf-8")
+    wrapper = LAUNCH_WRAPPER.read_text(encoding="utf-8")
+
+    assert "fgo_gil_msgs" in makefile
+    assert "launch-fgo-gil-float" in makefile
+    assert "fgo-gil-float)" in wrapper
+    assert "[f]go_gil_float_fgo_node" in makefile
+    assert "[f]go_gil_float_fgo_node" in wrapper

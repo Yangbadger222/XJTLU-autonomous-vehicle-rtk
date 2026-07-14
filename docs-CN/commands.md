@@ -669,7 +669,7 @@ ros2 topic echo /gnss/raw/diagnostics --once
 ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-当前已完成 Phase 1、Phase 2 的非压缩 observation 和 broadcast ephemeris canonicalization：ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。所有 payload 都执行精确长度、PRN、时间、有限值和轨道范围检查。compressed observation、RTCM fallback、satellite-state 轨道传播和真实 UART fixture 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
+当前已完成 Phase 1、Phase 2 的非压缩 observation 和 broadcast ephemeris canonicalization：ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。所有 payload 都执行精确长度、PRN、时间、有限值和轨道范围检查。Phase 5 已把这些星历传播到发射时刻 satellite state 并做 Sagnac 修正。compressed observation、RTCM fallback 和真实 UART fixture 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
 
 ## FGO-GIL Phase 3 时间同步与 IMU 前端
 
@@ -728,6 +728,35 @@ ros2 topic echo /fgo_gil/lidar_diagnostics
 - `TRACKING`：线面匹配数、最小信息特征值和条件数均通过。
 
 诊断同时输出 `edge_features`、`plane_features`、`line_matches`、`plane_matches`、`residual_rms_m`、`information_min_eigenvalue`、`information_condition`、`latency_ms` 和全部拒绝计数。该模式不发布 TF、odometry、path 或 `/cmd_vel`。本机现有 bag 不含 `/livox/lidar`，因此真实 MID360 特征数、耗时和阈值仍需在 2026-07-10 bag 或新录包上验证；当前 YAML 不可用于论文结果。
+
+## FGO-GIL Phase 5 GNSS DD 与 Float FGO
+
+先启动 Livox/FAST-LIO 初始化源和独立 UM982 raw source，再启动 Phase 3-5 shadow graph：
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-float
+```
+
+检查 LiDAR 因子批次、float ECEF odometry 和图诊断：
+
+```bash
+ros2 topic echo /fgo_gil/lidar_constraints --once
+ros2 topic echo /fgo_gil/float_diagnostics
+ros2 topic echo /fgo_gil/float_odom_ecef --once
+```
+
+仓库参数有意把以下两个开关保持为 `false`：
+
+```yaml
+calibration.ecef_from_lidar_world.calibrated: false
+calibration.gnss.base_ecef_calibrated: false
+```
+
+现场回放前，必须用未提交的参数覆盖文件填入实测 `T_ecef_lidar_world` 和 CORS 基站 ECEF 坐标。禁止在仍为零占位时把开关改成 `true`。master 在 IMU 中的默认杆臂为 `[0.0, -0.184, 0.134] m`，其中仍包含尚未精标的 2 cm IMU 高度假设。
+
+预期 fail-closed 状态包括 `WAITING_FOR_CALIBRATION`、`WAITING_FOR_LIDAR_KEYFRAME`、`WAITING_FOR_CONTINUOUS_IMU` 和 `LIO_ONLY_WAITING_BASE`。`FLOAT_ACTIVE` 只表示图正在优化，不代表实车精度已验收。该节点不发布 TF、path、`/cmd_vel` 或 Nav2 输入；`make kill-runtime` 已包含三个 FGO-GIL executable。
 
 ## RTK FGO 紧耦合 shadow mode
 

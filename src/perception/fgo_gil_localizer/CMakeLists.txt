@@ -11,6 +11,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(fgo_gil_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
 find_package(gnss_raw_msgs REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -19,6 +21,8 @@ find_package(sensor_msgs REQUIRED)
 
 add_library(fgo_gil_core
   src/ecef_imu_preintegrator.cpp
+  src/float_fixed_lag_smoother.cpp
+  src/gnss_double_difference.cpp
   src/gnss_time.cpp
   src/imu_buffer.cpp
   src/keyframe_map.cpp
@@ -29,6 +33,7 @@ add_library(fgo_gil_core
   src/lidar_types.cpp
   src/livox_preprocessor.cpp
   src/math_types.cpp
+  src/satellite_propagator.cpp
   src/time_sync.cpp
 )
 target_include_directories(fgo_gil_core PUBLIC
@@ -53,8 +58,22 @@ target_include_directories(fgo_gil_lidar_frontend_node PRIVATE include)
 target_link_libraries(fgo_gil_lidar_frontend_node fgo_gil_core)
 ament_target_dependencies(fgo_gil_lidar_frontend_node
   diagnostic_msgs
+  fgo_gil_msgs
   gnss_raw_msgs
   livox_ros_driver2
+  nav_msgs
+  rclcpp
+  sensor_msgs
+)
+
+add_executable(fgo_gil_float_fgo_node src/float_fgo_node.cpp)
+target_include_directories(fgo_gil_float_fgo_node PRIVATE include)
+target_link_libraries(fgo_gil_float_fgo_node fgo_gil_core)
+ament_target_dependencies(fgo_gil_float_fgo_node
+  diagnostic_msgs
+  fgo_gil_msgs
+  geometry_msgs
+  gnss_raw_msgs
   nav_msgs
   rclcpp
   sensor_msgs
@@ -70,6 +89,9 @@ install(TARGETS fgo_gil_time_sync_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(TARGETS fgo_gil_lidar_frontend_node
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+install(TARGETS fgo_gil_float_fgo_node
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 install(DIRECTORY include/
@@ -110,6 +132,18 @@ if(BUILD_TESTING)
   ament_add_gtest(test_livox_preprocessor test/test_livox_preprocessor.cpp)
   target_include_directories(test_livox_preprocessor PRIVATE include)
   target_link_libraries(test_livox_preprocessor fgo_gil_core)
+
+  ament_add_gtest(test_satellite_propagator test/test_satellite_propagator.cpp)
+  target_include_directories(test_satellite_propagator PRIVATE include)
+  target_link_libraries(test_satellite_propagator fgo_gil_core)
+
+  ament_add_gtest(test_gnss_double_difference test/test_gnss_double_difference.cpp)
+  target_include_directories(test_gnss_double_difference PRIVATE include)
+  target_link_libraries(test_gnss_double_difference fgo_gil_core)
+
+  ament_add_gtest(test_float_fixed_lag_smoother test/test_float_fixed_lag_smoother.cpp)
+  target_include_directories(test_float_fixed_lag_smoother PRIVATE include)
+  target_link_libraries(test_float_fixed_lag_smoother fgo_gil_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

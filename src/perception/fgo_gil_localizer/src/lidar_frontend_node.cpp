@@ -21,6 +21,7 @@
 #include "diagnostic_msgs/msg/diagnostic_array.hpp"
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "fgo_gil_msgs/msg/lidar_constraint_batch.hpp"
 #include "gnss_raw_msgs/msg/observation_epoch.hpp"
 #include "livox_ros_driver2/msg/custom_msg.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -111,6 +112,8 @@ private:
       "topics.time_sync_diagnostics", "/fgo_gil/time_sync_diagnostics");
     declare_parameter<std::string>("topics.gnss_epoch", "/gnss/raw/observation_epoch");
     declare_parameter<std::string>("topics.diagnostics", "/fgo_gil/lidar_diagnostics");
+    declare_parameter<std::string>("topics.constraints", "/fgo_gil/lidar_constraints");
+    declare_parameter<std::string>("frames.lidar_world", "odom");
     declare_parameter<int>("buffers.imu_capacity", 8192);
     declare_parameter<int>("buffers.odom_capacity", 100);
     declare_parameter<int>("buffers.pending_scan_capacity", 4);
@@ -211,6 +214,8 @@ private:
     time_sync_topic_ = get_parameter("topics.time_sync_diagnostics").as_string();
     gnss_epoch_topic_ = get_parameter("topics.gnss_epoch").as_string();
     diagnostics_topic_ = get_parameter("topics.diagnostics").as_string();
+    constraints_topic_ = get_parameter("topics.constraints").as_string();
+    lidar_world_frame_ = get_parameter("frames.lidar_world").as_string();
     odom_capacity_ = sizeParameter("buffers.odom_capacity");
     pending_scan_capacity_ = sizeParameter("buffers.pending_scan_capacity");
     pending_scan_timeout_s_ = get_parameter("buffers.pending_scan_timeout_s").as_double();
@@ -313,6 +318,8 @@ private:
   {
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
+    constraints_pub_ =
+      create_publisher<fgo_gil_msgs::msg::LidarConstraintBatch>(constraints_topic_, 10);
     imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
       imu_topic_, rclcpp::SensorDataQoS(),
       std::bind(&LidarFrontendNode::onImu, this, std::placeholders::_1));
@@ -581,6 +588,8 @@ private:
         deskew.scan_end_s, deskew.pose_world_lidar_at_end, gnss_available);
       frame_.state = "MAP_INITIALIZED";
       ++accepted_keyframes_;
+      publishConstraintBatch(
+        deskew.scan_end_s, deskew.pose_world_lidar_at_end, true, {}, {});
       finishLatency(started);
       return;
     }
@@ -606,12 +615,68 @@ private:
     frame_.state = "TRACKING";
     ++valid_constraints_;
     if (trigger != KeyframeTrigger::None) {
+      publishConstraintBatch(
+        deskew.scan_end_s, deskew.pose_world_lidar_at_end, false,
+        match.line_factors, match.plane_factors);
       keyframe_map_->add(deskew.scan_end_s, deskew.pose_world_lidar_at_end, features);
       keyframe_policy_->record(
         deskew.scan_end_s, deskew.pose_world_lidar_at_end, gnss_available);
       ++accepted_keyframes_;
     }
     finishLatency(started);
+  }
+
+  void publishConstraintBatch(
+    const double stamp_s,
+    const RigidPose & initial_pose,
+    const bool initialization_keyframe,
+    const std::vector<PointToLineFactor> & line_factors,
+    const std::vector<PointToPlaneFactor> & plane_factors)
+  {
+    fgo_gil_msgs::msg::LidarConstraintBatch message;
+    message.header.stamp = rclcpp::Time(
+      static_cast<std::int64_t>(std::llround(stamp_s * 1.0e9)));
+    message.header.frame_id = lidar_world_frame_;
+    message.frontend_epoch = frontend_epoch_resets_;
+    message.sequence = constraint_sequence_++;
+    message.initial_pose_world_lidar.position.x = initial_pose.translation.x;
+    message.initial_pose_world_lidar.position.y = initial_pose.translation.y;
+    message.initial_pose_world_lidar.position.z = initial_pose.translation.z;
+    message.initial_pose_world_lidar.orientation.w = initial_pose.rotation.w;
+    message.initial_pose_world_lidar.orientation.x = initial_pose.rotation.x;
+    message.initial_pose_world_lidar.orientation.y = initial_pose.rotation.y;
+    message.initial_pose_world_lidar.orientation.z = initial_pose.rotation.z;
+    message.initialization_keyframe = initialization_keyframe;
+    message.keyframe = true;
+    message.line_factors.reserve(line_factors.size());
+    for (const auto & source : line_factors) {
+      fgo_gil_msgs::msg::LidarLineFactor factor;
+      factor.point_lidar.x = source.point_lidar.x;
+      factor.point_lidar.y = source.point_lidar.y;
+      factor.point_lidar.z = source.point_lidar.z;
+      factor.line_anchor_world.x = source.line_anchor_world.x;
+      factor.line_anchor_world.y = source.line_anchor_world.y;
+      factor.line_anchor_world.z = source.line_anchor_world.z;
+      factor.line_direction_world.x = source.line_direction_world.x;
+      factor.line_direction_world.y = source.line_direction_world.y;
+      factor.line_direction_world.z = source.line_direction_world.z;
+      message.line_factors.push_back(std::move(factor));
+    }
+    message.plane_factors.reserve(plane_factors.size());
+    for (const auto & source : plane_factors) {
+      fgo_gil_msgs::msg::LidarPlaneFactor factor;
+      factor.point_lidar.x = source.point_lidar.x;
+      factor.point_lidar.y = source.point_lidar.y;
+      factor.point_lidar.z = source.point_lidar.z;
+      factor.plane_anchor_world.x = source.plane_anchor_world.x;
+      factor.plane_anchor_world.y = source.plane_anchor_world.y;
+      factor.plane_anchor_world.z = source.plane_anchor_world.z;
+      factor.plane_normal_world.x = source.plane_normal_world.x;
+      factor.plane_normal_world.y = source.plane_normal_world.y;
+      factor.plane_normal_world.z = source.plane_normal_world.z;
+      message.plane_factors.push_back(std::move(factor));
+    }
+    constraints_pub_->publish(std::move(message));
   }
 
   void finishLatency(const std::chrono::steady_clock::time_point & started)
@@ -701,6 +766,8 @@ private:
   std::string time_sync_topic_;
   std::string gnss_epoch_topic_;
   std::string diagnostics_topic_;
+  std::string constraints_topic_;
+  std::string lidar_world_frame_;
   std::size_t odom_capacity_ = 100U;
   std::size_t pending_scan_capacity_ = 4U;
   std::size_t minimum_edge_features_ = 8U;
@@ -737,6 +804,7 @@ private:
   std::uint64_t invalid_odom_ = 0;
   std::uint64_t odom_time_reversals_ = 0;
   std::uint64_t frontend_epoch_resets_ = 0;
+  std::uint64_t constraint_sequence_ = 0;
   std::uint64_t deskew_rejections_ = 0;
   std::uint64_t feature_rejections_ = 0;
   std::uint64_t constraint_rejections_ = 0;
@@ -746,6 +814,7 @@ private:
   std::uint64_t dropped_imu_scans_ = 0;
 
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
+  rclcpp::Publisher<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr constraints_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<livox_ros_driver2::msg::CustomMsg>::SharedPtr lidar_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;

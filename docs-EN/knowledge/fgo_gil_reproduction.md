@@ -8,7 +8,7 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
-Current implementation status: Phase 1 is complete. Phase 2 includes uncompressed observations, broadcast ephemerides, and explicit GNSS week rollover/reset. Phase 3 provides clock mapping, a bounded IMU buffer, and ECEF preintegration. Phase 4 now provides independent MID360 preprocessing/de-skew, edge/plane features, a KF-map, line/plane factors, and degeneracy gating. A real raw-UART/PPS fixture, compressed observations, RTCM fallback, and satellite-state propagation remain pending; the designated 2026-07-10 bag has not been rerun because the analysis machine is offline, and Phase 4 parameters have not received real-LiDAR bag acceptance.
+Current implementation status: Phases 1, 3, 4, and 5 are code-complete. Phase 2 includes uncompressed observations, broadcast ephemerides, week rollover/reset, official UM982 signal-frequency mapping, and satellite-state propagation. Phase 5 adds bounded rover/base alignment, reference hysteresis, DD code/carrier factors, per-signal ambiguity arcs, joint IMU/LiDAR/GNSS float optimization, and Schur-complement fixed-lag marginalization. A real raw-UART/PPS fixture, compressed observations, RTCM fallback, CORS station ECEF, `T_ecef_lidar_world`, and real-LiDAR/raw-GNSS bag acceptance remain pending; defaults therefore stay shadow-only and fail closed.
 
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
@@ -171,7 +171,7 @@ Every epoch uniquely identifies:
 - satellite system, PRN, and signal/frequency;
 - pseudorange, carrier-phase cycles, Doppler, and C/N0;
 - pseudorange/carrier standard deviation;
-- lock time, tracking status, validity, and half-cycle flags.
+- lock time, tracking status, validity, and half-cycle status when the receiver exposes it. UM982 OBSVM tracking status has no half-cycle bit, so the canonical stream records that capability as unavailable rather than inventing a flag.
 
 Downstream code deduplicates on `(receiver, week, tow)`. A ROS timer must never count one GNSS epoch multiple times for recovery or graph insertion.
 
@@ -306,7 +306,7 @@ Done: synthetic/official fixtures pass, fuzz input cannot crash or overrun, and 
 - [x] Decode uncompressed OBSVBASE.
 - [ ] If CORS does not expose OBSVBASE, adapt RTCM MSM into canonical epochs.
 - [x] Decode and canonicalize GPS, GLONASS, BDS, Galileo, and QZSS broadcast ephemerides.
-- [ ] Propagate satellite states from broadcast ephemerides.
+- [x] Propagate satellite states from broadcast ephemerides.
 - [x] Preserve week/TOW/time status and deduplicate on receiver + week/TOW with bounded memory.
 - [x] Add explicit week-rollover and receiver-time-reset policy.
 
@@ -336,12 +336,16 @@ Implementation note: the Phase 4 core contains no FAST-LIO IESKF, ikd-tree, or p
 
 ### Phase 5: GNSS DD and float FGO
 
-- [ ] Implement reference selection, SD/DD builder, lever-arm correction, and DD factors.
-- [ ] Implement cycle-slip/outlier/arc management.
-- [ ] Jointly optimize IMU, LiDAR, GNSS, and float ambiguities in a fixed-lag graph.
-- [ ] During GNSS outage, add no duplicate factor and continue as LIO.
+- [x] Implement reference selection, SD/DD builder, lever-arm correction, and DD factors.
+- [x] Implement cycle-slip/outlier/arc management.
+- [x] Jointly optimize IMU, LiDAR, GNSS, and float ambiguities in a fixed-lag graph.
+- [x] During GNSS outage, add no duplicate factor and continue as LIO.
 
 Done: float state and ambiguities converge on synthetic rover/base data; reference switch and single-satellite slip tests pass.
+
+Implementation note: carrier frequencies follow the UM982 constellation-specific signal-ID table; unknown IDs and invalid GLONASS channels fail closed. GPS/QZSS/Galileo/BDS Kepler states, BDS GEO rotation, GLONASS RK4 propagation, transmit time, and Sagnac rotation are covered by unit tests. DD carrier ambiguities are stored in metres, and their keys contain the target/reference satellites plus all four rover/base arc IDs, so a reference change or one-satellite slip cannot silently reuse the old variable. The Eigen smoother relinearizes Phase 3 ECEF IMU propagation and Phase 4 raw line/plane factors together with DD code/carrier factors. It bounds the window by time and state count, then Schur-marginalizes old states and orphan ambiguities into an anchored dense prior; it never clears and rebuilds the graph with an artificial strong prior.
+
+The Phase 5 ROS path uses `fgo_gil_msgs/LidarConstraintBatch` so the Phase 4 frontend passes actual line/plane factors instead of a FAST-LIO pose factor. `system_fgo_gil_float.launch.py` publishes only `/fgo_gil/float_odom_ecef` and diagnostics, never TF or commands. `calibration.ecef_from_lidar_world.calibrated` and `calibration.gnss.base_ecef_calibrated` default to `false`; until both field values are supplied, the node reports a waiting/LIO-only state and cannot claim GNSS float acceptance. The master lever-arm placeholder `[0.0,-0.184,0.134] m` is derived from the measured right antenna `[0.0,-0.184,0.154] m` in `base_link` minus the current uncalibrated IMU Z placeholder `0.02 m`.
 
 ### Phase 6: Integer fixing
 

@@ -47,6 +47,10 @@ fgo_gil_lidar_frontend:
       time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
       gnss_epoch: /gnss/raw/observation_epoch
       diagnostics: /fgo_gil/lidar_diagnostics
+      constraints: /fgo_gil/lidar_constraints
+
+    frames:
+      lidar_world: odom
 
     buffers:
       imu_capacity: 8192
@@ -114,5 +118,95 @@ fgo_gil_lidar_frontend:
       huber_delta_m: 0.20
       minimum_information_eigenvalue: 0.001
       maximum_information_condition: 100000000.0
+
+    diagnostics_period_s: 1.0
+
+fgo_gil_float_fgo:
+  ros__parameters:
+    # Phase 5 stays shadow-only: this node publishes an ECEF odometry topic but
+    # never publishes TF, map->odom, or commands.
+    topics:
+      imu: /livox/imu
+      lidar_constraints: /fgo_gil/lidar_constraints
+      gnss_epoch: /gnss/raw/observation_epoch
+      ephemeris: /gnss/raw/ephemeris
+      time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
+      odometry: /fgo_gil/float_odom_ecef
+      diagnostics: /fgo_gil/float_diagnostics
+
+    frames:
+      ecef: ecef
+      body: imu_link
+
+    calibration:
+      ecef_from_lidar_world:
+        # Keep false until the ECEF/world orientation and translation are measured.
+        calibrated: false
+        translation_m: [0.0, 0.0, 0.0]
+        rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+      gnss:
+        # CORS station ECEF is still unknown. The DD path fails closed while false.
+        base_ecef_calibrated: false
+        base_ecef_m: [0.0, 0.0, 0.0]
+        # Master/right antenna in IMU coordinates: base_link [0,-0.184,0.154]
+        # minus the current IMU-in-base translation [0,0,0.02].
+        master_in_imu_m: [0.0, -0.184, 0.134]
+      imu_lidar:
+        translation_m: [-0.011, -0.02329, 0.04412]
+        rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+
+    buffers:
+      imu_capacity: 8192
+      maximum_imu_gap_s: 0.05
+      pending_gnss_epochs: 128
+      maximum_ephemerides: 256
+
+    imu:
+      acceleration_scale: 9.80665
+
+    time:
+      maximum_gnss_keyframe_offset_s: 0.10
+      maximum_sync_age_s: 2.0
+      maximum_clock_uncertainty_s: 0.05
+
+    window:
+      duration_s: 10.0
+      maximum_states: 20
+
+    optimizer:
+      maximum_iterations: 6
+      initial_damping: 0.000001
+      convergence_delta_norm: 0.000001
+      lidar_line_sigma_m: 0.05
+      lidar_plane_sigma_m: 0.05
+      lidar_huber_delta_sigma: 2.5
+      gnss_code_huber_delta_sigma: 2.5
+      gnss_carrier_huber_delta_sigma: 2.5
+
+    prior:
+      position_sigma_m: 1.0
+      rotation_sigma_rad: 0.2
+      velocity_sigma_m_s: 1.0
+      accelerometer_bias_sigma_m_s2: 0.1
+      gyroscope_bias_sigma_rad_s: 0.01
+
+    imu_factor:
+      position_sigma_m: 0.10
+      rotation_sigma_rad: 0.02
+      velocity_sigma_m_s: 0.10
+      accelerometer_bias_sigma_m_s2: 0.01
+      gyroscope_bias_sigma_rad_s: 0.001
+
+    gnss:
+      maximum_epoch_offset_s: 0.020
+      minimum_elevation_deg: 10.0
+      minimum_cn0_db_hz: 25.0
+      reference_switch_margin_deg: 5.0
+      maximum_baseline_m: 20000.0
+      maximum_code_innovation_m: 30.0
+      maximum_kepler_age_s: 14400.0
+      maximum_glonass_age_s: 1800.0
+      arc_maximum_gap_s: 2.0
+      doppler_phase_threshold_cycles: 0.75
 
     diagnostics_period_s: 1.0

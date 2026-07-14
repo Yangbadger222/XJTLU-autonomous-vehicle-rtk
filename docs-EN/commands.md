@@ -668,7 +668,7 @@ ros2 topic echo /gnss/raw/diagnostics --once
 ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-Phase 1 plus the uncompressed-observation and broadcast-ephemeris canonicalization subsets of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Every payload receives exact-length, PRN, time, finite-value, and orbit-range validation. Compressed observations, RTCM fallback, satellite-state propagation, and a real UART fixture remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
+Phase 1 plus the uncompressed-observation and broadcast-ephemeris canonicalization subsets of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Every payload receives exact-length, PRN, time, finite-value, and orbit-range validation. Phase 5 now propagates these ephemerides to transmit-time satellite states with Sagnac correction. Compressed observations, RTCM fallback, and a real UART fixture remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
 
 ## FGO-GIL Phase 3 Time Sync And IMU Frontend
 
@@ -727,6 +727,35 @@ Key states:
 - `TRACKING`: line/plane match counts, minimum information eigenvalue, and condition number all pass.
 
 Diagnostics include `edge_features`, `plane_features`, `line_matches`, `plane_matches`, `residual_rms_m`, `information_min_eigenvalue`, `information_condition`, `latency_ms`, and all rejection counters. This mode publishes no TF, odometry, path, or `/cmd_vel`. Available local bags do not contain `/livox/lidar`, so real MID360 feature counts, latency, and thresholds still require the 2026-07-10 bag or a new recording; current YAML values cannot support paper results.
+
+## FGO-GIL Phase 5 GNSS DD And Float FGO
+
+Start the Livox/FAST-LIO initialization source and the dedicated UM982 raw source first, then launch the Phase 3-5 shadow graph:
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-float
+```
+
+Inspect factor batches, float ECEF odometry, and graph diagnostics:
+
+```bash
+ros2 topic echo /fgo_gil/lidar_constraints --once
+ros2 topic echo /fgo_gil/float_diagnostics
+ros2 topic echo /fgo_gil/float_odom_ecef --once
+```
+
+The checked-in parameters intentionally set both of these to `false`:
+
+```yaml
+calibration.ecef_from_lidar_world.calibrated: false
+calibration.gnss.base_ecef_calibrated: false
+```
+
+Before field replay, provide an uncommitted parameter override with the measured `T_ecef_lidar_world` and the CORS station ECEF coordinate. Do not set either flag to `true` with zero placeholders. The default master lever arm in IMU coordinates is `[0.0, -0.184, 0.134] m`; it still inherits the uncalibrated 2 cm IMU-height assumption.
+
+Expected fail-closed states are `WAITING_FOR_CALIBRATION`, `WAITING_FOR_LIDAR_KEYFRAME`, `WAITING_FOR_CONTINUOUS_IMU`, and `LIO_ONLY_WAITING_BASE`. `FLOAT_ACTIVE` means factors are being optimized, not that field accuracy has passed. The node publishes no TF, path, `/cmd_vel`, or Nav2 input. `make kill-runtime` includes all three FGO-GIL executables.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

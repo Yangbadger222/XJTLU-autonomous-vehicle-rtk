@@ -29,6 +29,7 @@
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
 | RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame, observation-epoch, and ephemeris capture/bagging on a dedicated 921600 binary port |
+| FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 shadow diagnostics for GNSS/LiDAR/IMU clock mapping, PPS, and the IMU buffer |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
@@ -146,6 +147,23 @@ This mode can be launched standalone with `make launch-tightly-coupled`; `corrid
 - Nav2 is not remapped to FGO output, and the production localization output of `corridor`, `explore-gps`, and `nav-gps` is not replaced
 - Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation
 
+### 5.4 FGO-GIL Phase 3 Time And Inertial Frontend (Shadow)
+
+```text
+/gnss/raw/observation_epoch -- week/TOW --------+
+/gnss/pps/time_reference ---- optional PPS -----+-> fgo_gil_time_sync_node
+/livox/imu + optional device TimeReference -----+   -> /fgo_gil/time_sync_diagnostics
+/livox/lidar + optional device TimeReference ---+
+
+fgo_gil_core
+  -> bounded clock estimators: UNSYNCED / COARSE / PPS_LOCKED
+  -> bounded IMU segments: duplicate reject; reversal/gap reset
+  -> ECEF propagation: gravity + Earth rotation + Coriolis + centrifugal
+  -> 9x6 accelerometer/gyroscope bias sensitivity
+```
+
+The current Livox driver stamps production messages with ROS `now()`, so the defaults remain `imu_stamp_domain=ros` and `lidar_stamp_domain=ros`, with at least 20 ms timing uncertainty before PPS lock. The frontend enters `PPS_LOCKED` only after real `sensor_msgs/TimeReference` samples pass the bounded window checks. It publishes no TF, odometry, or commands.
+
 ## 7. TF Chain
 
 ```text
@@ -172,6 +190,7 @@ If `map -> odom` does not exist, RViz under the `map` fixed frame will appear as
 - `src/bringup/config/nav2_explore.yaml`
 - `src/bringup/config/nav2_gps.yaml`
 - `src/bringup/config/nav2_travel.yaml`
+- `src/bringup/config/fgo_gil.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/master_params_scene.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/scene_points.yaml`
@@ -226,7 +245,7 @@ src/
 
 Notes:
 - `sensor_drivers/`: Livox, IMU, GNSS, serial
-- `perception/`: FAST-LIO2, PGO GPS fusion, point cloud to grid related; `rtk_fgo_localizer` is the experimental tight-coupled RTK FGO package and is currently wired only into shadow mode
+- `perception/`: FAST-LIO2, PGO GPS fusion, and point-cloud conversion; `rtk_fgo_localizer` is the legacy solution-level comparator, while `fgo_gil_localizer` owns the paper-reproduction raw time/inertial frontend; both remain shadow-only
 - `planning/`: Historical GPS global planning and coordinate transformation experiments
 - `navigation/`: `waypoint_collector` and scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: System launch files, parameters, maps, RViz configurations

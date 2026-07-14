@@ -78,6 +78,7 @@ make launch-explore-gps
 make launch-nav-gps
 make launch-rtk-basic
 make launch-rtk-raw
+make launch-fgo-gil-time-sync
 make launch-tightly-coupled
 ```
 
@@ -93,6 +94,7 @@ bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
 bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh rtk-raw
+bash scripts/launch_with_logs.sh fgo-gil-time-sync
 bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
@@ -668,6 +670,38 @@ ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/
 ```
 
 当前已完成 Phase 1、Phase 2 的非压缩 observation 和 broadcast ephemeris canonicalization：ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。所有 payload 都执行精确长度、PRN、时间、有限值和轨道范围检查。compressed observation、RTCM fallback、satellite-state 轨道传播和真实 UART fixture 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
+
+## FGO-GIL Phase 3 时间同步与 IMU 前端
+
+先启动提供 `/gnss/raw/observation_epoch`、`/livox/imu` 和 `/livox/lidar` 的 source stack，再启动 shadow 前端：
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-time-sync
+```
+
+检查时间状态和 buffer 诊断：
+
+```bash
+ros2 topic echo /fgo_gil/time_sync_diagnostics
+```
+
+状态语义：
+
+- `UNSYNCED`：不足 5 个有效时间对，不允许生成高权重联合因子。
+- `COARSE_NO_PPS`：由 raw GNSS reception time 建立粗映射，默认不确定度下限 20 ms；5 s 无新时间对会退回 `UNSYNCED`。
+- `PPS_LOCKED`：`/gnss/pps/time_reference` 至少连续 2 个样本，最近样本不超过 2 s；默认不确定度下限 0.1 ms。
+
+当前 Livox 驱动把生产 `/livox/imu` 与 `/livox/lidar` 的时间戳写成 ROS `now()`，因此 `fgo_gil.yaml` 默认使用 `ros` domain。只有对应的 `/livox/*_time_reference` 已真实发布并验证后，才允许把 domain 改为 `device`。该 launch 不启动 TF/Nav2，也不发 `/cmd_vel`。
+
+无需 ROS Python 环境即可审计 SQLite rosbag：
+
+```bash
+python3 scripts/analyze_fgo_gil_imu_bag.py <bag目录> --max-gap-s 0.05
+```
+
+本机 `jetson_2026-06-24-13-54-59` bag 的 26,004 条 IMU 全部可解码且无重复、倒退或非有限值，但有效频率仅约 83.47 Hz，存在 1,109 个超过 50 ms 的 gap，最大约 9.94 s，因此不能作为连续预积分验收包。设计文档中的 2026-07-10 bag 仍需从分析机取回后用同一脚本复验约 193.5 Hz。
 
 ## RTK FGO 紧耦合 shadow mode
 

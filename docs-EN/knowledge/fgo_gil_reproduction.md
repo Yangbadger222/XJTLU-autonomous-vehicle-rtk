@@ -8,7 +8,7 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
-Current implementation status: Phase 1 is complete. Phase 2 includes strict uncompressed OBSVM/OBSVH/OBSVBASE decoding with bounded receiver + week/TOW deduplication, plus protocol-neutral canonicalization of GPSEPH/GLOEPH/BDSEPH/GALEPH/QZSSEPH. A real raw-UART fixture, compressed observations, RTCM fallback, and satellite-state propagation remain pending.
+Current implementation status: Phase 1 is complete. Phase 2 includes uncompressed observations, broadcast ephemerides, and explicit GNSS week rollover/reset. Phase 3 now provides GNSS/LiDAR/IMU clock mapping, optional PPS, timing uncertainty, a bounded segmented IMU buffer, ECEF propagation/preintegration, and 9x6 bias sensitivity. A real raw-UART/PPS fixture, compressed observations, RTCM fallback, and satellite-state propagation remain pending; the designated 2026-07-10 bag has not been rerun because the analysis machine is offline.
 
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
@@ -308,18 +308,20 @@ Done: synthetic/official fixtures pass, fuzz input cannot crash or overrun, and 
 - [x] Decode and canonicalize GPS, GLONASS, BDS, Galileo, and QZSS broadcast ephemerides.
 - [ ] Propagate satellite states from broadcast ephemerides.
 - [x] Preserve week/TOW/time status and deduplicate on receiver + week/TOW with bounded memory.
-- [ ] Add explicit week-rollover and receiver-time-reset policy.
+- [x] Add explicit week-rollover and receiver-time-reset policy.
 
 Done: zero-noise synthetic observations recover known ranges; bad time, ephemeris, and non-finite fields are rejected.
 
 ### Phase 3: Time synchronization and IMU preintegration
 
-- [ ] Map GNSS, LiDAR, and IMU clock domains with status diagnostics.
-- [ ] Accept PPS status and propagate timing uncertainty before lock.
-- [ ] Implement ECEF IMU propagation/preintegration and bias Jacobian tests.
+- [x] Map GNSS, LiDAR, and IMU clock domains with status diagnostics.
+- [x] Accept PPS `TimeReference` input and propagate timing uncertainty before lock.
+- [x] Implement ECEF IMU propagation/preintegration and bias Jacobian tests.
 - [ ] Use the 2026-07-10 bag to test the approximately 193.5 Hz IMU buffer, gaps, and duplicate timestamps.
 
 Done: synthetic propagation meets frozen tolerances; time reversal, gaps, and NaN/Inf fail closed.
+
+Implementation note: the current Livox production stamp is ROS `now()`, so the default can reach only `COARSE`; real consecutive PPS input is required for `PPS_LOCKED`. The local 2026-06-24 bag validates the audit tool and fail-closed segmentation: all 26,004 IMU messages decode without reversals, duplicates, or non-finite values, but its 83.47 Hz effective rate and 1,109 gaps over 50 ms fail continuous-preintegration acceptance.
 
 ### Phase 4: Raw LiDAR factor frontend
 

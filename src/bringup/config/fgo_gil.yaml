@@ -1,0 +1,37 @@
+fgo_gil_time_sync:
+  ros__parameters:
+    # Shadow-only Phase 3 frontend. It does not publish TF, odometry, or commands.
+    topics:
+      imu: /livox/imu
+      lidar: /livox/lidar
+      gnss_epoch: /gnss/raw/observation_epoch
+      gnss_pps: /gnss/pps/time_reference
+      imu_time_reference: /livox/imu_time_reference
+      lidar_time_reference: /livox/lidar_time_reference
+      diagnostics: /fgo_gil/time_sync_diagnostics
+
+    # The current Livox driver stamps production messages with ROS now(). Switch to
+    # device only after matching TimeReference topics are present and validated.
+    imu_stamp_domain: ros
+    lidar_stamp_domain: ros
+
+    time_sync:
+      window_size: 32
+      min_coarse_samples: 5
+      min_pps_samples: 2
+      max_offset_jump_s: 0.5
+      coarse_timeout_s: 5.0
+      pps_timeout_s: 2.0
+      coarse_uncertainty_floor_s: 0.02
+      pps_uncertainty_floor_s: 0.0001
+      gnss_reception_uncertainty_s: 0.02
+      device_reference_uncertainty_s: 0.001
+      device_reference_locked: true
+      gnss_max_forward_gap_s: 10.0
+
+    imu_buffer:
+      capacity: 4096
+      max_gap_s: 0.05
+
+    lidar_max_gap_s: 0.5
+    diagnostics_period_s: 1.0

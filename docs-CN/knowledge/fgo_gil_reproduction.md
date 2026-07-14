@@ -8,7 +8,7 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 OBSVM/OBSVH/OBSVBASE 严格解码与 receiver + week/TOW 有界去重，并将 GPSEPH/GLOEPH/BDSEPH/GALEPH/QZSSEPH 归一化为协议无关 broadcast ephemeris。尚未接入真实 raw UART fixture，也尚未实现 compressed observation、RTCM fallback 或 satellite-state 轨道传播。
+当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 observation、broadcast ephemeris 和显式 GNSS week rollover/reset；Phase 3 已实现 GNSS/LiDAR/IMU 时间映射、可选 PPS、时间不确定度、有界 IMU segment buffer、ECEF propagation/preintegration 与 9x6 bias sensitivity。尚未接入真实 raw UART/PPS fixture，也尚未实现 compressed observation、RTCM fallback 或 satellite-state 轨道传播；指定的 2026-07-10 bag 因分析机离线尚未复验。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -308,18 +308,20 @@ time_sync:
 - [x] 解码并归一化 GPS、GLONASS、BDS、Galileo、QZSS broadcast ephemeris。
 - [ ] 由 broadcast ephemeris 计算 satellite state。
 - [x] 保留 week/TOW/time status，并按 receiver + week/TOW 有界去重。
-- [ ] 增加显式 week rollover 和接收机时间重置策略。
+- [x] 增加显式 week rollover 和接收机时间重置策略。
 
 完成条件：零噪声合成观测可恢复已知几何距离；坏时间/坏星历/非有限字段被拒绝。
 
 ### Phase 3：时间同步和 IMU 预积分
 
-- [ ] 建立 GNSS、LiDAR、IMU 时间域映射及状态诊断。
-- [ ] 支持 PPS 状态输入；PPS 未锁定时传播时间不确定度。
-- [ ] 完成 ECEF IMU propagation/preintegration 和 bias Jacobian 测试。
+- [x] 建立 GNSS、LiDAR、IMU 时间域映射及状态诊断。
+- [x] 支持 PPS `TimeReference` 输入；PPS 未锁定时传播时间不确定度。
+- [x] 完成 ECEF IMU propagation/preintegration 和 bias Jacobian 测试。
 - [ ] 用现有 2026-07-10 bag 验证约 193.5 Hz IMU buffer、gap 和重复时间处理。
 
 完成条件：合成轨迹的 propagation 误差在预设容差内；时间倒退、gap、NaN/Inf 均 fail-closed。
+
+实现说明：当前 Livox production stamp 是 ROS `now()`，所以默认只能达到 `COARSE`；真实 PPS 连续输入后才允许进入 `PPS_LOCKED`。本机 2026-06-24 bag 已验证审计工具与 fail-closed segmentation：26,004 条可解码 IMU 无倒退/重复/非有限值，但 83.47 Hz 有效频率和 1,109 个 `>50 ms` gap 不满足连续预积分验收。
 
 ### Phase 4：LiDAR 原始因子前端
 

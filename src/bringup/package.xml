@@ -23,6 +23,7 @@
   <exec_depend>um982_rtk_driver</exec_depend>
   <exec_depend>um982_raw_driver</exec_depend>
   <exec_depend>rtk_fgo_localizer</exec_depend>
+  <exec_depend>fgo_gil_localizer</exec_depend>
   <exec_depend>gnss_calibration</exec_depend>
   <exec_depend>serial_twistctl</exec_depend>
   <exec_depend>serial_reader</exec_depend>

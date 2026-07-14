@@ -29,6 +29,7 @@
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
 | RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧、observation epoch 与星历 shadow 采集/录包 |
+| FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 GNSS/LiDAR/IMU 时间映射、PPS 与 IMU buffer shadow 诊断 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
@@ -146,6 +147,23 @@ Explore stack + UM982 RTK
 - 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps` 的生产定位输出
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
 
+### 5.4 FGO-GIL Phase 3 时间与惯性前端（shadow）
+
+```text
+/gnss/raw/observation_epoch -- week/TOW --------+
+/gnss/pps/time_reference ---- optional PPS -----+-> fgo_gil_time_sync_node
+/livox/imu + optional device TimeReference -----+   -> /fgo_gil/time_sync_diagnostics
+/livox/lidar + optional device TimeReference ---+
+
+fgo_gil_core
+  -> bounded clock estimators: UNSYNCED / COARSE / PPS_LOCKED
+  -> bounded IMU segments: duplicate reject; reversal/gap reset
+  -> ECEF propagation: gravity + Earth rotation + Coriolis + centrifugal
+  -> 9x6 accelerometer/gyroscope bias sensitivity
+```
+
+当前 Livox 驱动用 ROS `now()` 写生产消息时间戳，所以默认 `imu_stamp_domain=ros`、`lidar_stamp_domain=ros`，并在没有 PPS 时保留至少 20 ms 时间不确定度。只有真实 `sensor_msgs/TimeReference` 连续到达并通过窗口检查后才进入 `PPS_LOCKED`。该节点不发布 TF、odometry 或命令。
+
 ## 7. TF 链
 
 ```text
@@ -172,6 +190,7 @@ map -> odom -> base_footprint -> base_link
 - `src/bringup/config/nav2_explore.yaml`
 - `src/bringup/config/nav2_gps.yaml`
 - `src/bringup/config/nav2_travel.yaml`
+- `src/bringup/config/fgo_gil.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/master_params_scene.yaml`
 - `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/scene_points.yaml`
@@ -226,7 +245,7 @@ src/
 
 说明：
 - `sensor_drivers/`: Livox、IMU、GNSS、串口
-- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 是紧耦合 RTK FGO 实验包，当前只接入 shadow mode
+- `perception/`: FAST-LIO2、PGO GPS 融合、点云转栅格相关；`rtk_fgo_localizer` 是旧解级 comparator，`fgo_gil_localizer` 承载论文复现的原始时间/惯性前端，两者均保持 shadow mode
 - `planning/`: 历史 GPS 全局规划与坐标转换试验区
 - `navigation/`: `waypoint_collector` 与 scene-graph goal manager `gps_waypoint_dispatcher`
 - `bringup/`: 系统 launch、参数、地图、RViz 配置

@@ -77,6 +77,7 @@ make launch-explore-gps
 make launch-nav-gps
 make launch-rtk-basic
 make launch-rtk-raw
+make launch-fgo-gil-time-sync
 make launch-tightly-coupled
 ```
 
@@ -92,6 +93,7 @@ bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
 bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh rtk-raw
+bash scripts/launch_with_logs.sh fgo-gil-time-sync
 bash scripts/launch_with_logs.sh tightly-coupled
 ```
 
@@ -667,6 +669,38 @@ ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/
 ```
 
 Phase 1 plus the uncompressed-observation and broadcast-ephemeris canonicalization subsets of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Every payload receives exact-length, PRN, time, finite-value, and orbit-range validation. Compressed observations, RTCM fallback, satellite-state propagation, and a real UART fixture remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
+
+## FGO-GIL Phase 3 Time Sync And IMU Frontend
+
+Start the source stack that provides `/gnss/raw/observation_epoch`, `/livox/imu`, and `/livox/lidar`, then launch the shadow frontend:
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-time-sync
+```
+
+Inspect clock state and buffer diagnostics:
+
+```bash
+ros2 topic echo /fgo_gil/time_sync_diagnostics
+```
+
+State semantics:
+
+- `UNSYNCED`: fewer than five valid clock pairs; high-weight joint factors are forbidden.
+- `COARSE_NO_PPS`: coarse mapping from raw-GNSS reception time, with a default 20 ms uncertainty floor; five seconds without a new clock pair returns to `UNSYNCED`.
+- `PPS_LOCKED`: at least two consecutive `/gnss/pps/time_reference` samples and the newest no older than 2 s; default uncertainty floor is 0.1 ms.
+
+The current Livox driver stamps production `/livox/imu` and `/livox/lidar` with ROS `now()`, so `fgo_gil.yaml` defaults to the `ros` domain. Change a domain to `device` only after the corresponding `/livox/*_time_reference` is genuinely published and validated. This launch starts no TF/Nav2 owner and publishes no `/cmd_vel`.
+
+Audit a SQLite rosbag without a ROS Python environment:
+
+```bash
+python3 scripts/analyze_fgo_gil_imu_bag.py <bag-directory> --max-gap-s 0.05
+```
+
+All 26,004 IMU messages in the local `jetson_2026-06-24-13-54-59` bag decode without duplicates, reversals, or non-finite measurements. Its effective rate is only about 83.47 Hz, however, with 1,109 gaps over 50 ms and a maximum gap of about 9.94 s, so it is not a continuous-preintegration acceptance bag. The documented 2026-07-10 bag still needs to be retrieved from the analysis machine and rechecked with the same tool for the expected approximately 193.5 Hz stream.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

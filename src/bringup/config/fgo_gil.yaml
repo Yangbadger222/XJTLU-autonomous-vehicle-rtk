@@ -123,7 +123,7 @@ fgo_gil_lidar_frontend:
 
 fgo_gil_float_fgo:
   ros__parameters:
-    # Phase 5 stays shadow-only: this node publishes an ECEF odometry topic but
+    # Phase 6 stays shadow-only: this node publishes ECEF odometry topics but
     # never publishes TF, map->odom, or commands.
     topics:
       imu: /livox/imu
@@ -132,6 +132,7 @@ fgo_gil_float_fgo:
       ephemeris: /gnss/raw/ephemeris
       time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
       odometry: /fgo_gil/float_odom_ecef
+      fixed_odometry: /fgo_gil/fixed_odom_ecef
       diagnostics: /fgo_gil/float_diagnostics
 
     frames:
@@ -182,6 +183,21 @@ fgo_gil_float_fgo:
       lidar_huber_delta_sigma: 2.5
       gnss_code_huber_delta_sigma: 2.5
       gnss_carrier_huber_delta_sigma: 2.5
+
+    # LAMBDA is post-processing only. Accepted candidates are published on the
+    # fixed topic; neither accepted nor rejected candidates are written into the
+    # float fixed-lag graph. GLONASS FDMA is excluded from fixing in Phase 6.
+    integer_fixing:
+      enabled: true
+      partial_fixing: true
+      minimum_ambiguities: 4
+      ratio_threshold: 3.0
+      minimum_success_rate: 0.99
+      maximum_squared_norm: 25.0
+      maximum_position_correction_m: 0.50
+      maximum_rotation_correction_rad: 0.10
+      maximum_velocity_correction_m_s: 1.0
+      maximum_cost_increase: 5.0
 
     prior:
       position_sigma_m: 1.0

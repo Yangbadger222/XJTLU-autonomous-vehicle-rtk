@@ -20,7 +20,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "params_file",
                 default_value=default_params,
-                description="Phase 3-5 FGO-GIL shadow estimator parameters",
+                description="Phase 3-6 FGO-GIL shadow estimator parameters",
             ),
             Node(
                 package="fgo_gil_localizer",

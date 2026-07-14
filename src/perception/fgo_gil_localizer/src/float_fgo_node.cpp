@@ -1,5 +1,6 @@
 #include "fgo_gil_localizer/float_fixed_lag_smoother.hpp"
 #include "fgo_gil_localizer/imu_buffer.hpp"
+#include "fgo_gil_localizer/integer_ambiguity_resolver.hpp"
 #include "fgo_gil_localizer/satellite_propagator.hpp"
 
 #include <algorithm>
@@ -183,6 +184,7 @@ private:
     declare_parameter<std::string>(
       "topics.time_sync_diagnostics", "/fgo_gil/time_sync_diagnostics");
     declare_parameter<std::string>("topics.odometry", "/fgo_gil/float_odom_ecef");
+    declare_parameter<std::string>("topics.fixed_odometry", "/fgo_gil/fixed_odom_ecef");
     declare_parameter<std::string>("topics.diagnostics", "/fgo_gil/float_diagnostics");
     declare_parameter<std::string>("frames.ecef", "ecef");
     declare_parameter<std::string>("frames.body", "imu_link");
@@ -221,6 +223,17 @@ private:
     declare_parameter<double>("optimizer.lidar_huber_delta_sigma", 2.5);
     declare_parameter<double>("optimizer.gnss_code_huber_delta_sigma", 2.5);
     declare_parameter<double>("optimizer.gnss_carrier_huber_delta_sigma", 2.5);
+
+    declare_parameter<bool>("integer_fixing.enabled", true);
+    declare_parameter<bool>("integer_fixing.partial_fixing", true);
+    declare_parameter<int>("integer_fixing.minimum_ambiguities", 4);
+    declare_parameter<double>("integer_fixing.ratio_threshold", 3.0);
+    declare_parameter<double>("integer_fixing.minimum_success_rate", 0.99);
+    declare_parameter<double>("integer_fixing.maximum_squared_norm", 25.0);
+    declare_parameter<double>("integer_fixing.maximum_position_correction_m", 0.50);
+    declare_parameter<double>("integer_fixing.maximum_rotation_correction_rad", 0.10);
+    declare_parameter<double>("integer_fixing.maximum_velocity_correction_m_s", 1.0);
+    declare_parameter<double>("integer_fixing.maximum_cost_increase", 5.0);
 
     declare_parameter<double>("prior.position_sigma_m", 1.0);
     declare_parameter<double>("prior.rotation_sigma_rad", 0.2);
@@ -303,6 +316,7 @@ private:
     ephemeris_topic_ = get_parameter("topics.ephemeris").as_string();
     time_sync_topic_ = get_parameter("topics.time_sync_diagnostics").as_string();
     odometry_topic_ = get_parameter("topics.odometry").as_string();
+    fixed_odometry_topic_ = get_parameter("topics.fixed_odometry").as_string();
     diagnostics_topic_ = get_parameter("topics.diagnostics").as_string();
     ecef_frame_ = get_parameter("frames.ecef").as_string();
     body_frame_ = get_parameter("frames.body").as_string();
@@ -343,6 +357,25 @@ private:
       get_parameter("optimizer.gnss_code_huber_delta_sigma").as_double();
     gnss_factor_config_.carrier_huber_delta_sigma =
       get_parameter("optimizer.gnss_carrier_huber_delta_sigma").as_double();
+    integer_resolver_config_.enabled = get_parameter("integer_fixing.enabled").as_bool();
+    integer_resolver_config_.partial_fixing =
+      get_parameter("integer_fixing.partial_fixing").as_bool();
+    integer_resolver_config_.minimum_ambiguities =
+      positiveSizeParameter("integer_fixing.minimum_ambiguities");
+    integer_resolver_config_.ratio_threshold =
+      get_parameter("integer_fixing.ratio_threshold").as_double();
+    integer_resolver_config_.minimum_success_rate =
+      get_parameter("integer_fixing.minimum_success_rate").as_double();
+    integer_resolver_config_.maximum_squared_norm =
+      get_parameter("integer_fixing.maximum_squared_norm").as_double();
+    fixed_back_substitution_config_.maximum_position_correction_m =
+      get_parameter("integer_fixing.maximum_position_correction_m").as_double();
+    fixed_back_substitution_config_.maximum_rotation_correction_rad =
+      get_parameter("integer_fixing.maximum_rotation_correction_rad").as_double();
+    fixed_back_substitution_config_.maximum_velocity_correction_m_s =
+      get_parameter("integer_fixing.maximum_velocity_correction_m_s").as_double();
+    fixed_back_substitution_config_.maximum_cost_increase =
+      get_parameter("integer_fixing.maximum_cost_increase").as_double();
     prior_noise_ = stateNoise("prior");
     imu_factor_config_.noise = stateNoise("imu_factor");
     imu_factor_config_.integration.maximum_step_s =
@@ -378,6 +411,7 @@ private:
     propagation_config.maximum_glonass_age_s =
       get_parameter("gnss.maximum_glonass_age_s").as_double();
     satellite_propagator_ = std::make_unique<SatellitePropagator>(propagation_config);
+    integer_resolver_ = std::make_unique<IntegerAmbiguityResolver>(integer_resolver_config_);
     imu_buffer_ = std::make_unique<ImuSegmentBuffer>(
       ImuBufferConfig{
         positiveSizeParameter("buffers.imu_capacity"),
@@ -400,7 +434,12 @@ private:
       smoother_config_, lidar_factor_config_, gnss_factor_config_);
     state_gnss_seconds_.clear();
     gnss_factor_states_.clear();
+    most_recent_gnss_factor_state_.reset();
     last_state_id_.reset();
+    fixed_state_.reset();
+    solution_status_ = "FLOAT";
+    last_integer_fix_ = {};
+    last_back_substitution_ = {};
     estimator_state_ = "WAITING_FOR_LIDAR_KEYFRAME";
     ++graph_resets_;
   }
@@ -408,6 +447,7 @@ private:
   void createInterfaces()
   {
     odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(odometry_topic_, 10);
+    fixed_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(fixed_odometry_topic_, 10);
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
     imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
@@ -578,7 +618,8 @@ private:
         }
       } else if (smoother_->optimize()) {
         pruneStateBookkeeping();
-        estimator_state_ = "FLOAT_ACTIVE";
+        updateIntegerSolution();
+        estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
         publishOdometry();
       } else {
         estimator_state_ = "OPTIMIZATION_FAILED";
@@ -611,6 +652,11 @@ private:
       return false;
     }
     if (gnss_factor_states_.find(closest_id) != gnss_factor_states_.end()) {
+      if (!most_recent_gnss_factor_state_.has_value() ||
+        closest_id > *most_recent_gnss_factor_state_)
+      {
+        most_recent_gnss_factor_state_ = closest_id;
+      }
       return true;
     }
     const EcefState * current_state = smoother_->state(closest_id);
@@ -638,13 +684,21 @@ private:
     }
     const auto measurements = dd_builder_->build(
       epochs, satellite_states, *current_state, base_ecef_m_, master_in_imu_m_);
-    gnss_factor_states_.insert(closest_id);
     if (measurements.empty()) {
       smoother_->recordGnssOutage();
       ++gnss_rejected_epochs_;
       return true;
     }
-    smoother_->addGnssFactors(closest_id, measurements);
+    if (!smoother_->addGnssFactors(closest_id, measurements)) {
+      ++gnss_rejected_epochs_;
+      return true;
+    }
+    gnss_factor_states_.insert(closest_id);
+    if (!most_recent_gnss_factor_state_.has_value() ||
+      closest_id > *most_recent_gnss_factor_state_)
+    {
+      most_recent_gnss_factor_state_ = closest_id;
+    }
     gnss_measurements_ += measurements.size();
     return true;
   }
@@ -750,9 +804,57 @@ private:
       return;
     }
     pruneStateBookkeeping();
-    estimator_state_ = base_ecef_calibrated_ ? "FLOAT_ACTIVE" : "LIO_ONLY_WAITING_BASE";
+    if (base_ecef_calibrated_) {
+      updateIntegerSolution();
+      estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
+    } else {
+      fixed_state_.reset();
+      solution_status_ = "FLOAT";
+      estimator_state_ = "LIO_ONLY_WAITING_BASE";
+    }
     ++lidar_keyframes_;
     publishOdometry();
+  }
+
+  void updateIntegerSolution()
+  {
+    fixed_state_.reset();
+    solution_status_ = "FLOAT";
+    last_back_substitution_ = {};
+    if (!last_state_id_.has_value() || !most_recent_gnss_factor_state_.has_value() ||
+      *most_recent_gnss_factor_state_ != *last_state_id_)
+    {
+      last_integer_fix_ = {};
+      last_integer_fix_.rejection_reason = IntegerFixRejectionReason::NoCurrentGnssEpoch;
+      ++integer_fix_rejections_;
+      return;
+    }
+    const auto estimate = smoother_->floatAmbiguityEstimate();
+    if (!estimate.has_value()) {
+      last_integer_fix_ = {};
+      last_integer_fix_.rejection_reason =
+        IntegerFixRejectionReason::CovarianceNotPositiveDefinite;
+      ++integer_fix_rejections_;
+      return;
+    }
+    last_integer_fix_ = integer_resolver_->resolve(*estimate);
+    if (!last_integer_fix_.fixed) {
+      ++integer_fix_rejections_;
+      return;
+    }
+    last_back_substitution_ = smoother_->previewFixedAmbiguities(
+      last_integer_fix_.keys, last_integer_fix_.fixed_values_m,
+      fixed_back_substitution_config_);
+    if (!last_back_substitution_.accepted) {
+      last_integer_fix_.fixed = false;
+      last_integer_fix_.rejection_reason =
+        IntegerFixRejectionReason::BackSubstitutionRejected;
+      ++integer_fix_rejections_;
+      return;
+    }
+    fixed_state_ = last_back_substitution_.latest_state;
+    solution_status_ = "FIXED";
+    ++integer_fixed_solutions_;
   }
 
   void attachPendingGnss(const StateId state_id)
@@ -805,12 +907,34 @@ private:
     message.twist.twist.linear.y = state->velocity_ecef_m_s.y;
     message.twist.twist.linear.z = state->velocity_ecef_m_s.z;
     odometry_pub_->publish(std::move(message));
+    if (!fixed_state_.has_value()) {
+      return;
+    }
+    nav_msgs::msg::Odometry fixed_message;
+    fixed_message.header.stamp = rclcpp::Time(
+      static_cast<std::int64_t>(std::llround(fixed_state_->stamp_s * 1.0e9)));
+    fixed_message.header.frame_id = ecef_frame_;
+    fixed_message.child_frame_id = body_frame_;
+    fixed_message.pose.pose.position.x = fixed_state_->position_ecef_m.x;
+    fixed_message.pose.pose.position.y = fixed_state_->position_ecef_m.y;
+    fixed_message.pose.pose.position.z = fixed_state_->position_ecef_m.z;
+    fixed_message.pose.pose.orientation.w = fixed_state_->orientation_ecef_body.w;
+    fixed_message.pose.pose.orientation.x = fixed_state_->orientation_ecef_body.x;
+    fixed_message.pose.pose.orientation.y = fixed_state_->orientation_ecef_body.y;
+    fixed_message.pose.pose.orientation.z = fixed_state_->orientation_ecef_body.z;
+    fixed_message.twist.twist.linear.x = fixed_state_->velocity_ecef_m_s.x;
+    fixed_message.twist.twist.linear.y = fixed_state_->velocity_ecef_m_s.y;
+    fixed_message.twist.twist.linear.z = fixed_state_->velocity_ecef_m_s.z;
+    fixed_odometry_pub_->publish(std::move(fixed_message));
   }
 
   void pruneStateBookkeeping()
   {
     for (auto iterator = state_gnss_seconds_.begin(); iterator != state_gnss_seconds_.end(); ) {
       if (smoother_->state(iterator->first) == nullptr) {
+        if (most_recent_gnss_factor_state_ == iterator->first) {
+          most_recent_gnss_factor_state_.reset();
+        }
         gnss_factor_states_.erase(iterator->first);
         iterator = state_gnss_seconds_.erase(iterator);
       } else {
@@ -827,7 +951,7 @@ private:
     status.name = "fgo_gil/float_fgo";
     status.hardware_id = "jetson_orin_nx";
     status.message = estimator_state_;
-    if (estimator_state_ == "FLOAT_ACTIVE") {
+    if (estimator_state_ == "FLOAT_ACTIVE" || estimator_state_ == "FIXED_ACTIVE") {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     } else if (estimator_state_ == "OPTIMIZATION_FAILED" ||
       estimator_state_ == "IMU_FACTOR_REJECTED")
@@ -843,6 +967,31 @@ private:
       keyValue("ecef_world_calibrated", ecef_world_calibrated_ ? "true" : "false"));
     status.values.push_back(
       keyValue("base_ecef_calibrated", base_ecef_calibrated_ ? "true" : "false"));
+    status.values.push_back(keyValue("solution_status", solution_status_));
+    status.values.push_back(
+      keyValue("fix_rejection_reason", toString(last_integer_fix_.rejection_reason)));
+    status.values.push_back(
+      keyValue("back_substitution_rejection", toString(last_back_substitution_.rejection)));
+    status.values.push_back(numericKeyValue("ambiguity_ratio", last_integer_fix_.ratio));
+    status.values.push_back(
+      numericKeyValue("ambiguity_success_rate", last_integer_fix_.success_rate));
+    status.values.push_back(
+      numericKeyValue("ambiguity_best_squared_norm", last_integer_fix_.best_squared_norm));
+    status.values.push_back(numericKeyValue(
+      "fixed_ambiguities", last_integer_fix_.fixed ? last_integer_fix_.keys.size() : 0U));
+    status.values.push_back(numericKeyValue(
+      "candidate_ambiguities", last_integer_fix_.keys.size()));
+    status.values.push_back(
+      numericKeyValue("integer_fixed_solutions", integer_fixed_solutions_));
+    status.values.push_back(
+      numericKeyValue("integer_fix_rejections", integer_fix_rejections_));
+    status.values.push_back(numericKeyValue(
+      "fixed_position_correction_m", last_back_substitution_.maximum_position_correction_m));
+    status.values.push_back(numericKeyValue(
+      "fixed_rotation_correction_rad", last_back_substitution_.maximum_rotation_correction_rad));
+    status.values.push_back(numericKeyValue(
+      "fixed_cost_increase", last_back_substitution_.cost_after -
+      last_back_substitution_.cost_before));
     status.values.push_back(numericKeyValue("clock_uncertainty_s", clock_uncertainty_s_));
     status.values.push_back(numericKeyValue("states", graph.states));
     status.values.push_back(numericKeyValue("ambiguities", graph.ambiguities));
@@ -880,6 +1029,7 @@ private:
   std::string ephemeris_topic_;
   std::string time_sync_topic_;
   std::string odometry_topic_;
+  std::string fixed_odometry_topic_;
   std::string diagnostics_topic_;
   std::string ecef_frame_;
   std::string body_frame_;
@@ -899,6 +1049,8 @@ private:
   FloatSmootherConfig smoother_config_;
   LidarGraphFactorConfig lidar_factor_config_;
   GnssGraphFactorConfig gnss_factor_config_;
+  IntegerAmbiguityResolverConfig integer_resolver_config_;
+  FixedBackSubstitutionConfig fixed_back_substitution_config_;
   StateFactorNoise prior_noise_;
   ImuGraphFactorConfig imu_factor_config_;
 
@@ -906,6 +1058,7 @@ private:
   std::unique_ptr<GnssEpochAligner> epoch_aligner_;
   std::unique_ptr<DoubleDifferenceBuilder> dd_builder_;
   std::unique_ptr<SatellitePropagator> satellite_propagator_;
+  std::unique_ptr<IntegerAmbiguityResolver> integer_resolver_;
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
   std::map<SatelliteId, BroadcastEphemeris> ephemerides_;
   std::deque<SatelliteId> ephemeris_order_;
@@ -913,9 +1066,14 @@ private:
   std::map<StateId, double> state_gnss_seconds_;
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
+  std::optional<StateId> most_recent_gnss_factor_state_;
+  std::optional<EcefState> fixed_state_;
   std::optional<std::uint64_t> active_frontend_epoch_;
   StateId next_state_id_ = 1;
   std::string estimator_state_ = "WAITING_FOR_INPUT";
+  std::string solution_status_ = "FLOAT";
+  IntegerFixResult last_integer_fix_;
+  FixedBackSubstitutionResult last_back_substitution_;
   std::string time_sync_state_ = "UNSYNCED";
   std::optional<double> ros_to_gnss_offset_s_;
   std::optional<double> last_time_sync_reception_s_;
@@ -934,8 +1092,11 @@ private:
   std::uint64_t invalid_ephemerides_ = 0;
   std::uint64_t satellite_propagation_failures_ = 0;
   std::uint64_t optimization_failures_ = 0;
+  std::uint64_t integer_fixed_solutions_ = 0;
+  std::uint64_t integer_fix_rejections_ = 0;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr fixed_odometry_pub_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr lidar_sub_;

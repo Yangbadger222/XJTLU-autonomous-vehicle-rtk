@@ -25,6 +25,7 @@ add_library(fgo_gil_core
   src/gnss_double_difference.cpp
   src/gnss_time.cpp
   src/imu_buffer.cpp
+  src/integer_ambiguity_resolver.cpp
   src/keyframe_map.cpp
   src/lidar_deskewer.cpp
   src/lidar_factors.cpp
@@ -33,6 +34,7 @@ add_library(fgo_gil_core
   src/lidar_types.cpp
   src/livox_preprocessor.cpp
   src/math_types.cpp
+  src/rtklib_lambda.cpp
   src/satellite_propagator.cpp
   src/time_sync.cpp
 )
@@ -97,6 +99,9 @@ install(TARGETS fgo_gil_float_fgo_node
 install(DIRECTORY include/
   DESTINATION include
 )
+install(FILES third_party/rtklib/LICENSE.txt
+  DESTINATION share/${PROJECT_NAME}/third_party/rtklib
+)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -144,6 +149,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_float_fixed_lag_smoother test/test_float_fixed_lag_smoother.cpp)
   target_include_directories(test_float_fixed_lag_smoother PRIVATE include)
   target_link_libraries(test_float_fixed_lag_smoother fgo_gil_core)
+
+  ament_add_gtest(test_integer_ambiguity_resolver test/test_integer_ambiguity_resolver.cpp)
+  target_include_directories(test_integer_ambiguity_resolver PRIVATE include)
+  target_link_libraries(test_integer_ambiguity_resolver fgo_gil_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

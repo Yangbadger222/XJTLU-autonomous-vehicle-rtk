@@ -6,6 +6,7 @@
   <description>Shadow-only raw IMU, LiDAR, and GNSS double-difference fixed-lag estimator.</description>
   <maintainer email="Kevinlasnh@outlook.com">FYP Team</maintainer>
   <license>MIT</license>
+  <license>BSD-2-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

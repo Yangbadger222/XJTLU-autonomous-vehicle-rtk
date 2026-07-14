@@ -729,9 +729,9 @@ ros2 topic echo /fgo_gil/lidar_diagnostics
 
 诊断同时输出 `edge_features`、`plane_features`、`line_matches`、`plane_matches`、`residual_rms_m`、`information_min_eigenvalue`、`information_condition`、`latency_ms` 和全部拒绝计数。该模式不发布 TF、odometry、path 或 `/cmd_vel`。本机现有 bag 不含 `/livox/lidar`，因此真实 MID360 特征数、耗时和阈值仍需在 2026-07-10 bag 或新录包上验证；当前 YAML 不可用于论文结果。
 
-## FGO-GIL Phase 5 GNSS DD 与 Float FGO
+## FGO-GIL Phase 5-6 GNSS DD、Float FGO 与整数固定
 
-先启动 Livox/FAST-LIO 初始化源和独立 UM982 raw source，再启动 Phase 3-5 shadow graph：
+先启动 Livox/FAST-LIO 初始化源和独立 UM982 raw source，再启动 Phase 3-6 shadow graph：
 
 ```bash
 make build-fgo-gil
@@ -739,12 +739,13 @@ ss
 make launch-fgo-gil-float
 ```
 
-检查 LiDAR 因子批次、float ECEF odometry 和图诊断：
+检查 LiDAR 因子批次、float/fixed ECEF odometry 和图诊断：
 
 ```bash
 ros2 topic echo /fgo_gil/lidar_constraints --once
 ros2 topic echo /fgo_gil/float_diagnostics
 ros2 topic echo /fgo_gil/float_odom_ecef --once
+ros2 topic echo /fgo_gil/fixed_odom_ecef --once
 ```
 
 仓库参数有意把以下两个开关保持为 `false`：
@@ -756,7 +757,9 @@ calibration.gnss.base_ecef_calibrated: false
 
 现场回放前，必须用未提交的参数覆盖文件填入实测 `T_ecef_lidar_world` 和 CORS 基站 ECEF 坐标。禁止在仍为零占位时把开关改成 `true`。master 在 IMU 中的默认杆臂为 `[0.0, -0.184, 0.134] m`，其中仍包含尚未精标的 2 cm IMU 高度假设。
 
-预期 fail-closed 状态包括 `WAITING_FOR_CALIBRATION`、`WAITING_FOR_LIDAR_KEYFRAME`、`WAITING_FOR_CONTINUOUS_IMU` 和 `LIO_ONLY_WAITING_BASE`。`FLOAT_ACTIVE` 只表示图正在优化，不代表实车精度已验收。该节点不发布 TF、path、`/cmd_vel` 或 Nav2 输入；`make kill-runtime` 已包含三个 FGO-GIL executable。
+预期 fail-closed 状态包括 `WAITING_FOR_CALIBRATION`、`WAITING_FOR_LIDAR_KEYFRAME`、`WAITING_FOR_CONTINUOUS_IMU` 和 `LIO_ONLY_WAITING_BASE`。`FLOAT_ACTIVE` 只表示图正在优化；`FIXED_ACTIVE` 只表示当前候选通过配置门限，两者都不代表实车精度已验收。`/fgo_gil/float_odom_ecef` 始终保持浮点解，`/fgo_gil/fixed_odom_ecef` 只在 fixed 候选通过 ratio、success-rate、残差和回代验证时发布。
+
+`/fgo_gil/float_diagnostics` 的 Phase 6 关键字段为 `solution_status`、`ambiguity_ratio`、`ambiguity_success_rate`、`fixed_ambiguities`、`fix_rejection_reason`、`back_substitution_rejection` 和 fixed correction/cost 指标。GLONASS FDMA 在 Phase 6 不参与整数固定。该节点仍不发布 TF、path、`/cmd_vel` 或 Nav2 输入；`make kill-runtime` 已包含三个 FGO-GIL executable。
 
 ## RTK FGO 紧耦合 shadow mode
 

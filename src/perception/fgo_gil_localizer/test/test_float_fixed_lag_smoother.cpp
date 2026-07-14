@@ -239,5 +239,119 @@ TEST(FloatFixedLagSmoother, MarginalPriorDoesNotDoubleCountRetainedFactors)
     reference.state(3)->position_ecef_m.x, 2.0e-3);
 }
 
+TEST(FloatFixedLagSmoother, ReferenceSwitchUsesExactDoubleDifferenceBasisTransform)
+{
+  const Vec3 truth{6378137.0, 20.0, -10.0};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  const Vec3 reference{26500000.0, 0.0, 4000000.0};
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, stateAt(100.0, truth)));
+  const auto old_target = syntheticDd(
+    7, reference, {21000000.0, 11000000.0, 9000000.0}, truth, base, 10.0);
+  const auto old_pivot = syntheticDd(
+    8, reference, {22000000.0, -12000000.0, 7000000.0}, truth, base, 4.0);
+  ASSERT_TRUE(smoother.addGnssFactors(1, {old_target, old_pivot}));
+
+  DoubleDifferenceMeasurement switched_target = old_target;
+  switched_target.reference = old_pivot.target;
+  switched_target.ambiguity_key.reference = old_pivot.target;
+  switched_target.ambiguity_key.receiver_arc_ids[2] = old_pivot.ambiguity_key.receiver_arc_ids[0];
+  switched_target.ambiguity_key.receiver_arc_ids[3] = old_pivot.ambiguity_key.receiver_arc_ids[1];
+  switched_target.carrier_dd_m = 999.0;
+  DoubleDifferenceMeasurement switched_old_reference = old_target;
+  switched_old_reference.reference = old_pivot.target;
+  switched_old_reference.target = old_target.reference;
+  switched_old_reference.ambiguity_key.reference = old_pivot.target;
+  switched_old_reference.ambiguity_key.target = old_target.reference;
+  switched_old_reference.ambiguity_key.receiver_arc_ids = {
+    old_target.ambiguity_key.receiver_arc_ids[2], old_target.ambiguity_key.receiver_arc_ids[3],
+    old_pivot.ambiguity_key.receiver_arc_ids[0], old_pivot.ambiguity_key.receiver_arc_ids[1]};
+  switched_old_reference.carrier_dd_m = -999.0;
+  ASSERT_TRUE(smoother.addGnssFactors(1, {switched_target, switched_old_reference}));
+
+  const auto transformed_target = smoother.ambiguity(switched_target.ambiguity_key);
+  const auto transformed_reference = smoother.ambiguity(switched_old_reference.ambiguity_key);
+  ASSERT_TRUE(transformed_target.has_value());
+  ASSERT_TRUE(transformed_reference.has_value());
+  EXPECT_NEAR(*transformed_target, 6.0, 1.0e-9);
+  EXPECT_NEAR(*transformed_reference, -4.0, 1.0e-9);
+}
+
+TEST(FloatFixedLagSmoother, CovarianceOrderingMatchesAmbiguityKeys)
+{
+  const Vec3 truth{6378137.0, 20.0, -10.0};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  EcefState initial = stateAt(100.0, truth + Vec3{0.5, -0.4, 0.3});
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, initial));
+  ASSERT_TRUE(smoother.addStatePrior(1, initial, loosePositionPrior()));
+  const auto measurements = syntheticGnss(truth, base);
+  ASSERT_TRUE(smoother.addGnssFactors(1, measurements));
+  ASSERT_TRUE(smoother.optimize());
+  const auto estimate = smoother.floatAmbiguityEstimate();
+  ASSERT_TRUE(estimate.has_value());
+  ASSERT_EQ(estimate->keys.size(), measurements.size());
+  EXPECT_EQ(estimate->values_m.size(), static_cast<int>(measurements.size()));
+  EXPECT_EQ(estimate->covariance_m2.rows(), static_cast<int>(measurements.size()));
+  EXPECT_TRUE(estimate->covariance_m2.allFinite());
+  EXPECT_LT((estimate->covariance_m2 - estimate->covariance_m2.transpose()).norm(), 1.0e-9);
+  for (std::size_t index = 0; index < estimate->keys.size(); ++index) {
+    const auto value = smoother.ambiguity(estimate->keys[index]);
+    ASSERT_TRUE(value.has_value());
+    EXPECT_DOUBLE_EQ(estimate->values_m(static_cast<int>(index)), *value);
+    EXPECT_EQ(estimate->last_observed_state_ids[index], 1U);
+    EXPECT_GT(estimate->covariance_m2(static_cast<int>(index), static_cast<int>(index)), 0.0);
+  }
+}
+
+TEST(FloatFixedLagSmoother, FixedPreviewNeverMutatesFloatWindow)
+{
+  const Vec3 truth{6378137.0, 20.0, -10.0};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  EcefState initial = stateAt(100.0, truth + Vec3{0.5, -0.4, 0.3});
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, initial));
+  ASSERT_TRUE(smoother.addStatePrior(1, initial, loosePositionPrior()));
+  const auto measurements = syntheticGnss(truth, base);
+  ASSERT_TRUE(smoother.addGnssFactors(1, measurements));
+  ASSERT_TRUE(smoother.optimize());
+  const EcefState float_state = *smoother.state(1);
+  std::vector<double> float_ambiguities;
+  for (const auto & measurement : measurements) {
+    float_ambiguities.push_back(*smoother.ambiguity(measurement.ambiguity_key));
+  }
+
+  Eigen::Vector4d wrong_fixed;
+  wrong_fixed << 100.0, 100.0, 100.0, 100.0;
+  std::vector<DdAmbiguityKey> keys;
+  for (const auto & measurement : measurements) {
+    keys.push_back(measurement.ambiguity_key);
+  }
+  const auto rejected = smoother.previewFixedAmbiguities(keys, wrong_fixed);
+  EXPECT_FALSE(rejected.accepted);
+  EXPECT_NE(rejected.rejection, FixedBackSubstitutionRejection::None);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.x, float_state.position_ecef_m.x);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.y, float_state.position_ecef_m.y);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.z, float_state.position_ecef_m.z);
+  for (std::size_t index = 0; index < measurements.size(); ++index) {
+    EXPECT_DOUBLE_EQ(*smoother.ambiguity(measurements[index].ambiguity_key),
+      float_ambiguities[index]);
+  }
+
+  Eigen::Vector4d near_fixed;
+  near_fixed << 10.0, -4.0, 7.0, 2.0;
+  FixedBackSubstitutionConfig permissive;
+  permissive.maximum_cost_increase = 100.0;
+  const auto accepted = smoother.previewFixedAmbiguities(keys, near_fixed, permissive);
+  EXPECT_TRUE(accepted.accepted) << toString(accepted.rejection);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.x, float_state.position_ecef_m.x);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.y, float_state.position_ecef_m.y);
+  EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.z, float_state.position_ecef_m.z);
+  for (std::size_t index = 0; index < measurements.size(); ++index) {
+    EXPECT_DOUBLE_EQ(*smoother.ambiguity(measurements[index].ambiguity_key),
+      float_ambiguities[index]);
+  }
+}
+
 }  // namespace
 }  // namespace fgo_gil_localizer

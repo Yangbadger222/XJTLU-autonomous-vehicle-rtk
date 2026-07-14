@@ -202,6 +202,7 @@ bool FloatFixedLagSmoother::addState(const StateId id, const EcefState & initial
   }
   states_[id] = initial_state;
   state_order_.push_back(id);
+  invalidateFixLinearization();
   refreshDiagnostics();
   return true;
 }
@@ -216,6 +217,7 @@ bool FloatFixedLagSmoother::addStatePrior(
     return false;
   }
   state_priors_.push_back({id, mean, noise});
+  invalidateFixLinearization();
   refreshDiagnostics();
   return true;
 }
@@ -241,6 +243,7 @@ bool FloatFixedLagSmoother::addImuFactor(
     return false;
   }
   imu_factors_.push_back({from, to, samples, config});
+  invalidateFixLinearization();
   refreshDiagnostics();
   return true;
 }
@@ -258,6 +261,7 @@ bool FloatFixedLagSmoother::addLidarFactors(
     return false;
   }
   lidar_factors_.push_back({state, line_factors, plane_factors, body_lidar});
+  invalidateFixLinearization();
   refreshDiagnostics();
   return true;
 }
@@ -281,10 +285,20 @@ bool FloatFixedLagSmoother::addGnssFactors(
     if (measurement.carrier_valid &&
       ambiguities_.find(measurement.ambiguity_key) == ambiguities_.end())
     {
-      const auto evaluation = evaluateDdCarrier(measurement, state_iterator->second, 0.0);
-      if (evaluation.has_value()) {
-        ambiguities_[measurement.ambiguity_key] = -evaluation->residual_m;
+      const auto transformed = transformedAmbiguityInitialization(measurement.ambiguity_key);
+      if (transformed.has_value()) {
+        ambiguities_[measurement.ambiguity_key] = *transformed;
+      } else {
+        const auto evaluation = evaluateDdCarrier(measurement, state_iterator->second, 0.0);
+        if (evaluation.has_value()) {
+          ambiguities_[measurement.ambiguity_key] = -evaluation->residual_m;
+        }
       }
+    }
+    if (measurement.carrier_valid &&
+      ambiguities_.find(measurement.ambiguity_key) != ambiguities_.end())
+    {
+      ambiguity_last_state_[measurement.ambiguity_key] = state;
     }
   }
   if (!any_valid) {
@@ -292,8 +306,43 @@ bool FloatFixedLagSmoother::addGnssFactors(
     return true;
   }
   gnss_factors_.push_back({state, measurements});
+  invalidateFixLinearization();
   refreshDiagnostics();
   return true;
+}
+
+std::optional<double> FloatFixedLagSmoother::transformedAmbiguityInitialization(
+  const DdAmbiguityKey & key) const
+{
+  for (const auto & pivot : ambiguities_) {
+    const DdAmbiguityKey & pivot_key = pivot.first;
+    if (!(pivot_key.group == key.group) || !(pivot_key.target == key.reference) ||
+      pivot_key.receiver_arc_ids[0] != key.receiver_arc_ids[2] ||
+      pivot_key.receiver_arc_ids[1] != key.receiver_arc_ids[3])
+    {
+      continue;
+    }
+    if (key.target == pivot_key.reference &&
+      key.receiver_arc_ids[0] == pivot_key.receiver_arc_ids[2] &&
+      key.receiver_arc_ids[1] == pivot_key.receiver_arc_ids[3])
+    {
+      return -pivot.second;
+    }
+    for (const auto & target : ambiguities_) {
+      const DdAmbiguityKey & target_key = target.first;
+      if (!(target_key.group == key.group) || !(target_key.reference == pivot_key.reference) ||
+        !(target_key.target == key.target) ||
+        target_key.receiver_arc_ids[0] != key.receiver_arc_ids[0] ||
+        target_key.receiver_arc_ids[1] != key.receiver_arc_ids[1] ||
+        target_key.receiver_arc_ids[2] != pivot_key.receiver_arc_ids[2] ||
+        target_key.receiver_arc_ids[3] != pivot_key.receiver_arc_ids[3])
+      {
+        continue;
+      }
+      return target.second - pivot.second;
+    }
+  }
+  return std::nullopt;
 }
 
 FloatFixedLagSmoother::VariableLayout FloatFixedLagSmoother::createLayout() const
@@ -601,6 +650,7 @@ bool FloatFixedLagSmoother::applyDelta(
 
 bool FloatFixedLagSmoother::optimize()
 {
+  invalidateFixLinearization();
   ++diagnostics_.optimization_calls;
   diagnostics_.last_solve_succeeded = false;
   if (states_.empty()) {
@@ -664,6 +714,57 @@ bool FloatFixedLagSmoother::optimize()
   }
   refreshDiagnostics();
   return true;
+}
+
+std::optional<Eigen::MatrixXd> FloatFixedLagSmoother::linearizedCovariance(
+  const LinearSystem & system) const
+{
+  if (system.rows == 0U || system.hessian.rows() == 0 ||
+    system.hessian.rows() != system.hessian.cols() ||
+    !system.hessian.allFinite())
+  {
+    return std::nullopt;
+  }
+  Eigen::MatrixXd information = 0.5 * (system.hessian + system.hessian.transpose());
+  information.diagonal().array() += std::max(1.0e-12, config_.initial_damping * 1.0e-3);
+  Eigen::LDLT<Eigen::MatrixXd> solver(information);
+  if (solver.info() != Eigen::Success || (solver.vectorD().array() <= 0.0).any()) {
+    return std::nullopt;
+  }
+  Eigen::MatrixXd covariance = solver.solve(
+    Eigen::MatrixXd::Identity(system.hessian.rows(), system.hessian.cols()));
+  if (solver.info() != Eigen::Success || !covariance.allFinite()) {
+    return std::nullopt;
+  }
+  covariance = 0.5 * (covariance + covariance.transpose());
+  return covariance;
+}
+
+bool FloatFixedLagSmoother::prepareFixLinearization()
+{
+  if (fix_layout_cache_.has_value() && fix_system_cache_.has_value() &&
+    fix_covariance_cache_.has_value())
+  {
+    return true;
+  }
+  VariableLayout layout = createLayout();
+  LinearSystem system = buildLinearSystem(layout);
+  const auto covariance = linearizedCovariance(system);
+  if (!covariance.has_value()) {
+    invalidateFixLinearization();
+    return false;
+  }
+  fix_layout_cache_ = std::move(layout);
+  fix_system_cache_ = std::move(system);
+  fix_covariance_cache_ = *covariance;
+  return true;
+}
+
+void FloatFixedLagSmoother::invalidateFixLinearization() noexcept
+{
+  fix_layout_cache_.reset();
+  fix_system_cache_.reset();
+  fix_covariance_cache_.reset();
 }
 
 bool FloatFixedLagSmoother::marginalizeOldestIfNeeded()
@@ -798,6 +899,7 @@ bool FloatFixedLagSmoother::marginalizeOldest()
     gnss_factors_.end());
   for (auto iterator = ambiguities_.begin(); iterator != ambiguities_.end(); ) {
     if (retained_ambiguities.find(iterator->first) == retained_ambiguities.end()) {
+      ambiguity_last_state_.erase(iterator->first);
       iterator = ambiguities_.erase(iterator);
     } else {
       ++iterator;
@@ -820,6 +922,185 @@ std::optional<double> FloatFixedLagSmoother::ambiguity(const DdAmbiguityKey & ke
     return std::nullopt;
   }
   return iterator->second;
+}
+
+std::optional<FloatAmbiguityEstimate> FloatFixedLagSmoother::floatAmbiguityEstimate()
+{
+  if (ambiguities_.empty()) {
+    return FloatAmbiguityEstimate{};
+  }
+  if (!prepareFixLinearization()) {
+    return std::nullopt;
+  }
+  const VariableLayout & layout = *fix_layout_cache_;
+  const Eigen::MatrixXd & covariance = *fix_covariance_cache_;
+  FloatAmbiguityEstimate estimate;
+  const int count = static_cast<int>(ambiguities_.size());
+  estimate.values_m.resize(count);
+  estimate.covariance_m2.resize(count, count);
+  estimate.keys.reserve(ambiguities_.size());
+  estimate.last_observed_state_ids.reserve(ambiguities_.size());
+  std::vector<int> scalar_offsets;
+  scalar_offsets.reserve(ambiguities_.size());
+  for (const auto & ambiguity_value : ambiguities_) {
+    estimate.keys.push_back(ambiguity_value.first);
+    const auto last_state = ambiguity_last_state_.find(ambiguity_value.first);
+    estimate.last_observed_state_ids.push_back(
+      last_state == ambiguity_last_state_.end() ? 0U : last_state->second);
+    estimate.values_m(static_cast<int>(scalar_offsets.size())) = ambiguity_value.second;
+    scalar_offsets.push_back(layout.ambiguity_offsets.at(ambiguity_value.first));
+  }
+  for (int row = 0; row < count; ++row) {
+    for (int column = 0; column < count; ++column) {
+      estimate.covariance_m2(row, column) =
+        covariance(scalar_offsets[static_cast<std::size_t>(row)],
+        scalar_offsets[static_cast<std::size_t>(column)]);
+    }
+  }
+  if (!estimate.covariance_m2.allFinite()) {
+    return std::nullopt;
+  }
+  return estimate;
+}
+
+const char * toString(const FixedBackSubstitutionRejection reason) noexcept
+{
+  switch (reason) {
+    case FixedBackSubstitutionRejection::None: return "NONE";
+    case FixedBackSubstitutionRejection::NotEvaluated: return "NOT_EVALUATED";
+    case FixedBackSubstitutionRejection::InvalidInput: return "INVALID_INPUT";
+    case FixedBackSubstitutionRejection::MissingAmbiguity: return "MISSING_AMBIGUITY";
+    case FixedBackSubstitutionRejection::CovarianceUnavailable:
+      return "COVARIANCE_UNAVAILABLE";
+    case FixedBackSubstitutionRejection::CorrectionLimit: return "CORRECTION_LIMIT";
+    case FixedBackSubstitutionRejection::CostIncrease: return "COST_INCREASE";
+  }
+  return "UNKNOWN";
+}
+
+FixedBackSubstitutionResult FloatFixedLagSmoother::previewFixedAmbiguities(
+  const std::vector<DdAmbiguityKey> & keys,
+  const Eigen::VectorXd & fixed_values_m,
+  const FixedBackSubstitutionConfig & config)
+{
+  FixedBackSubstitutionResult output;
+  if (keys.empty() || fixed_values_m.size() != static_cast<int>(keys.size()) ||
+    !fixed_values_m.allFinite() ||
+    !std::isfinite(config.maximum_position_correction_m) ||
+    config.maximum_position_correction_m <= 0.0 ||
+    !std::isfinite(config.maximum_rotation_correction_rad) ||
+    config.maximum_rotation_correction_rad <= 0.0 ||
+    !std::isfinite(config.maximum_velocity_correction_m_s) ||
+    config.maximum_velocity_correction_m_s <= 0.0 ||
+    !std::isfinite(config.maximum_cost_increase) || config.maximum_cost_increase < 0.0 ||
+    state_order_.empty())
+  {
+    return output;
+  }
+
+  if (!prepareFixLinearization()) {
+    output.rejection = FixedBackSubstitutionRejection::CovarianceUnavailable;
+    return output;
+  }
+  const VariableLayout & layout = *fix_layout_cache_;
+  std::vector<int> selected_offsets;
+  selected_offsets.reserve(keys.size());
+  for (const auto & key : keys) {
+    const auto offset = layout.ambiguity_offsets.find(key);
+    if (offset == layout.ambiguity_offsets.end()) {
+      output.rejection = FixedBackSubstitutionRejection::MissingAmbiguity;
+      return output;
+    }
+    selected_offsets.push_back(offset->second);
+  }
+  const LinearSystem & current_system = *fix_system_cache_;
+  const Eigen::MatrixXd & covariance = *fix_covariance_cache_;
+
+  const int selected_count = static_cast<int>(keys.size());
+  Eigen::MatrixXd ambiguity_covariance(selected_count, selected_count);
+  Eigen::MatrixXd covariance_cross(layout.dimension, selected_count);
+  Eigen::VectorXd difference(selected_count);
+  for (int row = 0; row < selected_count; ++row) {
+    difference(row) = fixed_values_m(row) - ambiguities_.at(keys[static_cast<std::size_t>(row)]);
+    covariance_cross.col(row) = covariance.col(
+      selected_offsets[static_cast<std::size_t>(row)]);
+    for (int column = 0; column < selected_count; ++column) {
+      ambiguity_covariance(row, column) = covariance(
+        selected_offsets[static_cast<std::size_t>(row)],
+        selected_offsets[static_cast<std::size_t>(column)]);
+    }
+  }
+  Eigen::LDLT<Eigen::MatrixXd> selected_solver(ambiguity_covariance);
+  if (selected_solver.info() != Eigen::Success ||
+    (selected_solver.vectorD().array() <= 0.0).any())
+  {
+    output.rejection = FixedBackSubstitutionRejection::CovarianceUnavailable;
+    return output;
+  }
+  const Eigen::VectorXd correction = covariance_cross * selected_solver.solve(difference);
+  if (selected_solver.info() != Eigen::Success || !correction.allFinite()) {
+    output.rejection = FixedBackSubstitutionRejection::CovarianceUnavailable;
+    return output;
+  }
+
+  auto candidate_states = states_;
+  auto candidate_ambiguities = ambiguities_;
+  for (const auto & state_offset : layout.state_offsets) {
+    const Eigen::VectorXd state_correction = correction.segment(
+      state_offset.second, kStateDimension);
+    output.maximum_position_correction_m = std::max(
+      output.maximum_position_correction_m, state_correction.segment(0, 3).norm());
+    output.maximum_rotation_correction_rad = std::max(
+      output.maximum_rotation_correction_rad, state_correction.segment(3, 3).norm());
+    output.maximum_velocity_correction_m_s = std::max(
+      output.maximum_velocity_correction_m_s, state_correction.segment(6, 3).norm());
+    const EcefState candidate = perturbedState(
+      candidate_states.at(state_offset.first), state_correction);
+    if (!validState(candidate)) {
+      output.rejection = FixedBackSubstitutionRejection::InvalidInput;
+      return output;
+    }
+    candidate_states[state_offset.first] = candidate;
+  }
+  for (const auto & ambiguity_offset : layout.ambiguity_offsets) {
+    candidate_ambiguities[ambiguity_offset.first] += correction(ambiguity_offset.second);
+  }
+  for (int index = 0; index < selected_count; ++index) {
+    candidate_ambiguities[keys[static_cast<std::size_t>(index)]] = fixed_values_m(index);
+  }
+
+  output.cost_before = current_system.cost;
+  const auto saved_states = states_;
+  const auto saved_ambiguities = ambiguities_;
+  const auto saved_diagnostics = diagnostics_;
+  states_ = candidate_states;
+  ambiguities_ = candidate_ambiguities;
+  const LinearSystem candidate_system = buildLinearSystem(layout);
+  states_ = saved_states;
+  ambiguities_ = saved_ambiguities;
+  diagnostics_ = saved_diagnostics;
+  output.cost_after = candidate_system.cost;
+
+  if (!std::isfinite(output.cost_before) || !std::isfinite(output.cost_after)) {
+    output.rejection = FixedBackSubstitutionRejection::InvalidInput;
+    return output;
+  }
+  if (output.maximum_position_correction_m > config.maximum_position_correction_m ||
+    output.maximum_rotation_correction_rad > config.maximum_rotation_correction_rad ||
+    output.maximum_velocity_correction_m_s > config.maximum_velocity_correction_m_s)
+  {
+    output.rejection = FixedBackSubstitutionRejection::CorrectionLimit;
+    return output;
+  }
+  if (output.cost_after - output.cost_before > config.maximum_cost_increase) {
+    output.rejection = FixedBackSubstitutionRejection::CostIncrease;
+    return output;
+  }
+  output.accepted = true;
+  output.rejection = FixedBackSubstitutionRejection::None;
+  output.state_id = state_order_.back();
+  output.latest_state = candidate_states.at(output.state_id);
+  return output;
 }
 
 std::size_t FloatFixedLagSmoother::factorCount() const noexcept

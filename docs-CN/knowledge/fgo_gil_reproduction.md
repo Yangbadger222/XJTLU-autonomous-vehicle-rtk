@@ -8,7 +8,7 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1、3、4、5 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化。真实 raw UART/PPS fixture、compressed observation、RTCM fallback、CORS 基站 ECEF、`T_ecef_lidar_world` 以及真实 LiDAR/raw-GNSS bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
+当前代码进度：Phase 1、3、4、5、6 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化；Phase 6 已增加固定版本 RTKLIB MLAMBDA、partial ambiguity resolution、固定候选回代验证与独立 fixed shadow 输出。真实 raw UART/PPS fixture、compressed observation、RTCM fallback、CORS 基站 ECEF、`T_ecef_lidar_world` 以及真实 LiDAR/raw-GNSS bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -345,15 +345,21 @@ time_sync:
 
 实现说明：载波频率严格按 UM982 分星座 signal-ID 表解释，未知 ID 和非法 GLONASS 频点直接 fail closed。GPS/QZSS/Galileo/BDS Kepler、BDS GEO 旋转、GLONASS RK4、发射时刻和 Sagnac 修正均有单位测试。DD 载波模糊度统一存为米，key 同时包含 target/reference satellite 和 rover/base 四条 arc ID，因此参考星切换或单星周跳不会静默复用旧变量。Eigen smoother 把 Phase 3 ECEF IMU 重传播、Phase 4 原始线面因子和 DD 码/载波因子共同重线性化；窗口同时受时间和 state 数限制，旧 state 与失活 ambiguity 通过 Schur 补进入带锚点的稠密先验，禁止清图后补虚假强 prior。
 
-Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递真实点线/点面因子，而不是把 FAST-LIO pose 伪装成 LiDAR factor。`system_fgo_gil_float.launch.py` 只发布 `/fgo_gil/float_odom_ecef` 和诊断，不发布 TF 或控制命令。`calibration.ecef_from_lidar_world.calibrated` 与 `calibration.gnss.base_ecef_calibrated` 默认均为 `false`；现场值补齐前，节点只报告 waiting/LIO-only，不能声称 GNSS float 验收通过。master 杆臂占位值 `[0.0,-0.184,0.134] m` 由已测右天线在 `base_link` 中的 `[0.0,-0.184,0.154] m` 减去当前尚未精标的 IMU Z 占位 `0.02 m` 得到。
+Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递真实点线/点面因子，而不是把 FAST-LIO pose 伪装成 LiDAR factor。`system_fgo_gil_float.launch.py` 保留 `/fgo_gil/float_odom_ecef`，Phase 6 仅增加独立 `/fgo_gil/fixed_odom_ecef`，始终不发布 TF 或控制命令。`calibration.ecef_from_lidar_world.calibrated` 与 `calibration.gnss.base_ecef_calibrated` 默认均为 `false`；现场值补齐前，节点只报告 waiting/LIO-only，不能声称 GNSS float/fixed 验收通过。master 杆臂占位值 `[0.0,-0.184,0.134] m` 由已测右天线在 `base_link` 中的 `[0.0,-0.184,0.154] m` 减去当前尚未精标的 IMU Z 占位 `0.02 m` 得到。
 
 ### Phase 6：整数固定
 
-- [ ] 集成 LAMBDA，完成 covariance ordering 和单位测试。
-- [ ] 实现 ratio test、partial fix、回代和 fixed rejection。
-- [ ] 发布 FLOAT/FIXED 状态、fix ratio、固定卫星数和 rejection reason。
+- [x] 集成 LAMBDA，完成 covariance ordering 和单位测试。
+- [x] 实现 ratio test、partial fix、回代和 fixed rejection。
+- [x] 发布 FLOAT/FIXED 状态、fix ratio、固定 ambiguity 数和 rejection reason。
 
 完成条件：已知整数 fixture 正确固定；错误候选不会污染下一窗口；周跳后只重置相关 ambiguity。
+
+实现说明：MLAMBDA 核心固定到 RTKLIB commit `71db0ffa0d9735697c6adfd06fdf766d0e5ce807` 的 `lambda.c`，Eigen 只替换内存管理与最终线性求解；上游版权、BSD-2-Clause 条款与附加条款完整保存在 `third_party/rtklib/LICENSE.txt`。smoother 从完整联合 Hessian 计算边缘协方差，并用与 ambiguity key 相同的确定顺序输出；DD ambiguity 从米按 signal wavelength 转成周后才进入 LAMBDA。
+
+整数解析先锁定全图最新 GNSS state，并要求每个 signal group 在该 state 只有唯一 reference satellite 与 reference rover/base arc 基底；不同星座/信号的当前变量在分别换算为 cycles 后使用完整交叉协方差联合进入 LAMBDA。参考星变化时，新变量通过 `N_i^q=N_i^r-N_q^r` 精确变换初始化；任一相关 arc 改变则无法匹配旧基底，自动回到新变量初始化。由于 GLONASS FDMA 的 target/reference wavelength 不同，本阶段明确排除 GLONASS 整数固定，避免把米制组合错误解释为单一整数周。
+
+默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解，fixed topic 只在全部门通过且最新 keyframe 有本历元有效 DD factor 时发布，GNSS outage 不会复用旧 ambiguity 发布 stale fixed。
 
 ### Phase 7：ROS shadow 集成和回放
 

@@ -107,6 +107,11 @@ def test_phase5_config_fails_closed_and_bounds_the_float_window():
     assert parameters["window"]["maximum_states"] == 20
     assert parameters["gnss"]["maximum_baseline_m"] == 20000.0
     assert parameters["topics"]["odometry"] == "/fgo_gil/float_odom_ecef"
+    assert parameters["topics"]["fixed_odometry"] == "/fgo_gil/fixed_odom_ecef"
+    assert parameters["integer_fixing"]["enabled"] is True
+    assert parameters["integer_fixing"]["partial_fixing"] is True
+    assert parameters["integer_fixing"]["minimum_ambiguities"] == 4
+    assert parameters["integer_fixing"]["ratio_threshold"] == 3.0
 
 
 def test_phase5_launch_and_cleanup_entry_points_exist():

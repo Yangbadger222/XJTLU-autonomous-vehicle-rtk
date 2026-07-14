@@ -10,6 +10,7 @@
 
 #include "fgo_gil_localizer/ecef_imu_preintegrator.hpp"
 #include "fgo_gil_localizer/gnss_double_difference.hpp"
+#include "fgo_gil_localizer/integer_ambiguity_resolver.hpp"
 #include "fgo_gil_localizer/lidar_factors.hpp"
 
 namespace fgo_gil_localizer
@@ -72,6 +73,41 @@ struct FloatSmootherDiagnostics
   bool last_solve_succeeded = false;
 };
 
+enum class FixedBackSubstitutionRejection : std::uint8_t
+{
+  None,
+  NotEvaluated,
+  InvalidInput,
+  MissingAmbiguity,
+  CovarianceUnavailable,
+  CorrectionLimit,
+  CostIncrease,
+};
+
+const char * toString(FixedBackSubstitutionRejection reason) noexcept;
+
+struct FixedBackSubstitutionConfig
+{
+  double maximum_position_correction_m = 0.50;
+  double maximum_rotation_correction_rad = 0.10;
+  double maximum_velocity_correction_m_s = 1.0;
+  double maximum_cost_increase = 5.0;
+};
+
+struct FixedBackSubstitutionResult
+{
+  bool accepted = false;
+  FixedBackSubstitutionRejection rejection =
+    FixedBackSubstitutionRejection::NotEvaluated;
+  StateId state_id = 0;
+  EcefState latest_state;
+  double maximum_position_correction_m = 0.0;
+  double maximum_rotation_correction_rad = 0.0;
+  double maximum_velocity_correction_m_s = 0.0;
+  double cost_before = 0.0;
+  double cost_after = 0.0;
+};
+
 class FloatFixedLagSmoother
 {
 public:
@@ -101,6 +137,11 @@ public:
 
   const EcefState * state(StateId id) const noexcept;
   std::optional<double> ambiguity(const DdAmbiguityKey & key) const;
+  std::optional<FloatAmbiguityEstimate> floatAmbiguityEstimate();
+  FixedBackSubstitutionResult previewFixedAmbiguities(
+    const std::vector<DdAmbiguityKey> & keys,
+    const Eigen::VectorXd & fixed_values_m,
+    const FixedBackSubstitutionConfig & config = {});
   std::size_t stateCount() const noexcept {return states_.size();}
   std::size_t ambiguityCount() const noexcept {return ambiguities_.size();}
   std::size_t factorCount() const noexcept;
@@ -182,6 +223,11 @@ private:
   LinearSystem buildLinearSystem(
     const VariableLayout & layout,
     std::optional<StateId> marginalize_state = std::nullopt);
+  std::optional<Eigen::MatrixXd> linearizedCovariance(const LinearSystem & system) const;
+  bool prepareFixLinearization();
+  void invalidateFixLinearization() noexcept;
+  std::optional<double> transformedAmbiguityInitialization(
+    const DdAmbiguityKey & key) const;
   bool applyDelta(const VariableLayout & layout, const Eigen::VectorXd & delta);
   bool marginalizeOldestIfNeeded();
   bool marginalizeOldest();
@@ -193,11 +239,15 @@ private:
   std::map<StateId, EcefState> states_;
   std::vector<StateId> state_order_;
   std::map<DdAmbiguityKey, double> ambiguities_;
+  std::map<DdAmbiguityKey, StateId> ambiguity_last_state_;
   std::vector<StatePriorFactor> state_priors_;
   std::vector<ImuFactor> imu_factors_;
   std::vector<LidarFactorBatch> lidar_factors_;
   std::vector<GnssFactorBatch> gnss_factors_;
   std::optional<DenseMarginalPrior> marginal_prior_;
+  std::optional<VariableLayout> fix_layout_cache_;
+  std::optional<LinearSystem> fix_system_cache_;
+  std::optional<Eigen::MatrixXd> fix_covariance_cache_;
   FloatSmootherDiagnostics diagnostics_;
 };
 

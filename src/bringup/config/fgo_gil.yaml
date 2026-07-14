@@ -35,3 +35,84 @@ fgo_gil_time_sync:
 
     lidar_max_gap_s: 0.5
     diagnostics_period_s: 1.0
+
+fgo_gil_lidar_frontend:
+  ros__parameters:
+    # Phase 4 remains shadow-only. FAST-LIO odometry supplies an initial state but
+    # is never converted into a LiDAR factor or republished as FGO odometry.
+    topics:
+      imu: /livox/imu
+      lidar: /livox/lidar
+      initial_odom: /fastlio2/lio_odom
+      time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
+      gnss_epoch: /gnss/raw/observation_epoch
+      diagnostics: /fgo_gil/lidar_diagnostics
+
+    buffers:
+      imu_capacity: 8192
+      odom_capacity: 100
+      pending_scan_capacity: 4
+      pending_scan_timeout_s: 0.5
+
+    initialization:
+      maximum_odom_age_s: 0.5
+      # The current Livox Imu message reports acceleration in g; FAST-LIO applies
+      # an approximately 10x scale. Use standard gravity here and revalidate on bag.
+      acceleration_scale: 9.80665
+      require_time_sync: true
+      time_sync_timeout_s: 2.0
+      gnss_availability_timeout_s: 2.0
+
+    preprocessing:
+      point_stride: 1
+      minimum_range_m: 0.5
+      maximum_range_m: 25.0
+      maximum_line_exclusive: 4
+
+    deskew:
+      maximum_imu_gap_s: 0.05
+      maximum_trajectory_duration_s: 1.0
+      accelerometer_bias_m_s2: [0.0, 0.0, 0.0]
+      gyroscope_bias_rad_s: [0.0, 0.0, 0.0]
+      gravity_world_m_s2: [0.0, 0.0, -9.80665]
+      rotation_imu_lidar_wxyz: [1.0, 0.0, 0.0, 0.0]
+      # Same LiDAR -> IMU translation currently used by FAST-LIO.
+      translation_imu_lidar_m: [-0.011, -0.02329, 0.04412]
+
+    features:
+      neighbor_span: 2
+      minimum_points_per_line: 9
+      maximum_edge_per_line: 30
+      maximum_plane_per_line: 80
+      suppression_radius: 2
+      edge_curvature_threshold: 0.02
+      plane_curvature_threshold: 0.001
+      minimum_edge_per_frame: 8
+      minimum_plane_per_frame: 20
+
+    keyframes:
+      translation_threshold_m: 0.5
+      rotation_threshold_rad: 0.17453292519943295
+      elapsed_time_threshold_s: 1.0
+      maximum_keyframes: 20
+      maximum_edge_points: 300
+      maximum_plane_points: 800
+      submap_radius_m: 20.0
+      edge_voxel_size_m: 0.15
+      plane_voxel_size_m: 0.25
+
+    matcher:
+      nearest_neighbors: 5
+      maximum_neighbor_distance_m: 1.0
+      minimum_line_eigen_ratio: 3.0
+      minimum_line_eigenvalue: 0.0001
+      maximum_plane_eigen_ratio: 0.10
+      minimum_plane_second_eigenvalue: 0.0001
+      maximum_plane_fit_residual_m: 0.10
+      minimum_line_matches: 8
+      minimum_plane_matches: 20
+      huber_delta_m: 0.20
+      minimum_information_eigenvalue: 0.001
+      maximum_information_condition: 100000000.0
+
+    diagnostics_period_s: 1.0

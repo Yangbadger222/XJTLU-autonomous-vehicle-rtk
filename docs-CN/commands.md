@@ -703,6 +703,32 @@ python3 scripts/analyze_fgo_gil_imu_bag.py <bag目录> --max-gap-s 0.05
 
 本机 `jetson_2026-06-24-13-54-59` bag 的 26,004 条 IMU 全部可解码且无重复、倒退或非有限值，但有效频率仅约 83.47 Hz，存在 1,109 个超过 50 ms 的 gap，最大约 9.94 s，因此不能作为连续预积分验收包。设计文档中的 2026-07-10 bag 仍需从分析机取回后用同一脚本复验约 193.5 Hz。
 
+## FGO-GIL Phase 4 原始 LiDAR 因子前端
+
+先启动 Livox、FAST-LIO 初始化输入和 UM982 raw observation source，再启动 Phase 3+4 shadow 前端：
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-lidar
+```
+
+检查唯一的 Phase 4 输出：
+
+```bash
+ros2 topic echo /fgo_gil/lidar_diagnostics
+```
+
+关键状态：
+
+- `WAITING_FOR_TIME_SYNC`：Phase 3 尚未达到 `COARSE`/`PPS_LOCKED`，扫描不会进入地图。
+- `WAITING_FOR_LIO_INITIALIZATION` / `WAITING_FOR_IMU_COVERAGE`：缺少不晚于扫描起点的初始化状态或覆盖扫描末端的连续 IMU。
+- `MAP_INITIALIZED`：首个通过时间、去畸变和最小特征数检查的 keyframe 已建立，但尚未声称约束有效。
+- `DEGENERATE_NO_CONSTRAINT` / `MATCHES_INSUFFICIENT`：允许观察残差，但 `constraint_valid=false`，不会新增 keyframe。
+- `TRACKING`：线面匹配数、最小信息特征值和条件数均通过。
+
+诊断同时输出 `edge_features`、`plane_features`、`line_matches`、`plane_matches`、`residual_rms_m`、`information_min_eigenvalue`、`information_condition`、`latency_ms` 和全部拒绝计数。该模式不发布 TF、odometry、path 或 `/cmd_vel`。本机现有 bag 不含 `/livox/lidar`，因此真实 MID360 特征数、耗时和阈值仍需在 2026-07-10 bag 或新录包上验证；当前 YAML 不可用于论文结果。
+
 ## RTK FGO 紧耦合 shadow mode
 
 构建：

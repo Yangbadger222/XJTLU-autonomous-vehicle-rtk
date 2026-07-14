@@ -30,6 +30,7 @@
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
 | RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧、observation epoch 与星历 shadow 采集/录包 |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 GNSS/LiDAR/IMU 时间映射、PPS 与 IMU buffer shadow 诊断 |
+| FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 时间同步、MID360 去畸变、线面特征/KF-map 与退化诊断 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
@@ -163,6 +164,25 @@ fgo_gil_core
 ```
 
 当前 Livox 驱动用 ROS `now()` 写生产消息时间戳，所以默认 `imu_stamp_domain=ros`、`lidar_stamp_domain=ros`，并在没有 PPS 时保留至少 20 ms 时间不确定度。只有真实 `sensor_msgs/TimeReference` 连续到达并通过窗口检查后才进入 `PPS_LOCKED`。该节点不发布 TF、odometry 或命令。
+
+### 5.5 FGO-GIL Phase 4 原始 LiDAR 因子前端（shadow）
+
+```text
+/livox/lidar -- CustomPoint offset_time/tag/line --+
+/livox/imu ----------------------------------------+-> fgo_gil_lidar_frontend_node
+/fastlio2/lio_odom -- initialization only --------+   -> /fgo_gil/lidar_diagnostics
+/fgo_gil/time_sync_diagnostics -------------------+
+
+ROS-free fgo_gil_core
+  -> MID360 public-field filtering and per-point IMU de-skew
+  -> line curvature edge/plane selection
+  -> translation/rotation/time/GNSS-change keyframes
+  -> bounded voxelized KF-map and radius submap
+  -> point-to-line / point-to-plane factors with left-perturbation Jacobians
+  -> Huber weights + match-count/eigenvalue/condition-number degeneracy gate
+```
+
+FAST-LIO odometry only initializes the IMU trajectory and current raw-factor linearization point; it is not converted into a factor or republished as FGO odometry. `UNSYNCED`、IMU 覆盖不足、点时间倒退/重复、特征不足或 Hessian 退化都会阻止 `constraint_valid=true` 和 KF-map 更新。该节点唯一输出是诊断，不发布 TF、odometry、path 或命令。`fgo_gil.yaml` 中的加速度比例、LiDAR-IMU 外参和特征/匹配阈值是待 bag/实车校准的保守 shadow 初值。
 
 ## 7. TF 链
 

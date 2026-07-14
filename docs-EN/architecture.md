@@ -30,6 +30,7 @@
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
 | RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame, observation-epoch, and ephemeris capture/bagging on a dedicated 921600 binary port |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 shadow diagnostics for GNSS/LiDAR/IMU clock mapping, PPS, and the IMU buffer |
+| FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 time sync, MID360 de-skew, line/plane features, KF-map, and degeneracy diagnostics |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
@@ -163,6 +164,25 @@ fgo_gil_core
 ```
 
 The current Livox driver stamps production messages with ROS `now()`, so the defaults remain `imu_stamp_domain=ros` and `lidar_stamp_domain=ros`, with at least 20 ms timing uncertainty before PPS lock. The frontend enters `PPS_LOCKED` only after real `sensor_msgs/TimeReference` samples pass the bounded window checks. It publishes no TF, odometry, or commands.
+
+### 5.5 FGO-GIL Phase 4 Raw LiDAR Factor Frontend (Shadow)
+
+```text
+/livox/lidar -- CustomPoint offset_time/tag/line --+
+/livox/imu ----------------------------------------+-> fgo_gil_lidar_frontend_node
+/fastlio2/lio_odom -- initialization only --------+   -> /fgo_gil/lidar_diagnostics
+/fgo_gil/time_sync_diagnostics -------------------+
+
+ROS-free fgo_gil_core
+  -> MID360 public-field filtering and per-point IMU de-skew
+  -> line-curvature edge/plane selection
+  -> translation/rotation/time/GNSS-change keyframes
+  -> bounded voxelized KF-map and radius submap
+  -> point-to-line / point-to-plane factors with left-perturbation Jacobians
+  -> Huber weights + match-count/eigenvalue/condition-number degeneracy gate
+```
+
+FAST-LIO odometry only initializes the IMU trajectory and current raw-factor linearization point; it is neither converted into a factor nor republished as FGO odometry. `UNSYNCED`, insufficient IMU coverage, duplicate/reversed point time, insufficient features, or a degenerate Hessian prevents `constraint_valid=true` and KF-map updates. The node publishes diagnostics only: no TF, odometry, path, or command. Acceleration scale, LiDAR-IMU extrinsic, and feature/matching thresholds in `fgo_gil.yaml` are conservative shadow initial values pending bag and vehicle calibration.
 
 ## 7. TF Chain
 

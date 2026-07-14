@@ -8,7 +8,7 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
-Current implementation status: Phase 1 is complete. Phase 2 includes uncompressed observations, broadcast ephemerides, and explicit GNSS week rollover/reset. Phase 3 now provides GNSS/LiDAR/IMU clock mapping, optional PPS, timing uncertainty, a bounded segmented IMU buffer, ECEF propagation/preintegration, and 9x6 bias sensitivity. A real raw-UART/PPS fixture, compressed observations, RTCM fallback, and satellite-state propagation remain pending; the designated 2026-07-10 bag has not been rerun because the analysis machine is offline.
+Current implementation status: Phase 1 is complete. Phase 2 includes uncompressed observations, broadcast ephemerides, and explicit GNSS week rollover/reset. Phase 3 provides clock mapping, a bounded IMU buffer, and ECEF preintegration. Phase 4 now provides independent MID360 preprocessing/de-skew, edge/plane features, a KF-map, line/plane factors, and degeneracy gating. A real raw-UART/PPS fixture, compressed observations, RTCM fallback, and satellite-state propagation remain pending; the designated 2026-07-10 bag has not been rerun because the analysis machine is offline, and Phase 4 parameters have not received real-LiDAR bag acceptance.
 
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
@@ -325,12 +325,14 @@ Implementation note: the current Livox production stamp is ROS `now()`, so the d
 
 ### Phase 4: Raw LiDAR factor frontend
 
-- [ ] Reuse or extract MID360 point preprocessing without copying unmaintainable FAST-LIO private state.
-- [ ] Implement de-skew, edge/plane features, keyframes, and KF-map management.
-- [ ] Implement point-to-line/point-to-plane factors and numerical Jacobian checks.
-- [ ] Publish feature counts, match residual, degeneracy, and latency.
+- [x] Reuse or extract MID360 point preprocessing without copying unmaintainable FAST-LIO private state.
+- [x] Implement de-skew, edge/plane features, keyframes, and KF-map management.
+- [x] Implement point-to-line/point-to-plane factors and numerical Jacobian checks.
+- [x] Publish feature counts, match residual, degeneracy, and latency.
 
 Done: synthetic line/plane zero residuals and finite-difference Jacobians pass; degenerate scenes cannot emit false high-confidence constraints.
+
+Implementation note: the Phase 4 core contains no FAST-LIO IESKF, ikd-tree, or private state; it reads only the public Livox `offset_time/tag/line` fields. FAST-LIO odometry is an initialization fallback for the IMU trajectory and factor linearization point in the shadow node, never a paper LiDAR factor. Every scan must pass the Phase 3 clock state, continuous IMU coverage, minimum line/plane feature counts, and Hessian observability gates; a synthetic single-plane scene explicitly produces `constraint_valid=false`. Current `acceleration_scale=9.80665`, `t_il=[-0.011,-0.02329,0.04412] m`, and curvature/matching thresholds come from existing driver/FAST-LIO initial values and are shadow-only. Local bags contain no `/livox/lidar`, so real feature counts, runtime, and thresholds still require acceptance after the analysis host returns.
 
 ### Phase 5: GNSS DD and float FGO
 

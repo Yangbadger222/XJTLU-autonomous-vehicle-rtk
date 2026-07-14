@@ -8,7 +8,7 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 observation、broadcast ephemeris 和显式 GNSS week rollover/reset；Phase 3 已实现 GNSS/LiDAR/IMU 时间映射、可选 PPS、时间不确定度、有界 IMU segment buffer、ECEF propagation/preintegration 与 9x6 bias sensitivity。尚未接入真实 raw UART/PPS fixture，也尚未实现 compressed observation、RTCM fallback 或 satellite-state 轨道传播；指定的 2026-07-10 bag 因分析机离线尚未复验。
+当前代码进度：Phase 1 已完成；Phase 2 已实现非压缩 observation、broadcast ephemeris 和显式 GNSS week rollover/reset；Phase 3 已实现时间映射、有界 IMU buffer 与 ECEF preintegration；Phase 4 已实现独立的 MID360 preprocessing/de-skew、edge/plane、KF-map、线面因子和退化门控。尚未接入真实 raw UART/PPS fixture，也尚未实现 compressed observation、RTCM fallback 或 satellite-state 轨道传播；指定的 2026-07-10 bag 因分析机离线尚未复验，Phase 4 参数也尚未做真实 LiDAR bag 验收。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -325,12 +325,14 @@ time_sync:
 
 ### Phase 4：LiDAR 原始因子前端
 
-- [ ] 复用或抽取 MID360 point preprocessing，不复制不可维护的 FAST-LIO 私有状态。
-- [ ] 完成 de-skew、edge/plane extraction、keyframe 和 KF-map 管理。
-- [ ] 实现 point-to-line、point-to-plane factor 与 Jacobian 数值检查。
-- [ ] 输出 feature count、match residual、degeneracy 和耗时。
+- [x] 复用或抽取 MID360 point preprocessing，不复制不可维护的 FAST-LIO 私有状态。
+- [x] 完成 de-skew、edge/plane extraction、keyframe 和 KF-map 管理。
+- [x] 实现 point-to-line、point-to-plane factor 与 Jacobian 数值检查。
+- [x] 输出 feature count、match residual、degeneracy 和耗时。
 
 完成条件：合成平面/直线残差零点正确；有限差分 Jacobian 通过；退化场景不输出虚假高置信约束。
+
+实现说明：Phase 4 核心不包含 FAST-LIO 的 IESKF、ikd-tree 或私有状态，只读取 Livox `offset_time/tag/line` 公共字段。FAST-LIO odom 在 shadow 节点中只作为 IMU 轨迹和因子线性化点的初始化回退，不会变成论文 LiDAR factor。所有扫描必须通过 Phase 3 时间状态、连续 IMU 覆盖、最小线面特征数和 Hessian 可观性门控；单平面合成场景明确得到 `constraint_valid=false`。当前 `acceleration_scale=9.80665`、`t_il=[-0.011,-0.02329,0.04412] m` 和曲率/匹配阈值来自现有驱动/FAST-LIO 初值，只允许 shadow 使用。本机 bag 没有 `/livox/lidar`，真实特征数量、运行耗时和阈值仍需数据机上线后验收。
 
 ### Phase 5：GNSS DD 与 float FGO
 

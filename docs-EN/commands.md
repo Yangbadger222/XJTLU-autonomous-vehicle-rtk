@@ -702,6 +702,32 @@ python3 scripts/analyze_fgo_gil_imu_bag.py <bag-directory> --max-gap-s 0.05
 
 All 26,004 IMU messages in the local `jetson_2026-06-24-13-54-59` bag decode without duplicates, reversals, or non-finite measurements. Its effective rate is only about 83.47 Hz, however, with 1,109 gaps over 50 ms and a maximum gap of about 9.94 s, so it is not a continuous-preintegration acceptance bag. The documented 2026-07-10 bag still needs to be retrieved from the analysis machine and rechecked with the same tool for the expected approximately 193.5 Hz stream.
 
+## FGO-GIL Phase 4 Raw LiDAR Factor Frontend
+
+Start Livox, the FAST-LIO initialization input, and the UM982 raw-observation source, then launch the combined Phase 3+4 shadow frontend:
+
+```bash
+make build-fgo-gil
+ss
+make launch-fgo-gil-lidar
+```
+
+Inspect the only Phase 4 output:
+
+```bash
+ros2 topic echo /fgo_gil/lidar_diagnostics
+```
+
+Key states:
+
+- `WAITING_FOR_TIME_SYNC`: Phase 3 has not reached `COARSE`/`PPS_LOCKED`; scans cannot enter the map.
+- `WAITING_FOR_LIO_INITIALIZATION` / `WAITING_FOR_IMU_COVERAGE`: no initializer at or before scan start, or no continuous IMU coverage through scan end.
+- `MAP_INITIALIZED`: the first keyframe passed timing, de-skew, and minimum-feature checks, but no valid constraint is claimed yet.
+- `DEGENERATE_NO_CONSTRAINT` / `MATCHES_INSUFFICIENT`: residuals remain observable, but `constraint_valid=false` and no keyframe is added.
+- `TRACKING`: line/plane match counts, minimum information eigenvalue, and condition number all pass.
+
+Diagnostics include `edge_features`, `plane_features`, `line_matches`, `plane_matches`, `residual_rms_m`, `information_min_eigenvalue`, `information_condition`, `latency_ms`, and all rejection counters. This mode publishes no TF, odometry, path, or `/cmd_vel`. Available local bags do not contain `/livox/lidar`, so real MID360 feature counts, latency, and thresholds still require the 2026-07-10 bag or a new recording; current YAML values cannot support paper results.
+
 ## RTK FGO Tight-Coupled Shadow Mode
 
 Build:

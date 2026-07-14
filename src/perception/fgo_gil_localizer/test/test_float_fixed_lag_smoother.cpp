@@ -342,7 +342,8 @@ TEST(FloatFixedLagSmoother, FixedPreviewNeverMutatesFloatWindow)
   EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.y, float_state.position_ecef_m.y);
   EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.z, float_state.position_ecef_m.z);
   for (std::size_t index = 0; index < measurements.size(); ++index) {
-    EXPECT_DOUBLE_EQ(*smoother.ambiguity(measurements[index].ambiguity_key),
+    EXPECT_DOUBLE_EQ(
+      *smoother.ambiguity(measurements[index].ambiguity_key),
       float_ambiguities[index]);
   }
 
@@ -356,7 +357,8 @@ TEST(FloatFixedLagSmoother, FixedPreviewNeverMutatesFloatWindow)
   EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.y, float_state.position_ecef_m.y);
   EXPECT_DOUBLE_EQ(smoother.state(1)->position_ecef_m.z, float_state.position_ecef_m.z);
   for (std::size_t index = 0; index < measurements.size(); ++index) {
-    EXPECT_DOUBLE_EQ(*smoother.ambiguity(measurements[index].ambiguity_key),
+    EXPECT_DOUBLE_EQ(
+      *smoother.ambiguity(measurements[index].ambiguity_key),
       float_ambiguities[index]);
   }
 }

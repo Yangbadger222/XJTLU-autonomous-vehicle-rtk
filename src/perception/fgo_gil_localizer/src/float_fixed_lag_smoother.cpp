@@ -954,7 +954,8 @@ std::optional<FloatAmbiguityEstimate> FloatFixedLagSmoother::floatAmbiguityEstim
   for (int row = 0; row < count; ++row) {
     for (int column = 0; column < count; ++column) {
       estimate.covariance_m2(row, column) =
-        covariance(scalar_offsets[static_cast<std::size_t>(row)],
+        covariance(
+        scalar_offsets[static_cast<std::size_t>(row)],
         scalar_offsets[static_cast<std::size_t>(column)]);
     }
   }

@@ -142,7 +142,10 @@ enum class ArcResetReason : std::uint8_t
   ObservationGap,
   DopplerPhaseInconsistent,
   TimeReversal,
+  Count,
 };
+
+const char * toString(ArcResetReason reason) noexcept;
 
 struct ArcUpdate
 {
@@ -245,12 +248,15 @@ enum class DdRejectReason : std::uint8_t
   Count,
 };
 
+const char * toString(DdRejectReason reason) noexcept;
+
 struct DdBuilderDiagnostics
 {
   std::uint64_t aligned_epochs = 0;
   std::uint64_t code_factors = 0;
   std::uint64_t carrier_factors = 0;
   std::uint64_t new_arcs = 0;
+  std::array<std::uint64_t, static_cast<std::size_t>(ArcResetReason::Count)> arc_resets{};
   std::array<std::uint64_t, static_cast<std::size_t>(DdRejectReason::Count)> rejected{};
 };
 

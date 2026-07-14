@@ -363,12 +363,18 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 ### Phase 7：ROS shadow 集成和回放
 
-- [ ] 增加 `system_fgo_gil_shadow.launch.py` 和独立 bag profile。
-- [ ] 发布 `/fgo_gil/odom`、path、factor diagnostics、ambiguity status、timing status 和 performance。
-- [ ] 将新节点加入 `make kill-runtime`，但保持 `publish_tf=false`、`nav2_use_fgo=false`。
-- [ ] 扩展 evaluator，报告 APE/RPE、availability、fixing rate、outage drift、CPU/RAM 和实时因子。
+- [x] 增加 `system_fgo_gil_shadow.launch.py` 和独立 bag profile。
+- [x] 发布 `/fgo_gil/odom`、path、factor diagnostics、ambiguity status、timing status 和 performance。
+- [x] 将完整 shadow 进程集加入 `make kill-runtime`，但保持 `publish_tf=false`、`nav2_use_fgo=false`。
+- [x] 扩展 evaluator，报告 APE/RPE、availability、fixing rate、outage drift、CPU/RAM 和实时因子。
 
 完成条件：桌面测试和 Jetson clean build 通过；现有 bag 可验证非 GNSS-raw 路径和 comparator，缺少 raw topic 时明确报告 `RAW_GNSS_UNAVAILABLE`。
+
+实现说明：完整 launch 的 live 默认启动 Livox、FAST-LIO2 initializer/comparator、独立 UM982 raw driver 和 Phase 3-7 estimator；replay 可逐项关闭硬件节点并启用 ROS clock。`full` profile 保存 raw frame、原始 LiDAR、TF 和完整诊断，`minimal` profile 保存重放算法与评价所需的最小输入/输出。该 launch 与 estimator 各自执行 shadow ownership 检查，任一 `publish_tf=true` 或 `nav2_use_fgo=true` 都直接拒绝启动；本阶段没有新增控制节点，`make kill-runtime` 已覆盖所有现有 FGO executable、sensor/comparator 和 rosbag 进程。
+
+统一 `/fgo_gil/odom` 优先选用当前历元已验证 fixed candidate，否则使用 float，并同步发布有界 ECEF path。factor diagnostics 分层输出 IMU、LiDAR line/plane、GNSS code/carrier 数量、residual RMS、DD reject reason、arc reset 和 optimizer rollback；ambiguity/timing/performance 分别输出整数状态、时钟状态、窗口/延迟/实时因子、stale/non-finite 与 control ownership。raw observation 使用 2 s stale 阈值，低频 broadcast ephemeris 使用独立 300 s 阈值，避免把正常星历刷新周期误判为断流。
+
+`evaluate_fgo_gil_bag.py` 先按时间匹配 FGO 与 FAST-LIO comparator，再做无尺度 SE(3) 刚体对齐，避免直接相减 ECEF 与局部坐标；outage 只使用 50 ms 内一对一匹配的 master/base 历元，单边 raw 流标记为 `RAW_GNSS_INCOMPLETE`。结果包含 APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF 和 `tegrastats` CPU/RAM。metadata-only 模式不依赖 ROS 解码；raw topic 缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收
 

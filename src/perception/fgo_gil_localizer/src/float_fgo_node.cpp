@@ -4,6 +4,7 @@
 #include "fgo_gil_localizer/satellite_propagator.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -23,9 +24,11 @@
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
 #include "fgo_gil_msgs/msg/lidar_constraint_batch.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "gnss_raw_msgs/msg/ephemeris.hpp"
 #include "gnss_raw_msgs/msg/observation_epoch.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 
@@ -185,7 +188,13 @@ private:
       "topics.time_sync_diagnostics", "/fgo_gil/time_sync_diagnostics");
     declare_parameter<std::string>("topics.odometry", "/fgo_gil/float_odom_ecef");
     declare_parameter<std::string>("topics.fixed_odometry", "/fgo_gil/fixed_odom_ecef");
+    declare_parameter<std::string>("topics.output_odometry", "/fgo_gil/odom");
+    declare_parameter<std::string>("topics.path", "/fgo_gil/path");
     declare_parameter<std::string>("topics.diagnostics", "/fgo_gil/float_diagnostics");
+    declare_parameter<std::string>(
+      "topics.factor_diagnostics", "/fgo_gil/factor_diagnostics");
+    declare_parameter<std::string>("topics.ambiguity_status", "/fgo_gil/ambiguity_status");
+    declare_parameter<std::string>("topics.performance", "/fgo_gil/performance");
     declare_parameter<std::string>("frames.ecef", "ecef");
     declare_parameter<std::string>("frames.body", "imu_link");
 
@@ -212,6 +221,12 @@ private:
     declare_parameter<double>("time.maximum_gnss_keyframe_offset_s", 0.10);
     declare_parameter<double>("time.maximum_sync_age_s", 2.0);
     declare_parameter<double>("time.maximum_clock_uncertainty_s", 0.05);
+    declare_parameter<double>("raw_input.startup_grace_s", 5.0);
+    declare_parameter<double>("raw_input.observation_stale_timeout_s", 2.0);
+    declare_parameter<double>("raw_input.ephemeris_stale_timeout_s", 300.0);
+    declare_parameter<int>("output.maximum_path_poses", 2000);
+    declare_parameter<bool>("safety.publish_tf", false);
+    declare_parameter<bool>("safety.nav2_use_fgo", false);
 
     declare_parameter<double>("window.duration_s", 10.0);
     declare_parameter<int>("window.maximum_states", 20);
@@ -317,7 +332,12 @@ private:
     time_sync_topic_ = get_parameter("topics.time_sync_diagnostics").as_string();
     odometry_topic_ = get_parameter("topics.odometry").as_string();
     fixed_odometry_topic_ = get_parameter("topics.fixed_odometry").as_string();
+    output_odometry_topic_ = get_parameter("topics.output_odometry").as_string();
+    path_topic_ = get_parameter("topics.path").as_string();
     diagnostics_topic_ = get_parameter("topics.diagnostics").as_string();
+    factor_diagnostics_topic_ = get_parameter("topics.factor_diagnostics").as_string();
+    ambiguity_status_topic_ = get_parameter("topics.ambiguity_status").as_string();
+    performance_topic_ = get_parameter("topics.performance").as_string();
     ecef_frame_ = get_parameter("frames.ecef").as_string();
     body_frame_ = get_parameter("frames.body").as_string();
     ecef_world_calibrated_ =
@@ -340,6 +360,14 @@ private:
     maximum_clock_uncertainty_s_ =
       get_parameter("time.maximum_clock_uncertainty_s").as_double();
     diagnostics_period_s_ = get_parameter("diagnostics_period_s").as_double();
+    raw_startup_grace_s_ = get_parameter("raw_input.startup_grace_s").as_double();
+    observation_stale_timeout_s_ =
+      get_parameter("raw_input.observation_stale_timeout_s").as_double();
+    ephemeris_stale_timeout_s_ =
+      get_parameter("raw_input.ephemeris_stale_timeout_s").as_double();
+    maximum_path_poses_ = positiveSizeParameter("output.maximum_path_poses");
+    publish_tf_ = get_parameter("safety.publish_tf").as_bool();
+    nav2_use_fgo_ = get_parameter("safety.nav2_use_fgo").as_bool();
 
     smoother_config_.duration_s = get_parameter("window.duration_s").as_double();
     smoother_config_.maximum_states = positiveSizeParameter("window.maximum_states");
@@ -422,9 +450,16 @@ private:
       maximum_gnss_keyframe_offset_s_ <= 0.0 || !std::isfinite(maximum_sync_age_s_) ||
       maximum_sync_age_s_ <= 0.0 || !std::isfinite(maximum_clock_uncertainty_s_) ||
       maximum_clock_uncertainty_s_ <= 0.0 || !std::isfinite(diagnostics_period_s_) ||
-      diagnostics_period_s_ <= 0.0)
+      diagnostics_period_s_ <= 0.0 || !std::isfinite(raw_startup_grace_s_) ||
+      raw_startup_grace_s_ < 0.0 || !std::isfinite(observation_stale_timeout_s_) ||
+      observation_stale_timeout_s_ <= 0.0 ||
+      !std::isfinite(ephemeris_stale_timeout_s_) || ephemeris_stale_timeout_s_ <= 0.0)
     {
       throw std::invalid_argument("FGO node timing parameters are outside valid bounds");
+    }
+    if (publish_tf_ || nav2_use_fgo_) {
+      throw std::invalid_argument(
+              "FGO-GIL Phase 7 is shadow-only: publish_tf and nav2_use_fgo must remain false");
     }
   }
 
@@ -437,6 +472,11 @@ private:
     most_recent_gnss_factor_state_.reset();
     last_state_id_.reset();
     fixed_state_.reset();
+    path_msg_.poses.clear();
+    path_msg_.header.frame_id = ecef_frame_;
+    last_output_stamp_s_.reset();
+    last_output_reception_steady_.reset();
+    last_optimizer_state_stamp_s_.reset();
     solution_status_ = "FLOAT";
     last_integer_fix_ = {};
     last_back_substitution_ = {};
@@ -448,8 +488,16 @@ private:
   {
     odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(odometry_topic_, 10);
     fixed_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(fixed_odometry_topic_, 10);
+    output_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(output_odometry_topic_, 10);
+    path_pub_ = create_publisher<nav_msgs::msg::Path>(path_topic_, 10);
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
+    factor_diagnostics_pub_ =
+      create_publisher<diagnostic_msgs::msg::DiagnosticArray>(factor_diagnostics_topic_, 10);
+    ambiguity_status_pub_ =
+      create_publisher<diagnostic_msgs::msg::DiagnosticArray>(ambiguity_status_topic_, 10);
+    performance_pub_ =
+      create_publisher<diagnostic_msgs::msg::DiagnosticArray>(performance_topic_, 10);
     imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
       imu_topic_, rclcpp::SensorDataQoS(),
       std::bind(&FloatFgoNode::onImu, this, std::placeholders::_1));
@@ -552,6 +600,77 @@ private:
            clock_uncertainty_s_ <= maximum_clock_uncertainty_s_;
   }
 
+  double steadyAgeSeconds(
+    const std::optional<std::chrono::steady_clock::time_point> & stamp) const
+  {
+    if (!stamp.has_value()) {
+      return std::numeric_limits<double>::infinity();
+    }
+    return std::chrono::duration<double>(std::chrono::steady_clock::now() - *stamp).count();
+  }
+
+  std::string rawGnssStatus() const
+  {
+    const double startup_age = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - startup_steady_).count();
+    if (!last_raw_observation_reception_steady_.has_value()) {
+      return startup_age >= raw_startup_grace_s_ ?
+             "RAW_GNSS_UNAVAILABLE" : "WAITING_FOR_RAW_GNSS";
+    }
+    if (!last_valid_raw_observation_reception_steady_.has_value()) {
+      return startup_age >= raw_startup_grace_s_ ?
+             "RAW_GNSS_INVALID" : "WAITING_FOR_VALID_RAW_GNSS";
+    }
+    if (steadyAgeSeconds(last_valid_raw_observation_reception_steady_) >
+      observation_stale_timeout_s_)
+    {
+      return "RAW_GNSS_STALE";
+    }
+    if (!last_ephemeris_reception_steady_.has_value()) {
+      return startup_age >= raw_startup_grace_s_ ?
+             "RAW_EPHEMERIS_UNAVAILABLE" : "WAITING_FOR_EPHEMERIS";
+    }
+    if (!last_valid_ephemeris_reception_steady_.has_value()) {
+      return startup_age >= raw_startup_grace_s_ ?
+             "RAW_EPHEMERIS_INVALID" : "WAITING_FOR_VALID_EPHEMERIS";
+    }
+    if (steadyAgeSeconds(last_valid_ephemeris_reception_steady_) >
+      ephemeris_stale_timeout_s_)
+    {
+      return "RAW_EPHEMERIS_STALE";
+    }
+    return "RAW_GNSS_ACTIVE";
+  }
+
+  bool optimizeGraph()
+  {
+    const auto started = std::chrono::steady_clock::now();
+    const bool succeeded = smoother_->optimize();
+    last_optimization_latency_ms_ = std::chrono::duration<double, std::milli>(
+      std::chrono::steady_clock::now() - started).count();
+    total_optimization_latency_ms_ += last_optimization_latency_ms_;
+    maximum_optimization_latency_ms_ = std::max(
+      maximum_optimization_latency_ms_, last_optimization_latency_ms_);
+    ++measured_optimization_calls_;
+    if (last_state_id_.has_value()) {
+      const EcefState * latest = smoother_->state(*last_state_id_);
+      if (latest != nullptr) {
+        if (last_optimizer_state_stamp_s_.has_value() &&
+          latest->stamp_s > *last_optimizer_state_stamp_s_)
+        {
+          const double input_interval_s = latest->stamp_s - *last_optimizer_state_stamp_s_;
+          last_real_time_factor_ = last_optimization_latency_ms_ * 1.0e-3 / input_interval_s;
+        }
+        if (!last_optimizer_state_stamp_s_.has_value() ||
+          latest->stamp_s > *last_optimizer_state_stamp_s_)
+        {
+          last_optimizer_state_stamp_s_ = latest->stamp_s;
+        }
+      }
+    }
+    return succeeded;
+  }
+
   void onTimeSync(const diagnostic_msgs::msg::DiagnosticArray::SharedPtr message)
   {
     for (const auto & status : message->status) {
@@ -584,8 +703,10 @@ private:
 
   void onEphemeris(const gnss_raw_msgs::msg::Ephemeris::SharedPtr message)
   {
+    last_ephemeris_reception_steady_ = std::chrono::steady_clock::now();
     try {
       const BroadcastEphemeris value = ephemeris(*message);
+      last_valid_ephemeris_reception_steady_ = std::chrono::steady_clock::now();
       ephemerides_[value.satellite] = value;
       ephemeris_order_.erase(
         std::remove(ephemeris_order_.begin(), ephemeris_order_.end(), value.satellite),
@@ -604,8 +725,19 @@ private:
 
   void onGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr message)
   {
+    last_raw_observation_reception_steady_ = std::chrono::steady_clock::now();
+    ++raw_observation_epochs_received_;
+    if (message->receiver < raw_receiver_epochs_.size()) {
+      ++raw_receiver_epochs_[message->receiver];
+    }
     try {
-      const auto aligned = epoch_aligner_->push(observationEpoch(*message));
+      const GnssObservationEpoch observation = observationEpoch(*message);
+      last_valid_raw_observation_reception_steady_ = std::chrono::steady_clock::now();
+      ++raw_valid_observation_epochs_;
+      last_raw_week_ = message->week;
+      last_raw_milliseconds_of_week_ = message->milliseconds_of_week;
+      last_raw_time_status_ = message->time_status;
+      const auto aligned = epoch_aligner_->push(observation);
       if (!aligned.has_value()) {
         return;
       }
@@ -616,7 +748,7 @@ private:
           pending_gnss_.pop_front();
           ++dropped_pending_gnss_;
         }
-      } else if (smoother_->optimize()) {
+      } else if (optimizeGraph()) {
         pruneStateBookkeeping();
         updateIntegerSolution();
         estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
@@ -798,7 +930,7 @@ private:
     } else {
       smoother_->recordGnssOutage();
     }
-    if (!smoother_->optimize()) {
+    if (!optimizeGraph()) {
       estimator_state_ = "OPTIMIZATION_FAILED";
       ++optimization_failures_;
       return;
@@ -882,50 +1014,71 @@ private:
     }
   }
 
+  nav_msgs::msg::Odometry odometryMessage(const EcefState & state) const
+  {
+    nav_msgs::msg::Odometry message;
+    message.header.stamp = rclcpp::Time(
+      static_cast<std::int64_t>(std::llround(state.stamp_s * 1.0e9)));
+    message.header.frame_id = ecef_frame_;
+    message.child_frame_id = body_frame_;
+    message.pose.pose.position.x = state.position_ecef_m.x;
+    message.pose.pose.position.y = state.position_ecef_m.y;
+    message.pose.pose.position.z = state.position_ecef_m.z;
+    message.pose.pose.orientation.w = state.orientation_ecef_body.w;
+    message.pose.pose.orientation.x = state.orientation_ecef_body.x;
+    message.pose.pose.orientation.y = state.orientation_ecef_body.y;
+    message.pose.pose.orientation.z = state.orientation_ecef_body.z;
+    message.twist.twist.linear.x = state.velocity_ecef_m_s.x;
+    message.twist.twist.linear.y = state.velocity_ecef_m_s.y;
+    message.twist.twist.linear.z = state.velocity_ecef_m_s.z;
+    return message;
+  }
+
+  bool validOutputState(const EcefState & state) const
+  {
+    return std::isfinite(state.stamp_s) && finite(state.position_ecef_m) &&
+           finite(state.orientation_ecef_body) && finite(state.velocity_ecef_m_s) &&
+           norm(state.position_ecef_m) > 1.0e6;
+  }
+
   void publishOdometry()
   {
     if (!last_state_id_.has_value()) {
       return;
     }
-    const EcefState * state = smoother_->state(*last_state_id_);
-    if (state == nullptr) {
+    const EcefState * float_state = smoother_->state(*last_state_id_);
+    if (float_state == nullptr || !validOutputState(*float_state) ||
+      (fixed_state_.has_value() && !validOutputState(*fixed_state_)))
+    {
+      ++nonfinite_output_rejections_;
       return;
     }
-    nav_msgs::msg::Odometry message;
-    message.header.stamp = rclcpp::Time(
-      static_cast<std::int64_t>(std::llround(state->stamp_s * 1.0e9)));
-    message.header.frame_id = ecef_frame_;
-    message.child_frame_id = body_frame_;
-    message.pose.pose.position.x = state->position_ecef_m.x;
-    message.pose.pose.position.y = state->position_ecef_m.y;
-    message.pose.pose.position.z = state->position_ecef_m.z;
-    message.pose.pose.orientation.w = state->orientation_ecef_body.w;
-    message.pose.pose.orientation.x = state->orientation_ecef_body.x;
-    message.pose.pose.orientation.y = state->orientation_ecef_body.y;
-    message.pose.pose.orientation.z = state->orientation_ecef_body.z;
-    message.twist.twist.linear.x = state->velocity_ecef_m_s.x;
-    message.twist.twist.linear.y = state->velocity_ecef_m_s.y;
-    message.twist.twist.linear.z = state->velocity_ecef_m_s.z;
-    odometry_pub_->publish(std::move(message));
-    if (!fixed_state_.has_value()) {
-      return;
+
+    odometry_pub_->publish(odometryMessage(*float_state));
+    if (fixed_state_.has_value()) {
+      fixed_odometry_pub_->publish(odometryMessage(*fixed_state_));
     }
-    nav_msgs::msg::Odometry fixed_message;
-    fixed_message.header.stamp = rclcpp::Time(
-      static_cast<std::int64_t>(std::llround(fixed_state_->stamp_s * 1.0e9)));
-    fixed_message.header.frame_id = ecef_frame_;
-    fixed_message.child_frame_id = body_frame_;
-    fixed_message.pose.pose.position.x = fixed_state_->position_ecef_m.x;
-    fixed_message.pose.pose.position.y = fixed_state_->position_ecef_m.y;
-    fixed_message.pose.pose.position.z = fixed_state_->position_ecef_m.z;
-    fixed_message.pose.pose.orientation.w = fixed_state_->orientation_ecef_body.w;
-    fixed_message.pose.pose.orientation.x = fixed_state_->orientation_ecef_body.x;
-    fixed_message.pose.pose.orientation.y = fixed_state_->orientation_ecef_body.y;
-    fixed_message.pose.pose.orientation.z = fixed_state_->orientation_ecef_body.z;
-    fixed_message.twist.twist.linear.x = fixed_state_->velocity_ecef_m_s.x;
-    fixed_message.twist.twist.linear.y = fixed_state_->velocity_ecef_m_s.y;
-    fixed_message.twist.twist.linear.z = fixed_state_->velocity_ecef_m_s.z;
-    fixed_odometry_pub_->publish(std::move(fixed_message));
+    const EcefState & selected_state = fixed_state_.has_value() ? *fixed_state_ : *float_state;
+    nav_msgs::msg::Odometry selected_message = odometryMessage(selected_state);
+    output_odometry_pub_->publish(selected_message);
+
+    geometry_msgs::msg::PoseStamped pose_message;
+    pose_message.header = selected_message.header;
+    pose_message.pose = selected_message.pose.pose;
+    if (!path_msg_.poses.empty() &&
+      path_msg_.poses.back().header.stamp == pose_message.header.stamp)
+    {
+      path_msg_.poses.back() = pose_message;
+    } else {
+      path_msg_.poses.push_back(pose_message);
+      if (path_msg_.poses.size() > maximum_path_poses_) {
+        path_msg_.poses.erase(path_msg_.poses.begin());
+      }
+    }
+    path_msg_.header = selected_message.header;
+    path_pub_->publish(path_msg_);
+    last_output_stamp_s_ = selected_state.stamp_s;
+    last_output_reception_steady_ = std::chrono::steady_clock::now();
   }
 
   void pruneStateBookkeeping()
@@ -950,8 +1103,15 @@ private:
     diagnostic_msgs::msg::DiagnosticStatus status;
     status.name = "fgo_gil/float_fgo";
     status.hardware_id = "jetson_orin_nx";
+    const std::string raw_status = rawGnssStatus();
     status.message = estimator_state_;
-    if (estimator_state_ == "FLOAT_ACTIVE" || estimator_state_ == "FIXED_ACTIVE") {
+    if (raw_status == "RAW_GNSS_UNAVAILABLE" || raw_status == "RAW_GNSS_INVALID" ||
+      raw_status == "RAW_GNSS_STALE" || raw_status == "RAW_EPHEMERIS_UNAVAILABLE" ||
+      raw_status == "RAW_EPHEMERIS_INVALID" || raw_status == "RAW_EPHEMERIS_STALE")
+    {
+      status.message = raw_status;
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
+    } else if (estimator_state_ == "FLOAT_ACTIVE" || estimator_state_ == "FIXED_ACTIVE") {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     } else if (estimator_state_ == "OPTIMIZATION_FAILED" ||
       estimator_state_ == "IMU_FACTOR_REJECTED")
@@ -962,7 +1122,41 @@ private:
     }
     const auto & graph = smoother_->diagnostics();
     const auto & dd = dd_builder_->diagnostics();
+    const double runtime_s = std::max(
+      1.0e-9, std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - startup_steady_).count());
+    const double output_age_s = steadyAgeSeconds(last_output_reception_steady_);
+    const double output_stamp_age_s = last_output_stamp_s_.has_value() ?
+      now().seconds() - *last_output_stamp_s_ : std::numeric_limits<double>::infinity();
+    const double residual_rms = graph.last_residual_rows == 0U ? 0.0 :
+      std::sqrt(2.0 * graph.last_cost / static_cast<double>(graph.last_residual_rows));
     status.values.push_back(keyValue("time_sync_state", time_sync_state_));
+    status.values.push_back(keyValue("raw_gnss_status", raw_status));
+    status.values.push_back(
+      numericKeyValue(
+        "raw_observation_age_s", steadyAgeSeconds(last_raw_observation_reception_steady_)));
+    status.values.push_back(
+      numericKeyValue(
+        "valid_raw_observation_age_s", steadyAgeSeconds(
+          last_valid_raw_observation_reception_steady_)));
+    status.values.push_back(
+      numericKeyValue("ephemeris_age_s", steadyAgeSeconds(last_ephemeris_reception_steady_)));
+    status.values.push_back(
+      numericKeyValue(
+        "valid_ephemeris_age_s", steadyAgeSeconds(
+          last_valid_ephemeris_reception_steady_)));
+    status.values.push_back(
+      numericKeyValue("raw_observation_rate_hz", raw_observation_epochs_received_ / runtime_s));
+    status.values.push_back(
+      numericKeyValue(
+        "valid_raw_observation_rate_hz", raw_valid_observation_epochs_ / runtime_s));
+    status.values.push_back(numericKeyValue("raw_week", last_raw_week_));
+    status.values.push_back(
+      numericKeyValue("raw_milliseconds_of_week", last_raw_milliseconds_of_week_));
+    status.values.push_back(numericKeyValue("raw_time_status", last_raw_time_status_));
+    status.values.push_back(numericKeyValue("raw_master_epochs", raw_receiver_epochs_[1]));
+    status.values.push_back(numericKeyValue("raw_secondary_epochs", raw_receiver_epochs_[2]));
+    status.values.push_back(numericKeyValue("raw_base_epochs", raw_receiver_epochs_[3]));
     status.values.push_back(
       keyValue("ecef_world_calibrated", ecef_world_calibrated_ ? "true" : "false"));
     status.values.push_back(
@@ -977,29 +1171,38 @@ private:
       numericKeyValue("ambiguity_success_rate", last_integer_fix_.success_rate));
     status.values.push_back(
       numericKeyValue("ambiguity_best_squared_norm", last_integer_fix_.best_squared_norm));
-    status.values.push_back(numericKeyValue(
-      "fixed_ambiguities", last_integer_fix_.fixed ? last_integer_fix_.keys.size() : 0U));
-    status.values.push_back(numericKeyValue(
-      "candidate_ambiguities", last_integer_fix_.keys.size()));
+    status.values.push_back(
+      numericKeyValue(
+        "fixed_ambiguities", last_integer_fix_.fixed ? last_integer_fix_.keys.size() : 0U));
+    status.values.push_back(
+      numericKeyValue(
+        "candidate_ambiguities", last_integer_fix_.keys.size()));
     status.values.push_back(
       numericKeyValue("integer_fixed_solutions", integer_fixed_solutions_));
     status.values.push_back(
       numericKeyValue("integer_fix_rejections", integer_fix_rejections_));
-    status.values.push_back(numericKeyValue(
-      "fixed_position_correction_m", last_back_substitution_.maximum_position_correction_m));
-    status.values.push_back(numericKeyValue(
-      "fixed_rotation_correction_rad", last_back_substitution_.maximum_rotation_correction_rad));
-    status.values.push_back(numericKeyValue(
-      "fixed_cost_increase", last_back_substitution_.cost_after -
-      last_back_substitution_.cost_before));
+    status.values.push_back(
+      numericKeyValue(
+        "fixed_position_correction_m", last_back_substitution_.maximum_position_correction_m));
+    status.values.push_back(
+      numericKeyValue(
+        "fixed_rotation_correction_rad", last_back_substitution_.maximum_rotation_correction_rad));
+    status.values.push_back(
+      numericKeyValue(
+        "fixed_cost_increase", last_back_substitution_.cost_after -
+        last_back_substitution_.cost_before));
     status.values.push_back(numericKeyValue("clock_uncertainty_s", clock_uncertainty_s_));
     status.values.push_back(numericKeyValue("states", graph.states));
     status.values.push_back(numericKeyValue("ambiguities", graph.ambiguities));
     status.values.push_back(numericKeyValue("factors", graph.factors));
+    status.values.push_back(numericKeyValue("window_span_s", graph.window_span_s));
+    status.values.push_back(
+      numericKeyValue("optimization_rollbacks", graph.optimization_rollbacks));
     status.values.push_back(numericKeyValue("marginalizations", graph.marginalizations));
     status.values.push_back(numericKeyValue("gnss_outages", graph.gnss_outages));
     status.values.push_back(numericKeyValue("last_iterations", graph.last_iterations));
     status.values.push_back(numericKeyValue("last_cost", graph.last_cost));
+    status.values.push_back(numericKeyValue("last_residual_rms", residual_rms));
     status.values.push_back(
       numericKeyValue("last_condition_estimate", graph.last_condition_estimate));
     status.values.push_back(numericKeyValue("lidar_keyframes", lidar_keyframes_));
@@ -1015,12 +1218,121 @@ private:
     status.values.push_back(numericKeyValue("gnss_rejected_epochs", gnss_rejected_epochs_));
     status.values.push_back(numericKeyValue("optimization_failures", optimization_failures_));
     status.values.push_back(numericKeyValue("graph_resets", graph_resets_));
+    status.values.push_back(numericKeyValue("output_age_s", output_age_s));
+    status.values.push_back(numericKeyValue("output_stamp_age_s", output_stamp_age_s));
+    status.values.push_back(
+      keyValue("shadow_only", (!publish_tf_ && !nav2_use_fgo_) ? "true" : "false"));
     const auto & imu = imu_buffer_->diagnostics();
     status.values.push_back(numericKeyValue("imu_segment_id", imu.segment_id));
     status.values.push_back(numericKeyValue("imu_gaps", imu.gaps));
     status.values.push_back(numericKeyValue("imu_time_reversals", imu.time_reversals));
     array.status.push_back(std::move(status));
     diagnostics_pub_->publish(std::move(array));
+
+    diagnostic_msgs::msg::DiagnosticArray factor_array;
+    factor_array.header.stamp = now();
+    diagnostic_msgs::msg::DiagnosticStatus factor_status;
+    factor_status.name = "fgo_gil/factors";
+    factor_status.hardware_id = "jetson_orin_nx";
+    factor_status.level = graph.last_solve_succeeded ?
+      diagnostic_msgs::msg::DiagnosticStatus::OK : diagnostic_msgs::msg::DiagnosticStatus::ERROR;
+    factor_status.message = graph.last_solve_succeeded ? "GRAPH_OK" : "GRAPH_NOT_SOLVED";
+    factor_status.values.push_back(
+      numericKeyValue(
+        "state_prior_factors",
+        graph.state_prior_factors));
+    factor_status.values.push_back(numericKeyValue("imu_factors", graph.imu_factors));
+    factor_status.values.push_back(
+      numericKeyValue("lidar_line_factors", graph.lidar_line_factors));
+    factor_status.values.push_back(
+      numericKeyValue("lidar_plane_factors", graph.lidar_plane_factors));
+    factor_status.values.push_back(numericKeyValue("gnss_code_factors", graph.gnss_code_factors));
+    factor_status.values.push_back(
+      numericKeyValue("gnss_carrier_factors", graph.gnss_carrier_factors));
+    factor_status.values.push_back(numericKeyValue("residual_rows", graph.last_residual_rows));
+    factor_status.values.push_back(numericKeyValue("residual_rms", residual_rms));
+    factor_status.values.push_back(numericKeyValue("rejected_factors", graph.rejected_factors));
+    factor_status.values.push_back(numericKeyValue("dd_code_factors_total", dd.code_factors));
+    factor_status.values.push_back(
+      numericKeyValue("dd_carrier_factors_total", dd.carrier_factors));
+    factor_status.values.push_back(numericKeyValue("dd_new_arcs_total", dd.new_arcs));
+    for (std::size_t index = 1; index < dd.arc_resets.size(); ++index) {
+      const auto reason = static_cast<ArcResetReason>(index);
+      factor_status.values.push_back(
+        numericKeyValue(std::string("arc_reset_") + toString(reason), dd.arc_resets[index]));
+    }
+    for (std::size_t index = 0; index < dd.rejected.size(); ++index) {
+      const auto reason = static_cast<DdRejectReason>(index);
+      factor_status.values.push_back(
+        numericKeyValue(std::string("dd_rejected_") + toString(reason), dd.rejected[index]));
+    }
+    factor_array.status.push_back(std::move(factor_status));
+    factor_diagnostics_pub_->publish(std::move(factor_array));
+
+    diagnostic_msgs::msg::DiagnosticArray ambiguity_array;
+    ambiguity_array.header.stamp = now();
+    diagnostic_msgs::msg::DiagnosticStatus ambiguity_status;
+    ambiguity_status.name = "fgo_gil/ambiguity";
+    ambiguity_status.hardware_id = "um982_raw";
+    ambiguity_status.level = solution_status_ == "FIXED" ?
+      diagnostic_msgs::msg::DiagnosticStatus::OK : diagnostic_msgs::msg::DiagnosticStatus::WARN;
+    ambiguity_status.message = solution_status_ == "FIXED" ?
+      "FIXED" : toString(last_integer_fix_.rejection_reason);
+    ambiguity_status.values.push_back(keyValue("solution_status", solution_status_));
+    ambiguity_status.values.push_back(numericKeyValue("ambiguity_dimension", graph.ambiguities));
+    ambiguity_status.values.push_back(numericKeyValue("ratio", last_integer_fix_.ratio));
+    ambiguity_status.values.push_back(
+      numericKeyValue("success_rate", last_integer_fix_.success_rate));
+    ambiguity_status.values.push_back(
+      numericKeyValue(
+        "fixed_ambiguities", last_integer_fix_.fixed ? last_integer_fix_.keys.size() : 0U));
+    ambiguity_status.values.push_back(
+      keyValue("rejection_reason", toString(last_integer_fix_.rejection_reason)));
+    ambiguity_status.values.push_back(
+      keyValue("back_substitution", toString(last_back_substitution_.rejection)));
+    ambiguity_status.values.push_back(
+      numericKeyValue("fix_rejections", integer_fix_rejections_));
+    ambiguity_status.values.push_back(
+      numericKeyValue("optimization_rollbacks", graph.optimization_rollbacks));
+    ambiguity_array.status.push_back(std::move(ambiguity_status));
+    ambiguity_status_pub_->publish(std::move(ambiguity_array));
+
+    diagnostic_msgs::msg::DiagnosticArray performance_array;
+    performance_array.header.stamp = now();
+    diagnostic_msgs::msg::DiagnosticStatus performance_status;
+    performance_status.name = "fgo_gil/performance";
+    performance_status.hardware_id = "jetson_orin_nx";
+    const bool output_stale = output_age_s > observation_stale_timeout_s_;
+    performance_status.level = nonfinite_output_rejections_ != 0U ?
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR :
+      (last_real_time_factor_ > 1.0 || output_stale ?
+      diagnostic_msgs::msg::DiagnosticStatus::WARN : diagnostic_msgs::msg::DiagnosticStatus::OK);
+    performance_status.message = nonfinite_output_rejections_ != 0U ?
+      "NONFINITE_OUTPUT_REJECTED" : (output_stale ? "OUTPUT_STALE" : "SHADOW_ONLY");
+    performance_status.values.push_back(
+      numericKeyValue("optimization_latency_ms", last_optimization_latency_ms_));
+    performance_status.values.push_back(
+      numericKeyValue(
+        "optimization_latency_mean_ms", measured_optimization_calls_ == 0U ? 0.0 :
+        total_optimization_latency_ms_ / static_cast<double>(measured_optimization_calls_)));
+    performance_status.values.push_back(
+      numericKeyValue("optimization_latency_max_ms", maximum_optimization_latency_ms_));
+    performance_status.values.push_back(
+      numericKeyValue("real_time_factor", last_real_time_factor_));
+    performance_status.values.push_back(numericKeyValue("window_span_s", graph.window_span_s));
+    performance_status.values.push_back(numericKeyValue("states", graph.states));
+    performance_status.values.push_back(numericKeyValue("factors", graph.factors));
+    performance_status.values.push_back(numericKeyValue("output_age_s", output_age_s));
+    performance_status.values.push_back(numericKeyValue("output_stamp_age_s", output_stamp_age_s));
+    performance_status.values.push_back(
+      keyValue("output_stale", output_stale ? "true" : "false"));
+    performance_status.values.push_back(
+      numericKeyValue("nonfinite_output_rejections", nonfinite_output_rejections_));
+    performance_status.values.push_back(keyValue("publish_tf", "false"));
+    performance_status.values.push_back(keyValue("nav2_use_fgo", "false"));
+    performance_status.values.push_back(keyValue("control_owner", "NONE_SHADOW"));
+    performance_array.status.push_back(std::move(performance_status));
+    performance_pub_->publish(std::move(performance_array));
   }
 
   std::string imu_topic_;
@@ -1030,7 +1342,12 @@ private:
   std::string time_sync_topic_;
   std::string odometry_topic_;
   std::string fixed_odometry_topic_;
+  std::string output_odometry_topic_;
+  std::string path_topic_;
   std::string diagnostics_topic_;
+  std::string factor_diagnostics_topic_;
+  std::string ambiguity_status_topic_;
+  std::string performance_topic_;
   std::string ecef_frame_;
   std::string body_frame_;
   bool ecef_world_calibrated_ = false;
@@ -1041,11 +1358,17 @@ private:
   Vec3 master_in_imu_m_;
   std::size_t pending_gnss_capacity_ = 128;
   std::size_t maximum_ephemerides_ = 256;
+  std::size_t maximum_path_poses_ = 2000;
   double acceleration_scale_ = 9.80665;
   double maximum_gnss_keyframe_offset_s_ = 0.10;
   double maximum_sync_age_s_ = 2.0;
   double maximum_clock_uncertainty_s_ = 0.05;
   double diagnostics_period_s_ = 1.0;
+  double raw_startup_grace_s_ = 5.0;
+  double observation_stale_timeout_s_ = 2.0;
+  double ephemeris_stale_timeout_s_ = 300.0;
+  bool publish_tf_ = false;
+  bool nav2_use_fgo_ = false;
   FloatSmootherConfig smoother_config_;
   LidarGraphFactorConfig lidar_factor_config_;
   GnssGraphFactorConfig gnss_factor_config_;
@@ -1078,6 +1401,26 @@ private:
   std::optional<double> ros_to_gnss_offset_s_;
   std::optional<double> last_time_sync_reception_s_;
   double clock_uncertainty_s_ = std::numeric_limits<double>::infinity();
+  nav_msgs::msg::Path path_msg_;
+  const std::chrono::steady_clock::time_point startup_steady_ =
+    std::chrono::steady_clock::now();
+  std::optional<std::chrono::steady_clock::time_point>
+  last_raw_observation_reception_steady_;
+  std::optional<std::chrono::steady_clock::time_point>
+  last_valid_raw_observation_reception_steady_;
+  std::optional<std::chrono::steady_clock::time_point> last_ephemeris_reception_steady_;
+  std::optional<std::chrono::steady_clock::time_point> last_valid_ephemeris_reception_steady_;
+  std::optional<std::chrono::steady_clock::time_point> last_output_reception_steady_;
+  std::optional<double> last_output_stamp_s_;
+  std::optional<double> last_optimizer_state_stamp_s_;
+  std::array<std::uint64_t, 4> raw_receiver_epochs_{};
+  std::uint32_t last_raw_week_ = 0;
+  std::uint32_t last_raw_milliseconds_of_week_ = 0;
+  std::uint8_t last_raw_time_status_ = 0;
+  double last_optimization_latency_ms_ = 0.0;
+  double total_optimization_latency_ms_ = 0.0;
+  double maximum_optimization_latency_ms_ = 0.0;
+  double last_real_time_factor_ = 0.0;
 
   std::uint64_t graph_resets_ = 0;
   std::uint64_t lidar_keyframes_ = 0;
@@ -1094,10 +1437,19 @@ private:
   std::uint64_t optimization_failures_ = 0;
   std::uint64_t integer_fixed_solutions_ = 0;
   std::uint64_t integer_fix_rejections_ = 0;
+  std::uint64_t raw_observation_epochs_received_ = 0;
+  std::uint64_t raw_valid_observation_epochs_ = 0;
+  std::uint64_t measured_optimization_calls_ = 0;
+  std::uint64_t nonfinite_output_rejections_ = 0;
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr fixed_odometry_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr output_odometry_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr factor_diagnostics_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr ambiguity_status_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr performance_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr lidar_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr gnss_sub_;

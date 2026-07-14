@@ -94,6 +94,7 @@ case "$MODE" in
   fgo-gil-time-sync) LAUNCH_FILE="system_fgo_gil_time_sync.launch.py" ;;
   fgo-gil-lidar) LAUNCH_FILE="system_fgo_gil_lidar_frontend.launch.py" ;;
   fgo-gil-float) LAUNCH_FILE="system_fgo_gil_float.launch.py" ;;
+  fgo-gil-shadow) LAUNCH_FILE="system_fgo_gil_shadow.launch.py" ;;
   tightly-coupled) LAUNCH_FILE="system_tightly_coupled.launch.py" ;;
   *)            echo "Unknown mode: $MODE"; exit 1 ;;
 esac
@@ -119,8 +120,15 @@ fi
 if [[ "$MODE" == "rtk-raw" && -n "${FYP_UM982_RAW_PARAMS_FILE:-}" ]]; then
   LAUNCH_ARGS+=("params_file:=${FYP_UM982_RAW_PARAMS_FILE}")
 fi
-if [[ ( "$MODE" == "fgo-gil-time-sync" || "$MODE" == "fgo-gil-lidar" ) && -n "${FYP_FGO_GIL_PARAMS_FILE:-}" ]]; then
-  LAUNCH_ARGS+=("params_file:=${FYP_FGO_GIL_PARAMS_FILE}")
+if [[ ( "$MODE" == "fgo-gil-time-sync" || "$MODE" == "fgo-gil-lidar" || "$MODE" == "fgo-gil-float" || "$MODE" == "fgo-gil-shadow" ) && -n "${FYP_FGO_GIL_PARAMS_FILE:-}" ]]; then
+  if [[ "$MODE" == "fgo-gil-shadow" ]]; then
+    LAUNCH_ARGS+=("fgo_params_file:=${FYP_FGO_GIL_PARAMS_FILE}")
+  else
+    LAUNCH_ARGS+=("params_file:=${FYP_FGO_GIL_PARAMS_FILE}")
+  fi
+fi
+if [[ "$MODE" == "fgo-gil-shadow" && -n "${FYP_UM982_RAW_PARAMS_FILE:-}" ]]; then
+  LAUNCH_ARGS+=("raw_params_file:=${FYP_UM982_RAW_PARAMS_FILE}")
 fi
 if [[ "$MODE" == "corridor" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then

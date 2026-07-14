@@ -31,6 +31,7 @@
 | RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame, observation-epoch, and ephemeris capture/bagging on a dedicated 921600 binary port |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 shadow diagnostics for GNSS/LiDAR/IMU clock mapping, PPS, and the IMU buffer |
 | FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 time sync, MID360 de-skew, line/plane features, KF-map, and degeneracy diagnostics |
+| FGO-GIL Shadow | `make launch-fgo-gil-shadow` | Phase 7 full raw-GNSS + Livox + FAST-LIO comparator + FGO-GIL shadow runtime and bagging |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 
 All `make launch-*` entry points go through `scripts/launch_with_logs.sh`, so session-isolated log directories are created by default.
@@ -183,6 +184,22 @@ ROS-free fgo_gil_core
 ```
 
 FAST-LIO odometry only initializes the IMU trajectory and current raw-factor linearization point; it is neither converted into a factor nor republished as FGO odometry. `UNSYNCED`, insufficient IMU coverage, duplicate/reversed point time, insufficient features, or a degenerate Hessian prevents `constraint_valid=true` and KF-map updates. The node publishes diagnostics only: no TF, odometry, path, or command. Acceleration scale, LiDAR-IMU extrinsic, and feature/matching thresholds in `fgo_gil.yaml` are conservative shadow initial values pending bag and vehicle calibration.
+
+### 5.6 FGO-GIL Phase 5-7 Fixed-Lag Shadow Path
+
+```text
+UM982 raw epochs + ephemeris -------------------------+
+Livox IMU -> time sync -> ECEF IMU preintegration ----+-> fgo_gil_float_fgo_node
+Livox raw scan -> de-skew -> line/plane constraints ---+     -> /fgo_gil/odom + path
+FAST-LIO odom -----------------------------------------+     -> factor/ambiguity/timing/performance diagnostics
+                initialization + comparator only
+```
+
+`system_fgo_gil_shadow.launch.py` is the complete observation-only entry point. Live mode starts Livox, FAST-LIO2, the dedicated UM982 binary raw driver, and all three FGO-GIL nodes. Bag replay disables the three `start_*` arguments and enables `use_sim_time`. The `full` bag profile captures raw frames, raw LiDAR, TF, every estimator input/output, and the comparator; `minimal` keeps only the topics required to replay the estimator and compute metrics.
+
+`/fgo_gil/odom` selects the fixed candidate only when every gate passes for the current epoch, otherwise it selects float. `/fgo_gil/float_odom_ecef` and `/fgo_gil/fixed_odom_ecef` remain available for decomposition. Every output is in the `ecef` frame and is observation-only. Both launch and node reject `publish_tf=true` or `nav2_use_fgo=true`; no serial-control/Nav2 node starts and the stack never owns `/cmd_vel`. `make kill-runtime` covers Livox, FAST-LIO, the raw driver, all three FGO executables, and the rosbag recorder.
+
+The offline evaluator time-matches poses, applies a no-scale SE(3) rigid alignment, and reports APE/RPE, output availability, integer fixing rate, GNSS-outage drift, optimization latency/real-time factor, and `tegrastats` CPU/RAM. A missing or empty raw-observation topic must report `RAW_GNSS_UNAVAILABLE`; the presence of a FAST-LIO comparator is never presented as paper-level raw-GNSS validation.
 
 ## 7. TF Chain
 

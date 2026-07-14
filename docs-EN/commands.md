@@ -758,7 +758,58 @@ Before field replay, provide an uncommitted parameter override with the measured
 
 Expected fail-closed states are `WAITING_FOR_CALIBRATION`, `WAITING_FOR_LIDAR_KEYFRAME`, `WAITING_FOR_CONTINUOUS_IMU`, and `LIO_ONLY_WAITING_BASE`. `FLOAT_ACTIVE` only means the graph is optimizing; `FIXED_ACTIVE` only means the current candidate passed configured gates. Neither is field acceptance. `/fgo_gil/float_odom_ecef` always remains the float solution, while `/fgo_gil/fixed_odom_ecef` is published only after the ratio, success-rate, residual, and back-substitution checks pass.
 
-Phase 6 fields on `/fgo_gil/float_diagnostics` include `solution_status`, `ambiguity_ratio`, `ambiguity_success_rate`, `fixed_ambiguities`, `fix_rejection_reason`, `back_substitution_rejection`, and fixed correction/cost metrics. GLONASS FDMA is excluded from integer fixing in Phase 6. The node still publishes no TF, path, `/cmd_vel`, or Nav2 input. `make kill-runtime` includes all three FGO-GIL executables.
+Phase 6 fields on `/fgo_gil/float_diagnostics` include `solution_status`, `ambiguity_ratio`, `ambiguity_success_rate`, `fixed_ambiguities`, `fix_rejection_reason`, `back_substitution_rejection`, and fixed correction/cost metrics. GLONASS FDMA is excluded from integer fixing in Phase 6. The node publishes no TF, `/cmd_vel`, or Nav2 input; the path added in Phase 7 is shadow output only. `make kill-runtime` includes all three FGO-GIL executables.
+
+## FGO-GIL Phase 7 Full Shadow Runtime, Bagging, And Evaluation
+
+Live mode starts Livox, the FAST-LIO2 comparator, the dedicated UM982 raw driver, and the Phase 3-7 FGO-GIL path. It records the `full` profile by default:
+
+```bash
+make build-fgo-gil
+source install/setup.bash
+make launch-fgo-gil-shadow
+```
+
+Use the `minimal` profile when bag size matters:
+
+```bash
+bash scripts/launch_with_logs.sh fgo-gil-shadow bag_profile:=minimal
+```
+
+For an existing bag, start the algorithm-only path first, then publish `/clock` from another terminal:
+
+```bash
+bash scripts/launch_with_logs.sh fgo-gil-shadow \
+  use_sim_time:=true start_livox:=false start_fastlio:=false \
+  start_raw_driver:=false record_bag:=false
+
+ros2 bag play <bag-directory> --clock
+```
+
+Inspect the selected solution, path, and layered diagnostics:
+
+```bash
+ros2 topic echo /fgo_gil/odom --once
+ros2 topic echo /fgo_gil/path --once
+ros2 topic echo /fgo_gil/factor_diagnostics
+ros2 topic echo /fgo_gil/ambiguity_status
+ros2 topic echo /fgo_gil/timing_status
+ros2 topic echo /fgo_gil/performance
+```
+
+Full decoding requires the ROS 2 and workspace setup to be sourced. A workstation can audit topic evidence in an older bag with `--metadata-only`:
+
+```bash
+python3 scripts/evaluate_fgo_gil_bag.py \
+  --bag <bag-directory> --out /tmp/fgo_gil_metrics.json
+
+python3 scripts/evaluate_fgo_gil_bag.py \
+  --bag <old-bag-directory> --out /tmp/fgo_gil_metadata.json --metadata-only
+```
+
+The result contains SE(3)-aligned APE/RPE, availability, fixing rate, outage drift, optimization latency, real-time factor, and CPU/RAM parsed from the same session's `tegrastats.log`. If an old bag lacks `/gnss/raw/observation_epoch`, or that topic has zero messages, the result must say `RAW_GNSS_UNAVAILABLE`. Such a bag validates comparators and non-raw paths only; it is not paper-level GNSS acceptance.
+
+Phase 7 forces `publish_tf=false` and `nav2_use_fgo=false`. Startup fails if either is set to `true`; this mode starts neither serial control nor Nav2. Use `make kill-runtime` to stop rosbag, Livox, FAST-LIO, the raw driver, and all three FGO-GIL executables.
 
 ## RTK FGO Tight-Coupled Shadow Mode
 

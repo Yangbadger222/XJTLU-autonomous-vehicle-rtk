@@ -61,7 +61,14 @@ struct FloatSmootherDiagnostics
   std::size_t states = 0;
   std::size_t ambiguities = 0;
   std::size_t factors = 0;
+  std::size_t state_prior_factors = 0;
+  std::size_t imu_factors = 0;
+  std::size_t lidar_line_factors = 0;
+  std::size_t lidar_plane_factors = 0;
+  std::size_t gnss_code_factors = 0;
+  std::size_t gnss_carrier_factors = 0;
   std::uint64_t optimization_calls = 0;
+  std::uint64_t optimization_rollbacks = 0;
   std::uint64_t marginalizations = 0;
   std::uint64_t gnss_outages = 0;
   std::uint64_t rejected_factors = 0;
@@ -70,6 +77,7 @@ struct FloatSmootherDiagnostics
   double last_cost = 0.0;
   double last_delta_norm = 0.0;
   double last_condition_estimate = 0.0;
+  double window_span_s = 0.0;
   bool last_solve_succeeded = false;
 };
 

@@ -9,6 +9,7 @@ fgo_gil_time_sync:
       imu_time_reference: /livox/imu_time_reference
       lidar_time_reference: /livox/lidar_time_reference
       diagnostics: /fgo_gil/time_sync_diagnostics
+      status: /fgo_gil/timing_status
 
     # The current Livox driver stamps production messages with ROS now(). Switch to
     # device only after matching TimeReference topics are present and validated.
@@ -133,7 +134,12 @@ fgo_gil_float_fgo:
       time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
       odometry: /fgo_gil/float_odom_ecef
       fixed_odometry: /fgo_gil/fixed_odom_ecef
+      output_odometry: /fgo_gil/odom
+      path: /fgo_gil/path
       diagnostics: /fgo_gil/float_diagnostics
+      factor_diagnostics: /fgo_gil/factor_diagnostics
+      ambiguity_status: /fgo_gil/ambiguity_status
+      performance: /fgo_gil/performance
 
     frames:
       ecef: ecef
@@ -169,6 +175,19 @@ fgo_gil_float_fgo:
       maximum_gnss_keyframe_offset_s: 0.10
       maximum_sync_age_s: 2.0
       maximum_clock_uncertainty_s: 0.05
+
+    raw_input:
+      startup_grace_s: 5.0
+      observation_stale_timeout_s: 2.0
+      ephemeris_stale_timeout_s: 300.0
+
+    output:
+      maximum_path_poses: 2000
+
+    # Phase 7 is observation-only. The node refuses to start if either flag is true.
+    safety:
+      publish_tf: false
+      nav2_use_fgo: false
 
     window:
       duration_s: 10.0

@@ -363,12 +363,18 @@ Default gates are `ratio>=3.0`, bootstrap success rate `>=0.99`, and normalized 
 
 ### Phase 7: ROS shadow integration and replay
 
-- [ ] Add `system_fgo_gil_shadow.launch.py` and a dedicated bag profile.
-- [ ] Publish `/fgo_gil/odom`, path, factor diagnostics, ambiguity status, timing status, and performance.
-- [ ] Add new nodes to `make kill-runtime`, while forcing `publish_tf=false` and `nav2_use_fgo=false`.
-- [ ] Extend evaluation with APE/RPE, availability, fixing rate, outage drift, CPU/RAM, and real-time factor.
+- [x] Add `system_fgo_gil_shadow.launch.py` and a dedicated bag profile.
+- [x] Publish `/fgo_gil/odom`, path, factor diagnostics, ambiguity status, timing status, and performance.
+- [x] Add the complete shadow process set to `make kill-runtime`, while forcing `publish_tf=false` and `nav2_use_fgo=false`.
+- [x] Extend evaluation with APE/RPE, availability, fixing rate, outage drift, CPU/RAM, and real-time factor.
 
 Done: desktop tests and Jetson clean build pass. Existing bags verify non-raw-GNSS paths and comparators; missing raw topics explicitly report `RAW_GNSS_UNAVAILABLE`.
+
+Implementation note: the complete live launch starts Livox, the FAST-LIO2 initializer/comparator, the dedicated UM982 raw driver, and the Phase 3-7 estimator. Replay can disable each hardware node and enable the ROS clock. The `full` profile keeps raw frames, raw LiDAR, TF, and all diagnostics; `minimal` keeps the smallest input/output set required for estimator replay and evaluation. Launch and estimator independently enforce shadow ownership, so either `publish_tf=true` or `nav2_use_fgo=true` aborts startup. This phase adds no control node; `make kill-runtime` already covers every FGO executable, sensor/comparator process, and rosbag.
+
+Unified `/fgo_gil/odom` selects the validated fixed candidate for the current epoch, otherwise float, and publishes a bounded ECEF path. Factor diagnostics separate IMU, LiDAR line/plane, and GNSS code/carrier counts, residual RMS, DD rejection reasons, arc resets, and optimizer rollbacks. Ambiguity, timing, and performance topics expose integer state, clock state, window/latency/real-time factor, stale/non-finite output, and control ownership. Raw observations use a 2 s stale threshold while low-rate broadcast ephemeris uses an independent 300 s threshold, avoiding false disconnect alarms from a normal ephemeris refresh interval.
+
+`evaluate_fgo_gil_bag.py` time-matches FGO and FAST-LIO comparator poses, then applies a no-scale SE(3) rigid alignment so ECEF and local coordinates are not directly subtracted. Outage analysis uses only one-to-one master/base epochs paired within 50 ms; a one-sided raw stream reports `RAW_GNSS_INCOMPLETE`. It reports APE/RPE, availability, fixing rate, outage drift, optimization latency/RTF, and `tegrastats` CPU/RAM. Metadata-only mode needs no ROS deserialization; a missing raw topic or zero raw messages explicitly produces `RAW_GNSS_UNAVAILABLE`.
 
 ### Phase 8: Weather-dependent collection and acceptance
 

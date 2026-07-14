@@ -134,7 +134,15 @@ TEST(FloatFixedLagSmoother, JointImuLidarAndGnssFactorsCorrectNextState)
   ASSERT_TRUE(smoother.optimize());
   ASSERT_NE(smoother.state(2), nullptr);
   EXPECT_LT(norm(smoother.state(2)->position_ecef_m - second_truth), 0.05);
-  EXPECT_GT(smoother.diagnostics().last_residual_rows, 20U);
+  const auto & diagnostics = smoother.diagnostics();
+  EXPECT_GT(diagnostics.last_residual_rows, 20U);
+  EXPECT_EQ(diagnostics.state_prior_factors, 1U);
+  EXPECT_EQ(diagnostics.imu_factors, 1U);
+  EXPECT_EQ(diagnostics.lidar_line_factors, 0U);
+  EXPECT_EQ(diagnostics.lidar_plane_factors, 3U);
+  EXPECT_EQ(diagnostics.gnss_code_factors, 4U);
+  EXPECT_EQ(diagnostics.gnss_carrier_factors, 4U);
+  EXPECT_DOUBLE_EQ(diagnostics.window_span_s, 1.0);
 }
 
 TEST(FloatFixedLagSmoother, SchurMarginalizationBoundsWindowAndPreservesPrior)

@@ -31,6 +31,7 @@
 | RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧、observation epoch 与星历 shadow 采集/录包 |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 GNSS/LiDAR/IMU 时间映射、PPS 与 IMU buffer shadow 诊断 |
 | FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 时间同步、MID360 去畸变、线面特征/KF-map 与退化诊断 |
+| FGO-GIL Shadow | `make launch-fgo-gil-shadow` | Phase 7 完整 raw GNSS + Livox + FAST-LIO comparator + FGO-GIL 旁路运行和录包 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 
 所有 `make launch-*` 入口都通过 `scripts/launch_with_logs.sh` 启动，因此默认会生成按 session 隔离的日志目录。
@@ -183,6 +184,22 @@ ROS-free fgo_gil_core
 ```
 
 FAST-LIO odometry only initializes the IMU trajectory and current raw-factor linearization point; it is not converted into a factor or republished as FGO odometry. `UNSYNCED`、IMU 覆盖不足、点时间倒退/重复、特征不足或 Hessian 退化都会阻止 `constraint_valid=true` 和 KF-map 更新。该节点唯一输出是诊断，不发布 TF、odometry、path 或命令。`fgo_gil.yaml` 中的加速度比例、LiDAR-IMU 外参和特征/匹配阈值是待 bag/实车校准的保守 shadow 初值。
+
+### 5.6 FGO-GIL Phase 5-7 fixed-lag shadow 链
+
+```text
+UM982 raw epochs + ephemeris -------------------------+
+Livox IMU -> time sync -> ECEF IMU preintegration ----+-> fgo_gil_float_fgo_node
+Livox raw scan -> de-skew -> line/plane constraints ---+     -> /fgo_gil/odom + path
+FAST-LIO odom -----------------------------------------+     -> factor/ambiguity/timing/performance diagnostics
+                initialization + comparator only
+```
+
+`system_fgo_gil_shadow.launch.py` 是完整旁路入口：live 默认启动 Livox、FAST-LIO2、独立 UM982 binary raw driver 和三个 FGO-GIL 节点；bag replay 时将三个 `start_*` 参数设为 `false` 并启用 `use_sim_time`。`full` bag profile 记录 raw frame、原始 LiDAR、TF、全部输入/输出与 comparator，`minimal` 保留 estimator 重放和指标计算所需的最小集合。
+
+`/fgo_gil/odom` 在当前历元 fixed candidate 全部门通过时选 fixed，否则选 float；`/fgo_gil/float_odom_ecef` 与 `/fgo_gil/fixed_odom_ecef` 仍保留用于分解比较。所有输出都在 `ecef` frame，只用于观测和离线评价。launch 和节点会同时拒绝 `publish_tf=true` 或 `nav2_use_fgo=true`，不启动串口控制/Nav2，也不拥有 `/cmd_vel`。`make kill-runtime` 已覆盖 Livox、FAST-LIO、raw driver、三个 FGO executable 和 rosbag recorder。
+
+离线 evaluator 用时间最近邻配对后做无尺度 SE(3) 刚体对齐，再报告 APE/RPE、输出 availability、整数 fixing rate、GNSS outage drift、optimization latency/real-time factor 与 `tegrastats` CPU/RAM。没有 raw observation topic 或消息时必须输出 `RAW_GNSS_UNAVAILABLE`，不能把已有 FAST-LIO comparator 误报为论文 raw-GNSS 验证。
 
 ## 7. TF 链
 

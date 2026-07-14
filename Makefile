@@ -16,7 +16,7 @@ KILL_PATTERN := '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\
 # ==============================================================================
 # Auto-complete Helpers (Empty targets to trick bash/zsh tab-completion)
 # ==============================================================================
-launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-rtk-raw launch-fgo-gil-time-sync launch-fgo-gil-lidar launch-fgo-gil-float launch-tightly-coupled launch-travel:
+launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-rtk-raw launch-fgo-gil-time-sync launch-fgo-gil-lidar launch-fgo-gil-float launch-fgo-gil-shadow launch-tightly-coupled launch-travel:
 
 ntrip-logout ntrip-status ntrip-setup:
 
@@ -56,7 +56,7 @@ build-rtk-raw:
 	$(COLCON_BUILD) --packages-select serial gnss_raw_msgs um982_raw_driver bringup
 
 build-fgo-gil:
-	$(COLCON_BUILD) --packages-select livox_ros_driver2 gnss_raw_msgs fgo_gil_msgs fgo_gil_localizer bringup
+	$(COLCON_BUILD) --packages-select livox_ros_driver2 serial um982_raw_driver gnss_raw_msgs fgo_gil_msgs fgo_gil_localizer bringup
 
 build-sensor:
 	$(COLCON_BUILD) --packages-select \

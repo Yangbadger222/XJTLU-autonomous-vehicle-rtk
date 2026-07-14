@@ -10,6 +10,59 @@
 
 namespace fgo_gil_localizer
 {
+
+const char * toString(const ArcResetReason reason) noexcept
+{
+  switch (reason) {
+    case ArcResetReason::None:
+      return "NONE";
+    case ArcResetReason::FirstObservation:
+      return "FIRST_OBSERVATION";
+    case ArcResetReason::Reacquired:
+      return "REACQUIRED";
+    case ArcResetReason::LockTimeReset:
+      return "LOCK_TIME_RESET";
+    case ArcResetReason::TrackingChannelChanged:
+      return "TRACKING_CHANNEL_CHANGED";
+    case ArcResetReason::ObservationGap:
+      return "OBSERVATION_GAP";
+    case ArcResetReason::DopplerPhaseInconsistent:
+      return "DOPPLER_PHASE_INCONSISTENT";
+    case ArcResetReason::TimeReversal:
+      return "TIME_REVERSAL";
+    case ArcResetReason::Count:
+      return "COUNT";
+  }
+  return "UNKNOWN";
+}
+
+const char * toString(const DdRejectReason reason) noexcept
+{
+  switch (reason) {
+    case DdRejectReason::InvalidEpoch:
+      return "INVALID_EPOCH";
+    case DdRejectReason::BaselineTooLong:
+      return "BASELINE_TOO_LONG";
+    case DdRejectReason::MissingBaseObservation:
+      return "MISSING_BASE_OBSERVATION";
+    case DdRejectReason::UnsupportedSignal:
+      return "UNSUPPORTED_SIGNAL";
+    case DdRejectReason::MissingSatelliteState:
+      return "MISSING_SATELLITE_STATE";
+    case DdRejectReason::LowQuality:
+      return "LOW_QUALITY";
+    case DdRejectReason::BelowElevationMask:
+      return "BELOW_ELEVATION_MASK";
+    case DdRejectReason::MissingReference:
+      return "MISSING_REFERENCE";
+    case DdRejectReason::CodeInnovation:
+      return "CODE_INNOVATION";
+    case DdRejectReason::Count:
+      return "COUNT";
+  }
+  return "UNKNOWN";
+}
+
 namespace
 {
 
@@ -485,6 +538,11 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       GnssReceiver::Base, epochs.base.time, base_observation);
     diagnostics_.new_arcs += static_cast<std::uint64_t>(value.rover_arc.new_arc) +
       static_cast<std::uint64_t>(value.base_arc.new_arc);
+    for (const ArcUpdate & update : {value.rover_arc, value.base_arc}) {
+      if (update.new_arc && update.reason != ArcResetReason::None) {
+        ++diagnostics_.arc_resets[static_cast<std::size_t>(update.reason)];
+      }
+    }
     common[key] = value;
     candidates.push_back(
       {

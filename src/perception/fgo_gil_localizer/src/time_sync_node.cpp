@@ -75,6 +75,7 @@ private:
     declare_parameter<std::string>("topics.lidar_time_reference", "/livox/lidar_time_reference");
     declare_parameter<std::string>(
       "topics.diagnostics", "/fgo_gil/time_sync_diagnostics");
+    declare_parameter<std::string>("topics.status", "/fgo_gil/timing_status");
     declare_parameter<std::string>("imu_stamp_domain", "ros");
     declare_parameter<std::string>("lidar_stamp_domain", "ros");
     declare_parameter<int>("time_sync.window_size", 32);
@@ -104,6 +105,7 @@ private:
     imu_time_reference_topic_ = get_parameter("topics.imu_time_reference").as_string();
     lidar_time_reference_topic_ = get_parameter("topics.lidar_time_reference").as_string();
     diagnostics_topic_ = get_parameter("topics.diagnostics").as_string();
+    status_topic_ = get_parameter("topics.status").as_string();
     imu_stamp_domain_ = get_parameter("imu_stamp_domain").as_string();
     lidar_stamp_domain_ = get_parameter("lidar_stamp_domain").as_string();
 
@@ -161,6 +163,7 @@ private:
   {
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
+    status_pub_ = create_publisher<diagnostic_msgs::msg::DiagnosticArray>(status_topic_, 10);
     gnss_epoch_sub_ = create_subscription<gnss_raw_msgs::msg::ObservationEpoch>(
       gnss_epoch_topic_, 50,
       std::bind(&TimeSyncNode::onGnssEpoch, this, std::placeholders::_1));
@@ -348,7 +351,8 @@ private:
     status.values.push_back(numericKeyValue("lidar_gaps", lidar_gaps_));
     status.values.push_back(numericKeyValue("lidar_nonfinite", lidar_nonfinite_));
     array.status.push_back(std::move(status));
-    diagnostics_pub_->publish(std::move(array));
+    diagnostics_pub_->publish(array);
+    status_pub_->publish(std::move(array));
   }
 
   void appendSensorMapping(
@@ -374,6 +378,7 @@ private:
   std::string imu_time_reference_topic_;
   std::string lidar_time_reference_topic_;
   std::string diagnostics_topic_;
+  std::string status_topic_;
   std::string imu_stamp_domain_;
   std::string lidar_stamp_domain_;
   double gnss_reception_uncertainty_s_ = 0.02;
@@ -398,6 +403,7 @@ private:
   std::uint64_t lidar_nonfinite_ = 0;
 
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr status_pub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr gnss_epoch_sub_;
   rclcpp::Subscription<sensor_msgs::msg::TimeReference>::SharedPtr pps_sub_;
   rclcpp::Subscription<sensor_msgs::msg::TimeReference>::SharedPtr imu_time_reference_sub_;

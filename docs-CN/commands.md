@@ -759,7 +759,58 @@ calibration.gnss.base_ecef_calibrated: false
 
 预期 fail-closed 状态包括 `WAITING_FOR_CALIBRATION`、`WAITING_FOR_LIDAR_KEYFRAME`、`WAITING_FOR_CONTINUOUS_IMU` 和 `LIO_ONLY_WAITING_BASE`。`FLOAT_ACTIVE` 只表示图正在优化；`FIXED_ACTIVE` 只表示当前候选通过配置门限，两者都不代表实车精度已验收。`/fgo_gil/float_odom_ecef` 始终保持浮点解，`/fgo_gil/fixed_odom_ecef` 只在 fixed 候选通过 ratio、success-rate、残差和回代验证时发布。
 
-`/fgo_gil/float_diagnostics` 的 Phase 6 关键字段为 `solution_status`、`ambiguity_ratio`、`ambiguity_success_rate`、`fixed_ambiguities`、`fix_rejection_reason`、`back_substitution_rejection` 和 fixed correction/cost 指标。GLONASS FDMA 在 Phase 6 不参与整数固定。该节点仍不发布 TF、path、`/cmd_vel` 或 Nav2 输入；`make kill-runtime` 已包含三个 FGO-GIL executable。
+`/fgo_gil/float_diagnostics` 的 Phase 6 关键字段为 `solution_status`、`ambiguity_ratio`、`ambiguity_success_rate`、`fixed_ambiguities`、`fix_rejection_reason`、`back_substitution_rejection` 和 fixed correction/cost 指标。GLONASS FDMA 在 Phase 6 不参与整数固定。该节点不发布 TF、`/cmd_vel` 或 Nav2 输入；Phase 7 增加的 path 也只是 shadow 输出。`make kill-runtime` 已包含三个 FGO-GIL executable。
+
+## FGO-GIL Phase 7 完整 shadow、录包与评价
+
+live 模式默认启动 Livox、FAST-LIO2 comparator、独立 UM982 raw driver 和 Phase 3-7 FGO-GIL 链，并使用 `full` profile 录包：
+
+```bash
+make build-fgo-gil
+source install/setup.bash
+make launch-fgo-gil-shadow
+```
+
+需要减小录包体积时使用 `minimal` profile：
+
+```bash
+bash scripts/launch_with_logs.sh fgo-gil-shadow bag_profile:=minimal
+```
+
+回放已有 bag 时先启动纯算法链，再从另一终端发布 `/clock`：
+
+```bash
+bash scripts/launch_with_logs.sh fgo-gil-shadow \
+  use_sim_time:=true start_livox:=false start_fastlio:=false \
+  start_raw_driver:=false record_bag:=false
+
+ros2 bag play <bag目录> --clock
+```
+
+观察统一解、轨迹和分层诊断：
+
+```bash
+ros2 topic echo /fgo_gil/odom --once
+ros2 topic echo /fgo_gil/path --once
+ros2 topic echo /fgo_gil/factor_diagnostics
+ros2 topic echo /fgo_gil/ambiguity_status
+ros2 topic echo /fgo_gil/timing_status
+ros2 topic echo /fgo_gil/performance
+```
+
+完整解码评价需要 source ROS 2 和 workspace；已有旧 bag 仅检查 topic 证据时可在工作站使用 `--metadata-only`：
+
+```bash
+python3 scripts/evaluate_fgo_gil_bag.py \
+  --bag <bag目录> --out /tmp/fgo_gil_metrics.json
+
+python3 scripts/evaluate_fgo_gil_bag.py \
+  --bag <旧bag目录> --out /tmp/fgo_gil_metadata.json --metadata-only
+```
+
+结果包含 SE(3) 对齐后的 APE/RPE、availability、fixing rate、outage drift、optimization latency、real-time factor 和同 session `tegrastats.log` 的 CPU/RAM。旧 bag 没有 `/gnss/raw/observation_epoch` 或该 topic 消息数为零时，结果必须是 `RAW_GNSS_UNAVAILABLE`；这只证明 comparator/非 raw 路径可回归，不构成论文 GNSS 验收。
+
+Phase 7 强制 `publish_tf=false`、`nav2_use_fgo=false`。任何把它们设为 `true` 的启动都会失败；该模式不启动串口控制或 Nav2。停止时使用 `make kill-runtime`，它覆盖 rosbag、Livox、FAST-LIO、raw driver 和三个 FGO-GIL executable。
 
 ## RTK FGO 紧耦合 shadow mode
 

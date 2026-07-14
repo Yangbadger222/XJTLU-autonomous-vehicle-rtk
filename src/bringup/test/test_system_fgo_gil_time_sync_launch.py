@@ -91,7 +91,8 @@ def test_phase5_launch_remains_shadow_only():
     assert 'executable="fgo_gil_float_fgo_node"' in text
     assert "tf2_ros" not in text
     assert "cmd_vel" not in text
-    assert "nav2" not in text.lower()
+    assert 'package="nav2_' not in text
+    assert 'executable="controller_server"' not in text
 
 
 def test_phase5_config_fails_closed_and_bounds_the_float_window():

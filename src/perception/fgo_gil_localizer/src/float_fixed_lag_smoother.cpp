@@ -687,6 +687,7 @@ bool FloatFixedLagSmoother::optimize()
     {
       states_ = previous_states;
       ambiguities_ = previous_ambiguities;
+      ++diagnostics_.optimization_rollbacks;
       damping *= 10.0;
       continue;
     }
@@ -1123,6 +1124,24 @@ void FloatFixedLagSmoother::refreshDiagnostics()
   diagnostics_.states = states_.size();
   diagnostics_.ambiguities = ambiguities_.size();
   diagnostics_.factors = factorCount();
+  diagnostics_.state_prior_factors = state_priors_.size();
+  diagnostics_.imu_factors = imu_factors_.size();
+  diagnostics_.lidar_line_factors = 0U;
+  diagnostics_.lidar_plane_factors = 0U;
+  diagnostics_.gnss_code_factors = 0U;
+  diagnostics_.gnss_carrier_factors = 0U;
+  for (const auto & batch : lidar_factors_) {
+    diagnostics_.lidar_line_factors += batch.lines.size();
+    diagnostics_.lidar_plane_factors += batch.planes.size();
+  }
+  for (const auto & batch : gnss_factors_) {
+    for (const auto & measurement : batch.measurements) {
+      diagnostics_.gnss_code_factors += static_cast<std::size_t>(measurement.code_valid);
+      diagnostics_.gnss_carrier_factors += static_cast<std::size_t>(measurement.carrier_valid);
+    }
+  }
+  diagnostics_.window_span_s = state_order_.size() < 2U ? 0.0 :
+    states_.at(state_order_.back()).stamp_s - states_.at(state_order_.front()).stamp_s;
 }
 
 }  // namespace fgo_gil_localizer

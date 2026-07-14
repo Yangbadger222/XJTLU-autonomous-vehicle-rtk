@@ -54,6 +54,27 @@ TEST(GnssEpochAligner, MatchesOnceAndBoundsUnmatchedInput)
   EXPECT_EQ(aligner.diagnostics().dropped_capacity, 2U);
 }
 
+TEST(DoubleDifferenceDiagnostics, RejectReasonsHaveStableNames)
+{
+  EXPECT_STREQ(toString(ArcResetReason::FirstObservation), "FIRST_OBSERVATION");
+  EXPECT_STREQ(toString(ArcResetReason::Reacquired), "REACQUIRED");
+  EXPECT_STREQ(toString(ArcResetReason::LockTimeReset), "LOCK_TIME_RESET");
+  EXPECT_STREQ(toString(ArcResetReason::TrackingChannelChanged), "TRACKING_CHANNEL_CHANGED");
+  EXPECT_STREQ(toString(ArcResetReason::ObservationGap), "OBSERVATION_GAP");
+  EXPECT_STREQ(
+    toString(ArcResetReason::DopplerPhaseInconsistent), "DOPPLER_PHASE_INCONSISTENT");
+  EXPECT_STREQ(toString(ArcResetReason::TimeReversal), "TIME_REVERSAL");
+  EXPECT_STREQ(toString(DdRejectReason::InvalidEpoch), "INVALID_EPOCH");
+  EXPECT_STREQ(toString(DdRejectReason::BaselineTooLong), "BASELINE_TOO_LONG");
+  EXPECT_STREQ(toString(DdRejectReason::MissingBaseObservation), "MISSING_BASE_OBSERVATION");
+  EXPECT_STREQ(toString(DdRejectReason::UnsupportedSignal), "UNSUPPORTED_SIGNAL");
+  EXPECT_STREQ(toString(DdRejectReason::MissingSatelliteState), "MISSING_SATELLITE_STATE");
+  EXPECT_STREQ(toString(DdRejectReason::LowQuality), "LOW_QUALITY");
+  EXPECT_STREQ(toString(DdRejectReason::BelowElevationMask), "BELOW_ELEVATION_MASK");
+  EXPECT_STREQ(toString(DdRejectReason::MissingReference), "MISSING_REFERENCE");
+  EXPECT_STREQ(toString(DdRejectReason::CodeInnovation), "CODE_INNOVATION");
+}
+
 TEST(GnssReferenceSelector, UsesElevationHysteresisAndReportsSwitch)
 {
   GnssReferenceSelector selector({0.0, 20.0, 5.0 * 3.14159265358979323846 / 180.0});
@@ -153,6 +174,11 @@ TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
   DoubleDifferenceBuilder builder;
   const auto measurements = builder.build(epochs, states, rover_state, base, lever_arm);
   ASSERT_EQ(measurements.size(), 1U);
+  EXPECT_EQ(builder.diagnostics().new_arcs, 4U);
+  EXPECT_EQ(
+    builder.diagnostics().arc_resets[
+      static_cast<std::size_t>(ArcResetReason::FirstObservation)],
+    4U);
   const auto & measurement = measurements.front();
   ASSERT_TRUE(measurement.code_valid);
   ASSERT_TRUE(measurement.carrier_valid);

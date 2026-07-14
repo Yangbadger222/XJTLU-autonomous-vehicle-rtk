@@ -132,7 +132,11 @@ public:
             "global_relocalize",
             std::bind(&LocalizerNode::globalRelocCB, this, std::placeholders::_1, std::placeholders::_2));
 
-        m_map_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", 10);
+        rclcpp::QoS qos(rclcpp::KeepLast(1));
+        qos.transient_local();
+        qos.reliable();
+        m_map_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", qos);
+        // m_map_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("map_cloud", 10);
         m_status_pub = this->create_publisher<interface::msg::LocalizationStatus>("status", 10);
         m_transform_pub = this->create_publisher<geometry_msgs::msg::TransformStamped>(
             m_config.transform_topic,

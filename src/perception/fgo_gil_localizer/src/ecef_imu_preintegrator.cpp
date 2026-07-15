@@ -7,8 +7,10 @@
 namespace fgo_gil_localizer
 {
 
-EcefImuPreintegrator::EcefImuPreintegrator(EcefImuConfig config)
-: config_(config)
+EcefImuPreintegrator::EcefImuPreintegrator(
+  EcefImuConfig config,
+  const bool track_bias_jacobian)
+: config_(config), track_bias_jacobian_(track_bias_jacobian)
 {
   if (!std::isfinite(config_.maximum_step_s) || config_.maximum_step_s <= 0.0 ||
     !std::isfinite(config_.earth_rotation_rad_s) || config_.earth_rotation_rad_s < 0.0 ||
@@ -34,11 +36,13 @@ bool EcefImuPreintegrator::reset(const EcefState & initial_state)
     return false;
   }
   states_.fill(initial_state);
-  for (std::size_t axis = 0; axis < 3U; ++axis) {
-    states_[1U + axis].accelerometer_bias_m_s2[axis] +=
-      config_.accelerometer_bias_perturbation_m_s2;
-    states_[4U + axis].gyroscope_bias_rad_s[axis] +=
-      config_.gyroscope_bias_perturbation_rad_s;
+  if (track_bias_jacobian_) {
+    for (std::size_t axis = 0; axis < 3U; ++axis) {
+      states_[1U + axis].accelerometer_bias_m_s2[axis] +=
+        config_.accelerometer_bias_perturbation_m_s2;
+      states_[4U + axis].gyroscope_bias_rad_s[axis] +=
+        config_.gyroscope_bias_perturbation_rad_s;
+    }
   }
   return true;
 }
@@ -62,8 +66,9 @@ ImuIntegrationResult EcefImuPreintegrator::integrate(const ImuSample & measureme
       return ImuIntegrationResult::RejectedTimeReversal;
     }
     previous_measurement_ = measurement;
-    for (auto & state : states_) {
-      state.stamp_s = measurement.stamp_s;
+    const std::size_t state_count = track_bias_jacobian_ ? states_.size() : 1U;
+    for (std::size_t index = 0; index < state_count; ++index) {
+      states_[index].stamp_s = measurement.stamp_s;
     }
     return ImuIntegrationResult::Initialized;
   }
@@ -89,13 +94,14 @@ ImuIntegrationResult EcefImuPreintegrator::integrate(const ImuSample & measureme
     0.5 * (previous_measurement_->acceleration_m_s2 + measurement.acceleration_m_s2);
   midpoint.angular_velocity_rad_s =
     0.5 * (previous_measurement_->angular_velocity_rad_s + measurement.angular_velocity_rad_s);
-  for (auto & state : states_) {
-    if (!propagate(state, midpoint, delta_s)) {
+  const std::size_t state_count = track_bias_jacobian_ ? states_.size() : 1U;
+  for (std::size_t index = 0; index < state_count; ++index) {
+    if (!propagate(states_[index], midpoint, delta_s)) {
       valid_ = false;
       ++diagnostics_.invalid_states;
       return ImuIntegrationResult::RejectedInvalidState;
     }
-    state.stamp_s = measurement.stamp_s;
+    states_[index].stamp_s = measurement.stamp_s;
   }
   previous_measurement_ = measurement;
   ++diagnostics_.integrated_intervals;
@@ -106,7 +112,7 @@ ImuIntegrationResult EcefImuPreintegrator::integrate(const ImuSample & measureme
 BiasJacobian EcefImuPreintegrator::biasJacobian() const
 {
   BiasJacobian jacobian{};
-  if (!reset_ || !valid_) {
+  if (!reset_ || !valid_ || !track_bias_jacobian_) {
     return jacobian;
   }
   const EcefState & nominal = states_[0];

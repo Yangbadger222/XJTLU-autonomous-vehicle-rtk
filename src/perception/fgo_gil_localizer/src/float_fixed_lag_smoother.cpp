@@ -105,7 +105,7 @@ std::optional<EcefState> propagateImuState(
   if (samples.size() < 2U) {
     return std::nullopt;
   }
-  EcefImuPreintegrator preintegrator(config);
+  EcefImuPreintegrator preintegrator(config, false);
   if (!preintegrator.reset(from)) {
     return std::nullopt;
   }

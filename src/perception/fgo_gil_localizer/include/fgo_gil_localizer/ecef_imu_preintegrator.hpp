@@ -57,7 +57,9 @@ struct EcefImuDiagnostics
 class EcefImuPreintegrator
 {
 public:
-  explicit EcefImuPreintegrator(EcefImuConfig config = {});
+  explicit EcefImuPreintegrator(
+    EcefImuConfig config = {},
+    bool track_bias_jacobian = true);
 
   bool reset(const EcefState & initial_state);
   ImuIntegrationResult integrate(const ImuSample & measurement);
@@ -73,6 +75,7 @@ private:
   bool validState(const EcefState & state) const;
 
   EcefImuConfig config_;
+  bool track_bias_jacobian_ = true;
   std::array<EcefState, 7> states_{};
   std::optional<ImuSample> previous_measurement_;
   bool reset_ = false;

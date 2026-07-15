@@ -85,6 +85,33 @@ TEST(EcefImuPreintegrator, ProducesBiasSensitivityWithExpectedSigns)
   EXPECT_NEAR(jacobianAt(jacobian, 8, 5), -1.0, 2.0e-4);
 }
 
+TEST(EcefImuPreintegrator, NominalOnlyModeMatchesTrackedNominalState)
+{
+  EcefImuConfig config;
+  EcefImuPreintegrator tracked(config, true);
+  EcefImuPreintegrator nominal_only(config, false);
+  ASSERT_TRUE(tracked.reset(initialState()));
+  ASSERT_TRUE(nominal_only.reset(initialState()));
+  const Vec3 acceleration{9.7, 0.2, -0.1};
+  const Vec3 angular_velocity{0.01, -0.02, 0.03};
+  for (std::size_t index = 0; index <= 100U; ++index) {
+    const ImuSample sample{
+      0.01 * static_cast<double>(index), acceleration, angular_velocity};
+    EXPECT_EQ(tracked.integrate(sample), nominal_only.integrate(sample));
+  }
+  EXPECT_LT(norm(tracked.state().position_ecef_m - nominal_only.state().position_ecef_m), 1.0e-12);
+  EXPECT_LT(norm(tracked.state().velocity_ecef_m_s - nominal_only.state().velocity_ecef_m_s), 1.0e-12);
+  EXPECT_LT(
+    norm(quaternionLog(
+      tracked.state().orientation_ecef_body *
+      nominal_only.state().orientation_ecef_body.conjugate())),
+    1.0e-12);
+  const BiasJacobian disabled = nominal_only.biasJacobian();
+  for (const double value : disabled) {
+    EXPECT_DOUBLE_EQ(value, 0.0);
+  }
+}
+
 TEST(EcefImuPreintegrator, FailsClosedOnBadTimestampsAndMeasurements)
 {
   EcefImuPreintegrator integrator;

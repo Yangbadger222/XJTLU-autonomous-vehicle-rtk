@@ -39,6 +39,8 @@ struct LidarGraphFactorConfig
   double line_sigma_m = 0.05;
   double plane_sigma_m = 0.05;
   double huber_delta_sigma = 2.5;
+  std::size_t maximum_line_factors_per_keyframe = 48;
+  std::size_t maximum_plane_factors_per_keyframe = 96;
 };
 
 struct GnssGraphFactorConfig

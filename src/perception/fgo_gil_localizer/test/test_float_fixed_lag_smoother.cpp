@@ -184,6 +184,22 @@ TEST(FloatFixedLagSmoother, LidarJacobianRemainsConditionedAtEcefScale)
   EXPECT_TRUE(smoother.diagnostics().last_solve_succeeded);
 }
 
+TEST(FloatFixedLagSmoother, BoundsLidarResidualsPerKeyframe)
+{
+  LidarGraphFactorConfig lidar_config;
+  lidar_config.maximum_line_factors_per_keyframe = 8;
+  lidar_config.maximum_plane_factors_per_keyframe = 12;
+  FloatFixedLagSmoother smoother({}, lidar_config);
+  const Vec3 position{6378137.0, 0.0, 0.0};
+  ASSERT_TRUE(smoother.addState(1, stateAt(0.0, position)));
+  std::vector<PointToLineFactor> lines(40, {{1.0, 0.0, 0.0}, position, {1.0, 0.0, 0.0}});
+  std::vector<PointToPlaneFactor> planes(
+    60, {{0.0, 1.0, 0.0}, position + Vec3{0.0, 1.0, 0.0}, {0.0, 1.0, 0.0}});
+  ASSERT_TRUE(smoother.addLidarFactors(1, lines, planes));
+  EXPECT_EQ(smoother.diagnostics().lidar_line_factors, 8U);
+  EXPECT_EQ(smoother.diagnostics().lidar_plane_factors, 12U);
+}
+
 TEST(FloatFixedLagSmoother, SchurMarginalizationBoundsWindowAndPreservesPrior)
 {
   FloatSmootherConfig config;

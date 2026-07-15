@@ -181,6 +181,27 @@ double robustCost(const double standardized_residual, const double huber_delta)
   return huber_delta * (magnitude - 0.5 * huber_delta);
 }
 
+template<typename Factor>
+std::vector<Factor> boundedUniformSample(
+  const std::vector<Factor> & input,
+  const std::size_t maximum_size)
+{
+  if (input.size() <= maximum_size) {
+    return input;
+  }
+  std::vector<Factor> output;
+  output.reserve(maximum_size);
+  if (maximum_size == 1U) {
+    output.push_back(input.front());
+    return output;
+  }
+  for (std::size_t index = 0; index < maximum_size; ++index) {
+    const std::size_t source = index * (input.size() - 1U) / (maximum_size - 1U);
+    output.push_back(input[source]);
+  }
+  return output;
+}
+
 }  // namespace
 
 FloatFixedLagSmoother::FloatFixedLagSmoother(
@@ -197,6 +218,8 @@ FloatFixedLagSmoother::FloatFixedLagSmoother(
     !std::isfinite(lidar_config_.plane_sigma_m) || lidar_config_.plane_sigma_m <= 0.0 ||
     !std::isfinite(lidar_config_.huber_delta_sigma) ||
     lidar_config_.huber_delta_sigma <= 0.0 ||
+    lidar_config_.maximum_line_factors_per_keyframe == 0U ||
+    lidar_config_.maximum_plane_factors_per_keyframe == 0U ||
     !std::isfinite(gnss_config_.code_huber_delta_sigma) ||
     gnss_config_.code_huber_delta_sigma <= 0.0 ||
     !std::isfinite(gnss_config_.carrier_huber_delta_sigma) ||
@@ -274,7 +297,12 @@ bool FloatFixedLagSmoother::addLidarFactors(
     ++diagnostics_.rejected_factors;
     return false;
   }
-  lidar_factors_.push_back({state, line_factors, plane_factors, body_lidar});
+  lidar_factors_.push_back(
+    {
+      state,
+      boundedUniformSample(line_factors, lidar_config_.maximum_line_factors_per_keyframe),
+      boundedUniformSample(plane_factors, lidar_config_.maximum_plane_factors_per_keyframe),
+      body_lidar});
   invalidateFixLinearization();
   refreshDiagnostics();
   return true;

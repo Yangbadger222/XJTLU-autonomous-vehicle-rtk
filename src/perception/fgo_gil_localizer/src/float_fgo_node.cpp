@@ -217,9 +217,12 @@ private:
 
     declare_parameter<int>("buffers.imu_capacity", 8192);
     declare_parameter<int>("buffers.imu_qos_depth", 512);
+    declare_parameter<int>("buffers.raw_input_qos_depth", 512);
     declare_parameter<double>("buffers.maximum_imu_gap_s", 0.05);
     declare_parameter<int>("buffers.pending_lidar_batches", 16);
     declare_parameter<double>("buffers.pending_lidar_timeout_s", 0.5);
+    declare_parameter<int>("buffers.pending_raw_epochs", 1024);
+    declare_parameter<int>("buffers.pending_ephemerides", 64);
     declare_parameter<int>("buffers.pending_gnss_epochs", 128);
     declare_parameter<int>("buffers.maximum_ephemerides", 256);
     declare_parameter<double>("imu.acceleration_scale", 9.80665);
@@ -238,9 +241,12 @@ private:
     declare_parameter<int>("optimizer.maximum_iterations", 6);
     declare_parameter<double>("optimizer.initial_damping", 1.0e-6);
     declare_parameter<double>("optimizer.convergence_delta_norm", 1.0e-6);
+    declare_parameter<double>("optimizer.maximum_condition_estimate", 1.0e12);
     declare_parameter<double>("optimizer.lidar_line_sigma_m", 0.05);
     declare_parameter<double>("optimizer.lidar_plane_sigma_m", 0.05);
     declare_parameter<double>("optimizer.lidar_huber_delta_sigma", 2.5);
+    declare_parameter<int>("optimizer.maximum_line_factors_per_keyframe", 48);
+    declare_parameter<int>("optimizer.maximum_plane_factors_per_keyframe", 96);
     declare_parameter<double>("optimizer.gnss_code_huber_delta_sigma", 2.5);
     declare_parameter<double>("optimizer.gnss_carrier_huber_delta_sigma", 2.5);
 
@@ -358,8 +364,11 @@ private:
       vec3Parameter("calibration.imu_lidar.translation_m")};
     pending_gnss_capacity_ = positiveSizeParameter("buffers.pending_gnss_epochs");
     imu_qos_depth_ = positiveSizeParameter("buffers.imu_qos_depth");
+    raw_input_qos_depth_ = positiveSizeParameter("buffers.raw_input_qos_depth");
     pending_lidar_capacity_ = positiveSizeParameter("buffers.pending_lidar_batches");
     pending_lidar_timeout_s_ = get_parameter("buffers.pending_lidar_timeout_s").as_double();
+    pending_raw_epoch_capacity_ = positiveSizeParameter("buffers.pending_raw_epochs");
+    pending_ephemeris_capacity_ = positiveSizeParameter("buffers.pending_ephemerides");
     maximum_ephemerides_ = positiveSizeParameter("buffers.maximum_ephemerides");
     acceleration_scale_ = get_parameter("imu.acceleration_scale").as_double();
     maximum_gnss_keyframe_offset_s_ =
@@ -383,12 +392,18 @@ private:
     smoother_config_.initial_damping = get_parameter("optimizer.initial_damping").as_double();
     smoother_config_.convergence_delta_norm =
       get_parameter("optimizer.convergence_delta_norm").as_double();
+    maximum_condition_estimate_ =
+      get_parameter("optimizer.maximum_condition_estimate").as_double();
     lidar_factor_config_.line_sigma_m =
       get_parameter("optimizer.lidar_line_sigma_m").as_double();
     lidar_factor_config_.plane_sigma_m =
       get_parameter("optimizer.lidar_plane_sigma_m").as_double();
     lidar_factor_config_.huber_delta_sigma =
       get_parameter("optimizer.lidar_huber_delta_sigma").as_double();
+    lidar_factor_config_.maximum_line_factors_per_keyframe =
+      positiveSizeParameter("optimizer.maximum_line_factors_per_keyframe");
+    lidar_factor_config_.maximum_plane_factors_per_keyframe =
+      positiveSizeParameter("optimizer.maximum_plane_factors_per_keyframe");
     gnss_factor_config_.code_huber_delta_sigma =
       get_parameter("optimizer.gnss_code_huber_delta_sigma").as_double();
     gnss_factor_config_.carrier_huber_delta_sigma =
@@ -462,7 +477,8 @@ private:
       raw_startup_grace_s_ < 0.0 || !std::isfinite(observation_stale_timeout_s_) ||
       observation_stale_timeout_s_ <= 0.0 ||
       !std::isfinite(ephemeris_stale_timeout_s_) || ephemeris_stale_timeout_s_ <= 0.0 ||
-      !std::isfinite(pending_lidar_timeout_s_) || pending_lidar_timeout_s_ <= 0.0)
+      !std::isfinite(pending_lidar_timeout_s_) || pending_lidar_timeout_s_ <= 0.0 ||
+      !std::isfinite(maximum_condition_estimate_) || maximum_condition_estimate_ <= 1.0)
     {
       throw std::invalid_argument("FGO node timing parameters are outside valid bounds");
     }
@@ -499,10 +515,14 @@ private:
     imu_callback_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     estimator_callback_group_ =
       create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    raw_input_callback_group_ =
+      create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     rclcpp::SubscriptionOptions imu_options;
     imu_options.callback_group = imu_callback_group_;
     rclcpp::SubscriptionOptions estimator_options;
     estimator_options.callback_group = estimator_callback_group_;
+    rclcpp::SubscriptionOptions raw_input_options;
+    raw_input_options.callback_group = raw_input_callback_group_;
 
     odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(odometry_topic_, 10);
     fixed_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(fixed_odometry_topic_, 10);
@@ -526,11 +546,11 @@ private:
       std::bind(&FloatFgoNode::onLidarConstraints, this, std::placeholders::_1),
       estimator_options);
     gnss_sub_ = create_subscription<gnss_raw_msgs::msg::ObservationEpoch>(
-      gnss_epoch_topic_, 50,
-      std::bind(&FloatFgoNode::onGnssEpoch, this, std::placeholders::_1), estimator_options);
+      gnss_epoch_topic_, raw_input_qos_depth_,
+      std::bind(&FloatFgoNode::onGnssEpoch, this, std::placeholders::_1), raw_input_options);
     ephemeris_sub_ = create_subscription<gnss_raw_msgs::msg::Ephemeris>(
-      ephemeris_topic_, 50,
-      std::bind(&FloatFgoNode::onEphemeris, this, std::placeholders::_1), estimator_options);
+      ephemeris_topic_, raw_input_qos_depth_,
+      std::bind(&FloatFgoNode::onEphemeris, this, std::placeholders::_1), raw_input_options);
     time_sync_sub_ = create_subscription<diagnostic_msgs::msg::DiagnosticArray>(
       time_sync_topic_, 10,
       std::bind(&FloatFgoNode::onTimeSync, this, std::placeholders::_1), estimator_options);
@@ -638,6 +658,16 @@ private:
     maximum_optimization_latency_ms_ = std::max(
       maximum_optimization_latency_ms_, last_optimization_latency_ms_);
     ++measured_optimization_calls_;
+    last_optimization_numerically_rejected_ = false;
+    if (succeeded) {
+      const double condition = smoother_->diagnostics().last_condition_estimate;
+      if (!std::isfinite(condition) || condition > maximum_condition_estimate_) {
+        last_optimization_numerically_rejected_ = true;
+        last_rejected_condition_estimate_ = condition;
+        ++numerical_condition_rejections_;
+        return false;
+      }
+    }
     if (last_state_id_.has_value()) {
       const EcefState * latest = smoother_->state(*last_state_id_);
       if (latest != nullptr) {
@@ -689,6 +719,16 @@ private:
 
   void onEphemeris(const gnss_raw_msgs::msg::Ephemeris::SharedPtr message)
   {
+    std::lock_guard<std::mutex> lock(raw_input_mutex_);
+    if (raw_ephemeris_queue_.size() >= pending_ephemeris_capacity_) {
+      raw_ephemeris_queue_.pop_front();
+      ++dropped_raw_ephemeris_queue_;
+    }
+    raw_ephemeris_queue_.push_back(message);
+  }
+
+  void processEphemeris(const gnss_raw_msgs::msg::Ephemeris::SharedPtr & message)
+  {
     last_ephemeris_reception_steady_ = std::chrono::steady_clock::now();
     try {
       const BroadcastEphemeris value = ephemeris(*message);
@@ -710,6 +750,16 @@ private:
   }
 
   void onGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr message)
+  {
+    std::lock_guard<std::mutex> lock(raw_input_mutex_);
+    if (raw_epoch_queue_.size() >= pending_raw_epoch_capacity_) {
+      raw_epoch_queue_.pop_front();
+      ++dropped_raw_epoch_queue_;
+    }
+    raw_epoch_queue_.push_back(message);
+  }
+
+  void processGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr & message)
   {
     last_raw_observation_reception_steady_ = std::chrono::steady_clock::now();
     ++raw_observation_epochs_received_;
@@ -734,17 +784,26 @@ private:
           pending_gnss_.pop_front();
           ++dropped_pending_gnss_;
         }
-      } else if (optimizeGraph()) {
-        pruneStateBookkeeping();
-        updateIntegerSolution();
-        estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
-        publishOdometry();
-      } else {
-        estimator_state_ = "OPTIMIZATION_FAILED";
-        ++optimization_failures_;
       }
     } catch (const std::exception &) {
       ++invalid_gnss_epochs_;
+    }
+  }
+
+  void drainRawInputs()
+  {
+    std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> ephemerides;
+    std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> epochs;
+    {
+      std::lock_guard<std::mutex> lock(raw_input_mutex_);
+      ephemerides.swap(raw_ephemeris_queue_);
+      epochs.swap(raw_epoch_queue_);
+    }
+    for (const auto & message : ephemerides) {
+      processEphemeris(message);
+    }
+    for (const auto & message : epochs) {
+      processGnssEpoch(message);
     }
   }
 
@@ -849,6 +908,7 @@ private:
 
   void drainPendingLidar()
   {
+    drainRawInputs();
     while (!pending_lidar_.empty()) {
       PendingLidarBatch & pending = pending_lidar_.front();
       const double age_s = std::chrono::duration<double>(
@@ -1017,9 +1077,11 @@ private:
     }
     if (!optimizeGraph()) {
       ++optimization_failures_;
+      const bool numerically_rejected = last_optimization_numerically_rejected_;
       resetGraph();
       pending_gnss_.clear();
-      estimator_state_ = "OPTIMIZATION_FAILED_RESET";
+      estimator_state_ = numerically_rejected ?
+        "NUMERICAL_CONDITION_REJECTED_RESET" : "OPTIMIZATION_FAILED_RESET";
       return LidarBatchResult::Consumed;
     }
     pruneStateBookkeeping();
@@ -1186,6 +1248,7 @@ private:
 
   void publishDiagnostics()
   {
+    drainRawInputs();
     diagnostic_msgs::msg::DiagnosticArray array;
     array.header.stamp = now();
     diagnostic_msgs::msg::DiagnosticStatus status;
@@ -1289,6 +1352,7 @@ private:
     status.values.push_back(numericKeyValue("marginalizations", graph.marginalizations));
     status.values.push_back(numericKeyValue("gnss_outages", graph.gnss_outages));
     status.values.push_back(numericKeyValue("last_iterations", graph.last_iterations));
+    status.values.push_back(numericKeyValue("last_delta_norm", graph.last_delta_norm));
     status.values.push_back(numericKeyValue("last_cost", graph.last_cost));
     status.values.push_back(numericKeyValue("last_residual_rms", residual_rms));
     status.values.push_back(
@@ -1305,6 +1369,10 @@ private:
       numericKeyValue("satellite_propagation_failures", satellite_propagation_failures_));
     status.values.push_back(numericKeyValue("gnss_rejected_epochs", gnss_rejected_epochs_));
     status.values.push_back(numericKeyValue("optimization_failures", optimization_failures_));
+    status.values.push_back(
+      numericKeyValue("numerical_condition_rejections", numerical_condition_rejections_));
+    status.values.push_back(
+      numericKeyValue("last_rejected_condition_estimate", last_rejected_condition_estimate_));
     status.values.push_back(numericKeyValue("graph_resets", graph_resets_));
     status.values.push_back(numericKeyValue("imu_graph_reseeds", imu_graph_reseeds_));
     status.values.push_back(
@@ -1317,6 +1385,17 @@ private:
       numericKeyValue("dropped_pending_lidar_capacity", dropped_pending_lidar_capacity_));
     status.values.push_back(
       numericKeyValue("dropped_lidar_history_unavailable", dropped_lidar_history_unavailable_));
+    {
+      std::lock_guard<std::mutex> lock(raw_input_mutex_);
+      status.values.push_back(
+        numericKeyValue("pending_raw_epochs", raw_epoch_queue_.size()));
+      status.values.push_back(
+        numericKeyValue("pending_raw_ephemerides", raw_ephemeris_queue_.size()));
+      status.values.push_back(
+        numericKeyValue("dropped_raw_epoch_queue", dropped_raw_epoch_queue_));
+      status.values.push_back(
+        numericKeyValue("dropped_raw_ephemeris_queue", dropped_raw_ephemeris_queue_));
+    }
     status.values.push_back(numericKeyValue("output_age_s", output_age_s));
     status.values.push_back(numericKeyValue("output_stamp_age_s", output_stamp_age_s));
     status.values.push_back(
@@ -1402,12 +1481,15 @@ private:
     performance_status.name = "fgo_gil/performance";
     performance_status.hardware_id = "jetson_orin_nx";
     const bool output_stale = output_age_s > observation_stale_timeout_s_;
-    performance_status.level = nonfinite_output_rejections_ != 0U ?
+    performance_status.level =
+      (nonfinite_output_rejections_ != 0U || last_optimization_numerically_rejected_) ?
       diagnostic_msgs::msg::DiagnosticStatus::ERROR :
       (last_real_time_factor_ > 1.0 || output_stale ?
       diagnostic_msgs::msg::DiagnosticStatus::WARN : diagnostic_msgs::msg::DiagnosticStatus::OK);
     performance_status.message = nonfinite_output_rejections_ != 0U ?
-      "NONFINITE_OUTPUT_REJECTED" : (output_stale ? "OUTPUT_STALE" : "SHADOW_ONLY");
+      "NONFINITE_OUTPUT_REJECTED" :
+      (last_optimization_numerically_rejected_ ?
+      "NUMERICAL_CONDITION_REJECTED" : (output_stale ? "OUTPUT_STALE" : "SHADOW_ONLY"));
     performance_status.values.push_back(
       numericKeyValue("optimization_latency_ms", last_optimization_latency_ms_));
     performance_status.values.push_back(
@@ -1457,7 +1539,10 @@ private:
   Vec3 master_in_imu_m_;
   std::size_t pending_gnss_capacity_ = 128;
   std::size_t imu_qos_depth_ = 512;
+  std::size_t raw_input_qos_depth_ = 512;
   std::size_t pending_lidar_capacity_ = 16;
+  std::size_t pending_raw_epoch_capacity_ = 1024;
+  std::size_t pending_ephemeris_capacity_ = 64;
   std::size_t maximum_ephemerides_ = 256;
   std::size_t maximum_path_poses_ = 2000;
   double acceleration_scale_ = 9.80665;
@@ -1469,6 +1554,7 @@ private:
   double observation_stale_timeout_s_ = 2.0;
   double ephemeris_stale_timeout_s_ = 300.0;
   double pending_lidar_timeout_s_ = 0.5;
+  double maximum_condition_estimate_ = 1.0e12;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
   FloatSmootherConfig smoother_config_;
@@ -1486,10 +1572,13 @@ private:
   std::unique_ptr<IntegerAmbiguityResolver> integer_resolver_;
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
   mutable std::mutex imu_mutex_;
+  mutable std::mutex raw_input_mutex_;
   std::map<SatelliteId, BroadcastEphemeris> ephemerides_;
   std::deque<SatelliteId> ephemeris_order_;
   std::deque<AlignedGnssEpochs> pending_gnss_;
   std::deque<PendingLidarBatch> pending_lidar_;
+  std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> raw_epoch_queue_;
+  std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> raw_ephemeris_queue_;
   std::map<StateId, double> state_gnss_seconds_;
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
@@ -1526,6 +1615,8 @@ private:
   double total_optimization_latency_ms_ = 0.0;
   double maximum_optimization_latency_ms_ = 0.0;
   double last_real_time_factor_ = 0.0;
+  double last_rejected_condition_estimate_ = 0.0;
+  bool last_optimization_numerically_rejected_ = false;
 
   std::uint64_t graph_resets_ = 0;
   std::uint64_t lidar_keyframes_ = 0;
@@ -1534,6 +1625,8 @@ private:
   std::uint64_t dropped_pending_lidar_timeout_ = 0;
   std::uint64_t dropped_pending_lidar_capacity_ = 0;
   std::uint64_t dropped_lidar_history_unavailable_ = 0;
+  std::uint64_t dropped_raw_epoch_queue_ = 0;
+  std::uint64_t dropped_raw_ephemeris_queue_ = 0;
   std::uint64_t invalid_lidar_batches_ = 0;
   std::uint64_t aligned_gnss_epochs_ = 0;
   std::uint64_t invalid_gnss_epochs_ = 0;
@@ -1544,6 +1637,7 @@ private:
   std::uint64_t invalid_ephemerides_ = 0;
   std::uint64_t satellite_propagation_failures_ = 0;
   std::uint64_t optimization_failures_ = 0;
+  std::uint64_t numerical_condition_rejections_ = 0;
   std::uint64_t integer_fixed_solutions_ = 0;
   std::uint64_t integer_fix_rejections_ = 0;
   std::uint64_t raw_observation_epochs_received_ = 0;
@@ -1568,6 +1662,7 @@ private:
   rclcpp::TimerBase::SharedPtr pending_lidar_timer_;
   rclcpp::CallbackGroup::SharedPtr imu_callback_group_;
   rclcpp::CallbackGroup::SharedPtr estimator_callback_group_;
+  rclcpp::CallbackGroup::SharedPtr raw_input_callback_group_;
 };
 
 }  // namespace fgo_gil_localizer
@@ -1577,7 +1672,7 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
   try {
     auto node = std::make_shared<fgo_gil_localizer::FloatFgoNode>();
-    rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2U);
+    rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 3U);
     executor.add_node(node);
     executor.spin();
   } catch (const std::exception & error) {

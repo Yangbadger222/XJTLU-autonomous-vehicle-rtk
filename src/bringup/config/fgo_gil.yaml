@@ -167,9 +167,12 @@ fgo_gil_float_fgo:
       # Keep enough DDS history for scheduling jitter while the optimizer runs.
       # IMU ingestion itself runs in a separate callback group.
       imu_qos_depth: 512
+      raw_input_qos_depth: 512
       maximum_imu_gap_s: 0.05
       pending_lidar_batches: 16
       pending_lidar_timeout_s: 0.5
+      pending_raw_epochs: 1024
+      pending_ephemerides: 64
       pending_gnss_epochs: 128
       maximum_ephemerides: 256
 
@@ -202,9 +205,12 @@ fgo_gil_float_fgo:
       maximum_iterations: 6
       initial_damping: 0.000001
       convergence_delta_norm: 0.000001
+      maximum_condition_estimate: 1000000000000.0
       lidar_line_sigma_m: 0.05
       lidar_plane_sigma_m: 0.05
       lidar_huber_delta_sigma: 2.5
+      maximum_line_factors_per_keyframe: 48
+      maximum_plane_factors_per_keyframe: 96
       gnss_code_huber_delta_sigma: 2.5
       gnss_carrier_huber_delta_sigma: 2.5
 

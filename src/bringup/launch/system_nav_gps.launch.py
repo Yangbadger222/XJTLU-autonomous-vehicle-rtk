@@ -98,7 +98,6 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["az_max"] = 1.4
     follow_path["temperature"] = 0.45
     follow_path["regenerate_noises"] = True
-    follow_path["publish_critics_stats"] = False
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
     smoother_params["max_velocity"] = [0.85, 0.0, 0.70]

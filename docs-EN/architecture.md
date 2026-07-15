@@ -126,7 +126,7 @@ The core of `nav-gps` is:
 - the goal manager runs graph A* directly and projects both endpoints onto graph edges; it no longer depends on route-server Dijkstra or a small anchor set
 - the QGIS drivable polygon is compiled into a KeepoutFilter mask; MPPI may avoid obstacles inside the road while remaining blocked outside it
 - when authority drops, the guard immediately zeros motion and the goal manager cancels `FollowPath`; after continuously stable authority returns, it replans from the current pose
-- The vehicle profile keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while reducing MPPI work to `350x40` samples with a two-second horizon and disabling critic statistics.
+- The vehicle profile keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while reducing MPPI work to `350x40` samples with a two-second horizon.
 - The default lean bag retains the smaller local costmap for obstacle review but omits the global costmap, which accounted for `77.5%` of this bag. The debug profile adds the global costmap, raw point clouds, and legacy anchor status.
 - `scene_gps_bundle.yaml` is the single source of truth
 - At runtime, only compiled artifacts under `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` are read

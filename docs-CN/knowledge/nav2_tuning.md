@@ -145,7 +145,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
 - 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
-- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=350`、`time_steps=40`、`publish_critics_stats=false`，保留2秒预测视野并比旧 `500x48` 降低约42%轨迹仿真量。其余保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
+- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=350`、`time_steps=40`，保留2秒预测视野并比旧 `500x48` 降低约42%轨迹仿真量。其余保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
 - local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。
 - global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。

@@ -145,7 +145,7 @@ Corridor v2 uses Rotation Shim + Regulated Pure Pursuit instead of DWB:
 The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-gps` entry point no longer uses it as the main profile. `system_nav_gps.launch.py` reuses the corridor RTK profile:
 
 - Generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml`.
-- Uses MPPI with `controller_frequency=20Hz` aligned to `model_dt=0.05s`. `batch_size=350`, `time_steps=40`, and `publish_critics_stats=false` retain a two-second horizon while cutting trajectory simulation by about 42% from the old `500x48` workload. The profile retains `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
+- Uses MPPI with `controller_frequency=20Hz` aligned to `model_dt=0.05s`. `batch_size=350` and `time_steps=40` retain a two-second horizon while cutting trajectory simulation by about 42% from the old `500x48` workload. The profile retains `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
 - The local costmap uses `/fastlio2/body_cloud_nav2_obstacles`, preserving the high-window obstacle cloud around `[-0.20, 1.20]m`.
 - The global costmap keeps the route-planning-only semantics so realtime point clouds / unknown space do not block route-graph goals.
 - `general_goal_checker.stateful=false`, preventing a reached-state latch from one destination from carrying into the next route-graph goal.

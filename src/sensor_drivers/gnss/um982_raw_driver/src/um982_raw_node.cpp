@@ -130,8 +130,9 @@ private:
       closeSerial();
       serial_port_.setPort(port_);
       serial_port_.setBaudrate(static_cast<std::uint32_t>(baud_));
-      serial_port_.setTimeout(
-        serial::Timeout::simpleTimeout(static_cast<std::uint32_t>(read_timeout_ms_)));
+      auto timeout =
+        serial::Timeout::simpleTimeout(static_cast<std::uint32_t>(read_timeout_ms_));
+      serial_port_.setTimeout(timeout);
       serial_port_.open();
       if (!serial_port_.isOpen()) {
         throw std::runtime_error("serial library returned a closed port after open");

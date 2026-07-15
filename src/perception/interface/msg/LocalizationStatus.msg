@@ -1,0 +1,27 @@
+uint8 UNINITIALIZED=0
+uint8 MAP_LOADING=1
+uint8 WAITING_FOR_SENSORS=2
+uint8 GLOBAL_SEARCHING=3
+uint8 WAITING_FOR_INITIAL_POSE=4
+uint8 LOCALIZED=5
+uint8 DEGRADED=6
+uint8 RELOCALIZING=7
+uint8 LOST=8
+
+std_msgs/Header header
+uint8 state
+string state_label
+string reason
+string map_id
+bool localized
+bool sensors_ready
+float32 input_age_s
+float32 rough_score
+float32 refine_score
+float32 overlap_ratio
+float32 correction_translation_m
+float32 correction_yaw_rad
+float32 correction_translation_rate_mps
+float32 correction_yaw_rate_rps
+float32 candidate_score_gap
+builtin_interfaces/Time last_trusted_stamp

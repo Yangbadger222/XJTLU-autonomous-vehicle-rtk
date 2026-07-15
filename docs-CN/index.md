@@ -1,6 +1,6 @@
 # XJTLU 自主导航车辆项目文档索引
 
-> 最后更新: 2026-07-09
+> 最后更新: 2026-07-11
 
 ## 当前系统摘要
 
@@ -48,6 +48,7 @@
 | FAST-LIO2 工作原理 | [knowledge/fastlio2.md](knowledge/fastlio2.md) |
 | PGO + GPS Factor | [knowledge/pgo.md](knowledge/pgo.md) |
 | Nav2 调参与运行约束 | [knowledge/nav2_tuning.md](knowledge/nav2_tuning.md) |
+| SLAM 建图与室内导航设计开发方案 | [knowledge/indoor_mapping_navigation_design.md](knowledge/indoor_mapping_navigation_design.md) |
 | GPS 全局导航与路网规划 | [knowledge/gps_planning.md](knowledge/gps_planning.md) |
 
 ## 开发日志

@@ -15,6 +15,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -37,7 +38,8 @@ include_directories(
 
 
 set(SRC_LIST src/localizers/commons.cpp
-             src/localizers/icp_localizer.cpp)
+             src/localizers/icp_localizer.cpp
+             src/localizers/scan_context_index.cpp)
 
 add_executable(localizer_node src/localizer_node.cpp ${SRC_LIST})
 ament_target_dependencies(localizer_node rclcpp std_msgs sensor_msgs nav_msgs message_filters pcl_conversions tf2_ros geometry_msgs interface)

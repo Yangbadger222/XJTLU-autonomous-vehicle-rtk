@@ -1,3 +1,4 @@
+#include <algorithm>
 // 包含内存管理相关的标准库头文件
 #include <memory>
 // 包含字符串处理相关的标准库头文件
@@ -121,6 +122,7 @@ public:
     {
         // 初始化最后消息时间为当前时间
         last_message_time_ = std::chrono::steady_clock::now();
+        last_output_time_ = last_message_time_;
         // 记录节点启动成功信息
         RCLCPP_INFO(this->get_logger(), "Node 文件运行成功");
 
@@ -149,6 +151,12 @@ public:
         this->declare_parameter<int>("delay_between_attempts_ms", 0);
         // ROS angular.z 到底盘 wc 的比例/符号映射。
         this->declare_parameter<double>("angular_z_scale", 1.0);
+        this->declare_parameter<int>("command_timeout_ms", 300);
+        this->declare_parameter<int>("watchdog_period_ms", 100);
+        this->declare_parameter<bool>("enable_acceleration_limit", false);
+        this->declare_parameter<double>("max_linear_acceleration", 0.30);
+        this->declare_parameter<double>("max_angular_acceleration", 0.80);
+        this->declare_parameter<double>("acceleration_dt_cap_s", 0.10);
 
         // 获取端口参数值
         port_ = this->get_parameter("port").as_string();
@@ -160,6 +168,18 @@ public:
         delay_between_attempts_ms_ = this->get_parameter("delay_between_attempts_ms").as_int();
         // 获取底盘角速度映射参数值
         angular_z_scale_ = this->get_parameter("angular_z_scale").as_double();
+        command_timeout_ms_ = std::max(
+            1, static_cast<int>(this->get_parameter("command_timeout_ms").as_int()));
+        watchdog_period_ms_ = std::max(
+            1, static_cast<int>(this->get_parameter("watchdog_period_ms").as_int()));
+        enable_acceleration_limit_ =
+            this->get_parameter("enable_acceleration_limit").as_bool();
+        max_linear_acceleration_ = std::max(
+            0.0, this->get_parameter("max_linear_acceleration").as_double());
+        max_angular_acceleration_ = std::max(
+            0.0, this->get_parameter("max_angular_acceleration").as_double());
+        acceleration_dt_cap_s_ = std::max(
+            0.001, this->get_parameter("acceleration_dt_cap_s").as_double());
 
         // 设置串口端口
         try {
@@ -196,10 +216,9 @@ public:
             std::bind(&SerialTwistCtlNode::twist_callback, this, std::placeholders::_1)
         );
 
-        // 创建定时器，每秒输出等待消息
-        timer_ = this->create_wall_timer(
-            1s,
-            std::bind(&SerialTwistCtlNode::timer_callback, this)
+        watchdog_timer_ = this->create_wall_timer(
+            std::chrono::milliseconds(watchdog_period_ms_),
+            std::bind(&SerialTwistCtlNode::watchdog_callback, this)
         );
 
         // 记录信息日志，表示节点已启动并订阅话题
@@ -211,6 +230,14 @@ public:
     {
         // 检查串口是否打开，如果是则关闭
         if (serial_port_.isOpen()) {
+            try {
+                send_command(0.0, 0.0, false);
+            } catch (const std::exception& error) {
+                RCLCPP_ERROR(
+                    this->get_logger(),
+                    "Failed to send shutdown zero command: %s",
+                    error.what());
+            }
             serial_port_.close();
             // 记录信息日志，表示串口已关闭
             RCLCPP_INFO(this->get_logger(), "Serial port closed.");
@@ -223,17 +250,30 @@ public:
     }
 
 private:
-    // 定时器回调函数
-    void timer_callback()
+    void watchdog_callback()
     {
-        // 检查距离最后消息的时间
         auto now = std::chrono::steady_clock::now();
-        auto time_since_last_msg = std::chrono::duration_cast<std::chrono::seconds>(
+        auto time_since_last_msg = std::chrono::duration_cast<std::chrono::milliseconds>(
             now - last_message_time_).count();
-        
-        // 如果超过5秒没有收到消息，输出等待信息
-        if (time_since_last_msg >= 5) {
-            RCLCPP_INFO(this->get_logger(), "waiting for data pack incoming ......");
+
+        if (time_since_last_msg >= command_timeout_ms_) {
+            RCLCPP_WARN_THROTTLE(
+                this->get_logger(),
+                *this->get_clock(),
+                5000,
+                "No velocity command for %ld ms; enforcing zero velocity",
+                time_since_last_msg);
+            try {
+                reset_acceleration_limiter(now);
+                send_command(0.0, 0.0, false);
+            } catch (const std::exception& error) {
+                RCLCPP_ERROR_THROTTLE(
+                    this->get_logger(),
+                    *this->get_clock(),
+                    5000,
+                    "Velocity watchdog serial write failed: %s",
+                    error.what());
+            }
         }
     }
 
@@ -241,27 +281,58 @@ private:
     void twist_callback(const geometry_msgs::msg::Twist::SharedPtr msg)
     {
         // 更新最后消息时间
-        last_message_time_ = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
+        last_message_time_ = now;
 
-        // 提取线速度x分量
-        float linear_x = msg->linear.x;
-        // 提取角速度z分量；按底盘约定映射后再发给 STM32。
-        float angular_z = msg->angular.z;
-        float scaled_angular_z = static_cast<float>(angular_z * angular_z_scale_);
+        double linear_x = msg->linear.x;
+        double angular_z = msg->angular.z;
+        if (enable_acceleration_limit_) {
+            const double elapsed_s = std::chrono::duration<double>(
+                now - last_output_time_).count();
+            const double dt_s = std::min(acceleration_dt_cap_s_, std::max(0.0, elapsed_s));
+            linear_x = serial_twistctl::limitCommandAcceleration(
+                previous_linear_x_, linear_x, max_linear_acceleration_ * dt_s);
+            angular_z = serial_twistctl::limitCommandAcceleration(
+                previous_angular_z_, angular_z, max_angular_acceleration_ * dt_s);
+        }
+        previous_linear_x_ = linear_x;
+        previous_angular_z_ = angular_z;
+        last_output_time_ = now;
 
-        // 将Twist消息转换为串口命令字符串
-        std::string command = serial_twistctl::formatTwistCommand(
-            linear_x,
-            angular_z,
-            angular_z_scale_);
+        try {
+            send_command(linear_x, angular_z, true);
+        } catch (const std::exception& error) {
+            RCLCPP_ERROR_THROTTLE(
+                this->get_logger(),
+                *this->get_clock(),
+                5000,
+                "Velocity command serial write failed: %s",
+                error.what());
+        }
+    }
 
-        // 记录接收到的Twist消息内容
-        RCLCPP_INFO(
-            this->get_logger(),
-            "[TWIST_RX] Received Twist message - linear.x=%.3f, angular.z=%.3f, scaled_angular.z=%.3f",
-            linear_x,
-            angular_z,
-            scaled_angular_z);
+    void reset_acceleration_limiter(
+        const std::chrono::steady_clock::time_point& now)
+    {
+        previous_linear_x_ = 0.0;
+        previous_angular_z_ = 0.0;
+        last_output_time_ = now;
+    }
+
+    void send_command(double linear_x, double angular_z, bool verbose_log)
+    {
+        const float scaled_angular_z = static_cast<float>(angular_z * angular_z_scale_);
+        const std::string command = serial_twistctl::formatTwistCommand(
+            linear_x, angular_z, angular_z_scale_);
+
+        if (verbose_log) {
+            RCLCPP_DEBUG(
+                this->get_logger(),
+                "[TWIST_RX] linear.x=%.3f, angular.z=%.3f, scaled_angular.z=%.3f",
+                linear_x,
+                angular_z,
+                scaled_angular_z);
+        }
 
         // 循环发送命令多次以确保接收
         for (int i = 0; i < send_attempts_; ++i) {
@@ -282,11 +353,24 @@ private:
             size_t bytes_written = serial_port_.write(command);
 
             // 记录字节计数（包含时间戳）
-            RCLCPP_INFO(this->get_logger(), "[SERIAL_TX] Timestamp: %ld, Sending command (%d/%d): %s [%zu bytes written]", 
-                        ros_timestamp, i+1, send_attempts_, command.c_str(), bytes_written);
+            if (bytes_written != command.size()) {
+                RCLCPP_ERROR(
+                    this->get_logger(),
+                    "Partial serial write: %zu/%zu bytes",
+                    bytes_written,
+                    command.size());
+            } else if (verbose_log) {
+                RCLCPP_DEBUG(
+                    this->get_logger(),
+                    "[SERIAL_TX] Timestamp: %ld, command (%d/%d): %s",
+                    ros_timestamp,
+                    i + 1,
+                    send_attempts_,
+                    command.c_str());
+            }
 
             // 如果日志文件打开，则写入日志（包含ROS时间戳）
-            if (log_file_.is_open()) {
+            if (verbose_log && log_file_.is_open()) {
                 log_file_ << "ROS_timestamp: " << ros_timestamp 
                          << ", [SERIAL_TX] Sending command (" << i+1 << "/" << send_attempts_ << "): " 
                          << command << " [" << bytes_written << " bytes]" << std::endl;
@@ -305,9 +389,10 @@ private:
     // 订阅者对象
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_;
     // 定时器对象
-    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
     // 最后接收消息的时间
     std::chrono::steady_clock::time_point last_message_time_;
+    std::chrono::steady_clock::time_point last_output_time_;
     // 日志文件输出流
     std::ofstream log_file_;
 
@@ -321,6 +406,14 @@ private:
     int delay_between_attempts_ms_;
     // ROS angular.z 到底盘 wc 的比例/符号映射
     double angular_z_scale_;
+    int command_timeout_ms_;
+    int watchdog_period_ms_;
+    bool enable_acceleration_limit_;
+    double max_linear_acceleration_;
+    double max_angular_acceleration_;
+    double acceleration_dt_cap_s_;
+    double previous_linear_x_{0.0};
+    double previous_angular_z_{0.0};
 };
 
 // 主函数

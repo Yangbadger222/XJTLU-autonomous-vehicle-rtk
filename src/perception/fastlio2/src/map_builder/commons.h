@@ -2,6 +2,7 @@
 #include <Eigen/Eigen>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <vector>
 
 using PointType = pcl::PointXYZINormal;
 using CloudType = pcl::PointCloud<PointType>;
@@ -57,9 +58,24 @@ struct Config
     bool publish_cloud_height_filter_enabled = false;
     double publish_cloud_min_z = -0.33;
     double publish_cloud_max_z = 0.30;
+    bool localization_cloud_enabled = true;
+    double localization_cloud_min_z = -0.20;
+    double localization_cloud_max_z = 1.80;
     bool nav2_obstacle_cloud_enabled = true;
     double nav2_obstacle_cloud_min_z = -0.20;
     double nav2_obstacle_cloud_max_z = 1.20;
+    bool nav2_obstacle_self_filter_enabled = false;
+    double nav2_obstacle_self_filter_min_x = -0.40;
+    double nav2_obstacle_self_filter_max_x = 0.40;
+    double nav2_obstacle_self_filter_min_y = -0.30;
+    double nav2_obstacle_self_filter_max_y = 0.30;
+    bool nav2_obstacle_self_patch_enabled = false;
+    double nav2_obstacle_self_patch_min_x = 0.40;
+    double nav2_obstacle_self_patch_max_x = 0.82;
+    double nav2_obstacle_self_patch_min_y = -0.35;
+    double nav2_obstacle_self_patch_max_y = -0.14;
+    double nav2_obstacle_self_patch_min_z = 0.25;
+    double nav2_obstacle_self_patch_max_z = 0.42;
 };
 
 struct IMUData

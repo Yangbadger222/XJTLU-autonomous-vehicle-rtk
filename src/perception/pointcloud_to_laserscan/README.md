@@ -22,7 +22,7 @@ Publishes:
 |------|------|---------|
 | `scan` | `sensor_msgs/msg/LaserScan` | Projected laser scan |
 
-Key parameters include `min_height`, `max_height`, `angle_min`, `angle_max`, `angle_increment`, `range_min`, `range_max`, `target_frame`, `transform_tolerance`, and `use_inf`.
+Key parameters include `min_height`, `max_height`, `angle_min`, `angle_max`, `angle_increment`, `range_min`, `range_max`, `target_frame`, `transform_tolerance`, and `use_inf`. An optional axis-aligned vehicle exclusion box is configured with `self_filter.enabled` and `self_filter.{min,max}_{x,y}`. The box is evaluated after transforming the cloud into `target_frame`; enabling it without a target frame is rejected at startup.
 
 ### `pointcloud_to_laserscan::LaserScanToPointCloudNode`
 

@@ -72,7 +72,7 @@
     - 状态: 等待调参
 
 10. **[中等] Travel 先验地图模式仍需实车验证**
-   - 描述: `system_travel.launch.py` 已恢复为实验性先验地图链路：2D `map.yaml` 供 Nav2 全局规划，3D `map.pcd` 供 `localizer` ICP 重定位并发布 `map -> odom`。
+   - 描述: `system_travel.launch.py` 使用先验地图链路：2D `map.yaml` 供 Nav2/AMCL，3D `map.pcd` 供 localizer 初始 ICP；`prior_map_tf_authority` 融合两者候选并独占 `map -> odom`。
    - 状态: 软件接线已恢复，并已完成 Jetson 构建；仍需继续做室内先验地图实车导航验证。
 
 11. **[中等] GPS 路网仍需继续采集和精修**

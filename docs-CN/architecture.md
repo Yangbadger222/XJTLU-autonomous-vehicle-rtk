@@ -24,7 +24,7 @@
 | Explore | `make launch-explore` | 当前主运行模式，局部避障导航 |
 | Indoor Nav | `make launch-indoor-nav` | 不启 GNSS 的 RViz 点击点导航 |
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
-| Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
+| Travel | `make launch-travel` | 室内地图包导航：自动/辅助重定位 + 静态规划 + 动态避障 + 地点名 Action |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
@@ -35,27 +35,28 @@
 ## 4. SLAM 纯建图数据流
 
 ```text
-Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud
+Livox MID360 + IMU -> FAST-LIO2 -> /fastlio2/body_cloud (2D LaserScan 低窗)
+                                  -> /fastlio2/body_cloud_localization (3D 定位结构云)
                                   -> /fastlio2/lio_odom
                                   -> TF: odom -> base_footprint -> base_link
 
-/fastlio2/body_cloud -> pointcloud_to_laserscan -> /scan
+/fastlio2/body_cloud -> pointcloud_to_laserscan（base_footprint 矩形车体自滤波）-> /scan
                                              |
                                              v
                                       SLAM Toolbox -> /map
                                                    -> TF: map -> odom
 
-/fastlio2/body_cloud + /fastlio2/lio_odom -> PGO(publish_tf=false)
+/fastlio2/body_cloud_localization + /fastlio2/lio_odom -> PGO(publish_tf=false)
                                              -> /pgo/global_map
                                              -> /pgo/save_maps
 
 scripts/save_mapping_session.sh <map_name>
-  -> 保存 2D map.yaml/map.pgm
-  -> 保存 3D map.pcd/poses.txt/patches
-  -> 写 manifest.yaml，包括 2D/3D 一致性、patch/pose 完整性与 frame 检查
+  -> 保存 2D map + pose graph、原始/降采样 3D PCD、poses/patches
+  -> 构建 Scan Context 索引，求 T_map_2d_map_3d 并生成质量报告/叠加图
+  -> 写 manifest.yaml；静止、frame、完整性或标定门槛失败时拒绝 Travel 加载
 ```
 
-SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。PGO 在该模式下使用 `pgo_slam.yaml`，默认 `publish_tf=false`，避免与 SLAM Toolbox 同时发布 `map -> odom`。保存脚本默认检查 FAST-LIO2 当前子坐标系 `base_footprint`，但现场修改 `base_frame` 前必须先用 TF 工具确认实际子坐标系。RTK 可通过 `use_rtk:=true` 在建图时记录室外 Fixed 样本，但室内 invalid/float RTK 只作为记录，不作为强约束。
+SLAM 模式不启动 Nav2 planner/controller，也不执行导航行为。Slam Toolbox 使用仓库内 `slam_toolbox_mapping.yaml` 并独占 `map -> odom`，PGO 以 `publish_tf=false` 保存三维地图。建图专用 LaserScan 参数先把点云变换到 `base_footprint`，再排除 `x=[-0.35,0.35]m, y=[-0.275,0.275]m` 的矩形车体外廓，防止车体反射随轨迹写入 2D 地图；该参数不影响 Travel/Corridor 实时障碍云。launch 默认录制 lean 证据 bag，debug profile 才加入原始点云。保存脚本要求 FAST-LIO2 与底盘连续静止、frame 一致、关键帧完整且 2D/3D 配准通过。RTK `use_rtk:=true` 仅用于记录后续地理配准证据，室内 invalid/float 不作为强约束。
 
 ## 5. Explore 模式数据流
 
@@ -154,9 +155,11 @@ map -> odom -> base_footprint -> base_link
 - Explore / explore-gps 等生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
 - Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
-- Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证 TF 污染 Nav2。Travel 默认 `continuous_icp: false`，因此重定位成功后冻结该次校正，只按 `tf_republish_hz` 使用当前 ROS stamp 重发，供 Nav2 controller 查询当前位姿。
+- Travel 下 `map -> odom` 由 `prior_map_tf_authority` 独占。地图包加载后 localizer 执行 Scan Context 多候选 + ICP 并发布锁存种子；authority 用该种子初始化 AMCL，再对 `/amcl_pose` 候选做协方差、同步、跳变和单步门控后平滑校正。localizer 与 AMCL 均不直接广播 TF。
 - Travel 模式会把 RViz `2D Pose Estimate`（`/initialpose`）桥接到 `/localizer/relocalize`，并让 FAST-LIO2 额外发布高窗 Nav2 障碍点云 `/fastlio2/body_cloud_nav2_obstacles`，再重时间戳为 `/fastlio2/body_cloud_nav2` 给 local costmap 使用。global costmap 保持基于静态地图规划，避免实时点云障碍把机器人起点格标成高代价后阻塞 NavFn。
-- Travel 的 Nav2 行为树是 fail-stop 版本：`ComputePathToPose`、`ComputePathThroughPoses` 或 `FollowPath` 失败时停止并让目标失败，不触发自动原地旋转、倒车或清图恢复；局部避障由 Explore/Corridor 同款 MPPI baseline 和 `6 m x 6 m` local costmap 负责。
+- Travel 的速度链为 `/cmd_vel -> localization_cmd_gate -> /cmd_vel_localized -> Collision Monitor -> /cmd_vel_safe_raw -> post_collision_cmd_conditioner -> /cmd_vel_safe -> serial_twistctl`。定位门要求定位状态、障碍云和命令新鲜，任一超时持续输出零。末级条件器在 Collision Monitor 减速之后处理底盘死区：若线速度落在 `(0.02,0.14)m/s` 且仍明确要求转向（`|w|>=0.08rad/s`），就清零线速度并以至少 `0.20rad/s` 原地转向；纯旋转被减速到静摩擦区时同样恢复角速度。零命令、直线低速和 Collision Monitor Stop 均不被放大。`serial_twistctl` 继续负责加速限制和 300ms 断流零速，STM32 以 500ms watchdog 独立清零。
+- `indoor_navigation_manager` 把地图包中的地点/别名解析为 `NavigateToPose`，通过 `/navigate_named_destination` 提供反馈、取消和定位降级取消。
+- Travel 默认启动 `foxglove_bridge:8765` 与 `foxglove_navigation_adapter`。适配器同时接收仓库布局的 `/foxglove/goal_pose` 和 Foxglove 默认布局的 `/move_base_simple/goal`，通过 TF 将 `base_link`、`odom` 等来源坐标系的位姿转换到 `map`，再统一转换为受定位门控的 `NavigateToPose`；地点字符串转换为 `NavigateNamedDestination`。适配器发布地点 MarkerArray、目录和状态，但永不访问 `/cmd_vel*`，定位非健康或目标坐标系无法转换时拒绝或取消目标。
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
 - `odom -> base_footprint` 由 FAST-LIO2 发布，表示高频局部里程计；`base_footprint -> base_link` 由 URDF 静态 TF 提供
 - 两者组合后得到全局位姿

@@ -1,0 +1,10 @@
+/pointcloud_to_laserscan:
+  ros__parameters:
+    # Evaluate the vehicle exclusion box in the ground-aligned body frame.
+    target_frame: base_footprint
+    # Remove returns from the measured 650 x 500 mm body plus 25 mm per side.
+    "self_filter.enabled": true
+    "self_filter.min_x": -0.35
+    "self_filter.max_x": 0.35
+    "self_filter.min_y": -0.275
+    "self_filter.max_y": 0.275

@@ -113,6 +113,11 @@ bash scripts/launch_with_logs.sh slam
 
 # Enable RTK only when outdoor Fixed samples are needed for later indoor/outdoor geo-registration
 ros2 launch bringup system_slam.launch.py use_rtk:=true
+
+# A lean evidence bag is recorded under the session's slam_bag/ by default; debug adds raw Livox/structural clouds
+FYP_SLAM_BAG_PROFILE=debug bash scripts/launch_with_logs.sh slam
+# Disable recording only for temporary smoke tests, not formal acceptance
+FYP_SLAM_RECORD_BAG=false bash scripts/launch_with_logs.sh slam
 ```
 
 One-line command for indoor click-to-go navigation without GPS:
@@ -132,29 +137,72 @@ One-line command for prior-map Travel navigation:
 
 ```bash
 FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh travel \
-  map_yaml:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map.yaml \
-  pcd_map:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+Travel records a navigation diagnostic rosbag for every launch session at
+`runtime-data/logs/latest/data/travel_bag/` by default. The lean profile captures goals,
+navigation status, TF, FAST-LIO2/chassis odometry, global/local paths, costmaps, laser
+scan, and all four velocity-command stages. This is enough to diagnose weaving, stops,
+and recoveries without recording raw Livox point clouds. Use the debug profile when the
+point-cloud obstacle input must also be replayed:
+
+```bash
+FYP_TRAVEL_BAG_PROFILE=debug FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
+
+# Disable automatic recording only when replay evidence is explicitly unnecessary
+FYP_TRAVEL_RECORD_BAG=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/floor_4
 ```
 
 Notes:
-- `travel` uses the 2D `map.yaml` for Nav2 global planning and the 3D `map.pcd` for ICP point-cloud relocalization in `localizer`
-- `localizer` owns `map -> odom`; FAST-LIO2 owns `odom -> base_footprint`, and URDF provides `base_footprint -> base_link`
-- `localizer` only preloads the PCD map at startup; it does not publish `map -> odom` until `/localizer/relocalize` succeeds
-- After relocalization, Travel defaults to `continuous_icp: false`: `localizer` freezes the valid `map -> odom` correction and republishes it with the current ROS time at `tf_republish_hz`, avoiding map drift from partial local scans during navigation; sending `/initialpose` or calling `/localizer/relocalize` runs ICP again
-- Travel now starts `initialpose_relocalize_bridge.py`, so RViz `2D Pose Estimate` on `/initialpose` calls `/localizer/relocalize` automatically with the launch-time `pcd_map`
+- `map_bundle` is the production input. Travel checks schema, `consistency_ok`, calibration acceptance, and the 2D map, localization PCD, alignment, descriptor, and destination artifacts. Separate `map_yaml/pcd_map` arguments remain only for compatibility debugging
+- `prior_map_tf_authority` is Travel's sole `map -> odom` publisher. The localizer supplies the initial 3D candidate, AMCL supplies runtime 2D prior-map candidates, and FAST-LIO2 owns `odom -> base_footprint`
+- Startup queries several Scan Context candidates and refines them with ICP. Ambiguity before the first accepted pose still blocks motion. Once the authority owns a valid TF, a transient background `LOST/ambiguous_global_candidates` state neither overwrites that TF nor stops the vehicle by itself; AMCL, sensor health, and authority health become the runtime gates
+- After localizer acceptance, its latched `map -> odom` seed initializes both the authority and AMCL. AMCL candidates pass covariance, timestamp, and `0.75m/0.45rad` target-jump gates before a five-sample window takes the median of at least three consistent candidates. A stable target is accepted at most once per second with independent `0.05m/0.035rad` deadbands. The published TF then approaches it only on the 20Hz timer under `0.015m/s`, `0.006rad/s`, and `0.02m/s` equivalent-base correction-rate limits instead of taking centimetre steps in the AMCL callback
 - Travel also starts `nav2_cloud_retime.py`; the local costmap reads `/fastlio2/body_cloud_nav2`, a current-stamp copy of `/fastlio2/body_cloud_nav2_obstacles`, while the global costmap plans on the static 2D map and `localizer`/mapping nodes keep using the original `/fastlio2/body_cloud`
-- Travel `NavigateToPose` / `NavigateThroughPoses` use dedicated fail-stop behavior trees: if the local controller or planner fails, navigation stops and returns failure instead of automatically running `Spin`, `BackUp`, or costmap-clearing recovery actions
-- Travel uses the MPPI indoor safety profile (`vx_max=0.35`, `wz_max=0.65`, `controller_frequency=20 Hz`) while keeping the fail-stop behavior trees and the `6 m x 6 m @ 0.05 m` local costmap
-- Before sending a navigation goal, verify in RViz that the live point cloud/scan overlaps the static map; Travel freezes the successful `map -> odom` correction by default, so a rough pose or heading error shifts the whole subsequent path
+- The global static layer clears stale map occupancy only below the robot's current measured footprint, preventing a map speck or small TF offset from locking NavFn's start in the inscribed zone. Static obstacles outside the footprint and all local-costmap, MPPI, and Collision Monitor safety checks remain intact
+- Travel's bounded-recovery trees replan at `1Hz`. If local clearing and replanning still fail, a footprint-collision-checked `0.20m` backup at `0.08m/s` is attempted and followed immediately by another replan; conditional `0.52rad` Spin and wait/final clearing remain later actions. Normal MPPI tracking keeps `vx_min=0`, so ordinary paths cannot oscillate between forward and reverse
+- MPPI uses a matched `15Hz/model_dt=0.0666667s` with `time_steps=24`, `batch_size=128`, and an approximately `1.6s` horizon to reduce single-core deadline pressure. PathAlign weight `6` and PathFollow weight `12` permit natural local detours. Rotation Shim only handles path errors above `0.65rad` at `0.24rad/s`, does not own final heading alignment, and uses `closed_loop=false` so its command ramps across cycles and crosses chassis static friction
+- The post-processor no longer amplifies any small angular command. It removes translation only after Collision Monitor confirms slowdown, linear speed falls below the `0.14m/s` breakaway range, and angular speed is at least `0.16rad/s`; the original angular command is preserved. `PoseProgressChecker` still counts `0.15rad` rotation as progress
+- Before sending a goal, run `ros2 topic echo /chassis/status --once`; it must report `ctrl_mode: 0` (host serial mode). `ctrl_mode: 1` is gamepad mode and `ctrl_mode: 2` is motor-disabled/safety takeover. The adapter rejects goals in those states so enabling motors cannot unexpectedly release an already active goal
+- Travel's final serial limiter constrains acceleration recovery only; zero and deceleration remain immediate. Linear/angular recovery limits are `0.30m/s2` and `0.80rad/s2`, removing command jumps when Collision Monitor releases a Stop
+- The velocity gate requires a localizer sensor status within 0.5s with `sensors_ready=true`, authority status within 0.6s with `tf_active=true`, `/fastlio2/body_cloud_nav2` within 0.5s, and no more than 0.40s between `/cmd_vel` messages. `/travel/control_gate/status` and `/diagnostics` identify `LOCALIZATION_*`, `POINTCLOUD_TIMEOUT`, `COLLISION_STOP/SLOWDOWN`, or `COMMAND_TIMEOUT`
+- The authority republishes TF at `20Hz` with `0.10s` future tolerance. A new `/initialpose` makes `tf_active=false` until manual relocalization succeeds. With an existing trusted TF, transient localizer candidate ambiguity enters degraded hold without replacing the TF or stopping navigation that remains corrected by AMCL
+- Automatic global localization waits for at least 200 structural points and retries up to five times at 3s intervals; `map -> odom` is always projected to planar XY+yaw
 - PGO is off by default; if `use_pgo:=true` is passed, it uses `pgo_slam.yaml` and does not publish TF
-- After startup, use `/localizer/relocalize` to reload the PCD map and set the initial pose:
+
+Localization status and region-assisted relocalization:
+
+```bash
+ros2 topic echo /localizer/status
+ros2 topic echo /travel/prior_map_tf/status
+ros2 topic echo /travel/control_gate/status
+ros2 service call /localizer/global_relocalize interface/srv/GlobalRelocalize \
+  "{descriptor_index: '', region: 'east_corridor', max_candidates: 5}"
+```
+
+RViz `2D Pose Estimate` remains a manual fallback. The legacy service can also be called directly:
+
+Travel follows `/initialpose` semantics and interprets its pose values as map coordinates. If
+Foxglove labels the message with its current display frame, such as `base_link`, the bridge logs
+a warning and normalizes it to `map` before sending it to localizer and AMCL. A TF conversion is
+not possible here because `map -> base_link` does not exist before initial localization.
 
 ```bash
 ros2 service call /localizer/relocalize interface/srv/Relocalize \
-  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>/map.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
+  "{pcd_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>/localization/map_localization.pcd', x: 0.0, y: 0.0, z: 0.0, yaw: 0.0, pitch: 0.0, roll: 0.0}"
 ```
 
-For normal field operation, prefer RViz `2D Pose Estimate` over the manual service call: click the vehicle's current map position and drag the arrow along the vehicle heading.
+Named navigation without RViz:
+
+```bash
+ros2 action send_goal /navigate_named_destination \
+  interface/action/NavigateNamedDestination \
+  "{map_id: '<map_id>', destination_name: 'lab 101', backend: 'indoor'}" --feedback
+```
 
 Verification:
 
@@ -162,6 +210,10 @@ Verification:
 ros2 run tf2_ros tf2_monitor odom base_footprint
 ros2 service call /localizer/relocalize_check interface/srv/IsValid "{code: 0}"
 ros2 run tf2_ros tf2_monitor map odom
+ros2 topic echo /amcl_pose --once
+ros2 topic echo /travel/prior_map_tf/status --once
+ros2 topic echo /travel/control_gate/status --once
+ros2 topic echo /cmd_vel_safe
 ```
 
 One-line command for GPS Corridor v2:
@@ -299,26 +351,41 @@ python3 scripts/data_collection/bag_to_tum.py   ~/XJTLU-autonomous-vehicle/runti
 ## 8. Map Saving
 
 ```bash
-# Save the current SLAM session's 2D + 3D maps and write a manifest
+# Stop the vehicle, then generate and validate the full indoor map bundle
 scripts/save_mapping_session.sh <map_name>
+# Optional: label descriptor candidates with region polygons
+python3 scripts/save_mapping_session.py <map_name> --regions-file /path/to/regions.yaml
+# Recompute only calibration/overlay/descriptor region labels/manifest without ROS save calls
+scripts/save_mapping_session.sh <map_name> --recalibrate-only
+
+# Remove only isolated occupied components up to three cells from a saved PGM.
+# Always write a new image and inspect it before replacing the active map.
+python3 scripts/clean_occupancy_map.py \
+  runtime-data/maps/indoor/<map_name>/navigation/map.pgm \
+  runtime-data/maps/indoor/<map_name>/navigation/map.cleaned.pgm
 ```
 
 Output:
 
 ```text
-runtime-data/maps/<map_name>/manifest.yaml
-runtime-data/maps/2d/<map_name>/map.yaml
-runtime-data/maps/2d/<map_name>/map.pgm
-runtime-data/maps/3d/<map_name>/map.pcd
-runtime-data/maps/3d/<map_name>/poses.txt
-runtime-data/maps/3d/<map_name>/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/manifest.yaml
+runtime-data/maps/indoor/<map_name>/navigation/{map.yaml,map.pgm,slam_toolbox.posegraph,slam_toolbox.data}
+runtime-data/maps/indoor/<map_name>/localization/{map_raw.pcd,map_localization.pcd,poses.txt}
+runtime-data/maps/indoor/<map_name>/localization/patches/*.pcd
+runtime-data/maps/indoor/<map_name>/localization/descriptor_index/scan_context.yaml
+runtime-data/maps/indoor/<map_name>/calibration/{map_3d_to_map_2d.yaml,alignment_report.yaml,alignment_overlay.png}
+runtime-data/maps/indoor/<map_name>/{destinations.yaml,regions.yaml}
 ```
 
 Notes:
-- `manifest.yaml` records `consistency_ok` to flag likely 2D/3D map drift; it is gated by the 2D/3D alignment diagnostic, patch/pose integrity, and frame checks. This is a save-time diagnostic, not a replacement for later relocalization validation
+- Saving checks FAST-LIO2 and `/odom_CBoar` twice while stationary; if live `/cmd_vel` is observed it must also be zero. Any hard-gate failure returns nonzero, and Travel rejects `consistency_ok=false`
+- 2D-to-3D calibration no longer projects the complete PCD. It keeps strong wall cells containing at least three points over a `>=0.50m` vertical span in a `0.06m` XY grid, rejecting floors, tabletops, and single-height dynamic clutter. These defaults correspond to the default `0.10m` localization-PCD voxel
+- `--recalibrate-only` preserves the original `created_at`, save outputs, stationary/frame/patch evidence, and map assets. It atomically replaces only the manifest while rebuilding calibration files, overlay, and Scan Context region labels
+- Initial 2D-to-3D gates require global and configured-region wall RMSE `<=0.10m`, p95 `<=0.15m`, overlap `>=0.55`, and a first/second seed gap `>=0.001`; calibrate them from vehicle maps before acceptance
 - `patch_pose_integrity.ok` must be `true`, meaning `patches/*.pcd` and `poses.txt` keyframes are one-to-one
 - `frame_check.ok` must be `true`; by default `/scan.header.frame_id` and `/fastlio2/lio_odom.child_frame_id` are expected to be `base_footprint`. If the vehicle's FAST-LIO2 child frame is different, confirm it with `view_frames`/`tf2_echo` first, then save with `--expected-base-frame <frame>`
 - Later indoor/outdoor geo-registration must use RTK Fixed samples plus heading; indoor invalid/float RTK samples are records only, not strong constraints
+- Isolated-point cleanup uses 8-connectivity and defaults to occupied components of only one to three cells (`0.0025~0.0075m2`). It restores each component from its boundary majority as either free or unknown, never paints all unknown edges free, and preserves columns, furniture, and walls larger than three cells. Back up `map.pgm` and inspect the result before replacing the active image
 
 Low-level troubleshooting commands:
 
@@ -328,10 +395,10 @@ ros2 run tf2_tools view_frames
 ros2 run tf2_ros tf2_echo odom base_footprint
 
 # Save 3D point cloud map; file_path must be absolute because ROS service requests do not expand ~
-ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/3d/<map_name>', save_patches: true}"
+ros2 service call /pgo/save_maps interface/srv/SaveMaps "{file_path: '/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/localization', save_patches: true}"
 
 # Save 2D occupancy grid map
-ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/2d/<map_name>/map --ros-args -p map_subscribe_transient_local:=true
+ros2 run nav2_map_server map_saver_cli -f ~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_name>/navigation/map --ros-args -p map_subscribe_transient_local:=true
 
 # View PCD
 pcl_viewer -bc 1,1,1 -ps 3 <map.pcd>
@@ -775,7 +842,43 @@ sudo apt update
 sudo apt install ros-$ROS_DISTRO-foxglove-bridge
 ```
 
-### Live Connection
+### Live Travel Indoor Navigation
+
+Travel starts Foxglove Bridge and the guarded navigation adapter by default, so a second bridge process is not required:
+
+```bash
+FYP_USE_RVIZ=false FYP_USE_FOXGLOVE=true \
+  bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+Pass `foxglove_port:=8766` if the default port is occupied. To disable the Bridge temporarily:
+
+```bash
+FYP_USE_FOXGLOVE=false bash scripts/launch_with_logs.sh travel \
+  map_bundle:=/home/badger/XJTLU-autonomous-vehicle/runtime-data/maps/indoor/<map_id>
+```
+
+Import the repository layout into Foxglove on first use:
+
+```text
+src/bringup/foxglove/indoor_navigation.json
+```
+
+The layout includes the 3D map, robot, point clouds, costmaps, path, safety zones, localization/navigation status, destination catalog, named-goal publishing, region relocalization, cancel, logs, and Topic Graph.
+
+Controls:
+
+- 3D `Publish -> 2D pose estimate` publishes `/initialpose` for manual localization fallback.
+- The repository layout's 3D `Publish -> 2D pose` publishes `/foxglove/goal_pose`; Foxglove's default 3D layout commonly publishes `/move_base_simple/goal`. The same guarded adapter converts both into a Nav2 `NavigateToPose` Action.
+- Edit `data` in `Navigate to destination` to a destination ID, display name, or alias; it publishes `/foxglove/named_destination`.
+- `Relocalize in region` calls `/localizer/global_relocalize`; an empty `region` requests a whole-map search.
+- `Cancel navigation` calls `/foxglove/cancel_navigation` and only cancels the goal owned by this adapter.
+- `/foxglove/navigation/status` reports source, target, localization, remaining distance, and result; destinations appear as MarkerArray objects in 3D.
+
+Safety gate: the adapter never reads or writes `/cmd_vel*`. The Bridge client-publish whitelist only permits `/initialpose`, `/foxglove/goal_pose`, `/move_base_simple/goal`, and `/foxglove/named_destination`, and parameter mutation is disabled. Both Pose inputs use identical localization/concurrency/Action gates. A goal is sent only when `/localizer/status` is `LOCALIZED` with `localized=true` and `sensors_ready=true`; degradation cancels it, while the independent velocity gate still enforces zero output.
+
+### Manual Bridge Start (Other Modes)
 
 To start a connection, SSH into the Jetson and run:
 ```bash
@@ -783,6 +886,8 @@ ros2 run foxglove_bridge foxglove_bridge
 ```
 
 Then from your computer, open Foxglove and click on "Open Connection" -> "Foxglove WebSocket (default)" and enter `ws://100.79.128.22:8765`
+
+Foxglove Bridge has no project-level login authentication. Only expose it on a controlled LAN or Tailscale network; never publish port `8765` to the public internet.
 
 After entering, click anywhere on the center view, and the left panel will load many options. This may take some time, up to a minute.
 

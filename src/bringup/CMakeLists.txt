@@ -14,6 +14,9 @@ install(DIRECTORY config/
 install(DIRECTORY behavior_trees/
   DESTINATION share/${PROJECT_NAME}/behavior_trees
 )
+install(DIRECTORY foxglove/
+  DESTINATION share/${PROJECT_NAME}/foxglove
+)
 
 install(DIRECTORY rviz/
   DESTINATION share/${PROJECT_NAME}/rviz
@@ -22,6 +25,14 @@ install(DIRECTORY rviz/
 install(PROGRAMS
   scripts/initialpose_relocalize_bridge.py
   scripts/nav2_cloud_retime.py
+  scripts/localization_cmd_gate.py
+  scripts/post_collision_cmd_conditioner.py
+  scripts/prior_map_tf_authority.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(FILES
+  scripts/prior_map_tf_math.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

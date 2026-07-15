@@ -1,11 +1,26 @@
-cloud_topic: /fastlio2/body_cloud
+cloud_topic: /fastlio2/body_cloud_localization
 odom_topic: /fastlio2/lio_odom
 map_frame: map
 local_frame: lidar
 update_hz: 1.0
 max_tf_input_age_s: 2.0
 tf_republish_hz: 20.0
+tf_future_tolerance_s: 0.10
+status_hz: 5.0
+# Manual/automatic startup ICP establishes map->odom. Runtime motion is then
+# propagated by FAST-LIO2; the current continuous ICP loses valid TF in motion.
 continuous_icp: false
+global_max_candidates: 5
+global_retry_interval_s: 3.0
+global_max_automatic_attempts: 5
+global_min_cloud_points: 200
+min_candidate_score_gap: 0.03
+min_overlap_ratio: 0.35
+correction_alpha: 0.15
+max_correction_translation_m: 0.30
+max_correction_yaw_rad: 0.20
+max_consecutive_failures: 8
+degraded_grace_s: 5.0
 
 rough_scan_resolution: 0.25
 rough_map_resolution: 0.25
@@ -15,4 +30,4 @@ rough_score_thresh: 0.2
 refine_scan_resolution: 0.1
 refine_map_resolution: 0.1
 refine_max_iteration: 10
-refine_score_thresh: 0.1
+refine_score_thresh: 0.12

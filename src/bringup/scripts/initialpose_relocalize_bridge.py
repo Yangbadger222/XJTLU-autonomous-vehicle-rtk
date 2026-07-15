@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import copy
 import math
 
 import rclpy
@@ -20,15 +21,24 @@ class InitialPoseRelocalizeBridge(Node):
 
         self.declare_parameter("pcd_map", "")
         self.declare_parameter("initialpose_topic", "/initialpose")
+        self.declare_parameter("amcl_initialpose_topic", "/amcl/initialpose")
         self.declare_parameter("relocalize_service", "/localizer/relocalize")
         self.declare_parameter("service_wait_s", 2.0)
+        self.declare_parameter("assume_initialpose_is_map", True)
 
         self.pcd_map = self.get_parameter("pcd_map").value
         initialpose_topic = self.get_parameter("initialpose_topic").value
+        amcl_initialpose_topic = self.get_parameter("amcl_initialpose_topic").value
         relocalize_service = self.get_parameter("relocalize_service").value
         self.service_wait_s = float(self.get_parameter("service_wait_s").value)
+        self.assume_initialpose_is_map = bool(
+            self.get_parameter("assume_initialpose_is_map").value
+        )
 
         self.client = self.create_client(Relocalize, relocalize_service)
+        self.amcl_initialpose_publisher = self.create_publisher(
+            PoseWithCovarianceStamped, amcl_initialpose_topic, 10
+        )
         self.subscription = self.create_subscription(
             PoseWithCovarianceStamped,
             initialpose_topic,
@@ -41,9 +51,25 @@ class InitialPoseRelocalizeBridge(Node):
         )
 
     def on_initial_pose(self, msg):
+        normalized_msg = copy.deepcopy(msg)
+        source_frame = msg.header.frame_id.lstrip("/")
+        if source_frame != "map":
+            if not self.assume_initialpose_is_map:
+                self.get_logger().error(
+                    "Initial pose must use frame_id=map; refusing ambiguous coordinates"
+                )
+                return
+            self.get_logger().warning(
+                "Normalizing /initialpose frame "
+                f"'{msg.header.frame_id or '<empty>'}' to 'map'; pose values are "
+                "interpreted as map coordinates"
+            )
+            normalized_msg.header.frame_id = "map"
         if not self.pcd_map:
             self.get_logger().error("pcd_map is empty; cannot call /localizer/relocalize")
             return
+
+        self.amcl_initialpose_publisher.publish(normalized_msg)
 
         if not self.client.wait_for_service(timeout_sec=self.service_wait_s):
             self.get_logger().error("/localizer/relocalize service is not available")
@@ -51,10 +77,10 @@ class InitialPoseRelocalizeBridge(Node):
 
         req = Relocalize.Request()
         req.pcd_path = self.pcd_map
-        req.x = float(msg.pose.pose.position.x)
-        req.y = float(msg.pose.pose.position.y)
-        req.z = float(msg.pose.pose.position.z)
-        req.yaw = yaw_from_quaternion(msg.pose.pose.orientation)
+        req.x = float(normalized_msg.pose.pose.position.x)
+        req.y = float(normalized_msg.pose.pose.position.y)
+        req.z = float(normalized_msg.pose.pose.position.z)
+        req.yaw = yaw_from_quaternion(normalized_msg.pose.pose.orientation)
         req.pitch = 0.0
         req.roll = 0.0
 
@@ -83,9 +109,15 @@ def main(args=None):
     node = InitialPoseRelocalizeBridge()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    except Exception:
+        if rclpy.ok():
+            raise
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

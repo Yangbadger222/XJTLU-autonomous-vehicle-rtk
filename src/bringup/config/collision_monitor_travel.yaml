@@ -1,0 +1,42 @@
+collision_monitor:
+  ros__parameters:
+    use_sim_time: false
+    base_frame_id: base_footprint
+    odom_frame_id: odom
+    cmd_vel_in_topic: /cmd_vel_localized
+    cmd_vel_out_topic: /cmd_vel_safe_raw
+    transform_tolerance: 0.3
+    source_timeout: 0.5
+    base_shift_correction: true
+    stop_pub_timeout: 2.0
+    polygons: ["PolygonStop", "PolygonSlow"]
+    PolygonStop:
+      type: polygon
+      # Keep the lateral edge tight: wider zones repeatedly stop on traversable
+      # side returns while the costmap footprint already checks swept clearance.
+      points: [0.40, 0.32, 0.40, -0.32, -0.40, -0.32, -0.40, 0.32]
+      action_type: stop
+      # Static vehicle-edge returns measured 0-6 points/frame; require a
+      # denser cluster before applying an emergency stop.
+      max_points: 10
+      visualize: true
+      polygon_pub_topic: /travel_safety/stop_zone
+      enabled: true
+    PolygonSlow:
+      type: polygon
+      # Forward-only buffer outside the 0.35m front footprint. Travel MPPI does
+      # not reverse, so rear/side returns must not permanently throttle forward motion.
+      points: [0.85, 0.30, 0.85, -0.30, 0.45, -0.30, 0.45, 0.30]
+      action_type: slowdown
+      max_points: 10
+      slowdown_ratio: 0.60
+      visualize: true
+      polygon_pub_topic: /travel_safety/slow_zone
+      enabled: true
+    observation_sources: ["pointcloud"]
+    pointcloud:
+      type: pointcloud
+      topic: /fastlio2/body_cloud_nav2
+      min_height: -0.20
+      max_height: 1.20
+      enabled: true

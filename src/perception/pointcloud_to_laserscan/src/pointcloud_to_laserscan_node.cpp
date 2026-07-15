@@ -44,6 +44,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -74,6 +75,27 @@ PointCloudToLaserScanNode::PointCloudToLaserScanNode(const rclcpp::NodeOptions &
   range_max_ = this->declare_parameter("range_max", std::numeric_limits<double>::max());
   inf_epsilon_ = this->declare_parameter("inf_epsilon", 1.0);
   use_inf_ = this->declare_parameter("use_inf", true);
+  self_filter_box_.enabled = this->declare_parameter("self_filter.enabled", false);
+  self_filter_box_.min_x = this->declare_parameter("self_filter.min_x", -0.35);
+  self_filter_box_.max_x = this->declare_parameter("self_filter.max_x", 0.35);
+  self_filter_box_.min_y = this->declare_parameter("self_filter.min_y", -0.275);
+  self_filter_box_.max_y = this->declare_parameter("self_filter.max_y", 0.275);
+
+  if (!self_filter_box_.valid()) {
+    throw std::invalid_argument(
+            "self_filter bounds must satisfy min_x < max_x and min_y < max_y");
+  }
+  if (self_filter_box_.enabled && target_frame_.empty()) {
+    throw std::invalid_argument(
+            "self_filter requires target_frame to identify the vehicle coordinate frame");
+  }
+  if (self_filter_box_.enabled) {
+    RCLCPP_INFO(
+      this->get_logger(),
+      "vehicle self-filter enabled in %s: x=[%.3f, %.3f], y=[%.3f, %.3f]",
+      target_frame_.c_str(), self_filter_box_.min_x, self_filter_box_.max_x,
+      self_filter_box_.min_y, self_filter_box_.max_y);
+  }
 
   pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>("scan", rclcpp::SensorDataQoS());
 
@@ -193,6 +215,14 @@ void PointCloudToLaserScanNode::cloudCallback(
         this->get_logger(),
         "rejected for height %f not in range (%f, %f)\n",
         *iter_z, min_height_, max_height_);
+      continue;
+    }
+
+    if (self_filter_box_.contains(*iter_x, *iter_y)) {
+      RCLCPP_DEBUG(
+        this->get_logger(),
+        "rejected point inside vehicle self-filter box: (%f, %f, %f)",
+        *iter_x, *iter_y, *iter_z);
       continue;
     }
 

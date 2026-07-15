@@ -6,6 +6,7 @@
 - Current primary outputs (when height filtering is enabled, point cloud outputs are height-filtered before publishing; see below):
   - `/fastlio2/lio_odom`
   - `/fastlio2/body_cloud`
+  - `/fastlio2/body_cloud_localization` (optional structural localization cloud)
   - `/fastlio2/body_cloud_nav2_obstacles` (optional taller Nav2 obstacle cloud)
 - Current primary entry point:
 
@@ -14,7 +15,7 @@ ros2 launch fastlio2 lio_no_rviz.py params_file:=~/XJTLU-autonomous-vehicle/src/
 ```
 
 - Current parameter source is primarily `src/bringup/config/master_params.yaml`; `lio_no_rviz.py` retains legacy `fastlio2/config/lio.yaml` fallback capability.
-- The downstream `pgo` node directly consumes `/fastlio2/lio_odom` and `/fastlio2/body_cloud`.
+- SLAM/Travel PGO and localizer consume `/fastlio2/body_cloud_localization`; historical PGO profiles may still consume `/fastlio2/body_cloud`.
 - This document mainly explains the algorithm principles; for the full vehicle pipeline, also refer to `docs/architecture.md` and `docs/knowledge/pgo.md`.
 
 ## Publish Cloud Pre-Height-Filtering (2026-04-01)
@@ -47,6 +48,13 @@ RTK corridor now branches an additional `/fastlio2/body_cloud_nav2_obstacles` st
 
 If future field tests still show unstable pedestrian marking, inspect whether `/fastlio2/body_cloud_nav2_obstacles` contains points, whether the local costmap STVL voxel map marks them, and whether the Livox blind zone / mounting angle is the limiting factor before widening the PGO-facing `/fastlio2/body_cloud`.
 
+## Indoor Structural Localization Cloud (2026-07-11)
+
+- `/fastlio2/body_cloud_localization` has an independent provisional `[-0.20, 1.80]m` window that retains walls, door frames, and columns. Both mapping PGO and the Travel localizer consume it, keeping descriptor, map, and live-scan semantics aligned.
+- `/fastlio2/body_cloud` remains the low LaserScan slice, while `body_cloud_nav2_obstacles` remains the dynamic local-obstacle stream; the three responsibilities no longer share one conflicting height window.
+- Filtering/publishing runs only with subscribers and does not alter the FAST-LIO2 IESKF. Finalize the window from vehicle PCD statistics instead of widening it blindly around glass, ceilings, or self-reflections.
+- After height filtering, the Nav2 obstacle cloud excludes `x=[-0.40,0.40]m, y=[-0.30,0.30]m` in `base_footprint`. On 2026-07-12, stop-zone flicker points were measured on the front-right body edge `(x=0.326~0.369m, y=-0.261~-0.276m, z about 0.32m)`. After the vehicle moved about 1.7m, another horizontal arc remained fixed in body coordinates at `x=[0.40,0.82]m, y=[-0.35,-0.14]m, z=[0.25,0.42]m`. A narrow 3D patch therefore excludes that measured body surface without clearing the whole forward 0.82m; neither filter changes internal LIO matching, the localization structure cloud, or the PGO cloud.
+
 ## LiDAR / IMU Sync Guard (2026-07-06)
 
 FAST-LIO2 now drops a LiDAR frame before the IESKF update when its synchronized package contains fewer than `min_imu_samples_per_lidar` IMU samples. The current corridor acceptance value is:
@@ -67,6 +75,8 @@ RTK corridor currently uses a CPU-conscious outdoor structure-retention profile:
 The old `lidar_filter_num: 6` and `lidar_max_range: 15.0` profile was cheaper, but in plaza-like areas it can discard distant walls, trees, poles, and other matchable structure too early, increasing the chance of `NO Effective Points` and degeneracy regularization. The `4/25m` profile is a compromise: it keeps more structure than the old profile without immediately dropping to `3`, which could roughly double the point-processing load on the Jetson.
 
 If future bags show CPU headroom while `/fastlio2/degeneracy` still reports frequent degeneracy, try `lidar_filter_num: 3`; if IMU/LiDAR sync windows start dropping samples or FAST-LIO2 latency rises, prefer returning to `4` or reducing `lidar_max_range`.
+
+FAST-LIO2 TF uses the current fused pose but may shift its timestamp forward through `tf_future_tolerance_s`. The shared runtime value is now `0.05s`, covering the observed 10–20ms scheduling skew between 10Hz LIO publication and 20Hz Nav2 controller queries. It does not extrapolate position or attitude and does not alter the sensor timestamp on `/fastlio2/lio_odom`.
 
 ## 1. Odom (Odometry) Data Interpretation
 

@@ -3,6 +3,7 @@
 // 文件最新改动人：Claude Sonnet 4.5
 // 操作者：You-guesssssss
 
+#include <algorithm>
 #include <mutex>
 #include <vector>
 #include <queue>
@@ -107,6 +108,7 @@ struct NodeConfig
     std::string body_frame = "base_link";
     std::string world_frame = "odom";
     bool print_time_cost = false;
+    double tf_future_tolerance_s = 0.0;
 };
 struct StateData
 {
@@ -151,6 +153,7 @@ public:
 
         m_body_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud", 500);
         m_world_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("world_cloud", 500);
+        m_localization_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_localization", 50);
         m_nav2_obstacle_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_nav2_obstacles", 50);
         m_path_pub = this->create_publisher<nav_msgs::msg::Path>("lio_path", 10000);
         m_odom_pub = this->create_publisher<nav_msgs::msg::Odometry>("lio_odom", 10000);
@@ -214,6 +217,9 @@ public:
         m_node_config.body_frame = this->declare_parameter<std::string>("body_frame", "base_link");
         m_node_config.world_frame = this->declare_parameter<std::string>("world_frame", "odom");
         m_node_config.print_time_cost = this->declare_parameter<bool>("print_time_cost", false);
+        m_node_config.tf_future_tolerance_s = std::max(
+            0.0,
+            this->declare_parameter<double>("tf_future_tolerance_s", 0.0));
 
         m_builder_config.lidar_filter_num = this->declare_parameter<int>("lidar_filter_num", 6);
         m_builder_config.lidar_min_range = this->declare_parameter<double>("lidar_min_range", 0.5);
@@ -241,12 +247,42 @@ public:
             this->declare_parameter<double>("publish_cloud_min_z", -0.33);
         m_builder_config.publish_cloud_max_z =
             this->declare_parameter<double>("publish_cloud_max_z", 0.30);
+        m_builder_config.localization_cloud_enabled =
+            this->declare_parameter<bool>("localization_cloud_enabled", true);
+        m_builder_config.localization_cloud_min_z =
+            this->declare_parameter<double>("localization_cloud_min_z", -0.20);
+        m_builder_config.localization_cloud_max_z =
+            this->declare_parameter<double>("localization_cloud_max_z", 1.80);
         m_builder_config.nav2_obstacle_cloud_enabled =
             this->declare_parameter<bool>("nav2_obstacle_cloud_enabled", true);
         m_builder_config.nav2_obstacle_cloud_min_z =
             this->declare_parameter<double>("nav2_obstacle_cloud_min_z", -0.20);
         m_builder_config.nav2_obstacle_cloud_max_z =
             this->declare_parameter<double>("nav2_obstacle_cloud_max_z", 1.20);
+        m_builder_config.nav2_obstacle_self_filter_enabled =
+            this->declare_parameter<bool>("nav2_obstacle_self_filter_enabled", false);
+        m_builder_config.nav2_obstacle_self_filter_min_x =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_min_x", -0.40);
+        m_builder_config.nav2_obstacle_self_filter_max_x =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_max_x", 0.40);
+        m_builder_config.nav2_obstacle_self_filter_min_y =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_min_y", -0.30);
+        m_builder_config.nav2_obstacle_self_filter_max_y =
+            this->declare_parameter<double>("nav2_obstacle_self_filter_max_y", 0.30);
+        m_builder_config.nav2_obstacle_self_patch_enabled =
+            this->declare_parameter<bool>("nav2_obstacle_self_patch_enabled", false);
+        m_builder_config.nav2_obstacle_self_patch_min_x =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_min_x", 0.40);
+        m_builder_config.nav2_obstacle_self_patch_max_x =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_max_x", 0.82);
+        m_builder_config.nav2_obstacle_self_patch_min_y =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_min_y", -0.35);
+        m_builder_config.nav2_obstacle_self_patch_max_y =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_max_y", -0.14);
+        m_builder_config.nav2_obstacle_self_patch_min_z =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_min_z", 0.25);
+        m_builder_config.nav2_obstacle_self_patch_max_z =
+            this->declare_parameter<double>("nav2_obstacle_self_patch_max_z", 0.42);
 
         auto t_il_vec = this->declare_parameter<std::vector<double>>("t_il", default_t_il);
         auto r_il_vec = this->declare_parameter<std::vector<double>>("r_il", default_r_il);
@@ -297,6 +333,10 @@ public:
             m_node_config.world_frame = config["world_frame"].as<std::string>();
         if (config["print_time_cost"])
             m_node_config.print_time_cost = config["print_time_cost"].as<bool>();
+        if (config["tf_future_tolerance_s"])
+            m_node_config.tf_future_tolerance_s = std::max(
+                0.0,
+                config["tf_future_tolerance_s"].as<double>());
 
         if (config["lidar_filter_num"])
             m_builder_config.lidar_filter_num = config["lidar_filter_num"].as<int>();
@@ -346,6 +386,15 @@ public:
         if (config["publish_cloud_max_z"])
             m_builder_config.publish_cloud_max_z =
                 config["publish_cloud_max_z"].as<double>();
+        if (config["localization_cloud_enabled"])
+            m_builder_config.localization_cloud_enabled =
+                config["localization_cloud_enabled"].as<bool>();
+        if (config["localization_cloud_min_z"])
+            m_builder_config.localization_cloud_min_z =
+                config["localization_cloud_min_z"].as<double>();
+        if (config["localization_cloud_max_z"])
+            m_builder_config.localization_cloud_max_z =
+                config["localization_cloud_max_z"].as<double>();
         if (config["nav2_obstacle_cloud_enabled"])
             m_builder_config.nav2_obstacle_cloud_enabled =
                 config["nav2_obstacle_cloud_enabled"].as<bool>();
@@ -355,6 +404,42 @@ public:
         if (config["nav2_obstacle_cloud_max_z"])
             m_builder_config.nav2_obstacle_cloud_max_z =
                 config["nav2_obstacle_cloud_max_z"].as<double>();
+        if (config["nav2_obstacle_self_filter_enabled"])
+            m_builder_config.nav2_obstacle_self_filter_enabled =
+                config["nav2_obstacle_self_filter_enabled"].as<bool>();
+        if (config["nav2_obstacle_self_filter_min_x"])
+            m_builder_config.nav2_obstacle_self_filter_min_x =
+                config["nav2_obstacle_self_filter_min_x"].as<double>();
+        if (config["nav2_obstacle_self_filter_max_x"])
+            m_builder_config.nav2_obstacle_self_filter_max_x =
+                config["nav2_obstacle_self_filter_max_x"].as<double>();
+        if (config["nav2_obstacle_self_filter_min_y"])
+            m_builder_config.nav2_obstacle_self_filter_min_y =
+                config["nav2_obstacle_self_filter_min_y"].as<double>();
+        if (config["nav2_obstacle_self_filter_max_y"])
+            m_builder_config.nav2_obstacle_self_filter_max_y =
+                config["nav2_obstacle_self_filter_max_y"].as<double>();
+        if (config["nav2_obstacle_self_patch_enabled"])
+            m_builder_config.nav2_obstacle_self_patch_enabled =
+                config["nav2_obstacle_self_patch_enabled"].as<bool>();
+        if (config["nav2_obstacle_self_patch_min_x"])
+            m_builder_config.nav2_obstacle_self_patch_min_x =
+                config["nav2_obstacle_self_patch_min_x"].as<double>();
+        if (config["nav2_obstacle_self_patch_max_x"])
+            m_builder_config.nav2_obstacle_self_patch_max_x =
+                config["nav2_obstacle_self_patch_max_x"].as<double>();
+        if (config["nav2_obstacle_self_patch_min_y"])
+            m_builder_config.nav2_obstacle_self_patch_min_y =
+                config["nav2_obstacle_self_patch_min_y"].as<double>();
+        if (config["nav2_obstacle_self_patch_max_y"])
+            m_builder_config.nav2_obstacle_self_patch_max_y =
+                config["nav2_obstacle_self_patch_max_y"].as<double>();
+        if (config["nav2_obstacle_self_patch_min_z"])
+            m_builder_config.nav2_obstacle_self_patch_min_z =
+                config["nav2_obstacle_self_patch_min_z"].as<double>();
+        if (config["nav2_obstacle_self_patch_max_z"])
+            m_builder_config.nav2_obstacle_self_patch_max_z =
+                config["nav2_obstacle_self_patch_max_z"].as<double>();
 
         const std::vector<double> t_il_vec =
             config["t_il"] ? config["t_il"].as<std::vector<double>>() : std::vector<double>{m_builder_config.t_il.x(), m_builder_config.t_il.y(), m_builder_config.t_il.z()};
@@ -381,6 +466,7 @@ public:
             rclcpp::Parameter("body_frame", m_node_config.body_frame),
             rclcpp::Parameter("world_frame", m_node_config.world_frame),
             rclcpp::Parameter("print_time_cost", m_node_config.print_time_cost),
+            rclcpp::Parameter("tf_future_tolerance_s", m_node_config.tf_future_tolerance_s),
             rclcpp::Parameter("lidar_filter_num", m_builder_config.lidar_filter_num),
             rclcpp::Parameter("lidar_min_range", m_builder_config.lidar_min_range),
             rclcpp::Parameter("lidar_max_range", m_builder_config.lidar_max_range),
@@ -405,9 +491,24 @@ public:
             rclcpp::Parameter("publish_cloud_height_filter_enabled", m_builder_config.publish_cloud_height_filter_enabled),
             rclcpp::Parameter("publish_cloud_min_z", m_builder_config.publish_cloud_min_z),
             rclcpp::Parameter("publish_cloud_max_z", m_builder_config.publish_cloud_max_z),
+            rclcpp::Parameter("localization_cloud_enabled", m_builder_config.localization_cloud_enabled),
+            rclcpp::Parameter("localization_cloud_min_z", m_builder_config.localization_cloud_min_z),
+            rclcpp::Parameter("localization_cloud_max_z", m_builder_config.localization_cloud_max_z),
             rclcpp::Parameter("nav2_obstacle_cloud_enabled", m_builder_config.nav2_obstacle_cloud_enabled),
             rclcpp::Parameter("nav2_obstacle_cloud_min_z", m_builder_config.nav2_obstacle_cloud_min_z),
             rclcpp::Parameter("nav2_obstacle_cloud_max_z", m_builder_config.nav2_obstacle_cloud_max_z),
+            rclcpp::Parameter("nav2_obstacle_self_filter_enabled", m_builder_config.nav2_obstacle_self_filter_enabled),
+            rclcpp::Parameter("nav2_obstacle_self_filter_min_x", m_builder_config.nav2_obstacle_self_filter_min_x),
+            rclcpp::Parameter("nav2_obstacle_self_filter_max_x", m_builder_config.nav2_obstacle_self_filter_max_x),
+            rclcpp::Parameter("nav2_obstacle_self_filter_min_y", m_builder_config.nav2_obstacle_self_filter_min_y),
+            rclcpp::Parameter("nav2_obstacle_self_filter_max_y", m_builder_config.nav2_obstacle_self_filter_max_y),
+            rclcpp::Parameter("nav2_obstacle_self_patch_enabled", m_builder_config.nav2_obstacle_self_patch_enabled),
+            rclcpp::Parameter("nav2_obstacle_self_patch_min_x", m_builder_config.nav2_obstacle_self_patch_min_x),
+            rclcpp::Parameter("nav2_obstacle_self_patch_max_x", m_builder_config.nav2_obstacle_self_patch_max_x),
+            rclcpp::Parameter("nav2_obstacle_self_patch_min_y", m_builder_config.nav2_obstacle_self_patch_min_y),
+            rclcpp::Parameter("nav2_obstacle_self_patch_max_y", m_builder_config.nav2_obstacle_self_patch_max_y),
+            rclcpp::Parameter("nav2_obstacle_self_patch_min_z", m_builder_config.nav2_obstacle_self_patch_min_z),
+            rclcpp::Parameter("nav2_obstacle_self_patch_max_z", m_builder_config.nav2_obstacle_self_patch_max_z),
         });
     }
 
@@ -584,6 +685,54 @@ public:
         return filtered_body_cloud;
     }
 
+    CloudType::Ptr filterNav2VehicleReturns(const CloudType::Ptr &body_cloud)
+    {
+        if (!body_cloud || !m_builder_config.nav2_obstacle_self_filter_enabled)
+            return body_cloud;
+
+        CloudType::Ptr filtered_cloud(new CloudType);
+        filtered_cloud->reserve(body_cloud->size());
+        std::size_t dropped_points = 0;
+        for (const auto &point : body_cloud->points)
+        {
+            const bool inside_vehicle =
+                point.x >= m_builder_config.nav2_obstacle_self_filter_min_x &&
+                point.x <= m_builder_config.nav2_obstacle_self_filter_max_x &&
+                point.y >= m_builder_config.nav2_obstacle_self_filter_min_y &&
+                point.y <= m_builder_config.nav2_obstacle_self_filter_max_y;
+            const bool inside_measured_patch =
+                m_builder_config.nav2_obstacle_self_patch_enabled &&
+                point.x >= m_builder_config.nav2_obstacle_self_patch_min_x &&
+                point.x <= m_builder_config.nav2_obstacle_self_patch_max_x &&
+                point.y >= m_builder_config.nav2_obstacle_self_patch_min_y &&
+                point.y <= m_builder_config.nav2_obstacle_self_patch_max_y &&
+                point.z >= m_builder_config.nav2_obstacle_self_patch_min_z &&
+                point.z <= m_builder_config.nav2_obstacle_self_patch_max_z;
+            if (inside_vehicle || inside_measured_patch)
+            {
+                ++dropped_points;
+                continue;
+            }
+            filtered_cloud->points.push_back(point);
+        }
+        filtered_cloud->width = filtered_cloud->points.size();
+        filtered_cloud->height = 1;
+        filtered_cloud->is_dense = false;
+
+        RCLCPP_INFO_THROTTLE(
+            this->get_logger(),
+            *this->get_clock(),
+            5000,
+            "FAST-LIO2 Nav2 vehicle filter removed %zu/%zu points in x=[%.2f, %.2f], y=[%.2f, %.2f]",
+            dropped_points,
+            body_cloud->size(),
+            m_builder_config.nav2_obstacle_self_filter_min_x,
+            m_builder_config.nav2_obstacle_self_filter_max_x,
+            m_builder_config.nav2_obstacle_self_filter_min_y,
+            m_builder_config.nav2_obstacle_self_filter_max_y);
+        return filtered_cloud;
+    }
+
     void publishNav2ObstacleCloud(
         const CloudType::Ptr &body_cloud,
         const CloudType::Ptr &world_cloud,
@@ -600,7 +749,27 @@ public:
             m_builder_config.nav2_obstacle_cloud_min_z,
             m_builder_config.nav2_obstacle_cloud_max_z,
             "FAST-LIO2 Nav2 obstacle cloud");
+        nav2_body_cloud = filterNav2VehicleReturns(nav2_body_cloud);
         publishCloud(m_nav2_obstacle_cloud_pub, nav2_body_cloud, m_node_config.body_frame, time);
+    }
+
+    void publishLocalizationCloud(
+        const CloudType::Ptr &body_cloud,
+        const CloudType::Ptr &world_cloud,
+        const double &time)
+    {
+        if (!m_builder_config.localization_cloud_enabled)
+            return;
+        if (m_localization_cloud_pub->get_subscription_count() <= 0)
+            return;
+
+        CloudType::Ptr localization_cloud = filterBodyCloudByRelativeHeight(
+            body_cloud,
+            world_cloud,
+            m_builder_config.localization_cloud_min_z,
+            m_builder_config.localization_cloud_max_z,
+            "FAST-LIO2 localization cloud");
+        publishCloud(m_localization_cloud_pub, localization_cloud, m_node_config.body_frame, time);
     }
 
     std::pair<CloudType::Ptr, CloudType::Ptr> filterPublishedClouds(
@@ -825,7 +994,11 @@ public:
             m_log_file.flush();
         }
 
-        broadCastTF(m_tf_broadcaster, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
+        broadCastTF(
+            m_tf_broadcaster,
+            m_node_config.world_frame,
+            m_node_config.body_frame,
+            this->now().seconds() + m_node_config.tf_future_tolerance_s);
 
         publishOdometry(m_odom_pub, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
 
@@ -840,6 +1013,7 @@ public:
             filterPublishedClouds(body_cloud, world_cloud);
 
         const double cloud_publish_time = this->now().seconds();
+        publishLocalizationCloud(body_cloud, world_cloud, cloud_publish_time);
         publishNav2ObstacleCloud(body_cloud, world_cloud, cloud_publish_time);
         publishCloud(m_body_cloud_pub, filtered_body_cloud, m_node_config.body_frame, cloud_publish_time);
         publishCloud(m_world_cloud_pub, filtered_world_cloud, m_node_config.world_frame, cloud_publish_time);
@@ -853,6 +1027,7 @@ private:
 
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_body_cloud_pub;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_world_cloud_pub;
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_localization_cloud_pub;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr m_nav2_obstacle_cloud_pub;
     rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr m_path_pub;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr m_odom_pub;

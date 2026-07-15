@@ -1,0 +1,20 @@
+uint8 IDLE=0
+uint8 SENDING=1
+uint8 NAVIGATING=2
+uint8 CANCELING=3
+uint8 SUCCEEDED=4
+uint8 CANCELED=5
+uint8 REJECTED=6
+uint8 FAILED=7
+
+std_msgs/Header header
+uint8 state
+string state_label
+string message
+string map_id
+string source
+string target
+string localization_state
+bool localization_ready
+bool has_remaining_distance
+float32 remaining_distance_m

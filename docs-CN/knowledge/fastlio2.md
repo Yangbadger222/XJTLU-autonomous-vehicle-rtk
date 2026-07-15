@@ -6,6 +6,8 @@
 - 当前主输出（启用高度过滤时，点云输出经过发布前高度裁剪，详见下文）:
   - `/fastlio2/lio_odom`
   - `/fastlio2/body_cloud`
+  - `/fastlio2/body_cloud_localization`（可选定位结构云）
+  - `/fastlio2/body_cloud_nav2_obstacles`（可选 Nav2 障碍云）
 - 当前主入口:
 
 ```bash
@@ -13,7 +15,7 @@ ros2 launch fastlio2 lio_no_rviz.py params_file:=~/XJTLU-autonomous-vehicle/src/
 ```
 
 - 当前参数来源以 `src/bringup/config/master_params.yaml` 为主；`lio_no_rviz.py` 保留 legacy `fastlio2/config/lio.yaml` 回退能力。
-- 下游的 `pgo` 节点直接消费 `/fastlio2/lio_odom` 和 `/fastlio2/body_cloud`。
+- SLAM/Travel 的 PGO/localizer 消费 `/fastlio2/body_cloud_localization`；其它历史模式的 PGO 配置仍可消费 `/fastlio2/body_cloud`。
 - 这份文档主要解释算法原理；整车链路请同时参考 `docs/architecture.md` 和 `docs/knowledge/pgo.md`。
 
 ## 发布点云前置高度过滤（2026-04-01）
@@ -40,6 +42,13 @@ RTK corridor 现在从 FAST-LIO2 发布层额外分叉一条 `/fastlio2/body_clo
 
 如果后续实车发现行人仍进入 costmap 不稳定，应优先检查 `/fastlio2/body_cloud_nav2_obstacles` 是否有点、local costmap 的 STVL voxel map 是否被标记，以及 Livox 近距离盲区/安装角度，而不是再放宽 PGO 使用的 `/fastlio2/body_cloud`。
 
+## 室内定位结构点云（2026-07-11）
+
+- `/fastlio2/body_cloud_localization` 使用独立的 `[-0.20, 1.80]m` 初始高度窗，保留墙面、门框和立柱；PGO 建图与 Travel localizer 都消费这一 topic，确保描述子/地图/在线扫描语义一致。
+- `/fastlio2/body_cloud` 继续作为低窗 LaserScan 输入，`body_cloud_nav2_obstacles` 继续负责局部动态障碍，三类点云不再共享一个冲突高度窗。
+- 定位云只在有订阅者时过滤发布，不改变 FAST-LIO2 内部 IESKF。高度窗是待实车 PCD 统计收口的参数，玻璃、顶棚和车体自反射明显时不能直接放宽阈值。
+- Nav2 专用障碍云在高度过滤后还会按 `base_footprint` 排除 `x=[-0.40,0.40]m, y=[-0.30,0.30]m`。2026-07-12 实测 Stop 框中的抖动点集中在右前车体边缘 `(x=0.326~0.369m, y=-0.261~-0.276m, z约0.32m)`。车辆移动约 1.7m 后，另一条水平弧形回波仍固定在车体坐标中的 `x=[0.40,0.82]m, y=[-0.35,-0.14]m, z=[0.25,0.42]m`，因此增加窄三维补丁排除该实测本体表面，而不是清空整个前方 0.82m；两类过滤都不改变 LIO 内部匹配、定位结构云或 PGO 云。
+
 ## LiDAR / IMU 同步保护（2026-07-06）
 
 FAST-LIO2 现在会在进入 IESKF 更新前检查同步包中的 IMU 样本数；若少于 `min_imu_samples_per_lidar`，直接丢弃该 LiDAR 帧。当前 corridor 验收值为：
@@ -60,6 +69,8 @@ RTK corridor 当前采用 CPU 友好的户外增强档：
 旧配置 `lidar_filter_num: 6`、`lidar_max_range: 15.0` 更省算力，但在广场等远处结构稀疏的区域会过早丢掉墙、树、柱等可匹配结构，增加 `NO Effective Points` 和退化正则化的概率。`4/25m` 是折中档：比旧配置保留更多结构点，但先不直接降到 `3`，避免在 Jetson 上把 CPU 压力一次性翻倍。
 
 如果后续 rosbag 证明 CPU 仍有余量且 `/fastlio2/degeneracy` 仍频繁退化，可以再试 `lidar_filter_num: 3`；如果出现 IMU/LiDAR 同步窗口掉样或 FAST-LIO2 处理延迟上升，则优先回到 `4` 或缩短 `lidar_max_range`。
+
+FAST-LIO2 的 TF 使用当前融合位姿，但时间戳可通过 `tf_future_tolerance_s` 小幅前移。当前共享运行参数为 `0.05s`，用于覆盖 10Hz LIO 发布与 20Hz Nav2 controller 查询之间约 10–20ms 的调度差；它不外推位置或姿态，也不改变 `/fastlio2/lio_odom` 的传感器时间戳。
 
 ## 1. odom 里程计数据解读
 

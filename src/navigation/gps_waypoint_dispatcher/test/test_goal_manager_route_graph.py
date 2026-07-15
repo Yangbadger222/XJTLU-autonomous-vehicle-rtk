@@ -58,3 +58,9 @@ def test_nav_gps_menu_waits_for_authority_agnostic_motion_permission():
     assert "self.localization_motion_allowed and self.action_servers_ready()" in text
     assert "ComputeRoute" not in text
     assert "navigate_to_pose_client" not in text
+
+
+def test_nav_gps_menu_shutdown_is_idempotent_after_interrupt():
+    text = NAV_GPS_MENU.read_text(encoding="utf-8")
+
+    assert "if rclpy.ok():\n            rclpy.shutdown()" in text

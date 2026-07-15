@@ -1,5 +1,9 @@
 #include "um982_rtk_driver/nmea_parser.hpp"
 #include "um982_rtk_driver/ntrip_response.hpp"
+#include "um982_raw_driver/ephemeris_decoder.hpp"
+#include "um982_raw_driver/epoch_deduplicator.hpp"
+#include "um982_raw_driver/mixed_stream_framer.hpp"
+#include "um982_raw_driver/observation_decoder.hpp"
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -7,6 +11,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -24,7 +29,14 @@
 #include <vector>
 
 #include <builtin_interfaces/msg/time.hpp>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_msgs/msg/key_value.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
+#include <gnss_raw_msgs/msg/ephemeris.hpp>
+#include <gnss_raw_msgs/msg/observation.hpp>
+#include <gnss_raw_msgs/msg/observation_epoch.hpp>
+#include <gnss_raw_msgs/msg/raw_frame.hpp>
 #include <nmea_msgs/msg/sentence.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -88,6 +100,20 @@ builtin_interfaces::msg::Time toRosTimeMsg(const rclcpp::Time & stamp)
   return msg;
 }
 
+diagnostic_msgs::msg::KeyValue keyValue(const std::string & key, const std::string & value)
+{
+  diagnostic_msgs::msg::KeyValue output;
+  output.key = key;
+  output.value = value;
+  return output;
+}
+
+template<typename T>
+diagnostic_msgs::msg::KeyValue numericKeyValue(const std::string & key, const T value)
+{
+  return keyValue(key, std::to_string(value));
+}
+
 }  // namespace
 
 class Um982RtkNode : public rclcpp::Node
@@ -109,6 +135,36 @@ public:
     epe_quality_5_ = declare_parameter<double>("epe_quality5", 4.0);
     epe_quality_9_ = declare_parameter<double>("epe_quality9", 3.0);
 
+    stream_mode_ = declare_parameter<std::string>("stream_mode", "nmea_only");
+    read_chunk_bytes_ = declare_parameter<int>("read_chunk_bytes", 4096);
+    max_read_batches_ = declare_parameter<int>("max_read_batches_per_cycle", 16);
+    read_timeout_ms_ = declare_parameter<int>("read_timeout_ms", 20);
+    max_payload_bytes_ = declare_parameter<int>("max_payload_bytes", 65535);
+    max_buffer_bytes_ = declare_parameter<int>("max_buffer_bytes", 131072);
+    max_ascii_line_bytes_ = declare_parameter<int>("max_ascii_line_bytes", 1024);
+    reconnect_period_s_ = declare_parameter<double>("reconnect_period_s", 1.0);
+    raw_frame_id_ = declare_parameter<std::string>("raw.frame_id", "gnss_raw");
+    raw_output_topic_ =
+      declare_parameter<std::string>("raw.output_topic", "/gnss/raw/frame");
+    observation_topic_ = declare_parameter<std::string>(
+      "raw.observation_topic", "/gnss/raw/observation_epoch");
+    ephemeris_topic_ =
+      declare_parameter<std::string>("raw.ephemeris_topic", "/gnss/raw/ephemeris");
+    diagnostics_topic_ =
+      declare_parameter<std::string>("raw.diagnostics_topic", "/gnss/raw/diagnostics");
+    epoch_dedup_capacity_ = declare_parameter<int>("raw.epoch_dedup_capacity", 256);
+    stale_ascii_timeout_s_ = declare_parameter<double>("stale_ascii_timeout_s", 2.0);
+    stale_binary_timeout_s_ = declare_parameter<double>("raw.stale_frame_timeout_s", 2.0);
+
+    validateStreamParameters();
+    mixed_mode_ = stream_mode_ == "mixed";
+    mixed_framer_ = std::make_unique<um982_raw_driver::MixedStreamFramer>(
+      static_cast<std::size_t>(max_payload_bytes_),
+      static_cast<std::size_t>(max_buffer_bytes_),
+      static_cast<std::size_t>(max_ascii_line_bytes_));
+    epoch_deduplicator_ = std::make_unique<um982_raw_driver::EpochDeduplicator>(
+      static_cast<std::size_t>(epoch_dedup_capacity_));
+
     ntrip_enabled_ = declare_parameter<bool>("ntrip.enabled", false);
     ntrip_host_ = declare_parameter<std::string>("ntrip.host", "");
     ntrip_port_ = declare_parameter<int>("ntrip.port", 2101);
@@ -127,24 +183,21 @@ public:
     heading_pub_ = create_publisher<geometry_msgs::msg::QuaternionStamped>("/heading", 10);
     raw_pub_ = create_publisher<nmea_msgs::msg::Sentence>("rtk/nmea_sentence", 50);
     status_pub_ = create_publisher<std_msgs::msg::String>("rtk/status", 10);
-
-    serial_port_.setPort(port_);
-    serial_port_.setBaudrate(static_cast<uint32_t>(baud_));
-    serial::Timeout timeout = serial::Timeout::simpleTimeout(100);
-    serial_port_.setTimeout(timeout);
-    serial_port_.open();
-    if (!serial_port_.isOpen()) {
-      throw std::runtime_error("UM982 serial port did not open");
-    }
-
-    RCLCPP_INFO(
-      get_logger(), "UM982 RTK serial opened: %s @ %d", port_.c_str(), baud_);
+    raw_frame_pub_ =
+      create_publisher<gnss_raw_msgs::msg::RawFrame>(raw_output_topic_, 100);
+    observation_pub_ =
+      create_publisher<gnss_raw_msgs::msg::ObservationEpoch>(observation_topic_, 50);
+    ephemeris_pub_ =
+      create_publisher<gnss_raw_msgs::msg::Ephemeris>(ephemeris_topic_, 50);
+    diagnostics_pub_ =
+      create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
 
     if (ntrip_enabled_) {
       validateNtripParameters();
     }
 
     running_ = true;
+    tryOpenSerial();
     serial_thread_ = std::thread(&Um982RtkNode::serialLoop, this);
     if (ntrip_enabled_) {
       ntrip_thread_ = std::thread(&Um982RtkNode::ntripLoop, this);
@@ -152,7 +205,10 @@ public:
 
     status_timer_ = create_wall_timer(
       std::chrono::milliseconds(static_cast<int>(status_period_s_ * 1000.0)),
-      std::bind(&Um982RtkNode::publishStatus, this));
+      [this]() {
+        publishStatus();
+        publishDiagnostics();
+      });
   }
 
   ~Um982RtkNode() override
@@ -169,12 +225,31 @@ public:
     if (ntrip_thread_.joinable()) {
       ntrip_thread_.join();
     }
-    if (serial_port_.isOpen()) {
-      serial_port_.close();
+    {
+      std::lock_guard<std::mutex> lock(serial_mutex_);
+      closeSerialLocked();
     }
   }
 
 private:
+  void validateStreamParameters() const
+  {
+    if (stream_mode_ != "nmea_only" && stream_mode_ != "mixed") {
+      throw std::invalid_argument("stream_mode must be 'nmea_only' or 'mixed'");
+    }
+    if (baud_ <= 0 || read_chunk_bytes_ <= 0 || max_read_batches_ <= 0 ||
+      read_timeout_ms_ < 0 || max_payload_bytes_ < 0 || max_payload_bytes_ > 65535 ||
+      max_buffer_bytes_ <= 0 || max_ascii_line_bytes_ <= 0 ||
+      read_chunk_bytes_ > max_buffer_bytes_ || max_ascii_line_bytes_ > max_buffer_bytes_ ||
+      max_read_batches_ > 1024 || epoch_dedup_capacity_ <= 0 ||
+      epoch_dedup_capacity_ > 100000 || reconnect_period_s_ <= 0.0 ||
+      stale_ascii_timeout_s_ <= 0.0 ||
+      stale_binary_timeout_s_ <= 0.0)
+    {
+      throw std::invalid_argument("UM982 unified stream parameters are outside valid bounds");
+    }
+  }
+
   void validateNtripParameters()
   {
     if (ntrip_host_.empty() || ntrip_mountpoint_.empty() || ntrip_username_.empty() ||
@@ -185,23 +260,124 @@ private:
     }
   }
 
+  bool tryOpenSerial()
+  {
+    if (serial_connected_.load()) {
+      return true;
+    }
+    if (std::chrono::steady_clock::now() < next_reconnect_) {
+      return false;
+    }
+
+    try {
+      std::lock_guard<std::mutex> lock(serial_mutex_);
+      closeSerialLocked();
+      serial_port_.setPort(port_);
+      serial_port_.setBaudrate(static_cast<std::uint32_t>(baud_));
+      serial::Timeout timeout =
+        serial::Timeout::simpleTimeout(static_cast<std::uint32_t>(read_timeout_ms_));
+      serial_port_.setTimeout(timeout);
+      serial_port_.open();
+      if (!serial_port_.isOpen()) {
+        throw std::runtime_error("serial library returned a closed port after open");
+      }
+      serial_connected_ = true;
+      last_serial_error_.clear();
+      RCLCPP_INFO(
+        get_logger(), "UM982 unified serial opened: %s @ %d (%s)", port_.c_str(), baud_,
+        stream_mode_.c_str());
+      return true;
+    } catch (const std::exception & error) {
+      markDisconnected(error.what());
+      return false;
+    }
+  }
+
+  void closeSerialLocked() noexcept
+  {
+    try {
+      if (serial_port_.isOpen()) {
+        serial_port_.close();
+      }
+    } catch (const std::exception &) {
+    }
+    serial_connected_ = false;
+  }
+
+  void markDisconnected(const std::string & reason)
+  {
+    {
+      std::lock_guard<std::mutex> lock(serial_mutex_);
+      closeSerialLocked();
+      last_serial_error_ = reason;
+    }
+    {
+      std::lock_guard<std::mutex> lock(framer_mutex_);
+      mixed_framer_->reset();
+    }
+    {
+      std::lock_guard<std::mutex> lock(ascii_status_mutex_);
+      have_valid_ascii_sentence_ = false;
+    }
+    {
+      std::lock_guard<std::mutex> lock(raw_status_mutex_);
+      epoch_deduplicator_->reset();
+      have_valid_binary_frame_ = false;
+    }
+    next_reconnect_ = std::chrono::steady_clock::now() +
+      std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(reconnect_period_s_));
+    RCLCPP_WARN_THROTTLE(
+      get_logger(), *get_clock(), 5000, "UM982 unified port unavailable: %s", reason.c_str());
+  }
+
   void serialLoop()
   {
     while (rclcpp::ok() && running_) {
+      if (!tryOpenSerial()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        continue;
+      }
       try {
-        std::string line;
-        {
-          std::lock_guard<std::mutex> lock(serial_mutex_);
-          line = serial_port_.readline(512, "\n");
+        bool received_any = false;
+        for (int batch = 0; batch < max_read_batches_; ++batch) {
+          std::vector<std::uint8_t> chunk;
+          {
+            std::lock_guard<std::mutex> lock(serial_mutex_);
+            const std::size_t available = serial_port_.available();
+            if (available == 0U) {
+              break;
+            }
+            const std::size_t requested = std::min(
+              available, static_cast<std::size_t>(read_chunk_bytes_));
+            const std::size_t received = serial_port_.read(chunk, requested);
+            chunk.resize(received);
+          }
+          if (chunk.empty()) {
+            break;
+          }
+          received_any = true;
+          std::vector<um982_raw_driver::MixedStreamItem> items;
+          {
+            std::lock_guard<std::mutex> lock(framer_mutex_);
+            items = mixed_framer_->consume(chunk);
+          }
+          for (const auto & item : items) {
+            if (item.kind == um982_raw_driver::MixedStreamItemKind::AsciiLine) {
+              handleLine(item.ascii_line);
+            } else if (mixed_mode_) {
+              publishRawFrame(item.binary_frame, now());
+            } else {
+              unexpected_binary_frames_.fetch_add(1U);
+            }
+          }
         }
-        if (line.empty()) {
-          continue;
+        if (!received_any) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
-        handleLine(line);
       } catch (const std::exception & exc) {
         if (running_) {
-          RCLCPP_WARN_THROTTLE(
-            get_logger(), *get_clock(), 2000, "UM982 serial read failed: %s", exc.what());
+          markDisconnected(exc.what());
         }
       }
     }
@@ -212,6 +388,11 @@ private:
     const auto parsed = parseSentence(line);
     if (!parsed.has_value()) {
       return;
+    }
+    {
+      std::lock_guard<std::mutex> lock(ascii_status_mutex_);
+      have_valid_ascii_sentence_ = true;
+      last_valid_ascii_sentence_ = std::chrono::steady_clock::now();
     }
 
     const auto stamp = now();
@@ -363,6 +544,178 @@ private:
     }
   }
 
+  void publishRawFrame(
+    const um982_raw_driver::BinaryFrame & frame,
+    const rclcpp::Time & reception_stamp)
+  {
+    std::lock_guard<std::mutex> lock(raw_status_mutex_);
+    const std::uint64_t current_frame_index = frame_index_++;
+    gnss_raw_msgs::msg::RawFrame message;
+    message.header.stamp = reception_stamp;
+    message.header.frame_id = raw_frame_id_;
+    message.source_port = port_;
+    message.frame_index = current_frame_index;
+    message.stream_offset = frame.stream_offset;
+    message.cpu_idle_percent = frame.header.cpu_idle_percent;
+    message.message_id = frame.header.message_id;
+    message.payload_length = frame.header.payload_length;
+    message.time_reference = frame.header.time_reference;
+    message.time_status = frame.header.time_status;
+    message.week = frame.header.week;
+    message.milliseconds_of_week = frame.header.milliseconds_of_week;
+    message.format_version = frame.header.format_version;
+    message.leap_seconds = frame.header.leap_seconds;
+    message.output_delay_ms = frame.header.output_delay_ms;
+    message.crc_valid = true;
+    message.data = frame.bytes;
+    raw_frame_pub_->publish(std::move(message));
+    publishObservationEpoch(frame, current_frame_index, reception_stamp);
+    publishEphemeris(frame, current_frame_index, reception_stamp);
+    have_valid_binary_frame_ = true;
+    last_valid_binary_frame_ = std::chrono::steady_clock::now();
+  }
+
+  void publishObservationEpoch(
+    const um982_raw_driver::BinaryFrame & frame,
+    const std::uint64_t current_frame_index,
+    const rclcpp::Time & reception_stamp)
+  {
+    if (!um982_raw_driver::isObservationMessage(frame.header.message_id)) {
+      return;
+    }
+    ++observation_frames_seen_;
+    const auto decoded = um982_raw_driver::decodeObservationFrame(frame);
+    if (!decoded.ok()) {
+      ++observation_decode_failures_;
+      last_observation_decode_error_ = decoded.reason;
+      return;
+    }
+    const um982_raw_driver::ObservationEpochKey epoch_key{
+      decoded.epoch->receiver,
+      frame.header.time_reference,
+      frame.header.week,
+      frame.header.milliseconds_of_week};
+    if (!epoch_deduplicator_->accept(epoch_key)) {
+      ++duplicate_observation_epochs_;
+      return;
+    }
+
+    gnss_raw_msgs::msg::ObservationEpoch message;
+    message.header.stamp = reception_stamp;
+    message.header.frame_id = raw_frame_id_;
+    message.source_port = port_;
+    message.frame_index = current_frame_index;
+    message.stream_offset = frame.stream_offset;
+    message.receiver = static_cast<std::uint8_t>(decoded.epoch->receiver);
+    message.source_message_id = frame.header.message_id;
+    message.time_reference = frame.header.time_reference;
+    message.time_status = frame.header.time_status;
+    message.week = frame.header.week;
+    message.milliseconds_of_week = frame.header.milliseconds_of_week;
+    message.output_delay_ms = frame.header.output_delay_ms;
+    message.observations.reserve(decoded.epoch->observations.size());
+    for (const auto & source : decoded.epoch->observations) {
+      gnss_raw_msgs::msg::Observation observation;
+      observation.constellation = static_cast<std::uint8_t>(source.constellation);
+      observation.prn = source.prn;
+      observation.signal_type = source.signal_type;
+      observation.channel_number = source.channel_number;
+      observation.system_frequency = source.system_frequency;
+      observation.glonass_frequency_channel = source.glonass_frequency_channel;
+      observation.pseudorange_m = source.pseudorange_m;
+      observation.carrier_phase_cycles = source.carrier_phase_cycles;
+      observation.doppler_hz = source.doppler_hz;
+      observation.pseudorange_std_m = source.pseudorange_std_m;
+      observation.carrier_phase_std_cycles = source.carrier_phase_std_cycles;
+      observation.cn0_db_hz = source.cn0_db_hz;
+      observation.lock_time_s = source.lock_time_s;
+      observation.pseudorange_valid = source.pseudorange_valid;
+      observation.carrier_phase_valid = source.carrier_phase_valid;
+      observation.l2c_signal = source.l2c_signal;
+      observation.tracking_status = source.tracking_status;
+      message.observations.push_back(std::move(observation));
+    }
+    observations_published_ += message.observations.size();
+    ++observation_epochs_published_;
+    observation_pub_->publish(std::move(message));
+  }
+
+  void publishEphemeris(
+    const um982_raw_driver::BinaryFrame & frame,
+    const std::uint64_t current_frame_index,
+    const rclcpp::Time & reception_stamp)
+  {
+    if (!um982_raw_driver::isEphemerisMessage(frame.header.message_id)) {
+      return;
+    }
+    ++ephemeris_frames_seen_;
+    const auto decoded = um982_raw_driver::decodeEphemerisFrame(frame);
+    if (!decoded.ok()) {
+      ++ephemeris_decode_failures_;
+      last_ephemeris_decode_error_ = decoded.reason;
+      return;
+    }
+    const auto & source = *decoded.ephemeris;
+    gnss_raw_msgs::msg::Ephemeris message;
+    message.header.stamp = reception_stamp;
+    message.header.frame_id = raw_frame_id_;
+    message.source_port = port_;
+    message.frame_index = current_frame_index;
+    message.stream_offset = frame.stream_offset;
+    message.source_message_id = frame.header.message_id;
+    message.time_reference = frame.header.time_reference;
+    message.time_status = frame.header.time_status;
+    message.header_week = frame.header.week;
+    message.header_milliseconds_of_week = frame.header.milliseconds_of_week;
+    message.constellation = static_cast<std::uint8_t>(source.constellation);
+    message.prn = source.prn;
+    message.model = static_cast<std::uint8_t>(source.model);
+    message.reference_frame = static_cast<std::uint8_t>(source.reference_frame);
+    message.health = source.health;
+    message.issue_of_data_ephemeris = source.issue_of_data_ephemeris;
+    message.issue_of_data_clock = source.issue_of_data_clock;
+    message.week = source.week;
+    message.toe_s = source.toe_s;
+    message.toc_s = source.toc_s;
+    message.semi_major_axis_m = source.semi_major_axis_m;
+    message.delta_mean_motion_rad_s = source.delta_mean_motion_rad_s;
+    message.mean_anomaly_rad = source.mean_anomaly_rad;
+    message.eccentricity = source.eccentricity;
+    message.argument_of_perigee_rad = source.argument_of_perigee_rad;
+    message.cuc_rad = source.cuc_rad;
+    message.cus_rad = source.cus_rad;
+    message.crc_m = source.crc_m;
+    message.crs_m = source.crs_m;
+    message.cic_rad = source.cic_rad;
+    message.cis_rad = source.cis_rad;
+    message.inclination_rad = source.inclination_rad;
+    message.inclination_rate_rad_s = source.inclination_rate_rad_s;
+    message.ascending_node_rad = source.ascending_node_rad;
+    message.ascending_node_rate_rad_s = source.ascending_node_rate_rad_s;
+    message.clock_bias_s = source.clock_bias_s;
+    message.clock_drift_s_s = source.clock_drift_s_s;
+    message.clock_drift_rate_s_s2 = source.clock_drift_rate_s_s2;
+    message.group_delay_1_s = source.group_delay_1_s;
+    message.group_delay_2_s = source.group_delay_2_s;
+    message.group_delay_1_valid = source.group_delay_1_valid;
+    message.group_delay_2_valid = source.group_delay_2_valid;
+    message.corrected_mean_motion_rad_s = source.corrected_mean_motion_rad_s;
+    message.ura_variance_m2 = source.ura_variance_m2;
+    message.ura_variance_valid = source.ura_variance_valid;
+    message.accuracy_index = source.accuracy_index;
+    message.glonass_frequency_channel = source.glonass_frequency_channel;
+    message.position_ecef_m = source.position_ecef_m;
+    message.velocity_ecef_m_s = source.velocity_ecef_m_s;
+    message.acceleration_ecef_m_s2 = source.acceleration_ecef_m_s2;
+    message.glonass_clock_bias_s = source.glonass_clock_bias_s;
+    message.glonass_relative_frequency_bias = source.glonass_relative_frequency_bias;
+    message.glonass_l1_l2_delay_s = source.glonass_l1_l2_delay_s;
+    message.glonass_frame_time_s = source.glonass_frame_time_s;
+    message.glonass_flags = source.glonass_flags;
+    ++ephemerides_published_;
+    ephemeris_pub_->publish(std::move(message));
+  }
+
   void publishStatus()
   {
     std_msgs::msg::String msg;
@@ -390,9 +743,117 @@ private:
            << " cog=" << last_course_deg_
            << " uniheading=" << last_uniheading_status_
            << " ntrip=" << (ntrip_connected_.load() ? "connected" : "offline")
-           << " rtcm_bytes=" << rtcm_bytes_.load();
+           << " rtcm_bytes=" << rtcm_bytes_.load()
+           << " stream_mode=" << stream_mode_
+           << " unexpected_binary=" << unexpected_binary_frames_.load();
     msg.data = status.str();
     status_pub_->publish(msg);
+  }
+
+  void publishDiagnostics()
+  {
+    diagnostic_msgs::msg::DiagnosticArray array;
+    array.header.stamp = now();
+    diagnostic_msgs::msg::DiagnosticStatus status;
+    status.name = "um982_rtk_driver/unified_stream";
+    status.hardware_id = port_;
+
+    um982_raw_driver::MixedStreamFramerStats framer_stats;
+    std::size_t buffered_bytes = 0U;
+    {
+      std::lock_guard<std::mutex> lock(framer_mutex_);
+      framer_stats = mixed_framer_->stats();
+      buffered_bytes = mixed_framer_->bufferedBytes();
+    }
+
+    bool have_ascii = false;
+    double ascii_age_s = -1.0;
+    {
+      std::lock_guard<std::mutex> lock(ascii_status_mutex_);
+      have_ascii = have_valid_ascii_sentence_;
+      if (have_ascii) {
+        ascii_age_s = std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - last_valid_ascii_sentence_).count();
+      }
+    }
+
+    std::string last_serial_error;
+    {
+      std::lock_guard<std::mutex> lock(serial_mutex_);
+      last_serial_error = last_serial_error_;
+    }
+
+    std::lock_guard<std::mutex> raw_lock(raw_status_mutex_);
+    const double binary_age_s = have_valid_binary_frame_ ?
+      std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - last_valid_binary_frame_).count() :
+      -1.0;
+    if (!serial_connected_.load()) {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
+      status.message = "SERIAL_DISCONNECTED";
+    } else if (!have_ascii || ascii_age_s > stale_ascii_timeout_s_) {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+      status.message = "NO_RECENT_VALID_ASCII";
+    } else if (mixed_mode_ &&
+      (!have_valid_binary_frame_ || binary_age_s > stale_binary_timeout_s_))
+    {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+      status.message = "NO_RECENT_VALID_BINARY_FRAME";
+    } else if (observation_decode_failures_ != 0U || ephemeris_decode_failures_ != 0U) {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+      status.message = "CANONICAL_DECODE_FAILURE";
+    } else {
+      status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+      status.message = mixed_mode_ ? "MIXED_STREAMING" : "NMEA_ONLY_STREAMING";
+    }
+
+    status.values.push_back(keyValue("stream_mode", stream_mode_));
+    status.values.push_back(
+      keyValue("serial_connected", serial_connected_.load() ? "true" : "false"));
+    status.values.push_back(keyValue("last_serial_error", last_serial_error));
+    status.values.push_back(numericKeyValue("baud", baud_));
+    status.values.push_back(numericKeyValue("ascii_age_s", ascii_age_s));
+    status.values.push_back(numericKeyValue("binary_age_s", binary_age_s));
+    status.values.push_back(numericKeyValue("bytes_received", framer_stats.bytes_received));
+    status.values.push_back(numericKeyValue("bytes_discarded", framer_stats.bytes_discarded));
+    status.values.push_back(
+      numericKeyValue("ascii_lines_emitted", framer_stats.ascii_lines_emitted));
+    status.values.push_back(
+      numericKeyValue("binary_frames_emitted", framer_stats.binary_frames_emitted));
+    status.values.push_back(numericKeyValue("crc_failures", framer_stats.crc_failures));
+    status.values.push_back(numericKeyValue("length_failures", framer_stats.length_failures));
+    status.values.push_back(numericKeyValue("ascii_overflows", framer_stats.ascii_overflows));
+    status.values.push_back(
+      numericKeyValue("invalid_ascii_lines", framer_stats.invalid_ascii_lines));
+    status.values.push_back(
+      numericKeyValue("buffer_overflows", framer_stats.buffer_overflows));
+    status.values.push_back(numericKeyValue("buffered_bytes", buffered_bytes));
+    status.values.push_back(
+      numericKeyValue("unexpected_binary_frames", unexpected_binary_frames_.load()));
+    status.values.push_back(
+      numericKeyValue("observation_frames_seen", observation_frames_seen_));
+    status.values.push_back(
+      numericKeyValue("observation_epochs_published", observation_epochs_published_));
+    status.values.push_back(
+      numericKeyValue("observations_published", observations_published_));
+    status.values.push_back(
+      numericKeyValue("observation_decode_failures", observation_decode_failures_));
+    status.values.push_back(
+      numericKeyValue("duplicate_observation_epochs", duplicate_observation_epochs_));
+    status.values.push_back(
+      numericKeyValue("epoch_dedup_entries", epoch_deduplicator_->size()));
+    status.values.push_back(
+      keyValue("last_observation_decode_error", last_observation_decode_error_));
+    status.values.push_back(
+      numericKeyValue("ephemeris_frames_seen", ephemeris_frames_seen_));
+    status.values.push_back(
+      numericKeyValue("ephemerides_published", ephemerides_published_));
+    status.values.push_back(
+      numericKeyValue("ephemeris_decode_failures", ephemeris_decode_failures_));
+    status.values.push_back(
+      keyValue("last_ephemeris_decode_error", last_ephemeris_decode_error_));
+    array.status.push_back(std::move(status));
+    diagnostics_pub_->publish(std::move(array));
   }
 
   void ntripLoop()
@@ -573,6 +1034,9 @@ private:
 
   serial::Serial serial_port_;
   std::mutex serial_mutex_;
+  std::atomic<bool> serial_connected_{false};
+  std::string last_serial_error_;
+  std::chrono::steady_clock::time_point next_reconnect_{};
   std::thread serial_thread_;
   std::thread ntrip_thread_;
   std::atomic<bool> running_{false};
@@ -581,6 +1045,10 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr heading_pub_;
   rclcpp::Publisher<nmea_msgs::msg::Sentence>::SharedPtr raw_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::RawFrame>::SharedPtr raw_frame_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr observation_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 
   std::string port_;
@@ -595,6 +1063,46 @@ private:
   double epe_quality_4_ = 0.02;
   double epe_quality_5_ = 4.0;
   double epe_quality_9_ = 3.0;
+
+  std::string stream_mode_ = "nmea_only";
+  bool mixed_mode_ = false;
+  int read_chunk_bytes_ = 4096;
+  int max_read_batches_ = 16;
+  int read_timeout_ms_ = 20;
+  int max_payload_bytes_ = 65535;
+  int max_buffer_bytes_ = 131072;
+  int max_ascii_line_bytes_ = 1024;
+  double reconnect_period_s_ = 1.0;
+  std::string raw_frame_id_ = "gnss_raw";
+  std::string raw_output_topic_ = "/gnss/raw/frame";
+  std::string observation_topic_ = "/gnss/raw/observation_epoch";
+  std::string ephemeris_topic_ = "/gnss/raw/ephemeris";
+  std::string diagnostics_topic_ = "/gnss/raw/diagnostics";
+  int epoch_dedup_capacity_ = 256;
+  double stale_ascii_timeout_s_ = 2.0;
+  double stale_binary_timeout_s_ = 2.0;
+  std::unique_ptr<um982_raw_driver::MixedStreamFramer> mixed_framer_;
+  std::unique_ptr<um982_raw_driver::EpochDeduplicator> epoch_deduplicator_;
+  std::mutex framer_mutex_;
+  std::mutex ascii_status_mutex_;
+  bool have_valid_ascii_sentence_ = false;
+  std::chrono::steady_clock::time_point last_valid_ascii_sentence_{};
+  std::atomic<std::uint64_t> unexpected_binary_frames_{0};
+
+  std::mutex raw_status_mutex_;
+  bool have_valid_binary_frame_ = false;
+  std::chrono::steady_clock::time_point last_valid_binary_frame_{};
+  std::uint64_t frame_index_ = 0;
+  std::uint64_t observation_frames_seen_ = 0;
+  std::uint64_t observation_epochs_published_ = 0;
+  std::uint64_t observations_published_ = 0;
+  std::uint64_t observation_decode_failures_ = 0;
+  std::uint64_t duplicate_observation_epochs_ = 0;
+  std::string last_observation_decode_error_;
+  std::uint64_t ephemeris_frames_seen_ = 0;
+  std::uint64_t ephemerides_published_ = 0;
+  std::uint64_t ephemeris_decode_failures_ = 0;
+  std::string last_ephemeris_decode_error_;
 
   bool ntrip_enabled_ = false;
   std::string ntrip_host_;

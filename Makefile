@@ -50,13 +50,13 @@ build-fastlio2:
 	$(COLCON_BUILD) --packages-select bringup fastlio2
 
 build-rtk-basic:
-	$(COLCON_BUILD) --packages-select serial nmea_msgs um982_rtk_driver
+	$(COLCON_BUILD) --packages-select serial nmea_msgs gnss_raw_msgs um982_raw_driver um982_rtk_driver
 
 build-rtk-raw:
-	$(COLCON_BUILD) --packages-select serial gnss_raw_msgs um982_raw_driver bringup
+	$(COLCON_BUILD) --packages-select serial nmea_msgs gnss_raw_msgs um982_raw_driver um982_rtk_driver bringup
 
 build-fgo-gil:
-	$(COLCON_BUILD) --packages-select livox_ros_driver2 serial um982_raw_driver gnss_raw_msgs fgo_gil_msgs fgo_gil_localizer bringup
+	$(COLCON_BUILD) --packages-select livox_ros_driver2 serial nmea_msgs gnss_raw_msgs um982_raw_driver um982_rtk_driver fgo_gil_msgs fgo_gil_localizer bringup
 
 build-sensor:
 	$(COLCON_BUILD) --packages-select \
@@ -121,7 +121,7 @@ kill-runtime:
 	sleep 2
 	pkill -KILL -f $(KILL_PATTERN) || true
 	ros2 daemon stop >/dev/null 2>&1 || true
-	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982 /dev/rtk_um982_raw; do \
+	@for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do \
 		if [ -e "$$dev" ] && fuser "$$dev" >/dev/null 2>&1; then \
 			fuser -k "$$dev" >/dev/null 2>&1 || true; \
 		fi; \

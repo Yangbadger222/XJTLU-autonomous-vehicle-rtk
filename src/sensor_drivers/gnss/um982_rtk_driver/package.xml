@@ -9,13 +9,16 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>diagnostic_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>gnss_raw_msgs</depend>
   <depend>nmea_msgs</depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
   <depend>serial</depend>
   <depend>std_msgs</depend>
   <depend>tf2</depend>
+  <depend>um982_raw_driver</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>

@@ -328,6 +328,9 @@
     port: /dev/rtk_um982
     # Current rover output baud verified on Jetson raw serial.
     baud: 115200
+    # Production default. Use the separate um982_mixed.yaml profile only after a temporary
+    # receiver switch to 921600 mixed ASCII/binary output.
+    stream_mode: nmea_only
     # Antenna reference frame used by /fix and /heading.
     frame_id: gps
     # Convert UM982 dual-antenna baseline heading to vehicle heading.
@@ -339,6 +342,23 @@
     publish_raw: true
     # Human-readable rtk/status publishing interval.
     status_period_s: 1.0
+    # Bounded unified-stream reader. One node owns both reads and NTRIP/RTCM writes.
+    read_chunk_bytes: 4096
+    max_read_batches_per_cycle: 16
+    read_timeout_ms: 20
+    max_payload_bytes: 65535
+    max_buffer_bytes: 131072
+    max_ascii_line_bytes: 1024
+    reconnect_period_s: 1.0
+    stale_ascii_timeout_s: 2.0
+    raw:
+      frame_id: gnss_raw
+      output_topic: /gnss/raw/frame
+      observation_topic: /gnss/raw/observation_epoch
+      ephemeris_topic: /gnss/raw/ephemeris
+      diagnostics_topic: /gnss/raw/diagnostics
+      epoch_dedup_capacity: 256
+      stale_frame_timeout_s: 2.0
     # NTRIP is disabled by default. Pass credentials through a local param file or env var only.
     ntrip:
       enabled: false

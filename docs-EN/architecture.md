@@ -28,7 +28,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
 | Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
-| RTK Raw | `make launch-rtk-raw` | Shadow UM982 raw-frame, observation-epoch, and ephemeris capture/bagging on a dedicated 921600 binary port |
+| RTK Raw | `make launch-rtk-raw` | Shadow capture/bagging from the unified UM982 driver's single-port 921600 mixed ASCII/binary stream |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 shadow diagnostics for GNSS/LiDAR/IMU clock mapping, PPS, and the IMU buffer |
 | FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 time sync, MID360 de-skew, line/plane features, KF-map, and degeneracy diagnostics |
 | FGO-GIL Shadow | `make launch-fgo-gil-shadow` | Phase 7 full raw-GNSS + Livox + FAST-LIO comparator + FGO-GIL shadow runtime and bagging |

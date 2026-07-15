@@ -28,7 +28,7 @@
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
 | Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
-| RTK Raw | `make launch-rtk-raw` | 独立 921600 binary 端口的 UM982 原始帧、observation epoch 与星历 shadow 采集/录包 |
+| RTK Raw | `make launch-rtk-raw` | 单串口统一 UM982 driver 的 921600 mixed ASCII/binary shadow 采集与录包 |
 | FGO-GIL Time | `make launch-fgo-gil-time-sync` | Phase 3 GNSS/LiDAR/IMU 时间映射、PPS 与 IMU buffer shadow 诊断 |
 | FGO-GIL LiDAR | `make launch-fgo-gil-lidar` | Phase 3+4 时间同步、MID360 去畸变、线面特征/KF-map 与退化诊断 |
 | FGO-GIL Shadow | `make launch-fgo-gil-shadow` | Phase 7 完整 raw GNSS + Livox + FAST-LIO comparator + FGO-GIL 旁路运行和录包 |

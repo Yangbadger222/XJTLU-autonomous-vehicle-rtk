@@ -640,38 +640,52 @@ ros2 bag info runtime-data/logs/latest/bag | grep -E '/livox/lidar|/fastlio2/bod
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
 
-## UM982 原始 binary shadow 采集
+## UM982 单串口 mixed shadow 采集
 
-该模式只读取独立的 `/dev/rtk_um982_raw`，不得把参数改成生产 NMEA/NTRIP 使用的 `/dev/rtk_um982`。
+唯一 `/dev/rtk_um982` 由 `um982_rtk_driver` 独占。默认 `um982_rtk.yaml` 为 `nmea_only@115200`；`um982_mixed.yaml` 为临时现场 `mixed@921600`。不要同时启动旧 raw executable 或第二个 NMEA driver。
 
-2026-07-15 实车检查确认当前载板的 Type-C 在 Jetson 上只枚举 `/dev/rtk_um982` 一个 CP210x UART，`/dev/rtk_um982_raw` 不存在。因此下面命令目前只适用于未来增加物理第二 UART 的配置；在 single-port mux 实现前，禁止把 raw 参数指向 `/dev/rtk_um982`，否则会与生产 NMEA/NTRIP 抢占同一串口。软件时间 fallback 使用 `COARSE_NO_PPS`；现有 `/dev/pps0` 是 `ktimer` 虚拟源，不能作为 GNSS PPS。
+先在不向接收机写命令的条件下验证生产链：
 
 ```bash
-make build-rtk-raw
+make build-rtk-basic
 ss
+make launch-rtk-basic
+ros2 topic hz /fix
+ros2 topic hz /heading
+ros2 topic echo /rtk/status --once
+ros2 topic echo /gnss/raw/diagnostics --once
+```
+
+停止 driver 后，先 dry-run 审核命令，再临时切到 921600 mixed。工具只发送易失配置并主动拒绝持久化命令：
+
+```bash
+make kill-runtime
+python3 scripts/configure_um982_transient.py mixed --dry-run
+python3 scripts/configure_um982_transient.py mixed
 make launch-rtk-raw
 ```
 
-使用未提交的现场参数覆盖设备名：
+检查生产与 raw 输出均稳定，并确认诊断为 `MIXED_STREAMING`、CRC/overflow/decode failure 不增长：
 
 ```bash
-FYP_UM982_RAW_PARAMS_FILE=/tmp/um982_raw_vehicle.yaml make launch-rtk-raw
-```
-
-检查 checksum-valid 原始帧、GNSS week/TOW、message ID 和诊断：
-
-```bash
+ros2 topic hz /fix
+ros2 topic hz /heading
 ros2 topic hz /gnss/raw/frame
-ros2 topic echo /gnss/raw/frame --once
 ros2 topic hz /gnss/raw/observation_epoch
-ros2 topic echo /gnss/raw/observation_epoch --once
 ros2 topic hz /gnss/raw/ephemeris
-ros2 topic echo /gnss/raw/ephemeris --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-当前已完成 Phase 1、Phase 2 的非压缩 observation 和 broadcast ephemeris canonicalization：ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。所有 payload 都执行精确长度、PRN、时间、有限值和轨道范围检查。Phase 5 已把这些星历传播到发射时刻 satellite state 并做 Sagnac 修正。compressed observation、RTCM fallback 和真实 UART fixture 尚未实现。若没有连接独立 raw UART，诊断显示 `SERIAL_DISCONNECTED` 或 `NO_RECENT_VALID_FRAME` 是预期的 fail-closed 状态。
+恢复 115200 NMEA-only：
+
+```bash
+make kill-runtime
+python3 scripts/configure_um982_transient.py restore-nmea
+make launch-rtk-basic
+```
+
+本流程使用官方 `OBSVMB/OBSVHB` 固定周期、`OBSVBASEB ONCHANGED` 和五类 `*EPHB ONCHANGED` 命令。ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。只有 `/fix`、`/heading`、raw observation、星历和同口 RTCM 写入连续验收后，才允许另行人工执行持久化保存。现有 `/dev/pps0` 是 `ktimer` 虚拟源，时间状态仍使用 `COARSE_NO_PPS`，不能标为 GNSS PPS。
 
 ## FGO-GIL Phase 3 时间同步与 IMU 前端
 
@@ -733,7 +747,7 @@ ros2 topic echo /fgo_gil/lidar_diagnostics
 
 ## FGO-GIL Phase 5-6 GNSS DD、Float FGO 与整数固定
 
-先启动 Livox/FAST-LIO 初始化源和独立 UM982 raw source，再启动 Phase 3-6 shadow graph：
+先启动 Livox/FAST-LIO 初始化源和统一 UM982 driver 的 mixed source，再启动 Phase 3-6 shadow graph：
 
 ```bash
 make build-fgo-gil
@@ -765,7 +779,7 @@ calibration.gnss.base_ecef_calibrated: false
 
 ## FGO-GIL Phase 7 完整 shadow、录包与评价
 
-live 模式默认启动 Livox、FAST-LIO2 comparator、独立 UM982 raw driver 和 Phase 3-7 FGO-GIL 链，并使用 `full` profile 录包：
+live 模式默认启动 Livox、FAST-LIO2 comparator、统一 UM982 driver 的 mixed profile 和 Phase 3-7 FGO-GIL 链，并使用 `full` profile 录包：
 
 ```bash
 make build-fgo-gil
@@ -784,7 +798,7 @@ bash scripts/launch_with_logs.sh fgo-gil-shadow bag_profile:=minimal
 ```bash
 bash scripts/launch_with_logs.sh fgo-gil-shadow \
   use_sim_time:=true start_livox:=false start_fastlio:=false \
-  start_raw_driver:=false record_bag:=false
+  start_um982_driver:=false record_bag:=false
 
 ros2 bag play <bag目录> --clock
 ```

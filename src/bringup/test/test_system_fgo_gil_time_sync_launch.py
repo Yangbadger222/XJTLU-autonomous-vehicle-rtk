@@ -43,7 +43,8 @@ def test_phase3_build_launch_and_cleanup_entry_points_exist():
     wrapper = LAUNCH_WRAPPER.read_text(encoding="utf-8")
 
     assert "build-fgo-gil:" in makefile
-    assert "gnss_raw_msgs fgo_gil_msgs fgo_gil_localizer bringup" in makefile
+    assert "gnss_raw_msgs um982_raw_driver um982_rtk_driver" in makefile
+    assert "fgo_gil_msgs fgo_gil_localizer bringup" in makefile
     assert "launch-fgo-gil-time-sync" in makefile
     assert "fgo-gil-time-sync)" in wrapper
     assert "[f]go_gil_time_sync_node" in makefile

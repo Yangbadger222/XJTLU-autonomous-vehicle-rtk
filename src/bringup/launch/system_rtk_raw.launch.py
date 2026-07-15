@@ -10,15 +10,15 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     default_params = os.path.join(
-        get_package_share_directory("um982_raw_driver"),
+        get_package_share_directory("um982_rtk_driver"),
         "config",
-        "um982_raw.yaml",
+        "um982_mixed.yaml",
     )
 
     raw_node = Node(
-        package="um982_raw_driver",
-        executable="um982_raw_node",
-        name="um982_raw_driver",
+        package="um982_rtk_driver",
+        executable="um982_rtk_node",
+        name="um982_rtk_driver",
         output="screen",
         parameters=[LaunchConfiguration("params_file")],
     )
@@ -45,6 +45,10 @@ def generate_launch_description():
             "/gnss/raw/observation_epoch",
             "/gnss/raw/ephemeris",
             "/gnss/raw/diagnostics",
+            "/fix",
+            "/heading",
+            "/rtk/status",
+            "/rtk/nmea_sentence",
         ],
         output="log",
     )
@@ -54,7 +58,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "params_file",
                 default_value=default_params,
-                description="Parameters for the dedicated UM982 binary raw port",
+                description="Parameters for the unified UM982 mixed stream",
             ),
             raw_node,
             bag_record,

@@ -8,7 +8,7 @@
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1、3、4、5、6 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化；Phase 6 已增加固定版本 RTKLIB MLAMBDA、partial ambiguity resolution、固定候选回代验证与独立 fixed shadow 输出。2026-07-15 实车检查确认当前载板的 Type-C 只在 Jetson 枚举一个 CP210x UART，因此独立 raw 设备假设不成立，下一步需要单串口统一 owner/mux。真实 mixed-stream fixture、硬件 PPS、compressed observation、RTCM fallback、CORS 基站 ECEF、`T_ecef_lidar_world` 以及真实 LiDAR/raw-GNSS bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
+当前代码进度：Phase 1、3、4、5、6 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化；Phase 6 已增加固定版本 RTKLIB MLAMBDA、partial ambiguity resolution、固定候选回代验证与独立 fixed shadow 输出。2026-07-15 已实现单 Type-C 的统一 `um982_rtk_driver`：同一有界流分离 ASCII 与 `AA 44 B5` binary，并保留同口 NTRIP/RTCM 写入；默认仍为 `nmea_only@115200`。真实 921600 mixed-stream fixture、硬件 PPS、compressed observation、RTCM fallback、CORS 基站 ECEF、`T_ecef_lidar_world` 以及真实 LiDAR/raw-GNSS bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -90,7 +90,7 @@ UM982 官方协议提供以下消息：
 
 ```text
 UM982 Type-C -> CP210x -> /dev/rtk_um982 (当前载板只暴露一个 UART)
-  -> future unified serial owner/mux (目标 921600)
+  -> um982_rtk_driver unified serial owner (默认 115200 NMEA-only；现场 mixed 目标 921600)
      -> ASCII GGA/THS/HPR -> /fix, /heading, /rtk/status
      -> binary AA 44 B5 -> canonical raw observation/ephemeris
      <- NTRIP/RTCM write on the same full-duplex port
@@ -282,17 +282,17 @@ time_sync:
 
 - [ ] 从包含 corridor Task 2 和串口完整性修复的共同基线创建独立开发分支。
 - [ ] 冻结消息 schema、坐标系、时间尺度、单位和 calibration schema。
-- [ ] 实现单 Type-C 的唯一串口 owner/mux；在同一有界流中优先识别完整 binary frame 和 ASCII line，并保留同口 NTRIP/RTCM 写入。
+- [x] 实现单 Type-C 的唯一串口 owner/mux；在同一有界流中优先识别完整 binary frame 和 ASCII line，并保留同口 NTRIP/RTCM 写入。
 - [ ] 用 `VERSIONA` 记录固件，确认 compressed observation 支持情况。
 
 完成条件：接口设计评审通过，生产 GNSS 行为无修改。
 
 ### Phase 1：UM982 原始帧采集
 
-- [x] 实现 `AA 44 B5` 有界流式 framing、长度检查、CRC 和 resync。
-- [x] 支持任意分片、合并、多帧、噪声前缀、截断和未知 ID。
+- [x] 实现 ASCII/`AA 44 B5` 有界 mixed-stream framing、长度检查、CRC 和 resync。
+- [x] 支持任意分片、粘连、多帧、噪声前缀、截断、binary 内换行/ASCII marker 和未知 ID。
 - [x] 发布并录制 raw frame，增加 framing/CRC/丢帧诊断。
-- [ ] 将唯一 `/dev/rtk_um982` 迁移到 921600 mixed stream；迁移前禁止 raw driver 与生产 NMEA/NTRIP driver 竞争打开同一设备，不写入 CORS 凭证。
+- [ ] 先在 Jetson 用统一 driver 完成 115200 NMEA-only 回归，再将唯一 `/dev/rtk_um982` 临时迁移到 921600 mixed stream；验收前不执行持久化保存，不写入 CORS 凭证。
 
 完成条件：合成/官方 fixture 全通过；fuzz 输入不崩溃、不越界；现有 NMEA 驱动测试不回归。
 
@@ -367,9 +367,9 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 完成条件：桌面测试和 Jetson clean build 通过；现有 bag 可验证非 GNSS-raw 路径和 comparator，缺少 raw topic 时明确报告 `RAW_GNSS_UNAVAILABLE`。
 
-实现说明：完整 launch 的 live 默认启动 Livox、FAST-LIO2 initializer/comparator、独立 UM982 raw driver 和 Phase 3-7 estimator；replay 可逐项关闭硬件节点并启用 ROS clock。`full` profile 保存 raw frame、原始 LiDAR、TF 和完整诊断，`minimal` profile 保存重放算法与评价所需的最小输入/输出。该 launch 与 estimator 各自执行 shadow ownership 检查，任一 `publish_tf=true` 或 `nav2_use_fgo=true` 都直接拒绝启动；本阶段没有新增控制节点，`make kill-runtime` 已覆盖所有现有 FGO executable、sensor/comparator 和 rosbag 进程。
+实现说明：完整 launch 的 live 默认启动 Livox、FAST-LIO2 initializer/comparator、统一 UM982 driver 的 mixed profile 和 Phase 3-7 estimator；replay 可逐项关闭硬件节点并启用 ROS clock。`full` profile 保存 raw frame、原始 LiDAR、TF 和完整诊断，`minimal` profile 保存重放算法与评价所需的最小输入/输出。该 launch 与 estimator 各自执行 shadow ownership 检查，任一 `publish_tf=true` 或 `nav2_use_fgo=true` 都直接拒绝启动；本阶段没有新增控制节点，`make kill-runtime` 已覆盖所有现有 FGO executable、sensor/comparator 和 rosbag 进程。
 
-2026-07-15 Jetson 算法链 smoke 已通过，但车上不存在 `/dev/rtk_um982_raw`，因此 live raw 部分在 single-port mux 完成前仍只能 fail closed。现有 `/dev/pps0` 的 source 名称为 `ktimer`，只是虚拟测试时钟，禁止将其标记为 GNSS `PPS_LOCKED`；早期 shadow 继续使用带 20 ms 不确定度下限的 `COARSE_NO_PPS`。
+2026-07-15 Jetson 算法链 smoke 已通过。单串口 mixed 代码已完成，但 921600 临时接收机配置与真实 raw bag 尚未验收；现有 `/dev/pps0` 的 source 名称为 `ktimer`，只是虚拟测试时钟，禁止将其标记为 GNSS `PPS_LOCKED`，早期 shadow 继续使用带 20 ms 不确定度下限的 `COARSE_NO_PPS`。
 
 统一 `/fgo_gil/odom` 优先选用当前历元已验证 fixed candidate，否则使用 float，并同步发布有界 ECEF path。factor diagnostics 分层输出 IMU、LiDAR line/plane、GNSS code/carrier 数量、residual RMS、DD reject reason、arc reset 和 optimizer rollback；ambiguity/timing/performance 分别输出整数状态、时钟状态、窗口/延迟/实时因子、stale/non-finite 与 control ownership。raw observation 使用 2 s stale 阈值，低频 broadcast ephemeris 使用独立 300 s 阈值，避免把正常星历刷新周期误判为断流。
 

@@ -18,7 +18,9 @@ def test_phase7_shadow_launch_starts_only_the_observation_stack():
     assert 'package="livox_ros_driver2"' not in text
     assert '"msg_MID360_launch.py"' in text
     assert 'package="fastlio2"' in text
-    assert 'package="um982_raw_driver"' in text
+    assert 'package="um982_rtk_driver"' in text
+    assert 'executable="um982_rtk_node"' in text
+    assert "um982_raw_node" not in text
     assert '"system_fgo_gil_float.launch.py"' in text
     assert "serial_twistctl" not in text
     assert "controller_server" not in text
@@ -36,7 +38,7 @@ def test_phase7_shadow_launch_forces_safety_and_supports_replay():
     assert 'DeclareLaunchArgument("use_sim_time", default_value="false")' in shadow
     assert 'DeclareLaunchArgument("start_livox", default_value="true")' in shadow
     assert 'DeclareLaunchArgument("start_fastlio", default_value="true")' in shadow
-    assert 'DeclareLaunchArgument("start_raw_driver", default_value="true")' in shadow
+    assert 'DeclareLaunchArgument("start_um982_driver", default_value="true")' in shadow
     assert '"safety.publish_tf": LaunchConfiguration("publish_tf")' in estimator
     assert '"safety.nav2_use_fgo": LaunchConfiguration("nav2_use_fgo")' in estimator
 
@@ -86,13 +88,13 @@ def test_phase7_make_launch_and_cleanup_cover_the_full_stack():
     wrapper = LAUNCH_WRAPPER.read_text(encoding="utf-8")
 
     assert "launch-fgo-gil-shadow" in makefile
-    assert "livox_ros_driver2 serial um982_raw_driver gnss_raw_msgs" in makefile
+    assert "livox_ros_driver2 serial nmea_msgs gnss_raw_msgs um982_raw_driver" in makefile
     assert 'fgo-gil-shadow) LAUNCH_FILE="system_fgo_gil_shadow.launch.py"' in wrapper
     for process_pattern in (
         "[r]os2 bag",
         "[l]ivox_ros_driver2_node",
         "[l]io_node",
-        "[u]m982_raw_node",
+        "[u]m982_rtk_node",
         "[f]go_gil_time_sync_node",
         "[f]go_gil_lidar_frontend_node",
         "[f]go_gil_float_fgo_node",

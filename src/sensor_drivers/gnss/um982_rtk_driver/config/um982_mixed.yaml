@@ -1,9 +1,9 @@
 um982_rtk_driver:
   ros__parameters:
+    # Temporary vehicle test profile. Receiver changes must not be persisted until acceptance passes.
     port: /dev/rtk_um982
-    baud: 115200
-    # Production-compatible validation mode: parse ASCII only and never publish binary input.
-    stream_mode: nmea_only
+    baud: 921600
+    stream_mode: mixed
     frame_id: gps
     heading_offset_deg: 88.5
     publish_raw: true

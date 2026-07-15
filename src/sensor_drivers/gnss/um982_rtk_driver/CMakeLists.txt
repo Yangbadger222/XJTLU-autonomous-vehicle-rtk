@@ -9,13 +9,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(gnss_raw_msgs REQUIRED)
 find_package(nmea_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(serial REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(um982_raw_driver REQUIRED)
 
 add_library(um982_rtk_parser
   src/nmea_parser.cpp
@@ -32,13 +35,16 @@ add_executable(um982_rtk_node
 target_include_directories(um982_rtk_node PRIVATE include)
 target_link_libraries(um982_rtk_node um982_rtk_parser)
 ament_target_dependencies(um982_rtk_node
+  diagnostic_msgs
   geometry_msgs
+  gnss_raw_msgs
   nmea_msgs
   rclcpp
   sensor_msgs
   serial
   std_msgs
   tf2
+  um982_raw_driver
 )
 
 install(TARGETS um982_rtk_parser um982_rtk_node

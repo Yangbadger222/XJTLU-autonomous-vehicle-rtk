@@ -8,7 +8,7 @@
 - Runtime rule: shadow outputs only; do not publish production `map -> odom` or remap Nav2 before replay and vehicle acceptance
 - Existing baseline: keep `rtk_fgo_localizer` as the solution-level comparator that fuses `/fix`, dual-antenna heading, and FAST-LIO odometry; do not relabel it as the paper reproduction
 
-Current implementation status: Phases 1, 3, 4, 5, and 6 are code-complete. Phase 2 includes uncompressed observations, broadcast ephemerides, week rollover/reset, official UM982 signal-frequency mapping, and satellite-state propagation. Phase 5 adds bounded rover/base alignment, reference hysteresis, DD code/carrier factors, per-signal ambiguity arcs, joint IMU/LiDAR/GNSS float optimization, and Schur-complement fixed-lag marginalization. Phase 6 adds a pinned RTKLIB MLAMBDA implementation, partial ambiguity resolution, fixed-candidate back-substitution validation, and a separate fixed shadow output. The 2026-07-15 vehicle inspection found that the carrier's Type-C connection enumerates only one CP210x UART on the Jetson, so the dedicated-raw-device assumption is invalid and the next step is a single-port owner/multiplexer. A real mixed-stream fixture, hardware PPS, compressed observations, RTCM fallback, CORS station ECEF, `T_ecef_lidar_world`, and real-LiDAR/raw-GNSS bag acceptance remain pending; defaults therefore stay shadow-only and fail closed.
+Current implementation status: Phases 1, 3, 4, 5, and 6 are code-complete. Phase 2 includes uncompressed observations, broadcast ephemerides, week rollover/reset, official UM982 signal-frequency mapping, and satellite-state propagation. Phase 5 adds bounded rover/base alignment, reference hysteresis, DD code/carrier factors, per-signal ambiguity arcs, joint IMU/LiDAR/GNSS float optimization, and Schur-complement fixed-lag marginalization. Phase 6 adds a pinned RTKLIB MLAMBDA implementation, partial ambiguity resolution, fixed-candidate back-substitution validation, and a separate fixed shadow output. On 2026-07-15 the single-Type-C unified `um982_rtk_driver` was implemented: one bounded stream separates ASCII from `AA 44 B5` binary while preserving same-port NTRIP/RTCM writes; the default remains `nmea_only@115200`. A real 921600 mixed-stream fixture, hardware PPS, compressed observations, RTCM fallback, CORS station ECEF, `T_ecef_lidar_world`, and real-LiDAR/raw-GNSS bag acceptance remain pending; defaults therefore stay shadow-only and fail closed.
 
 This document defines the complete implementation path from UM982 raw observation acquisition to an observation-level GNSS RTK/INS/LiDAR factor graph. It is not another wrapper around the existing `/fix` FGO. A paper-level reproduction must consume pseudorange, carrier phase, raw IMU, and LiDAR feature residuals directly.
 
@@ -90,7 +90,7 @@ The raw fields include pseudorange, accumulated carrier phase, Doppler, C/N0, st
 
 ```text
 UM982 Type-C -> CP210x -> /dev/rtk_um982 (current carrier exposes one UART)
-  -> future unified serial owner/mux (target 921600)
+  -> um982_rtk_driver unified serial owner (default 115200 NMEA-only; field mixed target 921600)
      -> ASCII GGA/THS/HPR -> /fix, /heading, /rtk/status
      -> binary AA 44 B5 -> canonical raw observation/ephemeris
      <- NTRIP/RTCM writes on the same full-duplex port
@@ -282,17 +282,17 @@ Code transforms `master_in_base` through the TF chain into the paper's required 
 
 - [ ] Create a dedicated branch from a common baseline containing corridor Task 2 and serial-integrity fixes.
 - [ ] Freeze message schema, frames, time scale, units, and calibration schema.
-- [ ] Implement the single-Type-C serial owner/mux: recognize complete binary frames and ASCII lines in one bounded stream while preserving same-port NTRIP/RTCM writes.
+- [x] Implement the single-Type-C serial owner/mux: recognize complete binary frames and ASCII lines in one bounded stream while preserving same-port NTRIP/RTCM writes.
 - [ ] Record firmware with `VERSIONA` and confirm compressed-observation support.
 
 Done: interface review passes and production GNSS behavior is unchanged.
 
 ### Phase 1: UM982 raw frame acquisition
 
-- [x] Implement bounded streaming `AA 44 B5` framing, length checks, CRC, and resynchronization.
-- [x] Handle arbitrary fragmentation, coalescing, multiple frames, noise prefixes, truncation, and unknown IDs.
+- [x] Implement bounded ASCII/`AA 44 B5` mixed-stream framing, length checks, CRC, and resynchronization.
+- [x] Handle arbitrary fragmentation, coalescing, multiple frames, noise prefixes, truncation, binary newlines/ASCII markers, and unknown IDs.
 - [x] Publish/record raw frames and framing/CRC/drop diagnostics.
-- [ ] Migrate the sole `/dev/rtk_um982` to a 921600 mixed stream. Until then, never let the raw and production NMEA/NTRIP drivers compete for the same device; never store CORS credentials.
+- [ ] First complete the unified driver's 115200 NMEA-only regression on the Jetson, then migrate the sole `/dev/rtk_um982` temporarily to a 921600 mixed stream. Do not persist receiver state or store CORS credentials before acceptance.
 
 Done: synthetic/official fixtures pass, fuzz input cannot crash or overrun, and existing NMEA tests do not regress.
 
@@ -367,9 +367,9 @@ Default gates are `ratio>=3.0`, bootstrap success rate `>=0.99`, and normalized 
 
 Done: desktop tests and Jetson clean build pass. Existing bags verify non-raw-GNSS paths and comparators; missing raw topics explicitly report `RAW_GNSS_UNAVAILABLE`.
 
-Implementation note: the complete live launch starts Livox, the FAST-LIO2 initializer/comparator, the dedicated UM982 raw driver, and the Phase 3-7 estimator. Replay can disable each hardware node and enable the ROS clock. The `full` profile keeps raw frames, raw LiDAR, TF, and all diagnostics; `minimal` keeps the smallest input/output set required for estimator replay and evaluation. Launch and estimator independently enforce shadow ownership, so either `publish_tf=true` or `nav2_use_fgo=true` aborts startup. This phase adds no control node; `make kill-runtime` already covers every FGO executable, sensor/comparator process, and rosbag.
+Implementation note: the complete live launch starts Livox, the FAST-LIO2 initializer/comparator, the unified UM982 driver's mixed profile, and the Phase 3-7 estimator. Replay can disable each hardware node and enable the ROS clock. The `full` profile keeps raw frames, raw LiDAR, TF, and all diagnostics; `minimal` keeps the smallest input/output set required for estimator replay and evaluation. Launch and estimator independently enforce shadow ownership, so either `publish_tf=true` or `nav2_use_fgo=true` aborts startup. This phase adds no control node; `make kill-runtime` already covers every FGO executable, sensor/comparator process, and rosbag.
 
-The 2026-07-15 Jetson algorithm-only smoke test passed, but `/dev/rtk_um982_raw` does not exist on the vehicle, so live raw acquisition must remain fail closed until the single-port mux is implemented. The existing `/dev/pps0` reports source name `ktimer` and is only a virtual test clock; it must never be reported as GNSS `PPS_LOCKED`. Early shadow runs continue with `COARSE_NO_PPS` and its 20 ms uncertainty floor.
+The 2026-07-15 Jetson algorithm-only smoke test passed. Single-port mixed code is complete, but the temporary 921600 receiver profile and a real raw bag are not yet accepted. The existing `/dev/pps0` reports source name `ktimer` and is only a virtual test clock; it must never be reported as GNSS `PPS_LOCKED`. Early shadow runs continue with `COARSE_NO_PPS` and its 20 ms uncertainty floor.
 
 Unified `/fgo_gil/odom` selects the validated fixed candidate for the current epoch, otherwise float, and publishes a bounded ECEF path. Factor diagnostics separate IMU, LiDAR line/plane, and GNSS code/carrier counts, residual RMS, DD rejection reasons, arc resets, and optimizer rollbacks. Ambiguity, timing, and performance topics expose integer state, clock state, window/latency/real-time factor, stale/non-finite output, and control ownership. Raw observations use a 2 s stale threshold while low-rate broadcast ephemeris uses an independent 300 s threshold, avoiding false disconnect alarms from a normal ephemeris refresh interval.
 

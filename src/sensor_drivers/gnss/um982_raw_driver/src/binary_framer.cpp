@@ -29,8 +29,25 @@ std::uint32_t readLe32(const std::uint8_t * data)
          (static_cast<std::uint32_t>(data[3]) << 24U);
 }
 
-BinaryHeader parseHeader(const std::uint8_t * data)
+}  // namespace
+
+std::uint32_t calculateCrc32(const std::uint8_t * data, const std::size_t size)
 {
+  std::uint32_t crc = 0;
+  for (std::size_t i = 0; i < size; ++i) {
+    crc ^= data[i];
+    for (int bit = 0; bit < 8; ++bit) {
+      crc = (crc & 1U) != 0U ? (crc >> 1U) ^ kCrcPolynomial : crc >> 1U;
+    }
+  }
+  return crc;
+}
+
+BinaryHeader parseBinaryHeader(const std::uint8_t * data, const std::size_t size)
+{
+  if (data == nullptr || size < kBinaryHeaderSize) {
+    throw std::invalid_argument("a complete UM982 binary header is required");
+  }
   BinaryHeader header;
   header.cpu_idle_percent = data[3];
   header.message_id = readLe16(data + 4);
@@ -44,20 +61,6 @@ BinaryHeader parseHeader(const std::uint8_t * data)
   header.leap_seconds = data[21];
   header.output_delay_ms = readLe16(data + 22);
   return header;
-}
-
-}  // namespace
-
-std::uint32_t calculateCrc32(const std::uint8_t * data, const std::size_t size)
-{
-  std::uint32_t crc = 0;
-  for (std::size_t i = 0; i < size; ++i) {
-    crc ^= data[i];
-    for (int bit = 0; bit < 8; ++bit) {
-      crc = (crc & 1U) != 0U ? (crc >> 1U) ^ kCrcPolynomial : crc >> 1U;
-    }
-  }
-  return crc;
 }
 
 BinaryFramer::BinaryFramer(
@@ -100,7 +103,7 @@ std::vector<BinaryFrame> BinaryFramer::consume(
       break;
     }
 
-    const BinaryHeader header = parseHeader(buffer_.data());
+    const BinaryHeader header = parseBinaryHeader(buffer_.data(), buffer_.size());
     if (header.payload_length > max_payload_bytes_) {
       ++stats_.length_failures;
       discardPrefix(1, true);

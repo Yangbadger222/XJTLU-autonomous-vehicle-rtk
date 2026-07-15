@@ -107,8 +107,8 @@ def _record_bag(context):
 def generate_launch_description():
     bringup_share = get_package_share_directory("bringup")
     fgo_params = os.path.join(bringup_share, "config", "fgo_gil.yaml")
-    raw_share = get_package_share_directory("um982_raw_driver")
-    raw_params = os.path.join(raw_share, "config", "um982_raw.yaml")
+    um982_share = get_package_share_directory("um982_rtk_driver")
+    um982_params = os.path.join(um982_share, "config", "um982_mixed.yaml")
     livox_share = get_package_share_directory("livox_ros_driver2")
     fastlio_share = get_package_share_directory("fastlio2")
     fastlio_config = os.path.join(fastlio_share, "config", "lio.yaml")
@@ -131,16 +131,16 @@ def generate_launch_description():
         ],
         condition=IfCondition(LaunchConfiguration("start_fastlio")),
     )
-    raw_driver = Node(
-        package="um982_raw_driver",
-        executable="um982_raw_node",
-        name="um982_raw_driver",
+    um982_driver = Node(
+        package="um982_rtk_driver",
+        executable="um982_rtk_node",
+        name="um982_rtk_driver",
         output="screen",
         parameters=[
-            LaunchConfiguration("raw_params_file"),
+            LaunchConfiguration("um982_params_file"),
             {"use_sim_time": LaunchConfiguration("use_sim_time")},
         ],
-        condition=IfCondition(LaunchConfiguration("start_raw_driver")),
+        condition=IfCondition(LaunchConfiguration("start_um982_driver")),
     )
     fgo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -157,11 +157,11 @@ def generate_launch_description():
     return LaunchDescription(
         [
             DeclareLaunchArgument("fgo_params_file", default_value=fgo_params),
-            DeclareLaunchArgument("raw_params_file", default_value=raw_params),
+            DeclareLaunchArgument("um982_params_file", default_value=um982_params),
             DeclareLaunchArgument("use_sim_time", default_value="false"),
             DeclareLaunchArgument("start_livox", default_value="true"),
             DeclareLaunchArgument("start_fastlio", default_value="true"),
-            DeclareLaunchArgument("start_raw_driver", default_value="true"),
+            DeclareLaunchArgument("start_um982_driver", default_value="true"),
             DeclareLaunchArgument("record_bag", default_value="true"),
             DeclareLaunchArgument("bag_profile", default_value="full"),
             DeclareLaunchArgument("publish_tf", default_value="false"),
@@ -169,7 +169,7 @@ def generate_launch_description():
             OpaqueFunction(function=_validate_shadow_safety),
             livox,
             fastlio,
-            raw_driver,
+            um982_driver,
             fgo,
             OpaqueFunction(function=_record_bag),
         ]

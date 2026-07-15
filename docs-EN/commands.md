@@ -639,38 +639,52 @@ Notes:
 FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 ```
 
-## UM982 Raw Binary Shadow Capture
+## UM982 Single-Port Mixed Shadow Capture
 
-This mode reads only the dedicated `/dev/rtk_um982_raw`. Never override it with the production NMEA/NTRIP device `/dev/rtk_um982`.
+The unified `um982_rtk_driver` exclusively owns the sole `/dev/rtk_um982`. The default `um982_rtk.yaml` is `nmea_only@115200`; `um982_mixed.yaml` is the temporary field `mixed@921600` profile. Do not start a legacy raw executable or a second NMEA driver concurrently.
 
-The 2026-07-15 vehicle inspection found that the carrier's Type-C connection enumerates only one CP210x UART, `/dev/rtk_um982`; `/dev/rtk_um982_raw` does not exist. The commands below therefore apply only to a future configuration with a physical second UART. Until the single-port mux is implemented, never point the raw parameters at `/dev/rtk_um982`, because that would contend with the production NMEA/NTRIP owner. Software timing falls back to `COARSE_NO_PPS`; the current `/dev/pps0` is a virtual `ktimer` source and is not GNSS PPS.
+First validate the production path without writing receiver commands:
 
 ```bash
-make build-rtk-raw
+make build-rtk-basic
 ss
+make launch-rtk-basic
+ros2 topic hz /fix
+ros2 topic hz /heading
+ros2 topic echo /rtk/status --once
+ros2 topic echo /gnss/raw/diagnostics --once
+```
+
+Stop the driver, inspect the dry-run, and then switch to volatile 921600 mixed output. The tool sends only volatile configuration and rejects persistence commands:
+
+```bash
+make kill-runtime
+python3 scripts/configure_um982_transient.py mixed --dry-run
+python3 scripts/configure_um982_transient.py mixed
 make launch-rtk-raw
 ```
 
-Override the device through an uncommitted vehicle parameter file:
+Verify stable production and raw outputs. Diagnostics must report `MIXED_STREAMING`, with no growing CRC, overflow, or decode-failure counters:
 
 ```bash
-FYP_UM982_RAW_PARAMS_FILE=/tmp/um982_raw_vehicle.yaml make launch-rtk-raw
-```
-
-Inspect checksum-valid frames, GNSS week/TOW, message ID, and diagnostics:
-
-```bash
+ros2 topic hz /fix
+ros2 topic hz /heading
 ros2 topic hz /gnss/raw/frame
-ros2 topic echo /gnss/raw/frame --once
 ros2 topic hz /gnss/raw/observation_epoch
-ros2 topic echo /gnss/raw/observation_epoch --once
 ros2 topic hz /gnss/raw/ephemeris
-ros2 topic echo /gnss/raw/ephemeris --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
 ```
 
-Phase 1 plus the uncompressed-observation and broadcast-ephemeris canonicalization subsets of Phase 2 are implemented. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Every payload receives exact-length, PRN, time, finite-value, and orbit-range validation. Phase 5 now propagates these ephemerides to transmit-time satellite states with Sagnac correction. Compressed observations, RTCM fallback, and a real UART fixture remain pending. Without a dedicated raw UART, `SERIAL_DISCONNECTED` or `NO_RECENT_VALID_FRAME` is the expected fail-closed diagnostic.
+Restore 115200 NMEA-only output:
+
+```bash
+make kill-runtime
+python3 scripts/configure_um982_transient.py restore-nmea
+make launch-rtk-basic
+```
+
+The profile uses the official periodic `OBSVMB/OBSVHB`, `OBSVBASEB ONCHANGED`, and five `*EPHB ONCHANGED` commands. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Receiver persistence is allowed only as a separate manual action after `/fix`, `/heading`, raw observations, ephemerides, and same-port RTCM writes pass continuous acceptance. The current `/dev/pps0` is a virtual `ktimer` source, so timing remains `COARSE_NO_PPS` and must not be labeled GNSS PPS.
 
 ## FGO-GIL Phase 3 Time Sync And IMU Frontend
 
@@ -732,7 +746,7 @@ Diagnostics include `edge_features`, `plane_features`, `line_matches`, `plane_ma
 
 ## FGO-GIL Phase 5-6 GNSS DD, Float FGO, And Integer Fixing
 
-Start the Livox/FAST-LIO initialization source and the dedicated UM982 raw source first, then launch the Phase 3-6 shadow graph:
+Start the Livox/FAST-LIO initialization source and the unified UM982 driver's mixed source first, then launch the Phase 3-6 shadow graph:
 
 ```bash
 make build-fgo-gil
@@ -764,7 +778,7 @@ Phase 6 fields on `/fgo_gil/float_diagnostics` include `solution_status`, `ambig
 
 ## FGO-GIL Phase 7 Full Shadow Runtime, Bagging, And Evaluation
 
-Live mode starts Livox, the FAST-LIO2 comparator, the dedicated UM982 raw driver, and the Phase 3-7 FGO-GIL path. It records the `full` profile by default:
+Live mode starts Livox, the FAST-LIO2 comparator, the unified UM982 driver's mixed profile, and the Phase 3-7 FGO-GIL path. It records the `full` profile by default:
 
 ```bash
 make build-fgo-gil
@@ -783,7 +797,7 @@ For an existing bag, start the algorithm-only path first, then publish `/clock` 
 ```bash
 bash scripts/launch_with_logs.sh fgo-gil-shadow \
   use_sim_time:=true start_livox:=false start_fastlio:=false \
-  start_raw_driver:=false record_bag:=false
+  start_um982_driver:=false record_bag:=false
 
 ros2 bag play <bag-directory> --clock
 ```

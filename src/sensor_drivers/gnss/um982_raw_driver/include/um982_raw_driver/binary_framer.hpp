@@ -43,6 +43,7 @@ struct FramerStats
 };
 
 std::uint32_t calculateCrc32(const std::uint8_t * data, std::size_t size);
+BinaryHeader parseBinaryHeader(const std::uint8_t * data, std::size_t size);
 
 class BinaryFramer
 {

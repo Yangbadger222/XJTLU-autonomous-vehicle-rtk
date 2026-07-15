@@ -97,9 +97,8 @@ PoseJacobianRow independentPoseJacobian(
     rotation.x, rotation.y, rotation.z};
 }
 
-std::optional<Eigen::VectorXd> evaluateImuResidual(
+std::optional<EcefState> propagateImuState(
   const EcefState & from,
-  const EcefState & to,
   const std::vector<ImuSample> & samples,
   const EcefImuConfig & config)
 {
@@ -121,7 +120,14 @@ std::optional<Eigen::VectorXd> evaluateImuResidual(
   if (!preintegrator.valid()) {
     return std::nullopt;
   }
-  const EcefState & predicted = preintegrator.state();
+  return preintegrator.state();
+}
+
+std::optional<Eigen::VectorXd> imuResidualFromPrediction(
+  const EcefState & from,
+  const EcefState & to,
+  const EcefState & predicted)
+{
   if (std::abs(predicted.stamp_s - to.stamp_s) > 1.0e-6) {
     return std::nullopt;
   }
@@ -144,6 +150,19 @@ std::optional<Eigen::VectorXd> evaluateImuResidual(
     return std::nullopt;
   }
   return residual;
+}
+
+std::optional<Eigen::VectorXd> evaluateImuResidual(
+  const EcefState & from,
+  const EcefState & to,
+  const std::vector<ImuSample> & samples,
+  const EcefImuConfig & config)
+{
+  const auto predicted = propagateImuState(from, samples, config);
+  if (!predicted.has_value()) {
+    return std::nullopt;
+  }
+  return imuResidualFromPrediction(from, to, *predicted);
 }
 
 double perturbationStep(const int column)
@@ -521,8 +540,13 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
     {
       continue;
     }
-    const auto residual = evaluateImuResidual(
-      from->second, to->second, factor.samples, factor.config.integration);
+    const auto predicted = propagateImuState(
+      from->second, factor.samples, factor.config.integration);
+    if (!predicted.has_value()) {
+      ++diagnostics_.rejected_factors;
+      continue;
+    }
+    const auto residual = imuResidualFromPrediction(from->second, to->second, *predicted);
     if (!residual.has_value()) {
       ++diagnostics_.rejected_factors;
       continue;
@@ -533,18 +557,22 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       const double epsilon = perturbationStep(column);
       Eigen::VectorXd delta = Eigen::VectorXd::Zero(kStateDimension);
       delta(column) = epsilon;
-      const auto from_plus = evaluateImuResidual(
-        perturbedState(from->second, delta), to->second, factor.samples,
-        factor.config.integration);
-      const auto from_minus = evaluateImuResidual(
-        perturbedState(from->second, -delta), to->second, factor.samples,
-        factor.config.integration);
-      const auto to_plus = evaluateImuResidual(
-        from->second, perturbedState(to->second, delta), factor.samples,
-        factor.config.integration);
-      const auto to_minus = evaluateImuResidual(
-        from->second, perturbedState(to->second, -delta), factor.samples,
-        factor.config.integration);
+      const EcefState from_plus_state = perturbedState(from->second, delta);
+      const EcefState from_minus_state = perturbedState(from->second, -delta);
+      const auto from_plus_prediction = propagateImuState(
+        from_plus_state, factor.samples, factor.config.integration);
+      const auto from_minus_prediction = propagateImuState(
+        from_minus_state, factor.samples, factor.config.integration);
+      const auto from_plus = from_plus_prediction.has_value() ?
+        imuResidualFromPrediction(from_plus_state, to->second, *from_plus_prediction) :
+        std::nullopt;
+      const auto from_minus = from_minus_prediction.has_value() ?
+        imuResidualFromPrediction(from_minus_state, to->second, *from_minus_prediction) :
+        std::nullopt;
+      const auto to_plus = imuResidualFromPrediction(
+        from->second, perturbedState(to->second, delta), *predicted);
+      const auto to_minus = imuResidualFromPrediction(
+        from->second, perturbedState(to->second, -delta), *predicted);
       if (!from_plus || !from_minus || !to_plus || !to_minus) {
         from_jacobian.col(column).setZero();
         to_jacobian.col(column).setZero();

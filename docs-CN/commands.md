@@ -488,7 +488,7 @@ python3 scripts/build_scene_runtime.py
 
 采集规范：
 - 所有转弯、路口、目的地入口必须踩点
-- 允许系统上电启动的区域附近必须布 `anchor`
+- 只有启用旧 anchor localizer 的兼容实验才要求启动区附近布 `anchor`；当前 RTK-authority A* 可从路网附近任意位置启动
 - graph edge 按节点间直线段理解，弯道必须靠增加节点离散化
 - 脚本会提示是否与上一个点自动建边
 
@@ -501,7 +501,8 @@ make launch-nav-gps
 # 查看 scene 目标列表
 ros2 run gps_waypoint_dispatcher list_destinations
 
-# 室内软件 smoke 可用 mock /fix 驱动 gps_anchor_localizer
+# 旧 anchor 链室内 smoke：显式启用后再用 mock /fix 驱动
+FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true make launch-nav-gps
 ros2 topic pub /fix sensor_msgs/msg/NavSatFix \
   "{header: {frame_id: 'gps'}, status: {status: 0, service: 1}, latitude: 31.274927, longitude: 120.737548, altitude: 0.0, position_covariance: [4.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 25.0], position_covariance_type: 2}" \
   --rate 5
@@ -544,8 +545,10 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
+- MPPI 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，实车采样量收敛为 `batch_size=350`、`time_steps=40`，关闭 critic statistics，A* 连续路径按 `0.35m` 加密；相比旧 `500x48` 每周期轨迹仿真量降低约42%。
 - `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
-- 默认 lean bag 记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、GPS/goal 状态、costmap、`/cmd_vel` 和 `/plan`；需要原始点云回放时再设置 `FYP_NAV_GPS_BAG_PROFILE=debug`。
+- 当前 RTK-authority/A* 链默认不启动旧 `gps_anchor_localizer`，因为规划与运动许可均不依赖 anchor 或 `/gnss`；兼容实验可设置 `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true`。
+- 默认 lean bag 记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、goal/authority 状态、三层速度、local costmap 和 `/plan`；global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。
 - 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 
 ## 14. Fixed-Launch GPS Corridor

@@ -487,7 +487,7 @@ The current `road_wide_all.gpkg` extends only about `0.50m` to each side of the 
 
 Collection guidelines:
 - All turns, intersections, and destination entrances must have waypoints
-- Areas where the system may be powered on must have nearby `anchor` points
+- Nearby `anchor` points are required only for legacy-anchor compatibility experiments; current RTK-authority A* may start anywhere near the route graph
 - Graph edges are understood as straight-line segments between nodes; curves must be discretized by adding more nodes
 - The script will prompt whether to automatically create an edge with the previous point
 
@@ -500,7 +500,8 @@ make launch-nav-gps
 # View scene destination list
 ros2 run gps_waypoint_dispatcher list_destinations
 
-# Indoor software smoke test can use mock /fix to drive gps_anchor_localizer
+# Legacy anchor-chain indoor smoke: opt in before publishing mock /fix
+FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true make launch-nav-gps
 ros2 topic pub /fix sensor_msgs/msg/NavSatFix \
   "{header: {frame_id: 'gps'}, status: {status: 0, service: 1}, latitude: 31.274927, longitude: 120.737548, altitude: 0.0, position_covariance: [4.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 25.0], position_covariance_type: 2}" \
   --rate 5
@@ -543,8 +544,10 @@ Runtime notes:
 - `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
 - `nav-gps` also uses `/cmd_vel_nav -> guard -> /cmd_vel`; authority loss cancels the active path and stops, and continuous recovery replans A* from the current pose.
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
+- MPPI keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while the vehicle profile uses `batch_size=350`, `time_steps=40`, disables critic statistics, and densifies the continuous A* path at `0.35m`. This cuts trajectory simulation per cycle by about 42% from the previous `500x48` workload.
 - The `nav-gps` vehicle entry point disables RTK FGO shadow by default so it does not compete with FAST-LIO2/Nav2 for Jetson CPU. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` only for shadow evidence; it still forces `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract.
-- The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, GPS/goal status, costmaps, `/cmd_vel`, and `/plan`; use `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw point-cloud replay is needed.
+- The current RTK-authority/A* chain disables the legacy `gps_anchor_localizer` by default because planning and motion permission consume neither anchors nor `/gnss`; set `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true` for compatibility experiments.
+- The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, goal/authority status, all three velocity stages, the local costmap, and `/plan`. The global costmap, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
 - On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 
 ## 14. Fixed-Launch GPS Corridor

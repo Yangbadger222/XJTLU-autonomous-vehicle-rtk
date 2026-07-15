@@ -26,7 +26,7 @@
 | Corridor | `make launch-corridor` | GPS Corridor v2 main runtime on the MPPI controller |
 | Travel | `make launch-travel` | Experimental prior-map navigation: 2D-map global planning + PCD point-cloud relocalization |
 | Explore GPS | `make launch-explore-gps` | Explore with GNSS and PGO GPS factor added |
-| Nav GPS | `make launch-nav-gps` | Scene bundle + anchor ready + GPS route-graph navigation mode |
+| Nav GPS | `make launch-nav-gps` | Scene bundle + RTK authority + GPS route-graph navigation mode |
 | RTK Basic | `make launch-rtk-basic` | RTK signal testing with CORS account |
 | Tightly Coupled | `make launch-tightly-coupled` | Experimental RTK FGO shadow mode publishing `/rtk_fgo/*` beside the main stack |
 
@@ -99,35 +99,35 @@ scene_gps_bundle.yaml -> build_scene_runtime.py
                        -> current_scene/scene_route_graph.geojson
                        -> current_scene/road_keepout.{yaml,pgm}
 
-GNSS serial -> /fix + /heading + /rtk/status -------------------+
-                       |                                       |
-                       |                                       v
-                       |                         rtk_map_odom_corrector
-                       |                         scene fixed ENU -> map identity
-                       |                         TF: map -> odom
-                       v
-                gps_anchor_localizer -> /gnss + /gps_system/*
+GNSS serial -> /fix + /heading + /rtk/status
                        |
-                       +-> lock startup anchor for route-selection readiness
+                       v
+                rtk_map_odom_corrector
+                scene fixed ENU -> map identity
+                TF: map -> odom
+
+Optional legacy: gps_anchor_localizer -> /gnss + /gps_system/*
 
 goto_name / /goal_pose / /gps_goal
             -> gps_waypoint_dispatcher
             |  project current pose and goal onto nearest graph edges
             |  insert virtual endpoints and run Euclidean-heuristic A*
-            |  produce one continuous NavPath at 0.20m density
+            |  produce one continuous NavPath at 0.35m density
             v
      FollowPath -> MPPI + obstacle cloud + road keepout
                 -> /cmd_vel_nav -> authority guard -> /cmd_vel
 ```
 
 The core of `nav-gps` is:
-- `gps_anchor_localizer` still owns anchor matching, `NAV_READY`, and `/gnss` publishing
+- The legacy `gps_anchor_localizer` is disabled by default. The current A*/RTK-authority production chain consumes neither `/gnss` nor anchor readiness; compatibility experiments may opt in explicitly.
 - `map -> odom` is no longer published by PGO in this mode; PGO uses the corridor no-TF/no-GPS configuration and remains a point-cloud / optimization side channel only
 - `rtk_map_odom_corrector` reads the scene fixed origin and uses a fixed ENU-to-map identity alignment to compute the RTK-authoritative `map -> odom`
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud instead of the old DWB-based `nav2_gps.yaml` profile
 - the goal manager runs graph A* directly and projects both endpoints onto graph edges; it no longer depends on route-server Dijkstra or a small anchor set
 - the QGIS drivable polygon is compiled into a KeepoutFilter mask; MPPI may avoid obstacles inside the road while remaining blocked outside it
 - when authority drops, the guard immediately zeros motion and the goal manager cancels `FollowPath`; after continuously stable authority returns, it replans from the current pose
+- The vehicle profile keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while reducing MPPI work to `350x40` samples with a two-second horizon and disabling critic statistics.
+- The default lean bag retains the smaller local costmap for obstacle review but omits the global costmap, which accounted for `77.5%` of this bag. The debug profile adds the global costmap, raw point clouds, and legacy anchor status.
 - `scene_gps_bundle.yaml` is the single source of truth
 - At runtime, only compiled artifacts under `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` are read
 - named `goto_name`, map-frame `/goal_pose`, and geographic `/gps_goal` destinations are supported

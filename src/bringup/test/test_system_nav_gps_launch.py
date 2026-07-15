@@ -1,4 +1,6 @@
+import ast
 from pathlib import Path
+import re
 
 
 NAV_GPS_LAUNCH = Path("src/bringup/launch/system_nav_gps.launch.py")
@@ -8,6 +10,16 @@ RTK_CORRECTOR = Path(
     "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
     "rtk_map_odom_corrector_node.py"
 )
+
+
+def _launch_topic_list(text: str, variable_name: str) -> list[str]:
+    match = re.search(
+        rf"{variable_name} = \[(?P<topics>.*?)\]",
+        text,
+        re.DOTALL,
+    )
+    assert match is not None
+    return ast.literal_eval(f"[{match.group('topics')}]")
 
 
 def test_nav_gps_reuses_corridor_rtk_authoritative_stack():
@@ -73,6 +85,33 @@ def test_nav_gps_keeps_fgo_shadow_side_effect_free():
     assert "rtk_fgo_node" in text
     assert '"publish_tf": False' in text
     assert '"nav2_use_fgo": False' in text
+
+
+def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert 'controller_params["controller_frequency"] = 20.0' in text
+    assert 'follow_path["time_steps"] = 40' in text
+    assert 'follow_path["batch_size"] = 350' in text
+    assert 'follow_path["publish_critics_stats"] = False' in text
+    assert '"path_density_m": 0.35' in text
+
+
+def test_nav_gps_lean_bag_and_default_nodes_respect_vehicle_cpu_budget():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+    base_topics = _launch_topic_list(text, "_NAV_GPS_BAG_BASE_TOPICS")
+    debug_topics = _launch_topic_list(text, "_NAV_GPS_BAG_DEBUG_TOPICS")
+
+    assert "/local_costmap/costmap" in base_topics
+    assert "/global_costmap/costmap" not in base_topics
+    assert "/global_costmap/costmap" in debug_topics
+    assert "/livox/imu" in base_topics
+    assert "/fastlio2/lio_odom" in base_topics
+    assert "/cmd_vel" in base_topics
+    assert "/plan" in base_topics
+    assert "FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER" in text
+    assert '"FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER", "false"' in text
+    assert 'condition=IfCondition(LaunchConfiguration("enable_legacy_anchor_localizer"))' in text
 
 
 def test_scene_runtime_writes_rtk_authority_scene_origin():

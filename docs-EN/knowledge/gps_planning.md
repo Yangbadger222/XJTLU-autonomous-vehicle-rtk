@@ -105,7 +105,7 @@ It now serves as a goal manager, responsible for:
 
 - Both endpoints snap to nearest route edges rather than nearest anchors/nodes
 - Goals on one edge connect directly; cross-edge goals use A* for the minimum-length road sequence
-- The polyline is densified at `0.20m` and sent as one `/follow_path`
+- The polyline is densified at `0.35m` and sent as one `/follow_path`, reducing MPPI path-processing load on long routes
 - Intermediate graph nodes are path samples, not goal-checker stops
 - Nav2 MPPI tracks and avoids dynamic obstacles inside the QGIS KeepoutFilter road area
 

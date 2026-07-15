@@ -105,7 +105,7 @@ python3 scripts/build_scene_runtime.py
 
 - 起点和终点都吸附到最近路段，而不是最近 anchor/node
 - 同一路段直接连接；跨路段用 A* 选择最小长度道路序列
-- 规划折线按 `0.20m` 加密后作为一次 `/follow_path` 发送
+- 规划折线按 `0.35m` 加密后作为一次 `/follow_path` 发送，减少长路线的 MPPI 路径处理负载
 - 中间图节点只是路径采样，不运行 goal checker，因此不会逐点停车
 - Nav2 MPPI 在 QGIS KeepoutFilter 道路面内完成跟踪和动态避障
 

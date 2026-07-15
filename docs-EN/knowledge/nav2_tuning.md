@@ -145,7 +145,7 @@ Corridor v2 uses Rotation Shim + Regulated Pure Pursuit instead of DWB:
 The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-gps` entry point no longer uses it as the main profile. `system_nav_gps.launch.py` reuses the corridor RTK profile:
 
 - Generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml`.
-- Uses MPPI with `controller_frequency=20Hz`, `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
+- Uses MPPI with `controller_frequency=20Hz` aligned to `model_dt=0.05s`. `batch_size=350`, `time_steps=40`, and `publish_critics_stats=false` retain a two-second horizon while cutting trajectory simulation by about 42% from the old `500x48` workload. The profile retains `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
 - The local costmap uses `/fastlio2/body_cloud_nav2_obstacles`, preserving the high-window obstacle cloud around `[-0.20, 1.20]m`.
 - The global costmap keeps the route-planning-only semantics so realtime point clouds / unknown space do not block route-graph goals.
 - `general_goal_checker.stateful=false`, preventing a reached-state latch from one destination from carrying into the next route-graph goal.
@@ -156,7 +156,7 @@ The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-
 Localization semantics:
 - PGO disables `publish_tf` and GPS factors, so it no longer competes for `map->odom`.
 - `rtk_map_odom_corrector` uses the scene fixed origin plus ENU-to-map identity alignment and becomes the only `map->odom` owner.
-- `gps_anchor_localizer` still owns `NAV_READY`, nearest-anchor reporting, and `/gnss`; the goal manager accepts named, map-pose, and geographic destinations.
+- The legacy `gps_anchor_localizer` is disabled by default. The goal manager accepts named, map-pose, and geographic destinations, while actual motion readiness depends only on the common authority, current TF, and FollowPath. Legacy `/gnss`/anchor experiments may opt the node back in.
 - `NAV_READY` / anchors are not hard gates. A fresh common `motion_allowed` heartbeat, current TF, and stable authority are the practical start conditions, so FGO can later take over without changing the planner.
 
 ## 7. Current Operational Notes (2026-07)
@@ -168,7 +168,7 @@ Localization semantics:
 5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
 6. `nav2_gps.yaml` remains as the old GPS MVP profile; the current RTK `nav-gps` vehicle entry point reuses the corridor RTK MPPI profile, while `nav2_travel.yaml` remains independent of Explore/Corridor/nav-gps.
 7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-8. Corridor starts RTK FGO shadow by default; the `nav-gps` vehicle entry point disables it unless `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`. Shadow always uses `publish_tf=false` and `nav2_use_fgo=false`, so it cannot own `map->odom` or feed Nav2. Lean rosbags record RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, TF, status, goals, costmaps, `/cmd_vel`, and `/plan`; `/rtk_fgo/*` is populated when shadow is enabled. Use a debug profile only for raw point-cloud replay; raw recording or concurrent shadow can starve Nav2 / FAST-LIO2 during vehicle acceptance.
+8. Corridor starts RTK FGO shadow by default; the `nav-gps` vehicle entry point disables it unless `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`. Shadow always uses `publish_tf=false` and `nav2_use_fgo=false`, so it cannot own `map->odom` or feed Nav2. The `nav-gps` lean bag retains RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, TF, status, goals, all three velocity stages, the local costmap, and `/plan`. The global costmap, which accounted for `77.5%` of this bag, plus legacy anchor status and raw point clouds are debug-only so recording cannot starve the control loop.
 
 ## 8. Waypoint System
 

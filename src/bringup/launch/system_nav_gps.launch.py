@@ -31,9 +31,6 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/odom_CBoar",
     "/tf",
     "/tf_static",
-    "/gps_system/status",
-    "/gps_system/nearest_anchor",
-    "/gps_system/nearest_anchor_id",
     "/gps_goal_manager/status",
     "/gps_waypoint_dispatcher/goal_map",
     "/gps_waypoint_dispatcher/path_map",
@@ -52,11 +49,14 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/cmd_vel_nav",
     "/cmd_vel_controller",
     "/local_costmap/costmap",
-    "/global_costmap/costmap",
     "/plan",
 ]
 
 _NAV_GPS_BAG_DEBUG_TOPICS = [
+    "/gps_system/status",
+    "/gps_system/nearest_anchor",
+    "/gps_system/nearest_anchor_id",
+    "/global_costmap/costmap",
     "/livox/lidar",
     "/fastlio2/body_cloud",
     "/fastlio2/body_cloud_nav2_obstacles",
@@ -87,7 +87,8 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     controller_params["general_goal_checker"]["stateful"] = False
 
     follow_path = controller_params["FollowPath"]
-    follow_path["batch_size"] = 500
+    follow_path["time_steps"] = 40
+    follow_path["batch_size"] = 350
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
     follow_path["vx_max"] = 0.85
@@ -97,6 +98,7 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["az_max"] = 1.4
     follow_path["temperature"] = 0.45
     follow_path["regenerate_noises"] = True
+    follow_path["publish_critics_stats"] = False
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
     smoother_params["max_velocity"] = [0.85, 0.0, 0.70]
@@ -197,6 +199,13 @@ def generate_launch_description():
         default_value=os.environ.get("FYP_NAV_GPS_ENABLE_FGO_SHADOW", "false"),
         description="Start RTK FGO in shadow mode for nav-gps rosbag evidence",
     )
+    enable_legacy_anchor_localizer_arg = DeclareLaunchArgument(
+        "enable_legacy_anchor_localizer",
+        default_value=os.environ.get(
+            "FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER", "false"
+        ),
+        description="Start legacy anchor readiness and calibrated /gnss publisher",
+    )
 
     explore_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -235,6 +244,7 @@ def generate_launch_description():
         executable="gps_anchor_localizer_node",
         name="gps_anchor_localizer",
         output="screen",
+        condition=IfCondition(LaunchConfiguration("enable_legacy_anchor_localizer")),
         parameters=[params_file, {"scene_points_file": scene_points_file}],
     )
 
@@ -302,6 +312,7 @@ def generate_launch_description():
             {
                 "scene_points_file": scene_points_file,
                 "require_nav_ready": False,
+                "path_density_m": 0.35,
                 "stop_override_topic": "/gps_nav/stop_override",
             },
         ],
@@ -393,6 +404,7 @@ def generate_launch_description():
             scene_points_arg,
             road_keepout_arg,
             enable_fgo_shadow_arg,
+            enable_legacy_anchor_localizer_arg,
             explore_launch,
             rtk_launch_group,
             road_mask_server,
@@ -407,6 +419,12 @@ def generate_launch_description():
                 )
             ),
             LogInfo(msg=f"Nav GPS bag profile: {bag_profile}"),
+            LogInfo(
+                msg=[
+                    "Nav GPS legacy anchor localizer: ",
+                    LaunchConfiguration("enable_legacy_anchor_localizer"),
+                ]
+            ),
             bag_record,
             delayed_rtk_authority,
             nav_gps_cmd_guard,

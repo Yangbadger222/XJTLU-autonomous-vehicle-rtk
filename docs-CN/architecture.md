@@ -26,7 +26,7 @@
 | Corridor | `make launch-corridor` | GPS Corridor v2 主链，基于 MPPI 控制器 |
 | Travel | `make launch-travel` | 实验性先验地图导航：2D map 全局规划 + PCD 点云重定位 |
 | Explore GPS | `make launch-explore-gps` | Explore 基础上加入 GNSS 与 PGO GPS 因子 |
-| Nav GPS | `make launch-nav-gps` | scene bundle + anchor ready + GPS 路网导航模式 |
+| Nav GPS | `make launch-nav-gps` | scene bundle + RTK authority + GPS 路网导航模式 |
 | RTK Basic | `make launch-rtk-basic` | RTK 信号检测 |
 | Tightly Coupled | `make launch-tightly-coupled` | 实验性 RTK FGO shadow mode，旁路发布 `/rtk_fgo/*` |
 
@@ -99,35 +99,35 @@ scene_gps_bundle.yaml -> build_scene_runtime.py
                        -> current_scene/scene_route_graph.geojson
                        -> current_scene/road_keepout.{yaml,pgm}
 
-GNSS serial -> /fix + /heading + /rtk/status -------------------+
-                       |                                       |
-                       |                                       v
-                       |                         rtk_map_odom_corrector
-                       |                         scene fixed ENU -> map identity
-                       |                         TF: map -> odom
-                       v
-                gps_anchor_localizer -> /gnss + /gps_system/*
+GNSS serial -> /fix + /heading + /rtk/status
                        |
-                       +-> lock startup anchor for route selection readiness
+                       v
+                rtk_map_odom_corrector
+                scene fixed ENU -> map identity
+                TF: map -> odom
+
+可选 legacy：gps_anchor_localizer -> /gnss + /gps_system/*
 
 goto_name / /goal_pose / /gps_goal
             -> gps_waypoint_dispatcher
             |  当前位姿和终点投影到最近 graph edge
             |  插入虚拟起点/终点，欧氏启发式 A*
-            |  生成一条 0.20m 密度的连续 NavPath
+            |  生成一条 0.35m 密度的连续 NavPath
             v
      FollowPath -> MPPI + obstacle cloud + road keepout
                 -> /cmd_vel_nav -> authority guard -> /cmd_vel
 ```
 
 `nav-gps` 的核心是：
-- `gps_anchor_localizer` 仍负责 anchor 匹配、`NAV_READY` 状态和 `/gnss` 发布
+- 默认不启动旧 `gps_anchor_localizer`；当前 A*/RTK-authority 生产链不消费 `/gnss` 或 anchor readiness，需要兼容实验时可显式启用
 - `map -> odom` 不再由 PGO 抢发布；PGO 使用 corridor no-TF/no-GPS 配置，仅保留点云/优化旁路能力
 - `rtk_map_odom_corrector` 读取 scene fixed origin，并使用固定 ENU→map identity alignment 计算 RTK authoritative `map -> odom`
 - Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
 - goal manager 自己执行图 A*，起终点投影到最近 graph edge，不再依赖 `route_server` 的 Dijkstra 或少数 anchor
 - QGIS 道路面编译成 KeepoutFilter mask；MPPI 可在道路内部避障，但道路外部保持禁止通行
 - authority 失效时 guard 立即清零，goal manager 取消当前 `FollowPath`；authority 连续恢复后从当前位置重新 A* 规划
+- 实车 profile 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，但将 MPPI 工作量收敛到 `350x40` samples、2秒预测视野，并关闭 critic statistics
+- 默认 lean bag 保留较小的 local costmap 用于避障复盘，但不录占本次 bag `77.5%` 的 global costmap；debug profile 才追加 global costmap、原始点云和 legacy anchor 状态
 - `scene_gps_bundle.yaml` 是唯一 source of truth
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
 - 支持 `goto_name`、地图 `/goal_pose` 和经纬度 `/gps_goal` 三种终点入口

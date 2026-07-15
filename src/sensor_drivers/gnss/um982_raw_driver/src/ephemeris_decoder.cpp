@@ -72,9 +72,10 @@ bool finiteKeplerian(const Ephemeris & ephemeris)
     ephemeris.clock_drift_rate_s_s2, ephemeris.group_delay_1_s,
     ephemeris.group_delay_2_s, ephemeris.corrected_mean_motion_rad_s,
     ephemeris.ura_variance_m2};
-  return std::all_of(std::begin(values), std::end(values), [](const double value) {
-    return std::isfinite(value);
-  });
+  return std::all_of(
+    std::begin(values), std::end(values), [](const double value) {
+      return std::isfinite(value);
+    });
 }
 
 bool validWeekSecond(const double value)
@@ -222,9 +223,10 @@ EphemerisDecodeResult decodeGalileo(const BinaryFrame & frame)
   ephemeris.prn = static_cast<std::uint16_t>(prn);
   ephemeris.model = EphemerisModel::Keplerian;
   ephemeris.reference_frame = EphemerisReferenceFrame::Gtrf;
-  ephemeris.health = std::any_of(payload + 12, payload + 18, [](const std::uint8_t value) {
-    return value != 0U;
-  }) ? 1U : 0U;
+  ephemeris.health = std::any_of(
+    payload + 12, payload + 18, [](const std::uint8_t value) {
+      return value != 0U;
+    }) ? 1U : 0U;
   ephemeris.issue_of_data_ephemeris = readLe32(payload + 20);
   ephemeris.issue_of_data_clock = ephemeris.issue_of_data_ephemeris;
   ephemeris.week = frame.header.week;
@@ -296,10 +298,11 @@ EphemerisDecodeResult decodeGlonass(const BinaryFrame & frame)
   ephemeris.glonass_flags = readLe32(payload + 140);
 
   const auto finite_array = [](const std::array<double, 3> & values) {
-    return std::all_of(values.begin(), values.end(), [](const double value) {
-      return std::isfinite(value);
-    });
-  };
+      return std::all_of(
+        values.begin(), values.end(), [](const double value) {
+          return std::isfinite(value);
+        });
+    };
   if (!std::isfinite(ephemeris.toe_s) || !finite_array(ephemeris.position_ecef_m) ||
     !finite_array(ephemeris.velocity_ecef_m_s) ||
     !finite_array(ephemeris.acceleration_ecef_m_s2) ||
@@ -355,10 +358,14 @@ EphemerisDecodeResult decodeEphemerisFrame(const BinaryFrame & frame)
   const std::size_t expected_frame_size =
     kBinaryHeaderSize + static_cast<std::size_t>(frame.header.payload_length) + kBinaryCrcSize;
   if (frame.bytes.size() != expected_frame_size) {
-    return failure(EphemerisDecodeError::FrameSizeMismatch, "frame byte count disagrees with header");
+    return failure(
+      EphemerisDecodeError::FrameSizeMismatch,
+      "frame byte count disagrees with header");
   }
   if (frame.header.payload_length != expected_payload_size) {
-    return failure(EphemerisDecodeError::PayloadLayoutMismatch, "unexpected ephemeris payload length");
+    return failure(
+      EphemerisDecodeError::PayloadLayoutMismatch,
+      "unexpected ephemeris payload length");
   }
 
   switch (frame.header.message_id) {

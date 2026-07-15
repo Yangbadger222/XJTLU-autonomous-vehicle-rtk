@@ -125,10 +125,14 @@ ObservationDecodeResult decodeObservationFrame(const BinaryFrame & frame)
   const std::size_t expected_frame_size =
     kBinaryHeaderSize + static_cast<std::size_t>(frame.header.payload_length) + kBinaryCrcSize;
   if (frame.bytes.size() != expected_frame_size) {
-    return failure(ObservationDecodeError::FrameSizeMismatch, "frame byte count disagrees with header");
+    return failure(
+      ObservationDecodeError::FrameSizeMismatch,
+      "frame byte count disagrees with header");
   }
   if (frame.header.payload_length < sizeof(std::uint32_t)) {
-    return failure(ObservationDecodeError::PayloadLayoutMismatch, "payload lacks observation count");
+    return failure(
+      ObservationDecodeError::PayloadLayoutMismatch,
+      "payload lacks observation count");
   }
 
   const std::uint8_t * payload = frame.bytes.data() + kBinaryHeaderSize;

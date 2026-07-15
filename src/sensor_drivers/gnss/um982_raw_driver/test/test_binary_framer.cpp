@@ -12,13 +12,17 @@
 namespace
 {
 
-void writeLe16(std::vector<std::uint8_t> & data, const std::size_t offset, const std::uint16_t value)
+void writeLe16(
+  std::vector<std::uint8_t> & data, const std::size_t offset,
+  const std::uint16_t value)
 {
   data.at(offset) = static_cast<std::uint8_t>(value & 0xFFU);
   data.at(offset + 1U) = static_cast<std::uint8_t>((value >> 8U) & 0xFFU);
 }
 
-void writeLe32(std::vector<std::uint8_t> & data, const std::size_t offset, const std::uint32_t value)
+void writeLe32(
+  std::vector<std::uint8_t> & data, const std::size_t offset,
+  const std::uint32_t value)
 {
   data.at(offset) = static_cast<std::uint8_t>(value & 0xFFU);
   data.at(offset + 1U) = static_cast<std::uint8_t>((value >> 8U) & 0xFFU);
@@ -200,9 +204,10 @@ TEST(BinaryFramer, StaysBoundedUnderDeterministicRandomNoiseAndRecovers)
   for (int iteration = 0; iteration < 2000; ++iteration) {
     std::vector<std::uint8_t> noise(
       static_cast<std::size_t>(length_distribution(generator)));
-    std::generate(noise.begin(), noise.end(), [&]() {
-      return static_cast<std::uint8_t>(byte_distribution(generator));
-    });
+    std::generate(
+      noise.begin(), noise.end(), [&]() {
+        return static_cast<std::uint8_t>(byte_distribution(generator));
+      });
     EXPECT_NO_THROW(framer.consume(noise));
     EXPECT_LE(framer.bufferedBytes(), 512U);
   }

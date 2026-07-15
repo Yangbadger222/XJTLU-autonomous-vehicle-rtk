@@ -15,13 +15,17 @@
 namespace
 {
 
-void writeLe16(std::vector<std::uint8_t> & data, const std::size_t offset, const std::uint16_t value)
+void writeLe16(
+  std::vector<std::uint8_t> & data, const std::size_t offset,
+  const std::uint16_t value)
 {
   data.at(offset) = static_cast<std::uint8_t>(value & 0xFFU);
   data.at(offset + 1U) = static_cast<std::uint8_t>((value >> 8U) & 0xFFU);
 }
 
-void writeLe32(std::vector<std::uint8_t> & data, const std::size_t offset, const std::uint32_t value)
+void writeLe32(
+  std::vector<std::uint8_t> & data, const std::size_t offset,
+  const std::uint32_t value)
 {
   for (std::size_t byte = 0; byte < 4U; ++byte) {
     data.at(offset + byte) = static_cast<std::uint8_t>(value >> (8U * byte));

@@ -16,10 +16,10 @@ std::size_t ObservationEpochKeyHash::operator()(const ObservationEpochKey & key)
 {
   std::size_t seed = std::hash<std::uint8_t>{}(static_cast<std::uint8_t>(key.receiver));
   seed ^= std::hash<std::uint8_t>{}(key.time_reference) + 0x9E3779B9U + (seed << 6U) +
-    (seed >> 2U);
+  (seed >> 2U);
   seed ^= std::hash<std::uint16_t>{}(key.week) + 0x9E3779B9U + (seed << 6U) + (seed >> 2U);
   seed ^= std::hash<std::uint32_t>{}(key.milliseconds_of_week) + 0x9E3779B9U +
-    (seed << 6U) + (seed >> 2U);
+  (seed << 6U) + (seed >> 2U);
   return seed;
 }
 

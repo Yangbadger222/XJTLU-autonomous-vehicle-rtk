@@ -113,8 +113,8 @@ TEST(GnssTimeTracker, InterleavedBaseEpochsDoNotResetMasterClockTracking)
   GnssTimeTracker tracker;
   TimeSyncEstimator estimator;
   const auto consume = [&tracker, &estimator](
-      const std::uint8_t receiver, const std::uint32_t tow_ms,
-      const double reception_time_s) {
+    const std::uint8_t receiver, const std::uint32_t tow_ms,
+    const double reception_time_s) {
       if (!isGnssClockReferenceReceiver(receiver)) {
         return;
       }

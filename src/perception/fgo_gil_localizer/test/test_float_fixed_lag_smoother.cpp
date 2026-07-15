@@ -145,6 +145,45 @@ TEST(FloatFixedLagSmoother, JointImuLidarAndGnssFactorsCorrectNextState)
   EXPECT_DOUBLE_EQ(diagnostics.window_span_s, 1.0);
 }
 
+TEST(FloatFixedLagSmoother, LidarJacobianRemainsConditionedAtEcefScale)
+{
+  FloatSmootherConfig config;
+  config.maximum_iterations = 10;
+  FloatFixedLagSmoother smoother(config);
+  const Vec3 truth_position{6378137.0, 20.0, -10.0};
+  EcefState initial = stateAt(10.0, truth_position + Vec3{0.20, -0.15, 0.10});
+  initial.orientation_ecef_body = quaternionFromRotationVector({0.04, -0.03, 0.02});
+  ASSERT_TRUE(smoother.addState(1, initial));
+  StateFactorNoise prior_noise;
+  prior_noise.position_m = 1.0;
+  prior_noise.rotation_rad = 0.5;
+  prior_noise.velocity_m_s = 1.0e-3;
+  prior_noise.accelerometer_bias_m_s2 = 1.0e-3;
+  prior_noise.gyroscope_bias_rad_s = 1.0e-4;
+  ASSERT_TRUE(smoother.addStatePrior(1, initial, prior_noise));
+
+  const std::array<Vec3, 9> points{
+    Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 0.0}, Vec3{0.0, 0.0, 0.0},
+    Vec3{0.0, 2.0, 0.0}, Vec3{0.0, 0.0, 3.0}, Vec3{2.5, 0.0, 0.0},
+    Vec3{1.0, -2.0, 0.5}, Vec3{-1.5, 0.5, 2.0}, Vec3{0.5, 1.5, -2.0}};
+  const std::array<Vec3, 9> normals{
+    Vec3{1.0, 0.0, 0.0}, Vec3{0.0, 1.0, 0.0}, Vec3{0.0, 0.0, 1.0},
+    Vec3{0.0, 0.0, 1.0}, Vec3{1.0, 0.0, 0.0}, Vec3{0.0, 1.0, 0.0},
+    Vec3{0.0, 1.0, 0.0}, Vec3{0.0, 0.0, 1.0}, Vec3{1.0, 0.0, 0.0}};
+  std::vector<PointToPlaneFactor> planes;
+  for (std::size_t index = 0; index < points.size(); ++index) {
+    planes.push_back({points[index], truth_position + points[index], normals[index]});
+  }
+  ASSERT_TRUE(smoother.addLidarFactors(1, {}, planes));
+  ASSERT_TRUE(smoother.optimize());
+  ASSERT_NE(smoother.state(1), nullptr);
+  EXPECT_LT(norm(smoother.state(1)->position_ecef_m - truth_position), 0.02);
+  EXPECT_LT(
+    norm(quaternionLog(smoother.state(1)->orientation_ecef_body)), 0.01);
+  EXPECT_LT(smoother.diagnostics().last_condition_estimate, 1.0e12);
+  EXPECT_TRUE(smoother.diagnostics().last_solve_succeeded);
+}
+
 TEST(FloatFixedLagSmoother, SchurMarginalizationBoundsWindowAndPreservesPrior)
 {
   FloatSmootherConfig config;

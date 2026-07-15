@@ -83,6 +83,20 @@ Eigen::VectorXd inverseNoise(const StateFactorNoise & noise)
   return inverse;
 }
 
+PoseJacobianRow independentPoseJacobian(
+  const PoseJacobianRow & left_pose_jacobian,
+  const Quaternion & orientation_world_body,
+  const Vec3 & point_body)
+{
+  const Vec3 direction_world{
+    left_pose_jacobian[0], left_pose_jacobian[1], left_pose_jacobian[2]};
+  const Vec3 point_offset_world = orientation_world_body.rotate(point_body);
+  const Vec3 rotation = cross(point_offset_world, direction_world);
+  return {
+    direction_world.x, direction_world.y, direction_world.z,
+    rotation.x, rotation.y, rotation.z};
+}
+
 std::optional<Eigen::VectorXd> evaluateImuResidual(
   const EcefState & from,
   const EcefState & to,
@@ -537,9 +551,11 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       if (!evaluation.has_value()) {
         continue;
       }
+      const PoseJacobianRow pose_jacobian = independentPoseJacobian(
+        evaluation->jacobian, pose.rotation, factor.point_lidar);
       Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kStateDimension);
       for (int column = 0; column < 6; ++column) {
-        jacobian(column) = evaluation->jacobian[static_cast<std::size_t>(column)];
+        jacobian(column) = pose_jacobian[static_cast<std::size_t>(column)];
       }
       add_dense_row(
         evaluation->residual, lidar_config_.plane_sigma_m,
@@ -553,10 +569,12 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
         continue;
       }
       for (int row = 0; row < 2; ++row) {
+        const PoseJacobianRow pose_jacobian = independentPoseJacobian(
+          evaluation->jacobian[static_cast<std::size_t>(row)], pose.rotation,
+          factor.point_lidar);
         Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kStateDimension);
         for (int column = 0; column < 6; ++column) {
-          jacobian(column) = evaluation->jacobian[static_cast<std::size_t>(row)]
-            [static_cast<std::size_t>(column)];
+          jacobian(column) = pose_jacobian[static_cast<std::size_t>(column)];
         }
         add_dense_row(
           evaluation->residual[static_cast<std::size_t>(row)],

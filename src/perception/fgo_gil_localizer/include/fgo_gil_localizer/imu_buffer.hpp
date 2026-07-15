@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <vector>
 
 #include "fgo_gil_localizer/math_types.hpp"
 
@@ -44,6 +45,21 @@ struct ImuBufferDiagnostics
   double maximum_observed_gap_s = 0.0;
 };
 
+enum class ImuCoverageResult : std::uint8_t
+{
+  Ready,
+  WaitingForFuture,
+  HistoryUnavailable,
+  InvalidInterval,
+};
+
+struct ImuSegmentSelection
+{
+  ImuCoverageResult result = ImuCoverageResult::WaitingForFuture;
+  std::uint64_t segment_id = 0;
+  std::vector<ImuSample> samples;
+};
+
 class ImuSegmentBuffer
 {
 public:
@@ -64,5 +80,11 @@ private:
   std::deque<ImuSample> samples_;
   ImuBufferDiagnostics diagnostics_;
 };
+
+ImuCoverageResult classifyImuTime(const ImuSegmentBuffer & buffer, double stamp_s);
+ImuSegmentSelection selectImuSegment(
+  const ImuSegmentBuffer & buffer,
+  double start_s,
+  double end_s);
 
 }  // namespace fgo_gil_localizer

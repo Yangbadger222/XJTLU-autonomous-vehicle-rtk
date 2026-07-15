@@ -13,6 +13,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -30,6 +31,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/executors/multi_threaded_executor.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 
 namespace fgo_gil_localizer
@@ -214,7 +216,10 @@ private:
       "calibration.imu_lidar.rotation_wxyz", {1.0, 0.0, 0.0, 0.0});
 
     declare_parameter<int>("buffers.imu_capacity", 8192);
+    declare_parameter<int>("buffers.imu_qos_depth", 512);
     declare_parameter<double>("buffers.maximum_imu_gap_s", 0.05);
+    declare_parameter<int>("buffers.pending_lidar_batches", 16);
+    declare_parameter<double>("buffers.pending_lidar_timeout_s", 0.5);
     declare_parameter<int>("buffers.pending_gnss_epochs", 128);
     declare_parameter<int>("buffers.maximum_ephemerides", 256);
     declare_parameter<double>("imu.acceleration_scale", 9.80665);
@@ -352,6 +357,9 @@ private:
       quaternionParameter("calibration.imu_lidar.rotation_wxyz"),
       vec3Parameter("calibration.imu_lidar.translation_m")};
     pending_gnss_capacity_ = positiveSizeParameter("buffers.pending_gnss_epochs");
+    imu_qos_depth_ = positiveSizeParameter("buffers.imu_qos_depth");
+    pending_lidar_capacity_ = positiveSizeParameter("buffers.pending_lidar_batches");
+    pending_lidar_timeout_s_ = get_parameter("buffers.pending_lidar_timeout_s").as_double();
     maximum_ephemerides_ = positiveSizeParameter("buffers.maximum_ephemerides");
     acceleration_scale_ = get_parameter("imu.acceleration_scale").as_double();
     maximum_gnss_keyframe_offset_s_ =
@@ -453,7 +461,8 @@ private:
       diagnostics_period_s_ <= 0.0 || !std::isfinite(raw_startup_grace_s_) ||
       raw_startup_grace_s_ < 0.0 || !std::isfinite(observation_stale_timeout_s_) ||
       observation_stale_timeout_s_ <= 0.0 ||
-      !std::isfinite(ephemeris_stale_timeout_s_) || ephemeris_stale_timeout_s_ <= 0.0)
+      !std::isfinite(ephemeris_stale_timeout_s_) || ephemeris_stale_timeout_s_ <= 0.0 ||
+      !std::isfinite(pending_lidar_timeout_s_) || pending_lidar_timeout_s_ <= 0.0)
     {
       throw std::invalid_argument("FGO node timing parameters are outside valid bounds");
     }
@@ -471,6 +480,7 @@ private:
     gnss_factor_states_.clear();
     most_recent_gnss_factor_state_.reset();
     last_state_id_.reset();
+    graph_imu_segment_id_.reset();
     fixed_state_.reset();
     path_msg_.poses.clear();
     path_msg_.header.frame_id = ecef_frame_;
@@ -486,6 +496,14 @@ private:
 
   void createInterfaces()
   {
+    imu_callback_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    estimator_callback_group_ =
+      create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions imu_options;
+    imu_options.callback_group = imu_callback_group_;
+    rclcpp::SubscriptionOptions estimator_options;
+    estimator_options.callback_group = estimator_callback_group_;
+
     odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(odometry_topic_, 10);
     fixed_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(fixed_odometry_topic_, 10);
     output_odometry_pub_ = create_publisher<nav_msgs::msg::Odometry>(output_odometry_topic_, 10);
@@ -498,29 +516,36 @@ private:
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(ambiguity_status_topic_, 10);
     performance_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(performance_topic_, 10);
+    auto imu_qos = rclcpp::SensorDataQoS();
+    imu_qos.keep_last(imu_qos_depth_);
     imu_sub_ = create_subscription<sensor_msgs::msg::Imu>(
-      imu_topic_, rclcpp::SensorDataQoS(),
-      std::bind(&FloatFgoNode::onImu, this, std::placeholders::_1));
+      imu_topic_, imu_qos,
+      std::bind(&FloatFgoNode::onImu, this, std::placeholders::_1), imu_options);
     lidar_sub_ = create_subscription<fgo_gil_msgs::msg::LidarConstraintBatch>(
       lidar_constraints_topic_, 10,
-      std::bind(&FloatFgoNode::onLidarConstraints, this, std::placeholders::_1));
+      std::bind(&FloatFgoNode::onLidarConstraints, this, std::placeholders::_1),
+      estimator_options);
     gnss_sub_ = create_subscription<gnss_raw_msgs::msg::ObservationEpoch>(
       gnss_epoch_topic_, 50,
-      std::bind(&FloatFgoNode::onGnssEpoch, this, std::placeholders::_1));
+      std::bind(&FloatFgoNode::onGnssEpoch, this, std::placeholders::_1), estimator_options);
     ephemeris_sub_ = create_subscription<gnss_raw_msgs::msg::Ephemeris>(
       ephemeris_topic_, 50,
-      std::bind(&FloatFgoNode::onEphemeris, this, std::placeholders::_1));
+      std::bind(&FloatFgoNode::onEphemeris, this, std::placeholders::_1), estimator_options);
     time_sync_sub_ = create_subscription<diagnostic_msgs::msg::DiagnosticArray>(
       time_sync_topic_, 10,
-      std::bind(&FloatFgoNode::onTimeSync, this, std::placeholders::_1));
+      std::bind(&FloatFgoNode::onTimeSync, this, std::placeholders::_1), estimator_options);
     diagnostics_timer_ = create_wall_timer(
       std::chrono::duration<double>(diagnostics_period_s_),
-      std::bind(&FloatFgoNode::publishDiagnostics, this));
+      std::bind(&FloatFgoNode::publishDiagnostics, this), estimator_callback_group_);
+    pending_lidar_timer_ = create_wall_timer(
+      std::chrono::milliseconds(5),
+      std::bind(&FloatFgoNode::drainPendingLidar, this), estimator_callback_group_);
   }
 
   void onImu(const sensor_msgs::msg::Imu::SharedPtr message)
   {
-    const ImuBufferResult result = imu_buffer_->add(
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    imu_buffer_->add(
       {
         stampSeconds(message->header.stamp),
         acceleration_scale_ * Vec3{
@@ -528,65 +553,26 @@ private:
           message->linear_acceleration.z},
         {message->angular_velocity.x, message->angular_velocity.y,
           message->angular_velocity.z}});
-    if (result == ImuBufferResult::ResetOnGap ||
-      result == ImuBufferResult::ResetOnTimeReversal)
-    {
-      estimator_state_ = "IMU_SEGMENT_RESET";
-    }
   }
 
-  std::optional<ImuSample> interpolateImu(const double stamp_s) const
+  std::pair<ImuCoverageResult, std::uint64_t> imuCoverage(const double stamp_s) const
   {
-    const auto & samples = imu_buffer_->samples();
-    if (samples.empty() || stamp_s < samples.front().stamp_s || stamp_s > samples.back().stamp_s) {
-      return std::nullopt;
-    }
-    const auto after = std::lower_bound(
-      samples.begin(), samples.end(), stamp_s,
-      [](const ImuSample & sample, const double value) {return sample.stamp_s < value;});
-    if (after == samples.end()) {
-      return samples.back();
-    }
-    if (after->stamp_s == stamp_s || after == samples.begin()) {
-      ImuSample output = *after;
-      output.stamp_s = stamp_s;
-      return output;
-    }
-    const auto before = std::prev(after);
-    const double duration = after->stamp_s - before->stamp_s;
-    if (duration <= 0.0) {
-      return std::nullopt;
-    }
-    const double ratio = (stamp_s - before->stamp_s) / duration;
-    return ImuSample{
-      stamp_s,
-      before->acceleration_m_s2 +
-      ratio * (after->acceleration_m_s2 - before->acceleration_m_s2),
-      before->angular_velocity_rad_s +
-      ratio * (after->angular_velocity_rad_s - before->angular_velocity_rad_s)};
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    return {classifyImuTime(*imu_buffer_, stamp_s), imu_buffer_->diagnostics().segment_id};
   }
 
-  std::optional<std::vector<ImuSample>> imuSegment(
+  ImuSegmentSelection imuSegment(
     const double start_s,
     const double end_s) const
   {
-    if (!std::isfinite(start_s) || !std::isfinite(end_s) || end_s <= start_s) {
-      return std::nullopt;
-    }
-    const auto start = interpolateImu(start_s);
-    const auto end = interpolateImu(end_s);
-    if (!start.has_value() || !end.has_value()) {
-      return std::nullopt;
-    }
-    std::vector<ImuSample> output;
-    output.push_back(*start);
-    for (const auto & sample : imu_buffer_->samples()) {
-      if (sample.stamp_s > start_s && sample.stamp_s < end_s) {
-        output.push_back(sample);
-      }
-    }
-    output.push_back(*end);
-    return output;
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    return selectImuSegment(*imu_buffer_, start_s, end_s);
+  }
+
+  ImuBufferDiagnostics imuDiagnostics() const
+  {
+    std::lock_guard<std::mutex> lock(imu_mutex_);
+    return imu_buffer_->diagnostics();
   }
 
   bool timeSyncReady() const
@@ -835,14 +821,70 @@ private:
     return true;
   }
 
+  enum class LidarBatchResult : std::uint8_t
+  {
+    Consumed,
+    WaitingForImu,
+  };
+
+  struct PendingLidarBatch
+  {
+    fgo_gil_msgs::msg::LidarConstraintBatch::SharedPtr message;
+    std::chrono::steady_clock::time_point received;
+    bool wait_reported = false;
+  };
+
   void onLidarConstraints(const fgo_gil_msgs::msg::LidarConstraintBatch::SharedPtr message)
   {
     if (!message->keyframe) {
       return;
     }
+    if (pending_lidar_.size() >= pending_lidar_capacity_) {
+      pending_lidar_.pop_front();
+      ++dropped_pending_lidar_capacity_;
+    }
+    pending_lidar_.push_back({message, std::chrono::steady_clock::now(), false});
+    drainPendingLidar();
+  }
+
+  void drainPendingLidar()
+  {
+    while (!pending_lidar_.empty()) {
+      PendingLidarBatch & pending = pending_lidar_.front();
+      const double age_s = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - pending.received).count();
+      if (age_s > pending_lidar_timeout_s_) {
+        pending_lidar_.pop_front();
+        ++dropped_pending_lidar_timeout_;
+        continue;
+      }
+      const LidarBatchResult result = processLidarConstraints(pending.message);
+      if (result == LidarBatchResult::WaitingForImu) {
+        if (!pending.wait_reported) {
+          pending.wait_reported = true;
+          ++lidar_batches_without_imu_;
+        }
+        return;
+      }
+      pending_lidar_.pop_front();
+      return;
+    }
+  }
+
+  void resetGraphForImuSegment()
+  {
+    resetGraph();
+    pending_gnss_.clear();
+    ++imu_graph_reseeds_;
+    estimator_state_ = "IMU_SEGMENT_RESEEDED";
+  }
+
+  LidarBatchResult processLidarConstraints(
+    const fgo_gil_msgs::msg::LidarConstraintBatch::SharedPtr & message)
+  {
     if (!ecef_world_calibrated_) {
       estimator_state_ = "WAITING_FOR_CALIBRATION";
-      return;
+      return LidarBatchResult::Consumed;
     }
     if (active_frontend_epoch_.has_value() && *active_frontend_epoch_ != message->frontend_epoch) {
       resetGraph();
@@ -853,8 +895,65 @@ private:
     const RigidPose world_lidar = pose(message->initial_pose_world_lidar);
     if (!std::isfinite(stamp_s) || !finite(world_lidar)) {
       ++invalid_lidar_batches_;
-      return;
+      return LidarBatchResult::Consumed;
     }
+
+    std::optional<std::vector<ImuSample>> imu_samples;
+    while (true) {
+      if (!last_state_id_.has_value()) {
+        const auto coverage = imuCoverage(stamp_s);
+        if (graph_imu_segment_id_.has_value() &&
+          *graph_imu_segment_id_ != coverage.second)
+        {
+          resetGraphForImuSegment();
+          continue;
+        }
+        if (coverage.first == ImuCoverageResult::WaitingForFuture) {
+          estimator_state_ = "WAITING_FOR_IMU_COVERAGE";
+          return LidarBatchResult::WaitingForImu;
+        }
+        if (coverage.first == ImuCoverageResult::HistoryUnavailable) {
+          ++dropped_lidar_history_unavailable_;
+          estimator_state_ = "IMU_HISTORY_UNAVAILABLE";
+          return LidarBatchResult::Consumed;
+        }
+        if (coverage.first == ImuCoverageResult::InvalidInterval) {
+          ++invalid_lidar_batches_;
+          return LidarBatchResult::Consumed;
+        }
+        graph_imu_segment_id_ = coverage.second;
+        break;
+      }
+
+      const EcefState * previous = smoother_->state(*last_state_id_);
+      if (previous == nullptr) {
+        resetGraphForImuSegment();
+        continue;
+      }
+      ImuSegmentSelection selection = imuSegment(previous->stamp_s, stamp_s);
+      if (graph_imu_segment_id_.has_value() &&
+        *graph_imu_segment_id_ != selection.segment_id)
+      {
+        resetGraphForImuSegment();
+        continue;
+      }
+      if (selection.result == ImuCoverageResult::WaitingForFuture) {
+        estimator_state_ = "WAITING_FOR_IMU_COVERAGE";
+        return LidarBatchResult::WaitingForImu;
+      }
+      if (selection.result == ImuCoverageResult::HistoryUnavailable) {
+        resetGraphForImuSegment();
+        continue;
+      }
+      if (selection.result == ImuCoverageResult::InvalidInterval) {
+        ++invalid_lidar_batches_;
+        return LidarBatchResult::Consumed;
+      }
+      graph_imu_segment_id_ = selection.segment_id;
+      imu_samples = std::move(selection.samples);
+      break;
+    }
+
     const RigidPose ecef_lidar = compose(ecef_world_, world_lidar);
     const RigidPose ecef_imu = compose(ecef_lidar, inverse(imu_lidar_));
     EcefState initial;
@@ -870,35 +969,21 @@ private:
       }
     }
     const StateId state_id = next_state_id_++;
-    std::optional<std::vector<ImuSample>> imu_samples;
-    if (last_state_id_.has_value()) {
-      const EcefState * previous = smoother_->state(*last_state_id_);
-      if (previous == nullptr) {
-        resetGraph();
-        return;
-      }
-      imu_samples = imuSegment(previous->stamp_s, stamp_s);
-      if (!imu_samples.has_value()) {
-        estimator_state_ = "WAITING_FOR_CONTINUOUS_IMU";
-        ++lidar_batches_without_imu_;
-        return;
-      }
-    }
     if (!smoother_->addState(state_id, initial)) {
       ++invalid_lidar_batches_;
-      return;
+      return LidarBatchResult::Consumed;
     }
     if (!last_state_id_.has_value()) {
       if (!smoother_->addStatePrior(state_id, initial, prior_noise_)) {
         resetGraph();
-        return;
+        return LidarBatchResult::Consumed;
       }
     } else if (!smoother_->addImuFactor(
         *last_state_id_, state_id, *imu_samples, imu_factor_config_))
     {
       resetGraph();
       estimator_state_ = "IMU_FACTOR_REJECTED";
-      return;
+      return LidarBatchResult::Consumed;
     }
 
     std::vector<PointToLineFactor> lines;
@@ -920,7 +1005,7 @@ private:
     if (!message->initialization_keyframe && !lines.empty() && !planes.empty()) {
       if (!smoother_->addLidarFactors(state_id, lines, planes, imu_lidar_)) {
         resetGraph();
-        return;
+        return LidarBatchResult::Consumed;
       }
     }
     last_state_id_ = state_id;
@@ -931,9 +1016,11 @@ private:
       smoother_->recordGnssOutage();
     }
     if (!optimizeGraph()) {
-      estimator_state_ = "OPTIMIZATION_FAILED";
       ++optimization_failures_;
-      return;
+      resetGraph();
+      pending_gnss_.clear();
+      estimator_state_ = "OPTIMIZATION_FAILED_RESET";
+      return LidarBatchResult::Consumed;
     }
     pruneStateBookkeeping();
     if (base_ecef_calibrated_) {
@@ -946,6 +1033,7 @@ private:
     }
     ++lidar_keyframes_;
     publishOdometry();
+    return LidarBatchResult::Consumed;
   }
 
   void updateIntegerSolution()
@@ -1218,11 +1306,22 @@ private:
     status.values.push_back(numericKeyValue("gnss_rejected_epochs", gnss_rejected_epochs_));
     status.values.push_back(numericKeyValue("optimization_failures", optimization_failures_));
     status.values.push_back(numericKeyValue("graph_resets", graph_resets_));
+    status.values.push_back(numericKeyValue("imu_graph_reseeds", imu_graph_reseeds_));
+    status.values.push_back(
+      numericKeyValue("lidar_batches_waiting_for_imu", lidar_batches_without_imu_));
+    status.values.push_back(
+      numericKeyValue("pending_lidar_batches", pending_lidar_.size()));
+    status.values.push_back(
+      numericKeyValue("dropped_pending_lidar_timeout", dropped_pending_lidar_timeout_));
+    status.values.push_back(
+      numericKeyValue("dropped_pending_lidar_capacity", dropped_pending_lidar_capacity_));
+    status.values.push_back(
+      numericKeyValue("dropped_lidar_history_unavailable", dropped_lidar_history_unavailable_));
     status.values.push_back(numericKeyValue("output_age_s", output_age_s));
     status.values.push_back(numericKeyValue("output_stamp_age_s", output_stamp_age_s));
     status.values.push_back(
       keyValue("shadow_only", (!publish_tf_ && !nav2_use_fgo_) ? "true" : "false"));
-    const auto & imu = imu_buffer_->diagnostics();
+    const ImuBufferDiagnostics imu = imuDiagnostics();
     status.values.push_back(numericKeyValue("imu_segment_id", imu.segment_id));
     status.values.push_back(numericKeyValue("imu_gaps", imu.gaps));
     status.values.push_back(numericKeyValue("imu_time_reversals", imu.time_reversals));
@@ -1357,6 +1456,8 @@ private:
   Vec3 base_ecef_m_;
   Vec3 master_in_imu_m_;
   std::size_t pending_gnss_capacity_ = 128;
+  std::size_t imu_qos_depth_ = 512;
+  std::size_t pending_lidar_capacity_ = 16;
   std::size_t maximum_ephemerides_ = 256;
   std::size_t maximum_path_poses_ = 2000;
   double acceleration_scale_ = 9.80665;
@@ -1367,6 +1468,7 @@ private:
   double raw_startup_grace_s_ = 5.0;
   double observation_stale_timeout_s_ = 2.0;
   double ephemeris_stale_timeout_s_ = 300.0;
+  double pending_lidar_timeout_s_ = 0.5;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
   FloatSmootherConfig smoother_config_;
@@ -1383,15 +1485,18 @@ private:
   std::unique_ptr<SatellitePropagator> satellite_propagator_;
   std::unique_ptr<IntegerAmbiguityResolver> integer_resolver_;
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
+  mutable std::mutex imu_mutex_;
   std::map<SatelliteId, BroadcastEphemeris> ephemerides_;
   std::deque<SatelliteId> ephemeris_order_;
   std::deque<AlignedGnssEpochs> pending_gnss_;
+  std::deque<PendingLidarBatch> pending_lidar_;
   std::map<StateId, double> state_gnss_seconds_;
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
   std::optional<StateId> most_recent_gnss_factor_state_;
   std::optional<EcefState> fixed_state_;
   std::optional<std::uint64_t> active_frontend_epoch_;
+  std::optional<std::uint64_t> graph_imu_segment_id_;
   StateId next_state_id_ = 1;
   std::string estimator_state_ = "WAITING_FOR_INPUT";
   std::string solution_status_ = "FLOAT";
@@ -1425,6 +1530,10 @@ private:
   std::uint64_t graph_resets_ = 0;
   std::uint64_t lidar_keyframes_ = 0;
   std::uint64_t lidar_batches_without_imu_ = 0;
+  std::uint64_t imu_graph_reseeds_ = 0;
+  std::uint64_t dropped_pending_lidar_timeout_ = 0;
+  std::uint64_t dropped_pending_lidar_capacity_ = 0;
+  std::uint64_t dropped_lidar_history_unavailable_ = 0;
   std::uint64_t invalid_lidar_batches_ = 0;
   std::uint64_t aligned_gnss_epochs_ = 0;
   std::uint64_t invalid_gnss_epochs_ = 0;
@@ -1456,6 +1565,9 @@ private:
   rclcpp::Subscription<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_sub_;
   rclcpp::Subscription<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr time_sync_sub_;
   rclcpp::TimerBase::SharedPtr diagnostics_timer_;
+  rclcpp::TimerBase::SharedPtr pending_lidar_timer_;
+  rclcpp::CallbackGroup::SharedPtr imu_callback_group_;
+  rclcpp::CallbackGroup::SharedPtr estimator_callback_group_;
 };
 
 }  // namespace fgo_gil_localizer
@@ -1464,7 +1576,10 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   try {
-    rclcpp::spin(std::make_shared<fgo_gil_localizer::FloatFgoNode>());
+    auto node = std::make_shared<fgo_gil_localizer::FloatFgoNode>();
+    rclcpp::executors::MultiThreadedExecutor executor(rclcpp::ExecutorOptions(), 2U);
+    executor.add_node(node);
+    executor.spin();
   } catch (const std::exception & error) {
     RCLCPP_FATAL(rclcpp::get_logger("fgo_gil_float_fgo"), "Node failed: %s", error.what());
     rclcpp::shutdown();

@@ -164,7 +164,12 @@ fgo_gil_float_fgo:
 
     buffers:
       imu_capacity: 8192
+      # Keep enough DDS history for scheduling jitter while the optimizer runs.
+      # IMU ingestion itself runs in a separate callback group.
+      imu_qos_depth: 512
       maximum_imu_gap_s: 0.05
+      pending_lidar_batches: 16
+      pending_lidar_timeout_s: 0.5
       pending_gnss_epochs: 128
       maximum_ephemerides: 256
 

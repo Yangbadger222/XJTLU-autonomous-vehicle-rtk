@@ -6,7 +6,6 @@
 
 #include "fgo_gil_localizer/gnss_time.hpp"
 #include "fgo_gil_localizer/time_sync.hpp"
-#include "gnss_raw_msgs/msg/observation_epoch.hpp"
 
 namespace fgo_gil_localizer
 {
@@ -108,8 +107,8 @@ TEST(GnssTimeTracker, RejectsInvalidWeekAndTow)
 
 TEST(GnssTimeTracker, InterleavedBaseEpochsDoNotResetMasterClockTracking)
 {
-  using ObservationEpoch = gnss_raw_msgs::msg::ObservationEpoch;
-  static_assert(kGnssClockReferenceReceiver == ObservationEpoch::RECEIVER_MASTER);
+  constexpr std::uint8_t secondary_receiver = 2U;
+  constexpr std::uint8_t base_receiver = 3U;
 
   GnssTimeTracker tracker;
   TimeSyncEstimator estimator;
@@ -137,11 +136,11 @@ TEST(GnssTimeTracker, InterleavedBaseEpochsDoNotResetMasterClockTracking)
       const std::uint32_t master_tow_ms = start_tow_ms + second * 1000U + tenth * 100U;
       last_master_reception_s = 1000.0 + static_cast<double>(second) +
         static_cast<double>(tenth) * 0.1;
-      consume(ObservationEpoch::RECEIVER_MASTER, master_tow_ms, last_master_reception_s);
-      consume(ObservationEpoch::RECEIVER_SECONDARY, master_tow_ms, last_master_reception_s + 0.001);
+      consume(kGnssClockReferenceReceiver, master_tow_ms, last_master_reception_s);
+      consume(secondary_receiver, master_tow_ms, last_master_reception_s + 0.001);
       if (tenth == 2U) {
         consume(
-          ObservationEpoch::RECEIVER_BASE, start_tow_ms + second * 1000U,
+          base_receiver, start_tow_ms + second * 1000U,
           last_master_reception_s + 0.002);
       }
     }

@@ -193,6 +193,8 @@ private:
 
   void onGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr message)
   {
+    static_assert(
+      kGnssClockReferenceReceiver == gnss_raw_msgs::msg::ObservationEpoch::RECEIVER_MASTER);
     if (!isGnssClockReferenceReceiver(message->receiver)) {
       return;
     }

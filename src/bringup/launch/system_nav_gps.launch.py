@@ -194,7 +194,7 @@ def generate_launch_description():
     )
     enable_fgo_shadow_arg = DeclareLaunchArgument(
         "enable_fgo_shadow",
-        default_value=os.environ.get("FYP_NAV_GPS_ENABLE_FGO_SHADOW", "true"),
+        default_value=os.environ.get("FYP_NAV_GPS_ENABLE_FGO_SHADOW", "false"),
         description="Start RTK FGO in shadow mode for nav-gps rosbag evidence",
     )
 

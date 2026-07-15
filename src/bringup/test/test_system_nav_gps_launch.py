@@ -68,6 +68,7 @@ def test_nav_gps_keeps_fgo_shadow_side_effect_free():
 
     assert "enable_fgo_shadow_arg" in text
     assert "FYP_NAV_GPS_ENABLE_FGO_SHADOW" in text
+    assert 'os.environ.get("FYP_NAV_GPS_ENABLE_FGO_SHADOW", "false")' in text
     assert "rtk_fgo_localizer" in text
     assert "rtk_fgo_node" in text
     assert '"publish_tf": False' in text

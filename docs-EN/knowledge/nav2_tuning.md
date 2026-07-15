@@ -168,7 +168,7 @@ Localization semantics:
 5. Corridor forces `general_goal_checker.stateful=false` in its generated Nav2 params; this prevents a previous "reached goal" latch from making later far-away RTK subgoals succeed immediately.
 6. `nav2_gps.yaml` remains as the old GPS MVP profile; the current RTK `nav-gps` vehicle entry point reuses the corridor RTK MPPI profile, while `nav2_travel.yaml` remains independent of Explore/Corridor/nav-gps.
 7. FAST-LIO2 published point cloud is now height-filtered at the C++ level with window `[-0.33, 0.30]` (commit `f619fa6`); downstream STVL receives clean data.
-8. Corridor and nav-gps start the RTK FGO shadow node by default with `publish_tf=false` and `nav2_use_fgo=false`, so it does not own `map->odom` or feed Nav2; lean rosbags record RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, status, goals, costmaps, `/cmd_vel`, and `/plan`. Use `FYP_CORRIDOR_BAG_PROFILE=debug` or `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw `/livox/lidar`, `/fastlio2/body_cloud`, or `/fastlio2/body_cloud_nav2_obstacles` replay is needed; the raw profile can starve Nav2 / FAST-LIO2 on the Jetson during acceptance runs.
+8. Corridor starts RTK FGO shadow by default; the `nav-gps` vehicle entry point disables it unless `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`. Shadow always uses `publish_tf=false` and `nav2_use_fgo=false`, so it cannot own `map->odom` or feed Nav2. Lean rosbags record RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, TF, status, goals, costmaps, `/cmd_vel`, and `/plan`; `/rtk_fgo/*` is populated when shadow is enabled. Use a debug profile only for raw point-cloud replay; raw recording or concurrent shadow can starve Nav2 / FAST-LIO2 during vehicle acceptance.
 
 ## 8. Waypoint System
 

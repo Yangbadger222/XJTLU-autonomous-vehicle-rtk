@@ -981,7 +981,7 @@ def test_correction_release_accepts_logical_lio_age_at_ros_epoch_scale():
     assert result.reason is None
 
 
-def test_correction_release_duplicate_lio_stamp_is_ignored_and_frozen():
+def test_correction_release_duplicate_fresh_lio_keeps_normal_motion_authority():
     state = CorrectionReleaseState()
     previous = _pose()
     _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
@@ -997,7 +997,7 @@ def test_correction_release_duplicate_lio_stamp_is_ignored_and_frozen():
     assert result.output_map_odom == previous
     assert result.mode is CorrectionReleaseMode.NORMAL
     assert result.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
-    assert result.motion_allowed is False
+    assert result.motion_allowed is True
 
 
 def test_correction_release_duplicate_preserves_backlog_mode():
@@ -1023,6 +1023,7 @@ def test_correction_release_duplicate_preserves_backlog_mode():
 
     assert duplicate.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
     assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert duplicate.motion_allowed is False
 
 
 def test_correction_release_stale_age_takes_precedence_over_duplicate_stamp():

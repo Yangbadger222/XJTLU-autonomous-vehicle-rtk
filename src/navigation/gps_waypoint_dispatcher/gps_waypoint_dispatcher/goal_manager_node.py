@@ -320,6 +320,18 @@ class GPSGoalManager(Node):
 
     def _accept_request(self, label: str, goal_xy: tuple[float, float]) -> None:
         if self.busy:
+            same_request = (
+                self.current_target_label == label
+                and self.requested_goal_xy is not None
+                and math.hypot(
+                    goal_xy[0] - self.requested_goal_xy[0],
+                    goal_xy[1] - self.requested_goal_xy[1],
+                )
+                <= 1e-3
+            )
+            if same_request:
+                self.get_logger().debug(f"Ignoring duplicate goal request: {label}")
+                return
             self._publish_status("REJECTED", "manager_busy")
             return
         if self.require_nav_ready and self.system_status != "NAV_READY":

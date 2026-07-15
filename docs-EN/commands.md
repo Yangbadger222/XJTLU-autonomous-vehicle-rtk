@@ -543,7 +543,7 @@ Runtime notes:
 - `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
 - `nav-gps` also uses `/cmd_vel_nav -> guard -> /cmd_vel`; authority loss cancels the active path and stops, and continuous recovery replans A* from the current pose.
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
-- The RTK FGO shadow node starts with `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false` to disable shadow mode.
+- The `nav-gps` vehicle entry point disables RTK FGO shadow by default so it does not compete with FAST-LIO2/Nav2 for Jetson CPU. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` only for shadow evidence; it still forces `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract.
 - The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, GPS/goal status, costmaps, `/cmd_vel`, and `/plan`; use `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw point-cloud replay is needed.
 - On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 

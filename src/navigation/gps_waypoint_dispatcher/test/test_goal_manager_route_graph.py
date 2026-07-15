@@ -43,6 +43,13 @@ def test_goal_manager_holds_and_replans_on_authority_loss():
     assert "goal_handle.cancel_goal_async()" in text
 
 
+def test_goal_manager_ignores_reliable_republish_of_the_active_goal():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert "same_request = (" in text
+    assert 'self.get_logger().debug(f"Ignoring duplicate goal request: {label}")' in text
+
+
 def test_nav_gps_menu_waits_for_authority_agnostic_motion_permission():
     text = NAV_GPS_MENU.read_text(encoding="utf-8")
 

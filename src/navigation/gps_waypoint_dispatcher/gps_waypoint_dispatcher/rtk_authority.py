@@ -899,6 +899,7 @@ class CorrectionReleaseState:
             )
 
         if self._last_lio_stamp_s is not None and lio_stamp_s == self._last_lio_stamp_s:
+            active_mode = self._active_mode()
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -906,7 +907,10 @@ class CorrectionReleaseState:
                 CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM,
                 gap_m,
                 gap_yaw_rad,
-                mode=self._active_mode(),
+                mode=active_mode,
+                motion_allowed=(
+                    gates_locked and active_mode is CorrectionReleaseMode.NORMAL
+                ),
             )
 
         self._last_lio_stamp_s = lio_stamp_s
@@ -1228,6 +1232,7 @@ class CorrectionReleaseState:
         gap_yaw_rad: float,
         *,
         mode: CorrectionReleaseMode = CorrectionReleaseMode.NORMAL,
+        motion_allowed: bool = False,
         stopped_duration_s: float = 0.0,
     ) -> CorrectionReleaseResult:
         return CorrectionReleaseResult(
@@ -1236,7 +1241,7 @@ class CorrectionReleaseState:
             target_map_base=target_map_base,
             mode=mode,
             reason=reason,
-            motion_allowed=False,
+            motion_allowed=motion_allowed,
             dt_s=0.0,
             translation_gap_m=gap_m,
             yaw_gap_rad=gap_yaw_rad,

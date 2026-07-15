@@ -544,7 +544,7 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
-- 默认会启动 RTK FGO shadow node，但固定 `publish_tf=false`、`nav2_use_fgo=false`；未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。如需关闭 shadow 可设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false`。
+- `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
 - 默认 lean bag 记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、GPS/goal 状态、costmap、`/cmd_vel` 和 `/plan`；需要原始点云回放时再设置 `FYP_NAV_GPS_BAG_PROFILE=debug`。
 - 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 

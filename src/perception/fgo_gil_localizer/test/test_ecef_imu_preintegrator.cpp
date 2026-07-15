@@ -100,11 +100,14 @@ TEST(EcefImuPreintegrator, NominalOnlyModeMatchesTrackedNominalState)
     EXPECT_EQ(tracked.integrate(sample), nominal_only.integrate(sample));
   }
   EXPECT_LT(norm(tracked.state().position_ecef_m - nominal_only.state().position_ecef_m), 1.0e-12);
-  EXPECT_LT(norm(tracked.state().velocity_ecef_m_s - nominal_only.state().velocity_ecef_m_s), 1.0e-12);
   EXPECT_LT(
-    norm(quaternionLog(
-      tracked.state().orientation_ecef_body *
-      nominal_only.state().orientation_ecef_body.conjugate())),
+    norm(
+      tracked.state().velocity_ecef_m_s - nominal_only.state().velocity_ecef_m_s), 1.0e-12);
+  EXPECT_LT(
+    norm(
+      quaternionLog(
+        tracked.state().orientation_ecef_body *
+        nominal_only.state().orientation_ecef_body.conjugate())),
     1.0e-12);
   const BiasJacobian disabled = nominal_only.biasJacobian();
   for (const double value : disabled) {

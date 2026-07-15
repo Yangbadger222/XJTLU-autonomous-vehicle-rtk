@@ -371,6 +371,14 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 2026-07-15 Jetson 算法链 smoke 和 921600 单串口 mixed 采集已完成。首个 287 s raw bag 在独立 x86 ROS 2 主机回放时发现：master/secondary 10 Hz 与 base 1 Hz 的正常交错产生 288 次 `secondary -> base` 的 200--300 ms TOW 回退，旧时间节点把三路 receiver 共用一个 `GnssTimeTracker`，因此几乎每秒误 reset 一次。时间映射现在只接受 master receiver；secondary/base 仍完整进入 GNSS 双差，不参与接收机时钟拟合。交错回归测试冻结该行为，不通过放宽同步门限掩盖问题。同一 bag 修复后回放在实际播放期间连续记录 287 次 `COARSE_NO_PPS`，处理 2795/2867 帧 LiDAR（97.5%），pending 丢帧降至 71，并产生 1259 个有效约束和 200 个 keyframe batch，确认时间同步阻塞已解除。该 bag 仍只有 4 条星历，且 ECEF/world 与 CORS base ECEF 未标定，因此尚不构成 float/fixed 验收。现有 `/dev/pps0` 的 source 名称为 `ktimer`，只是虚拟测试时钟，禁止将其标记为 GNSS `PPS_LOCKED`；早期 shadow 继续使用带 20 ms 不确定度下限的 `COARSE_NO_PPS`。
 
+2026-07-16 对同一 bag 的进一步干净回放发现并修复两个独立的软件问题。首先，LiDAR 旋转 Jacobian 曾使用约 6378 km 的绝对 ECEF 点，而 smoother 的位置和姿态是分离扰动，导致条件数达到 `1.86e18`；现在 Jacobian 只使用旋转后的 body-frame 点，并有 Earth-radius 回归测试。其次，单线程 executor 在优化期间阻塞 IMU/raw 回调；现在 IMU、raw 输入和 estimator 使用独立 callback group，节点使用三线程 executor、有界待处理队列，并在 IMU 历史不可用或优化失败时 fail-closed reset/reseed。raw 历元在关键帧前批量排空，不再为每条 raw 消息重复优化；每关键帧以确定性均匀采样保留最多 48 个 line 和 96 个 plane 因子。重复有限差分只传播 nominal IMU 状态，package 在未指定 build type 时使用 `RelWithDebInfo`。非有限或超过 `1e12` 的图条件估计会拒绝本轮结果并 reset，不能继续发布坏状态。
+
+上述队列和门限是受回放约束的安全默认值：`imu_qos_depth=512` 在约 200 Hz 下保留约 2.56 s；raw DDS depth 为 512，节点内 raw/ephemeris 队列为 1024/64；LiDAR 最多等待 16 批、0.5 s。因子上限只减少同类重复约束，前端几何质量门限不变。不要仅为降低延迟继续缩小门限，后续必须用新的 GNSS-complete bag 做精度/退化对照后再调。
+
+最终的 287 s input-only 回放使用 `scripts/replay_fgo_gil_bag.sh`，明确排除 bag 内旧 `/fgo_gil/*` 输出，避免旧约束和诊断污染当前节点。回放产生 496 个 LiDAR keyframe batch、496 个 float ECEF 输出和 496 个统一 odometry/path 输出；末尾图为 10 个状态、1929 个因子、9.40 s 窗口和 486 次 marginalization，条件估计约 `7.85e4`。优化失败、rollback、数值拒绝、IMU reseed、FGO pending/drop 和 raw queue drop 均为 0。实际播放窗口的 326 个 performance 样本中，优化延迟 mean/p95/max 为 `120.2/141.2/151.2 ms`，有限 output age 的 p95/max 为 `0.744/1.046 s`。输出 bag 有 4364 条消息且 SQLite `integrity_check=ok`。
+
+这仍只是 LiDAR/IMU 软件连续性回归，不是论文算法的定位精度验收。输入只有 4 条 Galileo 星历，`calibration.gnss.base_ecef_calibrated=false`，因此 287 个已对齐 GNSS 历元均未进入 GNSS 融合，稳定阶段状态为 `LIO_ONLY_WAITING_BASE`；没有形成 GNSS code/carrier factor，也不能计算有意义的 ECEF APE/RPE 或 fixing rate。FGO 继续保持 shadow-only，不发布生产 TF，不影响 FAST-LIO2/Nav2。
+
 统一 `/fgo_gil/odom` 优先选用当前历元已验证 fixed candidate，否则使用 float，并同步发布有界 ECEF path。factor diagnostics 分层输出 IMU、LiDAR line/plane、GNSS code/carrier 数量、residual RMS、DD reject reason、arc reset 和 optimizer rollback；ambiguity/timing/performance 分别输出整数状态、时钟状态、窗口/延迟/实时因子、stale/non-finite 与 control ownership。raw observation 使用 2 s stale 阈值，低频 broadcast ephemeris 使用独立 300 s 阈值，避免把正常星历刷新周期误判为断流。
 
 `evaluate_fgo_gil_bag.py` 先按时间匹配 FGO 与 FAST-LIO comparator，再做无尺度 SE(3) 刚体对齐，避免直接相减 ECEF 与局部坐标；outage 只使用 50 ms 内一对一匹配的 master/base 历元，单边 raw 流标记为 `RAW_GNSS_INCOMPLETE`。结果包含 APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF 和 `tegrastats` CPU/RAM。metadata-only 模式不依赖 ROS 解码；raw topic 缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。

@@ -800,8 +800,10 @@ bash scripts/launch_with_logs.sh fgo-gil-shadow \
   use_sim_time:=true start_livox:=false start_fastlio:=false \
   start_um982_driver:=false record_bag:=false
 
-ros2 bag play <bag目录> --clock
+bash scripts/replay_fgo_gil_bag.sh <bag目录>
 ```
+
+该脚本只播放 FGO 的传感器、FAST-LIO comparator、raw observation/ephemeris 和可选时间参考输入。禁止直接整包 `ros2 bag play`：`full` profile 同时包含旧 `/fgo_gil/*` 输出，整包播放会把旧诊断和约束混入当前节点，产生无效结果。其他 rosbag 播放参数放在 bag 路径之后，例如 `bash scripts/replay_fgo_gil_bag.sh <bag目录> --rate 0.5`。
 
 观察统一解、轨迹和分层诊断：
 

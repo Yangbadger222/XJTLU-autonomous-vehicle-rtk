@@ -7,9 +7,13 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SHADOW_LAUNCH = REPO_ROOT / "src/bringup/launch/system_fgo_gil_shadow.launch.py"
 FLOAT_LAUNCH = REPO_ROOT / "src/bringup/launch/system_fgo_gil_float.launch.py"
 CONFIG_FILE = REPO_ROOT / "src/bringup/config/fgo_gil.yaml"
+LOCALIZER_CMAKE = (
+    REPO_ROOT / "src/perception/fgo_gil_localizer/CMakeLists.txt"
+)
 MAKEFILE = REPO_ROOT / "Makefile"
 LAUNCH_WRAPPER = REPO_ROOT / "scripts/launch_with_logs.sh"
 EVALUATOR = REPO_ROOT / "scripts/evaluate_fgo_gil_bag.py"
+REPLAY_SCRIPT = REPO_ROOT / "scripts/replay_fgo_gil_bag.sh"
 
 
 def test_phase7_shadow_launch_starts_only_the_observation_stack():
@@ -70,6 +74,8 @@ def test_phase7_config_exposes_outputs_and_refuses_control_ownership():
     config = yaml.safe_load(CONFIG_FILE.read_text(encoding="utf-8"))
     time_parameters = config["fgo_gil_time_sync"]["ros__parameters"]
     parameters = config["fgo_gil_float_fgo"]["ros__parameters"]
+    buffers = parameters["buffers"]
+    optimizer = parameters["optimizer"]
 
     assert time_parameters["topics"]["status"] == "/fgo_gil/timing_status"
     assert parameters["topics"]["output_odometry"] == "/fgo_gil/odom"
@@ -79,8 +85,24 @@ def test_phase7_config_exposes_outputs_and_refuses_control_ownership():
     assert parameters["topics"]["performance"] == "/fgo_gil/performance"
     assert parameters["raw_input"]["observation_stale_timeout_s"] == 2.0
     assert parameters["raw_input"]["ephemeris_stale_timeout_s"] == 300.0
+    assert buffers["imu_qos_depth"] == 512
+    assert buffers["raw_input_qos_depth"] == 512
+    assert buffers["pending_lidar_batches"] == 16
+    assert buffers["pending_lidar_timeout_s"] == 0.5
+    assert buffers["pending_raw_epochs"] == 1024
+    assert buffers["pending_ephemerides"] == 64
+    assert optimizer["maximum_condition_estimate"] == 1.0e12
+    assert optimizer["maximum_line_factors_per_keyframe"] == 48
+    assert optimizer["maximum_plane_factors_per_keyframe"] == 96
     assert parameters["output"]["maximum_path_poses"] == 2000
     assert parameters["safety"] == {"publish_tf": False, "nav2_use_fgo": False}
+
+
+def test_phase7_localizer_defaults_to_an_optimized_build():
+    text = LOCALIZER_CMAKE.read_text(encoding="utf-8")
+
+    assert "if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)" in text
+    assert 'set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Build type" FORCE)' in text
 
 
 def test_phase7_make_launch_and_cleanup_cover_the_full_stack():
@@ -130,3 +152,19 @@ def test_phase7_raw_health_is_based_on_valid_messages():
     assert "last_valid_ephemeris_reception_steady_" in text
     assert '"RAW_GNSS_INVALID"' in text
     assert '"RAW_EPHEMERIS_INVALID"' in text
+
+
+def test_phase7_replay_uses_an_input_only_topic_allowlist():
+    text = REPLAY_SCRIPT.read_text(encoding="utf-8")
+
+    for topic in (
+        "/livox/lidar",
+        "/livox/imu",
+        "/fastlio2/lio_odom",
+        "/gnss/raw/observation_epoch",
+        "/gnss/raw/ephemeris",
+        "/gnss/pps/time_reference",
+    ):
+        assert topic in text
+    assert "--clock --topics" in text
+    assert "/fgo_gil/" not in text

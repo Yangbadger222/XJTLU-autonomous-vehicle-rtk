@@ -799,8 +799,10 @@ bash scripts/launch_with_logs.sh fgo-gil-shadow \
   use_sim_time:=true start_livox:=false start_fastlio:=false \
   start_um982_driver:=false record_bag:=false
 
-ros2 bag play <bag-directory> --clock
+bash scripts/replay_fgo_gil_bag.sh <bag-directory>
 ```
+
+The script replays only FGO sensor inputs, the FAST-LIO comparator, raw observations/ephemerides, and optional time references. Do not run an unfiltered `ros2 bag play` on a `full` profile: it also contains old `/fgo_gil/*` outputs, which would mix stale diagnostics and constraints into the current nodes and invalidate the result. Put additional rosbag options after the bag path, for example `bash scripts/replay_fgo_gil_bag.sh <bag-directory> --rate 0.5`.
 
 Inspect the selected solution, path, and layered diagnostics:
 

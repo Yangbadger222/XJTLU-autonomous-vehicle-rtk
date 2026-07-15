@@ -8,6 +8,12 @@ namespace fgo_gil_localizer
 
 constexpr double kGnssWeekSeconds = 604800.0;
 constexpr std::uint32_t kGnssWeekMilliseconds = 604800000U;
+constexpr std::uint8_t kGnssClockReferenceReceiver = 1U;
+
+constexpr bool isGnssClockReferenceReceiver(const std::uint8_t receiver) noexcept
+{
+  return receiver == kGnssClockReferenceReceiver;
+}
 
 enum class GnssTimeResult : std::uint8_t
 {

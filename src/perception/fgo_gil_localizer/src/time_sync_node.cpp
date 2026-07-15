@@ -193,6 +193,9 @@ private:
 
   void onGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr message)
   {
+    if (!isGnssClockReferenceReceiver(message->receiver)) {
+      return;
+    }
     const GnssTimeResult result =
       gnss_time_tracker_->accept(message->week, message->milliseconds_of_week);
     if (result == GnssTimeResult::Invalid || result == GnssTimeResult::Duplicate) {

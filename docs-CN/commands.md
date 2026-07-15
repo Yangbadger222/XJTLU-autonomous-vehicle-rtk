@@ -539,6 +539,7 @@ python3 scripts/nav_gps_menu.py
 运行说明：
 - 修改或导入新的 QGIS/scene 地图后，必须先重新执行 `python3 scripts/build_scene_runtime.py`，让 `master_params_scene.yaml` 写入 scene fixed origin、`rtk_map_odom_corrector` 的 `scene_points_file` 和 `use_scene_identity_alignment=true`。
 - `nav-gps` 不要求车辆在 anchor 附近；goal manager 将当前 pose 和终点投影到最近 graph edge，插入虚拟端点后执行 A*，整条路线只发送一次 `FollowPath`。
+- scene identity 模式在 RTK position/heading gate 首次稳定锁定后直接建立绝对 `map→odom`；因此可从路网任意位置启动，后续更新仍经过 corridor authority 的平滑、跳变和 fault gate。
 - 若 `current_scene/road_keepout.yaml` 存在，local/global costmap 会启用 KeepoutFilter，车辆可在道路面内避障但不能驶出道路面。
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。

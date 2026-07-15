@@ -538,6 +538,7 @@ python3 scripts/nav_gps_menu.py
 Runtime notes:
 - After modifying or importing a new QGIS/scene map, rerun `python3 scripts/build_scene_runtime.py` so `master_params_scene.yaml` records the scene fixed origin plus `rtk_map_odom_corrector`'s `scene_points_file` and `use_scene_identity_alignment=true`.
 - `nav-gps` does not require a nearby anchor. The goal manager projects the current pose and destination onto graph edges, inserts virtual endpoints, runs A*, and sends the whole route as one `FollowPath`.
+- After the RTK position and heading gates first lock, scene-identity mode seeds the absolute `map->odom` directly. This permits startup anywhere near the route network; subsequent updates still pass through corridor-authority smoothing, jump, and fault gates.
 - When `current_scene/road_keepout.yaml` exists, both costmaps enable KeepoutFilter so local avoidance remains inside the QGIS road polygon.
 - `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
 - `nav-gps` also uses `/cmd_vel_nav -> guard -> /cmd_vel`; authority loss cancels the active path and stops, and continuous recovery replans A* from the current pose.

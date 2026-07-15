@@ -8,6 +8,7 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    GroupAction,
     IncludeLaunchDescription,
     LogInfo,
     Shutdown,
@@ -227,6 +228,7 @@ def generate_launch_description():
         ),
         launch_arguments={"params_file": rtk_params_file}.items(),
     )
+    rtk_launch_group = GroupAction(actions=[rtk_launch], scoped=True)
 
     anchor_localizer_node = Node(
         package="gnss_calibration",
@@ -392,7 +394,7 @@ def generate_launch_description():
             road_keepout_arg,
             enable_fgo_shadow_arg,
             explore_launch,
-            rtk_launch,
+            rtk_launch_group,
             road_mask_server,
             road_filter_info_server,
             road_filter_lifecycle_manager,

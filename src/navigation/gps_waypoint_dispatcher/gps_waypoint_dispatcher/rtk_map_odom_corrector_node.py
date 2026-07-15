@@ -739,7 +739,11 @@ class RtkMapOdomCorrector(Node):
             return None
         target = Pose2D(position_target[0], position_target[1], float(heading_target))
         if self._last_output is None:
-            self._last_output = Pose2D(0.0, 0.0, 0.0)
+            self._last_output = (
+                target
+                if self._scene_identity_alignment is not None
+                else Pose2D(0.0, 0.0, 0.0)
+            )
         lio_age_s = max(0.0, self._ros_now_s() - self._latest_lio_stamp_s)
         release = self._release_state.update(
             previous_output_map_odom=self._last_output,

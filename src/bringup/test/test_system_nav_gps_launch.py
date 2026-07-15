@@ -4,6 +4,10 @@ from pathlib import Path
 NAV_GPS_LAUNCH = Path("src/bringup/launch/system_nav_gps.launch.py")
 BUILD_SCENE_RUNTIME = Path("scripts/build_scene_runtime.py")
 LAUNCH_WITH_LOGS = Path("scripts/launch_with_logs.sh")
+RTK_CORRECTOR = Path(
+    "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+    "rtk_map_odom_corrector_node.py"
+)
 
 
 def test_nav_gps_reuses_corridor_rtk_authoritative_stack():
@@ -27,6 +31,7 @@ def test_nav_gps_starts_rtk_map_odom_corrector_from_scene_identity_alignment():
     assert '"scene_points_file": scene_points_file' in text
     assert '"use_scene_identity_alignment": True' in text
     assert '"alignment_topic": "/gps_scene/enu_to_map"' in text
+    assert "GroupAction(actions=[rtk_launch], scoped=True)" in text
     assert '"/localization_authority/mode",' in text
     assert '"/localization_authority/status",' in text
     assert '"/localization_authority/diagnostics",' in text
@@ -79,6 +84,13 @@ def test_scene_runtime_writes_rtk_authority_scene_origin():
     assert '"enu_origin_lat": origin["lat"]' in text
     assert '"enu_origin_lon": origin["lon"]' in text
     assert '"enu_origin_alt": origin["alt"]' in text
+
+
+def test_scene_identity_seeds_first_absolute_map_to_odom_without_fault_release():
+    text = RTK_CORRECTOR.read_text(encoding="utf-8")
+
+    assert "if self._scene_identity_alignment is not None" in text
+    assert "else Pose2D(0.0, 0.0, 0.0)" in text
 
 
 def test_scene_runtime_can_rebuild_from_installed_bundle():

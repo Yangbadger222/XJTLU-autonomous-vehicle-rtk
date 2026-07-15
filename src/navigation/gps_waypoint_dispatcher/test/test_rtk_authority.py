@@ -84,6 +84,35 @@ def _assert_release_poses_finite(result):
         assert all(math.isfinite(value) for value in (pose.x, pose.y, pose.yaw))
 
 
+def test_large_absolute_scene_pose_is_normal_when_used_as_initial_output():
+    state = CorrectionReleaseState()
+    absolute_target = _pose(x=123.0, y=-79.0, yaw=math.radians(81.0))
+
+    bootstrap = _release_update(
+        state,
+        previous=absolute_target,
+        target=absolute_target,
+        local=_pose(),
+    )
+    result = _release_update(
+        state,
+        previous=bootstrap.output_map_odom,
+        target=absolute_target,
+        local=_pose(),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert bootstrap.mode is CorrectionReleaseMode.NORMAL
+    assert bootstrap.reason is CorrectionReleaseReason.BOOTSTRAP
+    assert bootstrap.motion_allowed is False
+    assert result.mode is CorrectionReleaseMode.NORMAL
+    assert result.motion_allowed is True
+    assert result.output_map_odom == absolute_target
+    assert result.translation_gap_m == pytest.approx(0.0)
+    assert result.yaw_gap_rad == pytest.approx(0.0)
+
+
 @pytest.mark.parametrize(
     ("frames", "reason"),
     [

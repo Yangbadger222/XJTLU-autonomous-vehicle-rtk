@@ -97,31 +97,40 @@ scene_gps_bundle.yaml -> build_scene_runtime.py
                        -> current_scene/master_params_scene.yaml
                        -> current_scene/scene_points.yaml
                        -> current_scene/scene_route_graph.geojson
+                       -> current_scene/road_keepout.{yaml,pgm}
 
-GNSS serial -> /fix -> gps_anchor_localizer -> /gnss -----------+
-                       |                    |                   |
-                       |                    +-> /gps_system/*   +-> PGO GPS Factor
+GNSS serial -> /fix + /heading + /rtk/status -------------------+
+                       |                                       |
+                       |                                       v
+                       |                         rtk_map_odom_corrector
+                       |                         scene fixed ENU -> map identity
+                       |                         TF: map -> odom
+                       v
+                gps_anchor_localizer -> /gnss + /gps_system/*
                        |
-                       +-> lock startup anchor + session offset
+                       +-> lock startup anchor for route-selection readiness
 
-scene_points.yaml + route_graph.geojson ------------------------+
-                                                               |
-goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
-            |  reads scene_points.yaml
-            |  checks NAV_READY
-            |  locks startup anchor
-            |  Stage A: navigate_to_pose (when needed)
-            |  Stage B: ComputeRoute(start_id, goal_id)
+goto_name / /goal_pose / /gps_goal
+            -> gps_waypoint_dispatcher
+            |  project current pose and goal onto nearest graph edges
+            |  insert virtual endpoints and run Euclidean-heuristic A*
+            |  produce one continuous NavPath at 0.20m density
             v
-     dense graph path -> FollowPath -> Nav2 -> /cmd_vel
+     FollowPath -> MPPI + obstacle cloud + road keepout
+                -> /cmd_vel_nav -> authority guard -> /cmd_vel
 ```
 
 The core of `nav-gps` is:
-- Current pose uniformly uses `/gnss` published by `gps_anchor_localizer`
-- PGO, localizer, and goal manager all read the same fixed ENU origin
+- `gps_anchor_localizer` still owns anchor matching, `NAV_READY`, and `/gnss` publishing
+- `map -> odom` is no longer published by PGO in this mode; PGO uses the corridor no-TF/no-GPS configuration and remains a point-cloud / optimization side channel only
+- `rtk_map_odom_corrector` reads the scene fixed origin and uses a fixed ENU-to-map identity alignment to compute the RTK-authoritative `map -> odom`
+- Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud instead of the old DWB-based `nav2_gps.yaml` profile
+- the goal manager runs graph A* directly and projects both endpoints onto graph edges; it no longer depends on route-server Dijkstra or a small anchor set
+- the QGIS drivable polygon is compiled into a KeepoutFilter mask; MPPI may avoid obstacles inside the road while remaining blocked outside it
+- when authority drops, the guard immediately zeros motion and the goal manager cancels `FollowPath`; after continuously stable authority returns, it replans from the current pose
 - `scene_gps_bundle.yaml` is the single source of truth
 - At runtime, only compiled artifacts under `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` are read
-- `goto_name` is the main entry point; users input only English destination names
+- named `goto_name`, map-frame `/goal_pose`, and geographic `/gps_goal` destinations are supported
 
 ### 5.3 RTK FGO Tight-Coupled Experimental Mode (Shadow)
 
@@ -133,10 +142,11 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-This mode can be launched standalone with `make launch-tightly-coupled`; `corridor` also starts the same shadow node by default for bag-based evaluation only:
+This mode can be launched standalone with `make launch-tightly-coupled`; `corridor` and `nav-gps` also start the same shadow node by default for bag-based evaluation only:
 - `publish_tf=false` by default; it does not broadcast production `map -> odom`
-- Nav2 is not remapped to FGO output, and existing `corridor`, `explore-gps`, and `nav-gps` modes are not replaced
+- Nav2 is not remapped to FGO output, and the production localization output of `corridor`, `explore-gps`, and `nav-gps` is not replaced
 - Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation
+- when FGO later takes authority, it must be the sole `map -> odom` owner and keep publishing the common `/localization_authority/motion_allowed` contract; A*, MPPI, and the menu do not depend on an RTK-specific mode name
 
 ## 7. TF Chain
 
@@ -144,7 +154,8 @@ This mode can be launched standalone with `make launch-tightly-coupled`; `corrid
 map -> odom -> base_footprint -> base_link
 ```
 
-- In production navigation modes, `map -> odom` is published by PGO, representing global correction offset
+- In Explore / explore-gps production navigation modes, `map -> odom` is published by PGO, representing global correction offset
+- In Corridor and RTK nav-gps modes, PGO disables `publish_tf`; the only production `map -> odom` owner is `rtk_map_odom_corrector`
 - In pure SLAM mapping mode, `map -> odom` is published by SLAM Toolbox; PGO only saves 3D maps and does not publish TF
 - In Travel prior-map mode, `map -> odom` is published by the `localizer` ICP point-cloud relocalizer; after startup PCD preload, `/localizer/relocalize` must succeed before TF broadcasting starts, avoiding unvalidated or stale-stamped TF in Nav2
 - PGO is off by default, or runs only with `publish_tf=false`
@@ -256,7 +267,7 @@ Notes:
 - Livox SDK2
 - GTSAM
 - GeographicLib
-- pyproj
+- pyproj (recommended for exact GPS projection; QGIS scene compilation and nav-gps scene loading have a local-ENU fallback)
 - `ros-humble-geographic-msgs`
 
 
@@ -287,7 +298,7 @@ current_route.yaml
 ```
 
 Differences from the `nav-gps` mode:
-- Does not use scene graph / `route_server`
+- Does not use the scene graph / A* goal manager
 - Does not use `gps_waypoint_dispatcher`'s `goto_name` / menu interaction
 - Does not use runtime `current_scene/` compiled artifacts
 - Uses standalone `gps_global_aligner_node` instead of PGO live handoff

@@ -140,23 +140,24 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - 用途：这是当前用于答辩资源稳定性图和室内无 GPS 全链路验证的代表性 session
 - 远端保存：该 session 的 `system/`、`console/`、`data/` 已保存在 runtime-data Hugging Face 数据仓库远端主分支
 
-## 6. GPS 专用配置（`nav2_gps.yaml`）
+## 6. GPS 路网选点配置（RTK nav-gps）
 
-GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `nav2_gps.yaml`。
+旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
-相对 Explore 配置的最小必要差异：
+- 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
+- 使用 MPPI，保持 `controller_frequency=20Hz`、`failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
+- local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。
+- global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
+- `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
+- goal manager 将当前位置和终点投影到最近 graph edge，插入虚拟端点后执行欧氏启发式 A*；不再调用 route server 的 Dijkstra，也不依赖少数 anchor。
+- QGIS 道路 Polygon 编译为 local/global costmap 的 KeepoutFilter；MPPI 继续使用高窗点云在道路内部避障。
+- `nav-gps` 与 corridor 共用 guarded command 拓扑；authority/stop heartbeat 任一失效都输出零速度，恢复后从当前 pose 重新 A*。
 
-- `general_goal_checker.xy_goal_tolerance = 3.0`
-- `general_goal_checker.yaw_goal_tolerance = 0.5`
-- `GridBased.tolerance = 2.5`
-- `BaseObstacle.scale = 0.02`
-- `GoalAlign.scale = 24.0`
-- `RotateToGoal.scale = 32.0`
-
-调参原则：
-- 低精度 GNSS 环境下放宽 goal tolerance
-- 保持现有 DWB / costmap 主结构不动
-- 不在 GPS MVP 分支中顺手引入 MPPI、VoxelLayer 等更大变更
+定位语义：
+- PGO 关闭 `publish_tf` 和 GPS 因子，不再抢 `map→odom`。
+- `rtk_map_odom_corrector` 使用 scene fixed origin 和 ENU→map identity alignment，成为唯一 `map→odom` owner。
+- `gps_anchor_localizer` 仍负责 `NAV_READY`、最近 anchor 和 `/gnss` 发布；goal manager 支持命名、地图 pose 和经纬度终点。
+- goal manager 不把 `NAV_READY`/anchor 作为硬门槛；统一的 `motion_allowed` heartbeat、当前 TF 与稳定 authority 才是实际起跑条件，因此未来可由 FGO 接管而无需改规划层。
 
 ## 7. 当前运行注意事项（2026-07）
 
@@ -165,16 +166,15 @@ GPS 目标导航模式不直接改 `nav2_explore.yaml`，而是新建独立的 `
 3. Explore 使用 MPPI 主线 baseline；Corridor 启动时从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件来使用 RTK 小步提速、中等原地转头、近场 local costmap、全局/局部代价地图分离与横摆抑制 profile。
 4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.85`；Corridor 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
-6. `nav2_gps.yaml` 与 `nav2_travel.yaml` 均独立于 Explore/Corridor profile。
+6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
-8. Corridor 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 `/rtk/status`、`/fix`、`/heading`、`/fastlio2/lio_odom`、`/livox/imu`、`/odom_CBoar`、`/rtk_fgo/*`、TF、corridor 状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
+8. Corridor 与 nav-gps 默认启动 RTK FGO shadow node，但 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2；rosbag 默认 lean profile 会记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、状态、目标、costmap、`/cmd_vel` 和 `/plan`。只有需要回放原始 `/livox/lidar`、`/fastlio2/body_cloud` 或 `/fastlio2/body_cloud_nav2_obstacles` 时才设置 `FYP_CORRIDOR_BAG_PROFILE=debug` 或 `FYP_NAV_GPS_BAG_PROFILE=debug`；全量原始 profile 在验收跑车时可能让 Jetson 上的 Nav2 / FAST-LIO2 饿死。
 
 ## 8. 航点系统
 
 - `waypoint_collector` 订阅 RViz 的 `/clicked_point`
-- `gps_waypoint_dispatcher` 通过 `FollowWaypoints` 把 GPS 目标交给 Nav2
-- `goto_name` 走路网模式
-- `goto_latlon` 仅做调试直达模式
+- `gps_waypoint_dispatcher` 将整条 A* 路线作为一次 `FollowPath` 交给 Nav2，中间图节点不会停车
+- `goto_name`、`goto_latlon` 和 `/goal_pose` 都先吸附到路网再规划
 ## 2026-07-10 Corridor Authority 收敛链
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。

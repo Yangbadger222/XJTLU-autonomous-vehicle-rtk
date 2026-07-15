@@ -1,13 +1,13 @@
 # GPS Global Navigation and Scene Route Graph
 
-## 1. Current Status (2026-03-27)
+## 1. Current Status (2026-07-15)
 
 GPS navigation currently has two parallel pipelines:
 
-1. **Scene-graph route navigation** (`feature/gps-route-ready-v2` branch)
-   - Uses `scene_gps_bundle.yaml` + `gps_anchor_localizer` + `route_server`
-   - Currently blocked by PGO segfault (known_issues #1)
-   - Software pipeline verified; real-vehicle test not passed
+1. **Scene-graph A* navigation** (`nav-gps`)
+   - Uses `scene_gps_bundle.yaml`, the QGIS road keepout, and the local A* goal manager
+   - Reuses corridor RTK authority, MPPI, obstacle cloud, and guarded command chain
+   - The real QGIS package compiles and passes workstation tests; Jetson build and low-speed vehicle acceptance remain pending
 
 2. **Fixed-launch GPS corridor** (`gps-rpp` branch, current main development line)
    - Uses `collect_gps_route.py` to collect multi-point routes
@@ -48,7 +48,7 @@ These files serve:
 - PGO fixed origin
 - `gps_anchor_localizer`
 - `gps_waypoint_dispatcher`
-- `route_server`
+- `gps_waypoint_dispatcher` local A* and the road KeepoutFilter
 
 ## 3. Localization Pipeline Startup
 
@@ -90,30 +90,30 @@ Key semantics:
 
 ### 4.1 New Role of `gps_waypoint_dispatcher`
 
-The current `gps_waypoint_dispatcher` no longer runs Dijkstra internally, nor does it send `FollowWaypoints`.
+The current `gps_waypoint_dispatcher` runs route-graph A* directly. It no longer calls route-server Dijkstra or sends `FollowWaypoints`.
 
 It now serves as a goal manager, responsible for:
 - Reading English destination names
 - Listing available destinations
-- Checking `NAV_READY`
-- Reading the startup anchor
-- Two-stage action orchestration
+- Accepting `/goal_pose` and `/gps_goal`
+- Projecting the current pose and destination onto nearest graph edges
+- Running Euclidean-heuristic A* between virtual endpoints
+- Canceling on authority hold and replanning from the current pose after recovery
 - `stop`
 
-### 4.2 Two-Stage Actions
+### 4.2 Continuous Path Action
 
-Stage A:
-- If the current `map` pose is more than `2.5m` from the startup anchor
-- First call `navigate_to_pose` to return to that anchor
-
-Stage B:
-- Call `ComputeRoute(start_id=anchor_id, goal_id=dest_id)`
-- Receive the dense path returned by `route_server`
-- Then call `/follow_path`
+- Both endpoints snap to nearest route edges rather than nearest anchors/nodes
+- Goals on one edge connect directly; cross-edge goals use A* for the minimum-length road sequence
+- The polyline is densified at `0.20m` and sent as one `/follow_path`
+- Intermediate graph nodes are path samples, not goal-checker stops
+- Nav2 MPPI tracks and avoids dynamic obstacles inside the QGIS KeepoutFilter road area
 
 Input interfaces:
 - `ros2 run gps_waypoint_dispatcher list_destinations`
 - `ros2 run gps_waypoint_dispatcher goto_name <english_name>`
+- `ros2 run gps_waypoint_dispatcher goto_latlon <lat> <lon>`
+- RViz/Foxglove `/goal_pose`
 - `ros2 run gps_waypoint_dispatcher stop`
 
 ## 5. Route Graph Semantics

@@ -423,6 +423,7 @@ python3 -c "import pyproj; print(pyproj.__version__)"
 说明：
 - 不带参数时默认在 `XJTLU` 和 `Pixel` 之间 toggle
 - 上面这几条就是在 Jetson / Linux 本机直接运行的完整一行命令
+- `pyproj` 仍是推荐依赖；若临时缺失，QGIS scene 编译和 nav-gps scene 读取会退回本地 ENU 近似，不应直接启动失败
 - 脚本在 Jetson 本机执行时会自动切到本地模式；如果当前 shell 是 SSH/Tailscale，会话可能在切网过程中断开
 - 每次切网都会在 Jetson 侧重启 `todeskd`，日志写入 `/tmp/wifi-switch.log`
 
@@ -466,6 +467,25 @@ python3 scripts/collect_gps_scene.py
 python3 scripts/build_scene_runtime.py
 ```
 
+QGIS 路网包导入流程（例如 `~/Desktop/maps/qgis_4_package/3.geojson`）：
+
+```bash
+python3 scripts/compile_qgis_scene.py \
+  --input ~/Desktop/maps/qgis_4_package/3.geojson \
+  --road-area-gpkg ~/Desktop/maps/qgis_4_package/road_wide_all.gpkg \
+  --road-area-layer road_wide \
+  --scene-name qgis_4 \
+  --densify-step-m 5.0 \
+  --road-mask-resolution-m 0.10 \
+  --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
+
+python3 scripts/build_scene_runtime.py
+```
+
+`compile_qgis_scene.py` 会把 `feature_type=route` 的 LineString 转成连通 scene graph，按 5m 最大边长补点，并将 GeoPackage 道路面栅格化为 `road_keepout.yaml/.pgm`。对当前包，生成 `557` 个节点、`558` 条边、12 个 destination，以及约 `5938x3552 @ 0.10m` 的道路 mask；图不连通时编译会拒绝，需先在 QGIS 中 split/snap 路口。
+
+当前 `road_wide_all.gpkg` 是中心线两侧各约 `0.50m`，总宽约 `1.0m`；对导航半径约 `0.386m` 的车辆余量很小。实车启用 keepout 前应按真实道路边界重画，建议至少为定位误差和避障留出额外横向空间。
+
 采集规范：
 - 所有转弯、路口、目的地入口必须踩点
 - 允许系统上电启动的区域附近必须布 `anchor`
@@ -493,15 +513,39 @@ ros2 topic echo /gps_goal_manager/status
 # 发送英文命名目标
 ros2 run gps_waypoint_dispatcher goto_name anchor_a
 
-# 检查 route / local planner action 是否在线
-ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
+# 任意经纬度终点：先吸附到最近路段，再走 A*
+ros2 run gps_waypoint_dispatcher goto_latlon 31.2749432 120.7380295
+
+# RViz/Foxglove 也可直接向 map frame 的 /goal_pose 选点
+ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: map}, pose: {position: {x: 10.0, y: 5.0}, orientation: {w: 1.0}}}"
+
+# 检查 FollowPath 是否在线
+ros2 action list | grep follow_path
+
+# 检查统一 authority 和受保护速度链
+ros2 topic echo /localization_authority/motion_allowed
+ros2 topic echo /gps_nav/stop_override
+ros2 topic echo /cmd_vel_nav
+ros2 topic echo /cmd_vel
 
 # 停止当前任务
 ros2 run gps_waypoint_dispatcher stop
 
-# 一键拉起 nav-gps，等待 NAV_READY，并按编号选择 destination
+# 一键拉起 nav-gps，等待当前 authority 允许运动，并按编号选择 destination
 python3 scripts/nav_gps_menu.py
 ```
+
+运行说明：
+- 修改或导入新的 QGIS/scene 地图后，必须先重新执行 `python3 scripts/build_scene_runtime.py`，让 `master_params_scene.yaml` 写入 scene fixed origin、`rtk_map_odom_corrector` 的 `scene_points_file` 和 `use_scene_identity_alignment=true`。
+- `nav-gps` 不要求车辆在 anchor 附近；goal manager 将当前 pose 和终点投影到最近 graph edge，插入虚拟端点后执行 A*，整条路线只发送一次 `FollowPath`。
+- 若 `current_scene/road_keepout.yaml` 存在，local/global costmap 会启用 KeepoutFilter，车辆可在道路面内避障但不能驶出道路面。
+- `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
+- `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。
+- Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
+- 默认会启动 RTK FGO shadow node，但固定 `publish_tf=false`、`nav2_use_fgo=false`；未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。如需关闭 shadow 可设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false`。
+- 默认 lean bag 记录 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、`/rtk_fgo/*`、TF、GPS/goal 状态、costmap、`/cmd_vel` 和 `/plan`；需要原始点云回放时再设置 `FYP_NAV_GPS_BAG_PROFILE=debug`。
+- 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 
 ## 14. Fixed-Launch GPS Corridor
 

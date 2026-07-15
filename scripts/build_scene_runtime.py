@@ -13,8 +13,15 @@ from datetime import datetime
 import json
 from pathlib import Path
 
-from pyproj import Transformer
 import yaml
+
+try:
+    from pyproj import Transformer
+
+    PYPROJ_AVAILABLE = True
+except ImportError:
+    Transformer = None
+    PYPROJ_AVAILABLE = False
 
 RUNTIME_ROOT = Path.home() / "XJTLU-autonomous-vehicle/runtime-data"
 DEFAULT_BUNDLE = RUNTIME_ROOT / "gnss" / "scene_gps_bundle.yaml"
@@ -25,7 +32,40 @@ SCENE_POINTS_FILE = CURRENT_SCENE_DIR / "scene_points.yaml"
 SCENE_GRAPH_FILE = CURRENT_SCENE_DIR / "scene_route_graph.geojson"
 MASTER_PARAMS_SCENE_FILE = CURRENT_SCENE_DIR / "master_params_scene.yaml"
 SCENE_BUNDLE_COPY = CURRENT_SCENE_DIR / "scene_gps_bundle.yaml"
+ROAD_KEEPOUT_YAML = CURRENT_SCENE_DIR / "road_keepout.yaml"
+ROAD_KEEPOUT_IMAGE = CURRENT_SCENE_DIR / "road_keepout.pgm"
 ENGLISH_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+EARTH_RADIUS_M = 6378137.0
+
+
+class LocalENUProjector:
+    def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float) -> None:
+        self.origin_lat = float(origin_lat)
+        self.origin_lon = float(origin_lon)
+        self.origin_alt = float(origin_alt)
+        self._origin_lat_rad = math.radians(self.origin_lat)
+
+    def transform(
+        self,
+        lon: float,
+        lat: float,
+        alt: float,
+        radians: bool = False,
+    ) -> tuple[float, float, float]:
+        if radians:
+            lon_deg = math.degrees(float(lon))
+            lat_deg = math.degrees(float(lat))
+        else:
+            lon_deg = float(lon)
+            lat_deg = float(lat)
+        x = (
+            math.radians(lon_deg - self.origin_lon)
+            * EARTH_RADIUS_M
+            * math.cos(self._origin_lat_rad)
+        )
+        y = math.radians(lat_deg - self.origin_lat) * EARTH_RADIUS_M
+        z = float(alt) - self.origin_alt
+        return float(x), float(y), float(z)
 
 
 def load_yaml(path: Path) -> dict:
@@ -39,7 +79,10 @@ def save_yaml(path: Path, data: dict) -> None:
         yaml.safe_dump(data, output_file, allow_unicode=True, sort_keys=False)
 
 
-def build_transformer(origin_lat: float, origin_lon: float, origin_alt: float) -> Transformer:
+def build_transformer(origin_lat: float, origin_lon: float, origin_alt: float):
+    if not PYPROJ_AVAILABLE:
+        return LocalENUProjector(origin_lat, origin_lon, origin_alt)
+
     pipeline = (
         "+proj=pipeline "
         "+step +proj=cart +ellps=WGS84 "
@@ -49,7 +92,9 @@ def build_transformer(origin_lat: float, origin_lon: float, origin_alt: float) -
     return Transformer.from_pipeline(pipeline)
 
 
-def latlon_to_enu(transformer: Transformer, lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+def latlon_to_enu(
+    transformer: Transformer, lat: float, lon: float, alt: float
+) -> tuple[float, float, float]:
     x, y, z = transformer.transform(lon, lat, alt, radians=False)
     return float(x), float(y), float(z)
 
@@ -129,10 +174,19 @@ def sanitize_bundle(raw_bundle: dict) -> tuple[dict[int, dict], list[list[int]],
     if not destinations:
         raise ValueError("scene bundle must contain at least one destination node")
 
-    return nodes, edges, {"origin_id": origin_id, "anchor_ids": anchors, "destination_ids": destinations}
+    return nodes, edges, {
+        "origin_id": origin_id,
+        "anchor_ids": anchors,
+        "destination_ids": destinations,
+    }
 
 
-def build_scene_points(bundle: dict, nodes: dict[int, dict], edges: list[list[int]], origin_id: int) -> dict:
+def build_scene_points(
+    bundle: dict,
+    nodes: dict[int, dict],
+    edges: list[list[int]],
+    origin_id: int,
+) -> dict:
     origin_node = nodes[origin_id]
     transformer = build_transformer(origin_node["lat"], origin_node["lon"], origin_node["alt"])
 
@@ -178,7 +232,32 @@ def build_scene_points(bundle: dict, nodes: dict[int, dict], edges: list[list[in
         "anchor_ids": [node["id"] for node in compiled_nodes.values() if node["anchor"]],
         "destination_ids": [node["id"] for node in compiled_nodes.values() if node["dest"]],
         "destination_names": destination_names,
+        "drivable_area": dict(bundle.get("drivable_area", {})),
     }
+
+
+def install_keepout_assets(bundle: dict, bundle_path: Path) -> Path | None:
+    drivable_area = bundle.get("drivable_area", {})
+    source_yaml_name = str(drivable_area.get("keepout_map_yaml", "")).strip()
+    if not source_yaml_name:
+        return None
+    source_yaml = Path(source_yaml_name).expanduser()
+    if not source_yaml.is_absolute():
+        source_yaml = bundle_path.parent / source_yaml
+    if not source_yaml.exists():
+        raise ValueError(f"road keepout YAML not found: {source_yaml}")
+    map_metadata = load_yaml(source_yaml)
+    source_image = Path(str(map_metadata.get("image", ""))).expanduser()
+    if not source_image.is_absolute():
+        source_image = source_yaml.parent / source_image
+    if not source_image.exists():
+        raise ValueError(f"road keepout image not found: {source_image}")
+
+    if source_image.resolve() != ROAD_KEEPOUT_IMAGE.resolve():
+        shutil.copy2(source_image, ROAD_KEEPOUT_IMAGE)
+    map_metadata["image"] = ROAD_KEEPOUT_IMAGE.name
+    save_yaml(ROAD_KEEPOUT_YAML, map_metadata)
+    return ROAD_KEEPOUT_YAML
 
 
 def build_route_graph(scene_points: dict) -> dict:
@@ -208,7 +287,10 @@ def build_route_graph(scene_points: dict) -> dict:
     for a, b in scene_points["edges"]:
         node_a = scene_points["nodes"][str(a)]
         node_b = scene_points["nodes"][str(b)]
-        distance = math.hypot(float(node_b["x"]) - float(node_a["x"]), float(node_b["y"]) - float(node_a["y"]))
+        distance = math.hypot(
+            float(node_b["x"]) - float(node_a["x"]),
+            float(node_b["y"]) - float(node_a["y"]),
+        )
 
         for start_id, end_id, start_node, end_node in (
             (a, b, node_a, node_b),
@@ -250,7 +332,11 @@ def build_master_params_scene(scene_points: dict) -> dict:
     params = load_yaml(MASTER_PARAMS_TEMPLATE)
     origin = scene_points["fixed_origin"]
 
-    pgo_params = params.setdefault("/pgo", {}).setdefault("pgo_node", {}).setdefault("ros__parameters", {})
+    pgo_params = (
+        params.setdefault("/pgo", {})
+        .setdefault("pgo_node", {})
+        .setdefault("ros__parameters", {})
+    )
     pgo_params["gps.origin_mode"] = "fixed"
     pgo_params["gps.origin_lat"] = origin["lat"]
     pgo_params["gps.origin_lon"] = origin["lon"]
@@ -280,11 +366,36 @@ def build_master_params_scene(scene_points: dict) -> dict:
             "scene_points_file": str(SCENE_POINTS_FILE),
             "route_frame": "map",
             "base_frame": "base_link",
-            "navigate_to_anchor_tolerance_m": 2.5,
+            "require_nav_ready": False,
             "controller_id": "FollowPath",
             "goal_checker_id": "general_goal_checker",
+            "max_route_snap_distance_m": 8.0,
+            "path_density_m": 0.20,
+            "goal_success_tolerance_m": 1.0,
+            "goal_pose_topic": "/goal_pose",
+            "geo_goal_topic": "/gps_goal",
+            "stop_override_topic": "/gps_nav/stop_override",
+            "motion_allowed_topic": "/localization_authority/motion_allowed",
+            "authority_status_topic": "/localization_authority/status",
+            "lio_odom_topic": "/fastlio2/lio_odom",
         }
     }
+
+    params["/rtk_map_odom_corrector"] = params.get(
+        "/rtk_map_odom_corrector",
+        {"ros__parameters": {}},
+    )
+    rtk_authority_params = params["/rtk_map_odom_corrector"].setdefault("ros__parameters", {})
+    rtk_authority_params.update(
+        {
+            "scene_points_file": str(SCENE_POINTS_FILE),
+            "use_scene_identity_alignment": True,
+            "alignment_topic": "/gps_scene/enu_to_map",
+            "enu_origin_lat": origin["lat"],
+            "enu_origin_lon": origin["lon"],
+            "enu_origin_alt": origin["alt"],
+        }
+    )
 
     return params
 
@@ -301,11 +412,13 @@ def main() -> None:
     master_params_scene = build_master_params_scene(scene_points)
 
     CURRENT_SCENE_DIR.mkdir(parents=True, exist_ok=True)
+    keepout_yaml = install_keepout_assets(raw_bundle, bundle_path)
     save_yaml(SCENE_POINTS_FILE, scene_points)
     save_yaml(MASTER_PARAMS_SCENE_FILE, master_params_scene)
     with open(SCENE_GRAPH_FILE, "w", encoding="utf-8") as output_file:
         json.dump(route_graph, output_file, ensure_ascii=False, indent=2)
-    shutil.copy2(bundle_path, SCENE_BUNDLE_COPY)
+    if bundle_path.resolve() != SCENE_BUNDLE_COPY.resolve():
+        shutil.copy2(bundle_path, SCENE_BUNDLE_COPY)
 
     print("Scene runtime compiled successfully:")
     print(f"  bundle:       {bundle_path}")
@@ -315,6 +428,7 @@ def main() -> None:
     print(f"  anchors:      {len(scene_points['anchor_ids'])}")
     print(f"  destinations: {len(scene_points['destination_ids'])}")
     print(f"  edges:        {len(scene_points['edges'])}")
+    print(f"  road_keepout: {keepout_yaml if keepout_yaml else 'not configured'}")
 
 
 if __name__ == "__main__":

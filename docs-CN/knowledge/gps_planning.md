@@ -1,13 +1,13 @@
 # GPS 全局导航与场景路网
 
-## 1. 当前状态（2026-03-27）
+## 1. 当前状态（2026-07-15）
 
 当前 GPS 导航有两条并行链路：
 
-1. **Scene-graph 路网导航**（`feature/gps-route-ready-v2` 分支）
-   - 使用 `scene_gps_bundle.yaml` + `gps_anchor_localizer` + `route_server`
-   - 当前被 PGO 段错误阻塞（known_issues #1）
-   - 软件链已通，实车未通过
+1. **Scene-graph A* 路网导航**（`nav-gps`）
+   - 使用 `scene_gps_bundle.yaml` + QGIS road keepout + 本地 A* goal manager
+   - 复用 corridor RTK authority、MPPI、障碍点云和 guarded command 链
+   - 真实 QGIS 包离线编译与测试已通过；Jetson 构建和低速实车验收待完成
 
 2. **Fixed-launch GPS corridor**（`gps-rpp` 分支，当前主开发线）
    - 使用 `collect_gps_route.py` 采集多点路线
@@ -48,7 +48,7 @@ python3 scripts/build_scene_runtime.py
 - PGO fixed origin
 - `gps_anchor_localizer`
 - `gps_waypoint_dispatcher`
-- `route_server`
+- `gps_waypoint_dispatcher` 本地 A* 与道路 KeepoutFilter
 
 ## 3. 启动定位链
 
@@ -90,30 +90,30 @@ python3 scripts/build_scene_runtime.py
 
 ### 4.1 `gps_waypoint_dispatcher` 的新职责
 
-当前 `gps_waypoint_dispatcher` 已不再自己做 Dijkstra，也不再发 `FollowWaypoints`。
+当前 `gps_waypoint_dispatcher` 直接执行路网 A*，不再调用 `route_server` 的 Dijkstra，也不再发 `FollowWaypoints`。
 
 它现在是 goal manager，负责：
 - 读取英文目标名
 - 列出可选 destination
-- 检查 `NAV_READY`
-- 读取 startup anchor
-- 两阶段动作编排
+- 接收 `/goal_pose` 和 `/gps_goal`
+- 将当前位姿与终点投影到最近 graph edge
+- 在虚拟起终点之间执行欧氏启发式 A*
+- authority hold 时取消，恢复后从当前位置重新规划
 - `stop`
 
-### 4.2 两阶段动作
+### 4.2 连续路径动作
 
-Stage A:
-- 若当前 `map` 位姿距离 startup anchor 大于 `2.5m`
-- 先调用 `navigate_to_pose` 回到该 anchor
-
-Stage B:
-- 调用 `ComputeRoute(start_id=anchor_id, goal_id=dest_id)`
-- 接收 `route_server` 返回的 dense path
-- 再调用 `/follow_path`
+- 起点和终点都吸附到最近路段，而不是最近 anchor/node
+- 同一路段直接连接；跨路段用 A* 选择最小长度道路序列
+- 规划折线按 `0.20m` 加密后作为一次 `/follow_path` 发送
+- 中间图节点只是路径采样，不运行 goal checker，因此不会逐点停车
+- Nav2 MPPI 在 QGIS KeepoutFilter 道路面内完成跟踪和动态避障
 
 输入接口：
 - `ros2 run gps_waypoint_dispatcher list_destinations`
 - `ros2 run gps_waypoint_dispatcher goto_name <english_name>`
+- `ros2 run gps_waypoint_dispatcher goto_latlon <lat> <lon>`
+- RViz/Foxglove `/goal_pose`
 - `ros2 run gps_waypoint_dispatcher stop`
 
 ## 5. Route Graph 语义

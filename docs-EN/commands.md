@@ -422,6 +422,7 @@ python3 -c "import pyproj; print(pyproj.__version__)"
 Notes:
 - Without arguments, the script toggles between `XJTLU` and `Pixel` by default
 - The commands above are complete one-line commands to run directly on the Jetson / Linux host
+- `pyproj` remains the recommended dependency; if it is temporarily missing, QGIS scene compilation and nav-gps scene loading fall back to a local ENU approximation instead of failing at startup
 - When the script runs locally on the Jetson, it automatically switches to local mode; if the current shell is SSH/Tailscale, the session may disconnect during the network switch
 - Each network switch restarts `todeskd` on the Jetson side, with logs written to `/tmp/wifi-switch.log`
 
@@ -465,6 +466,25 @@ Compile runtime files after collection:
 python3 scripts/build_scene_runtime.py
 ```
 
+QGIS route-network import flow, for example `~/Desktop/maps/qgis_4_package/3.geojson`:
+
+```bash
+python3 scripts/compile_qgis_scene.py \
+  --input ~/Desktop/maps/qgis_4_package/3.geojson \
+  --road-area-gpkg ~/Desktop/maps/qgis_4_package/road_wide_all.gpkg \
+  --road-area-layer road_wide \
+  --scene-name qgis_4 \
+  --densify-step-m 5.0 \
+  --road-mask-resolution-m 0.10 \
+  --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
+
+python3 scripts/build_scene_runtime.py
+```
+
+`compile_qgis_scene.py` converts `feature_type=route` LineStrings into a connected scene graph, densifies edges to at most 5m, and rasterizes the GeoPackage road polygon into `road_keepout.yaml/.pgm`. The current package produces 557 nodes, 558 edges, 12 destinations, and an approximately `5938x3552 @ 0.10m` road mask. Disconnected graphs are rejected so intersections can be split/snapped in QGIS first.
+
+The current `road_wide_all.gpkg` extends only about `0.50m` to each side of the centerline, or roughly `1.0m` total. That leaves little margin around the configured navigation radius of about `0.386m`; redraw it from real road boundaries before vehicle keepout acceptance, leaving additional lateral room for localization error and obstacle avoidance.
+
 Collection guidelines:
 - All turns, intersections, and destination entrances must have waypoints
 - Areas where the system may be powered on must have nearby `anchor` points
@@ -492,15 +512,39 @@ ros2 topic echo /gps_goal_manager/status
 # Send English-named destination
 ros2 run gps_waypoint_dispatcher goto_name anchor_a
 
-# Check if route / local planner actions are online
-ros2 action list | grep -E 'compute_route|follow_path|navigate_to_pose'
+# Arbitrary geographic destination: snap to nearest route edge, then run A*
+ros2 run gps_waypoint_dispatcher goto_latlon 31.2749432 120.7380295
+
+# RViz/Foxglove may also publish a map-frame /goal_pose
+ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped \
+  "{header: {frame_id: map}, pose: {position: {x: 10.0, y: 5.0}, orientation: {w: 1.0}}}"
+
+# Check FollowPath
+ros2 action list | grep follow_path
+
+# Inspect the common authority contract and guarded command path
+ros2 topic echo /localization_authority/motion_allowed
+ros2 topic echo /gps_nav/stop_override
+ros2 topic echo /cmd_vel_nav
+ros2 topic echo /cmd_vel
 
 # Stop current task
 ros2 run gps_waypoint_dispatcher stop
 
-# One-command launch nav-gps, wait for NAV_READY, and select destination by number
+# Launch nav-gps, wait for the active authority to allow motion, and select by number
 python3 scripts/nav_gps_menu.py
 ```
+
+Runtime notes:
+- After modifying or importing a new QGIS/scene map, rerun `python3 scripts/build_scene_runtime.py` so `master_params_scene.yaml` records the scene fixed origin plus `rtk_map_odom_corrector`'s `scene_points_file` and `use_scene_identity_alignment=true`.
+- `nav-gps` does not require a nearby anchor. The goal manager projects the current pose and destination onto graph edges, inserts virtual endpoints, runs A*, and sends the whole route as one `FollowPath`.
+- When `current_scene/road_keepout.yaml` exists, both costmaps enable KeepoutFilter so local avoidance remains inside the QGIS road polygon.
+- `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
+- `nav-gps` also uses `/cmd_vel_nav -> guard -> /cmd_vel`; authority loss cancels the active path and stops, and continuous recovery replans A* from the current pose.
+- Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
+- The RTK FGO shadow node starts with `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=false` to disable shadow mode.
+- The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, GPS/goal status, costmaps, `/cmd_vel`, and `/plan`; use `FYP_NAV_GPS_BAG_PROFILE=debug` only when raw point-cloud replay is needed.
+- On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 
 ## 14. Fixed-Launch GPS Corridor
 

@@ -4,7 +4,7 @@ Interactive helper for on-vehicle nav-gps testing.
 
 Default behavior:
 1. Launch nav-gps stack
-2. Wait until GPS system reaches NAV_READY and action servers are online
+2. Wait until the active localization authority allows motion and FollowPath is online
 3. Show numbered destination menu from current scene_points.yaml
 4. Publish goto_name requests by numeric selection
 
@@ -23,14 +23,20 @@ import time
 from pathlib import Path
 
 import rclpy
-from nav2_msgs.action import ComputeRoute, FollowPath, NavigateToPose
+from nav2_msgs.action import FollowPath
 from rclpy.action import ActionClient
 from rclpy.node import Node
-from std_msgs.msg import Empty, String
+from std_msgs.msg import Bool, Empty, String
 import yaml
 
 
-DEFAULT_SCENE_POINTS = Path.home() / "XJTLU-autonomous-vehicle/runtime-data" / "gnss" / "current_scene" / "scene_points.yaml"
+DEFAULT_SCENE_POINTS = (
+    Path.home()
+    / "XJTLU-autonomous-vehicle/runtime-data"
+    / "gnss"
+    / "current_scene"
+    / "scene_points.yaml"
+)
 DEFAULT_LATEST_LOG_DIR = Path.home() / "XJTLU-autonomous-vehicle/runtime-data" / "logs" / "latest"
 
 
@@ -58,24 +64,45 @@ class NavGPSMenu(Node):
 
         self.system_status = "UNKNOWN"
         self.goal_status = "UNKNOWN"
+        self.localization_authority_mode = "UNKNOWN"
+        self.localization_motion_allowed = False
         self._last_system_status_printed: str | None = None
         self._last_goal_status_printed: str | None = None
+        self._last_localization_authority_printed: str | None = None
 
         self.goto_pub = self.create_publisher(String, "/gps_waypoint_dispatcher/goto_name", 10)
         self.stop_pub = self.create_publisher(Empty, "/gps_waypoint_dispatcher/stop", 10)
 
         self.create_subscription(String, "/gps_system/status", self._system_status_callback, 10)
-        self.create_subscription(String, "/gps_goal_manager/status", self._goal_status_callback, 10)
+        self.create_subscription(
+            String, "/gps_goal_manager/status", self._goal_status_callback, 10
+        )
+        self.create_subscription(
+            String,
+            "/localization_authority/mode",
+            self._localization_authority_callback,
+            10,
+        )
+        self.create_subscription(
+            Bool,
+            "/localization_authority/motion_allowed",
+            self._localization_motion_callback,
+            10,
+        )
 
-        self.compute_route_client = ActionClient(self, ComputeRoute, "compute_route")
         self.follow_path_client = ActionClient(self, FollowPath, "follow_path")
-        self.navigate_to_pose_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
 
     def _system_status_callback(self, msg: String) -> None:
         self.system_status = msg.data.strip() or "UNKNOWN"
 
     def _goal_status_callback(self, msg: String) -> None:
         self.goal_status = msg.data.strip() or "UNKNOWN"
+
+    def _localization_authority_callback(self, msg: String) -> None:
+        self.localization_authority_mode = msg.data.strip() or "UNKNOWN"
+
+    def _localization_motion_callback(self, msg: Bool) -> None:
+        self.localization_motion_allowed = bool(msg.data)
 
     def print_status_changes(self) -> None:
         if self.system_status != self._last_system_status_printed:
@@ -84,14 +111,12 @@ class NavGPSMenu(Node):
         if self.goal_status != self._last_goal_status_printed:
             print(f"[goal_manager] {self.goal_status}")
             self._last_goal_status_printed = self.goal_status
+        if self.localization_authority_mode != self._last_localization_authority_printed:
+            print(f"[localization_authority] {self.localization_authority_mode}")
+            self._last_localization_authority_printed = self.localization_authority_mode
 
     def action_servers_ready(self) -> bool:
-        checks = [
-            self.compute_route_client.wait_for_server(timeout_sec=0.1),
-            self.follow_path_client.wait_for_server(timeout_sec=0.1),
-            self.navigate_to_pose_client.wait_for_server(timeout_sec=0.1),
-        ]
-        return all(checks)
+        return self.follow_path_client.wait_for_server(timeout_sec=0.1)
 
     def publish_goto_name(self, destination_name: str) -> None:
         message = String(data=destination_name)
@@ -118,13 +143,23 @@ class NavGPSMenu(Node):
             self.print_status_changes()
 
             if launch_proc is not None and launch_proc.poll() is not None:
-                raise RuntimeError(f"nav-gps launch exited early with code {launch_proc.returncode}")
+                raise RuntimeError(
+                    f"nav-gps launch exited early with code {launch_proc.returncode}"
+                )
 
-            if self.system_status == "NAV_READY" and self.action_servers_ready():
-                print("[nav_gps_menu] NAV_READY reached and action servers are online.")
+            if self.localization_motion_allowed and self.action_servers_ready():
+                print(
+                    "[nav_gps_menu] Motion authority is ready "
+                    f"({self.localization_authority_mode}) and FollowPath is online."
+                )
                 return
 
-        detail = f"last gps_system={self.system_status}, goal_manager={self.goal_status}"
+        detail = (
+            f"last gps_system={self.system_status}, "
+            f"localization_authority={self.localization_authority_mode}, "
+            f"motion_allowed={self.localization_motion_allowed}, "
+            f"goal_manager={self.goal_status}"
+        )
         if self.system_status == "NO_FIX":
             detail += "; raw GPS still has no valid fix"
         elif self.system_status == "NO_ANCHOR":
@@ -133,7 +168,7 @@ class NavGPSMenu(Node):
             detail += "; anchor match is ambiguous"
         elif self.system_status == "UNSTABLE_FIX":
             detail += "; GNSS samples are still unstable"
-        raise TimeoutError(f"Timed out waiting for NAV_READY ({detail})")
+        raise TimeoutError(f"Timed out waiting for localization motion authority ({detail})")
 
     def wait_for_goal_result(
         self,
@@ -147,7 +182,9 @@ class NavGPSMenu(Node):
             self.print_status_changes()
 
             if launch_proc is not None and launch_proc.poll() is not None:
-                raise RuntimeError(f"nav-gps launch exited early with code {launch_proc.returncode}")
+                raise RuntimeError(
+                    f"nav-gps launch exited early with code {launch_proc.returncode}"
+                )
 
             if self.goal_status.startswith(terminal_prefixes):
                 return
@@ -189,7 +226,9 @@ def stop_launch(launch_proc: subprocess.Popen[str] | None) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Launch nav-gps and choose destinations by number.")
+    parser = argparse.ArgumentParser(
+        description="Launch nav-gps and choose destinations by number."
+    )
     parser.add_argument(
         "--scene-points-file",
         default=str(DEFAULT_SCENE_POINTS),
@@ -204,7 +243,7 @@ def parse_args() -> argparse.Namespace:
         "--ready-timeout",
         type=float,
         default=180.0,
-        help="Seconds to wait for NAV_READY before giving up",
+        help="Seconds to wait for localization motion authority before giving up",
     )
     parser.add_argument(
         "--goal-timeout",
@@ -253,7 +292,7 @@ def main() -> int:
             launch_proc = launch_nav_gps(repo_root)
             time.sleep(2.0)
 
-        print("[nav_gps_menu] Waiting for NAV_READY ...")
+        print("[nav_gps_menu] Waiting for localization motion authority ...")
         node.wait_for_nav_ready(args.ready_timeout, launch_proc=launch_proc)
 
         while True:

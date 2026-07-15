@@ -97,31 +97,40 @@ scene_gps_bundle.yaml -> build_scene_runtime.py
                        -> current_scene/master_params_scene.yaml
                        -> current_scene/scene_points.yaml
                        -> current_scene/scene_route_graph.geojson
+                       -> current_scene/road_keepout.{yaml,pgm}
 
-GNSS serial -> /fix -> gps_anchor_localizer -> /gnss -----------+
-                       |                    |                   |
-                       |                    +-> /gps_system/*   +-> PGO GPS Factor
+GNSS serial -> /fix + /heading + /rtk/status -------------------+
+                       |                                       |
+                       |                                       v
+                       |                         rtk_map_odom_corrector
+                       |                         scene fixed ENU -> map identity
+                       |                         TF: map -> odom
+                       v
+                gps_anchor_localizer -> /gnss + /gps_system/*
                        |
-                       +-> lock startup anchor + session offset
+                       +-> lock startup anchor for route selection readiness
 
-scene_points.yaml + route_graph.geojson ------------------------+
-                                                               |
-goto_name -> gps_waypoint_dispatcher(goal manager) ------------+
-            |  读取 scene_points.yaml
-            |  检查 NAV_READY
-            |  锁定 startup anchor
-            |  Stage A: navigate_to_pose (需要时)
-            |  Stage B: ComputeRoute(start_id, goal_id)
+goto_name / /goal_pose / /gps_goal
+            -> gps_waypoint_dispatcher
+            |  当前位姿和终点投影到最近 graph edge
+            |  插入虚拟起点/终点，欧氏启发式 A*
+            |  生成一条 0.20m 密度的连续 NavPath
             v
-     dense graph path -> FollowPath -> Nav2 -> /cmd_vel
+     FollowPath -> MPPI + obstacle cloud + road keepout
+                -> /cmd_vel_nav -> authority guard -> /cmd_vel
 ```
 
 `nav-gps` 的核心是：
-- 当前位姿统一使用 `gps_anchor_localizer` 发布的 `/gnss`
-- PGO、localizer、goal manager 读取同一 fixed ENU origin
+- `gps_anchor_localizer` 仍负责 anchor 匹配、`NAV_READY` 状态和 `/gnss` 发布
+- `map -> odom` 不再由 PGO 抢发布；PGO 使用 corridor no-TF/no-GPS 配置，仅保留点云/优化旁路能力
+- `rtk_map_odom_corrector` 读取 scene fixed origin，并使用固定 ENU→map identity alignment 计算 RTK authoritative `map -> odom`
+- Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
+- goal manager 自己执行图 A*，起终点投影到最近 graph edge，不再依赖 `route_server` 的 Dijkstra 或少数 anchor
+- QGIS 道路面编译成 KeepoutFilter mask；MPPI 可在道路内部避障，但道路外部保持禁止通行
+- authority 失效时 guard 立即清零，goal manager 取消当前 `FollowPath`；authority 连续恢复后从当前位置重新 A* 规划
 - `scene_gps_bundle.yaml` 是唯一 source of truth
 - 运行时只读取 `~/XJTLU-autonomous-vehicle/runtime-data/gnss/current_scene/` 下的编译产物
-- `goto_name` 是主入口；用户只输入英文目标名
+- 支持 `goto_name`、地图 `/goal_pose` 和经纬度 `/gps_goal` 三种终点入口
 
 ### 5.3 RTK FGO 紧耦合实验模式（shadow）
 
@@ -133,10 +142,11 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 也会默认启动同一个 shadow node 仅用于录包评估：
+该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 和 `nav-gps` 也会默认启动同一个 shadow node 仅用于录包评估：
 - 默认 `publish_tf=false`，不广播生产 `map -> odom`
-- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps`
+- 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps` 的生产定位输出
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证
+- 后续 FGO 接管时只允许 FGO 成为唯一 `map -> odom` owner，并继续发布统一的 `/localization_authority/motion_allowed`；A*、MPPI 与菜单不绑定具体 authority 名称
 
 ## 7. TF 链
 
@@ -144,7 +154,8 @@ Explore stack + UM982 RTK
 map -> odom -> base_footprint -> base_link
 ```
 
-- 生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
+- Explore / explore-gps 等生产导航模式下，`map -> odom` 由 PGO 发布，表示全局校正偏移
+- Corridor 与 RTK nav-gps 模式下，PGO 关闭 `publish_tf`，唯一生产 `map -> odom` owner 是 `rtk_map_odom_corrector`
 - SLAM 纯建图模式下，`map -> odom` 由 SLAM Toolbox 发布；PGO 只保存 3D 地图，不发布 TF
 - Travel 先验地图模式下，`map -> odom` 由 `localizer` 的 ICP 点云重定位发布；启动预加载 PCD 后仍需 `/localizer/relocalize` 成功才开始广播，避免未验证或旧时间戳 TF 污染 Nav2
 - PGO 默认不启动，或只以 `publish_tf=false` 运行
@@ -256,7 +267,7 @@ src/
 - Livox SDK2
 - GTSAM
 - GeographicLib
-- pyproj
+- pyproj（推荐用于精确 GPS 投影；QGIS scene 编译和 nav-gps 读取有本地 ENU fallback）
 - `ros-humble-geographic-msgs`
 
 
@@ -287,7 +298,7 @@ current_route.yaml
 ```
 
 该模式与 `nav-gps` 的区别：
-- 不使用 scene graph / `route_server`
+- 不使用 scene graph / A* goal manager
 - 不使用 `gps_waypoint_dispatcher` 的 `goto_name` / menu 交互
 - 不使用 runtime `current_scene/` 编译产物
 - 使用独立 `gps_global_aligner_node` 替代 PGO live handoff

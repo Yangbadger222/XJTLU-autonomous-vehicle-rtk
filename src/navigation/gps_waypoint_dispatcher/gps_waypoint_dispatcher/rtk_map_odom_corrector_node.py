@@ -29,6 +29,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
+    load_scene_points,
     quaternion_to_yaw,
     yaw_to_quaternion,
 )
@@ -96,6 +97,8 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("nmea_topic", "/rtk/nmea_sentence")
         self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
+        self.declare_parameter("scene_points_file", "")
+        self.declare_parameter("use_scene_identity_alignment", False)
         self.declare_parameter("mode_topic", "/localization_authority/mode")
         self.declare_parameter("status_topic", "/localization_authority/status")
         self.declare_parameter(
@@ -152,6 +155,10 @@ class RtkMapOdomCorrector(Node):
         self._nmea_topic = str(self.get_parameter("nmea_topic").value)
         self._lio_odom_topic = str(self.get_parameter("lio_odom_topic").value)
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
+        self._scene_points_file = str(self.get_parameter("scene_points_file").value).strip()
+        self._use_scene_identity_alignment = bool(
+            self.get_parameter("use_scene_identity_alignment").value
+        )
         self._mode_topic = str(self.get_parameter("mode_topic").value)
         self._status_topic = str(self.get_parameter("status_topic").value)
         self._diagnostics_topic = str(self.get_parameter("diagnostics_topic").value)
@@ -196,10 +203,24 @@ class RtkMapOdomCorrector(Node):
             self.get_parameter("max_heading_for_fix_age_s").value
         )
 
-        self._projector = FixedENUProjector(
-            float(self.get_parameter("enu_origin_lat").value),
-            float(self.get_parameter("enu_origin_lon").value),
-            float(self.get_parameter("enu_origin_alt").value),
+        origin_lat = float(self.get_parameter("enu_origin_lat").value)
+        origin_lon = float(self.get_parameter("enu_origin_lon").value)
+        origin_alt = float(self.get_parameter("enu_origin_alt").value)
+        if self._scene_points_file:
+            scene = load_scene_points(self._scene_points_file)
+            fixed_origin = scene.get("fixed_origin", {})
+            try:
+                origin_lat = float(fixed_origin["lat"])
+                origin_lon = float(fixed_origin["lon"])
+                origin_alt = float(fixed_origin.get("alt", 0.0))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"scene_points_file has no valid fixed_origin: {self._scene_points_file}"
+                ) from exc
+
+        self._projector = FixedENUProjector(origin_lat, origin_lon, origin_alt)
+        self._scene_identity_alignment = (
+            (0.0, 0.0, 0.0, True) if self._use_scene_identity_alignment else None
         )
         self._lio_history = StampedPoseHistory(
             max_age_s=2.0,
@@ -491,6 +512,9 @@ class RtkMapOdomCorrector(Node):
         return max(0.0, now_mono_s - received_mono_s)
 
     def _external_alignment(self, now_mono_s: float):
+        if self._scene_identity_alignment is not None:
+            self._latest_alignment_mono_s = now_mono_s
+            return self._scene_identity_alignment
         if (
             self._latest_alignment is None
             or not self._latest_alignment[3]

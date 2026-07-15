@@ -7,8 +7,6 @@ from collections import deque
 from pathlib import Path
 
 from geometry_msgs.msg import TransformStamped
-from pyproj import Transformer
-from pyproj.enums import TransformDirection
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
@@ -17,9 +15,48 @@ from std_msgs.msg import Int32, String
 from tf2_ros import Buffer, TransformException, TransformListener
 import yaml
 
+try:
+    from pyproj import Transformer
+    from pyproj.enums import TransformDirection
+
+    PYPROJ_AVAILABLE = True
+except ImportError:
+    Transformer = None
+    TransformDirection = None
+    PYPROJ_AVAILABLE = False
+
+
+EARTH_RADIUS_M = 6378137.0
+
 
 def euclidean_xy(a: tuple[float, float], b: tuple[float, float]) -> float:
     return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+class LocalENUProjector:
+    def __init__(self, origin_lat: float, origin_lon: float, origin_alt: float = 0.0) -> None:
+        self.origin_lat = float(origin_lat)
+        self.origin_lon = float(origin_lon)
+        self.origin_alt = float(origin_alt)
+        self._origin_lat_rad = math.radians(self.origin_lat)
+
+    def forward(self, lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+        x = (
+            math.radians(float(lon) - self.origin_lon)
+            * EARTH_RADIUS_M
+            * math.cos(self._origin_lat_rad)
+        )
+        y = math.radians(float(lat) - self.origin_lat) * EARTH_RADIUS_M
+        z = float(alt) - self.origin_alt
+        return float(x), float(y), float(z)
+
+    def inverse(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        lon = self.origin_lon + math.degrees(
+            float(x) / (EARTH_RADIUS_M * math.cos(self._origin_lat_rad))
+        )
+        lat = self.origin_lat + math.degrees(float(y) / EARTH_RADIUS_M)
+        alt = self.origin_alt + float(z)
+        return float(lat), float(lon), float(alt)
 
 
 class GPSAnchorLocalizer(Node):
@@ -40,7 +77,9 @@ class GPSAnchorLocalizer(Node):
         self.declare_parameter("map_frame", "map")
         self.declare_parameter("base_frame", "base_link")
 
-        self.scene_points_file = Path(str(self.get_parameter("scene_points_file").value)).expanduser()
+        self.scene_points_file = Path(
+            str(self.get_parameter("scene_points_file").value)
+        ).expanduser()
         self.origin_lat = float(self.get_parameter("enu_origin_lat").value)
         self.origin_lon = float(self.get_parameter("enu_origin_lon").value)
         self.origin_alt = float(self.get_parameter("enu_origin_alt").value)
@@ -81,7 +120,10 @@ class GPSAnchorLocalizer(Node):
         self._publish_anchor(None)
         self._publish_state("NO_FIX")
 
-    def _build_transformer(self) -> Transformer:
+    def _build_transformer(self):
+        if not PYPROJ_AVAILABLE:
+            return LocalENUProjector(self.origin_lat, self.origin_lon, self.origin_alt)
+
         pipeline = (
             "+proj=pipeline "
             "+step +proj=cart +ellps=WGS84 "
@@ -127,10 +169,16 @@ class GPSAnchorLocalizer(Node):
         return nodes, anchors
 
     def _latlon_to_enu(self, lat: float, lon: float, alt: float) -> tuple[float, float, float]:
+        if not PYPROJ_AVAILABLE:
+            return self.transformer.forward(lat, lon, alt)
+
         x, y, z = self.transformer.transform(lon, lat, alt, radians=False)
         return float(x), float(y), float(z)
 
     def _enu_to_latlon(self, x: float, y: float, z: float) -> tuple[float, float, float]:
+        if not PYPROJ_AVAILABLE:
+            return self.transformer.inverse(x, y, z)
+
         lon, lat, alt = self.transformer.transform(
             x,
             y,
@@ -156,7 +204,10 @@ class GPSAnchorLocalizer(Node):
             for j in range(i + 1, len(samples)):
                 max_spread = max(
                     max_spread,
-                    euclidean_xy((samples[i]["x"], samples[i]["y"]), (samples[j]["x"], samples[j]["y"])),
+                    euclidean_xy(
+                        (samples[i]["x"], samples[i]["y"]),
+                        (samples[j]["x"], samples[j]["y"]),
+                    ),
                 )
         return max_spread
 
@@ -266,7 +317,9 @@ class GPSAnchorLocalizer(Node):
         corrected_x = float(avg_sample["x"]) + self.session_offset_xyz[0]
         corrected_y = float(avg_sample["y"]) + self.session_offset_xyz[1]
         corrected_z = float(avg_sample["z"]) + self.session_offset_xyz[2]
-        corrected_lat, corrected_lon, corrected_alt = self._enu_to_latlon(corrected_x, corrected_y, corrected_z)
+        corrected_lat, corrected_lon, corrected_alt = self._enu_to_latlon(
+            corrected_x, corrected_y, corrected_z
+        )
 
         return {
             "lat": corrected_lat,
@@ -315,7 +368,10 @@ class GPSAnchorLocalizer(Node):
 
             spread_m = self._max_spread_m()
             avg_sample = self._window_average()
-            if spread_m > self.fix_spread_max_m or avg_sample["sigma_xy_m"] > self.fix_sigma_xy_max_m:
+            if (
+                spread_m > self.fix_spread_max_m
+                or avg_sample["sigma_xy_m"] > self.fix_sigma_xy_max_m
+            ):
                 self.fix_window.clear()
                 self.nav_ready_hits = 0
                 self._publish_anchor(None)

@@ -643,6 +643,8 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 
 This mode reads only the dedicated `/dev/rtk_um982_raw`. Never override it with the production NMEA/NTRIP device `/dev/rtk_um982`.
 
+The 2026-07-15 vehicle inspection found that the carrier's Type-C connection enumerates only one CP210x UART, `/dev/rtk_um982`; `/dev/rtk_um982_raw` does not exist. The commands below therefore apply only to a future configuration with a physical second UART. Until the single-port mux is implemented, never point the raw parameters at `/dev/rtk_um982`, because that would contend with the production NMEA/NTRIP owner. Software timing falls back to `COARSE_NO_PPS`; the current `/dev/pps0` is a virtual `ktimer` source and is not GNSS PPS.
+
 ```bash
 make build-rtk-raw
 ss

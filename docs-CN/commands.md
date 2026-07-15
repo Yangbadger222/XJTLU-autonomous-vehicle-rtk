@@ -644,6 +644,8 @@ FYP_CORRIDOR_CONSOLE_MODE=raw bash scripts/launch_with_logs.sh corridor
 
 该模式只读取独立的 `/dev/rtk_um982_raw`，不得把参数改成生产 NMEA/NTRIP 使用的 `/dev/rtk_um982`。
 
+2026-07-15 实车检查确认当前载板的 Type-C 在 Jetson 上只枚举 `/dev/rtk_um982` 一个 CP210x UART，`/dev/rtk_um982_raw` 不存在。因此下面命令目前只适用于未来增加物理第二 UART 的配置；在 single-port mux 实现前，禁止把 raw 参数指向 `/dev/rtk_um982`，否则会与生产 NMEA/NTRIP 抢占同一串口。软件时间 fallback 使用 `COARSE_NO_PPS`；现有 `/dev/pps0` 是 `ktimer` 虚拟源，不能作为 GNSS PPS。
+
 ```bash
 make build-rtk-raw
 ss

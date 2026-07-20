@@ -196,7 +196,7 @@ class SurveyNode(Node):
 
     def send_nav_goal(self, goal: PoseStamped):
         self.get_logger().info(f"Sending nav goal to ({goal.pose.position.x:.2f}, {goal.pose.position.y:.2f})")
-        if not self.nav_to_pose_client.wait_for_server(timeout_sec=2.0):
+        if not self.nav_to_pose_client.server_is_ready():
             self.get_logger().error("Nav2 server not available")
             return
             
@@ -261,7 +261,7 @@ class SurveyNode(Node):
             
         descriptor_path = os.path.join(self.map_database_dir, self.currently_testing_map, 'localization', 'descriptor_index', 'scan_context.yaml')
         
-        if not self.localizer_client.wait_for_service(timeout_sec=1.0):
+        if not self.localizer_client.service_is_ready():
             self.get_logger().warn("GlobalRelocalize service not available")
             self.untested_maps.insert(0, self.currently_testing_map) # retry later
             return

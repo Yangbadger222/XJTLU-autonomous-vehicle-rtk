@@ -287,9 +287,12 @@ class SurveyNode(Node):
             self.get_logger().error(f"Service call failed: {e}")
 
     def handle_map_score(self, score):
+        confidence = 0.0 if score == float('inf') else max(0.0, 1.0 - score)
+        self.get_logger().info(f"Converted distance score {score:.2f} to confidence {confidence:.2f}")
+
         if self.state == 'Autonomous_Exploration':
-            if score >= self.confidence_guess:
-                self.get_logger().info(f"Match score {score:.2f} >= guess threshold. Transitioning to Hypothesis_Testing")
+            if confidence >= self.confidence_guess:
+                self.get_logger().info(f"Match confidence {confidence:.2f} >= guess threshold. Transitioning to Hypothesis_Testing")
                 self.state = 'Hypothesis_Testing'
                 current_x, current_y = self.get_current_pose()
                 self.hypothesis_start_x = current_x
@@ -299,7 +302,7 @@ class SurveyNode(Node):
                 if current_x is not None:
                     self.publish_marker(self.initial_guess_pub, Marker.SPHERE, 1.0, 1.0, 0.0, current_x, current_y)
         elif self.state == 'Hypothesis_Testing':
-            if score >= self.confidence_confirm:
+            if confidence >= self.confidence_confirm:
                 current_x, current_y = self.get_current_pose()
                 distance_moved = 0.0
                 if self.hypothesis_start_x is not None and current_x is not None:
@@ -318,7 +321,7 @@ class SurveyNode(Node):
                         goal = self.get_real_hypothesis_goal()
                         if goal:
                             self.send_nav_goal(goal)
-            elif score < self.confidence_guess:
+            elif confidence < self.confidence_guess:
                 self.get_logger().info("False positive match. Transitioning back to Autonomous_Exploration")
                 self.state = 'Autonomous_Exploration'
                 self.matched_map_name = "None"

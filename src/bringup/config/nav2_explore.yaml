@@ -290,9 +290,9 @@ controller_server:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。
       # 改成不存在或不兼容的插件：对应功能块会加载失败。
       plugin: "nav2_mppi_controller::MPPIController"
-      time_steps: 48
+      time_steps: 24
       model_dt: 0.05
-      batch_size: 1000
+      batch_size: 128
       vx_std: 0.28
       vy_std: 0.0
       wz_std: 0.22

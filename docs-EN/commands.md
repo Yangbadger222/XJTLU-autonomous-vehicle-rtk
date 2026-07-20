@@ -248,6 +248,14 @@ Notes:
   - `Return_To_Home`: On confirmation or fully mapped, navigates back to `(0,0,0)` safely.
 
 Logs to expect:
+- The Survey Node logs can be viewed directly using this command while it is running:
+  ```bash
+  ros2 topic echo /rosout | grep survey_node
+  ```
+  Alternatively, you can view the log file stored in the session directory:
+  ```bash
+  cat ~/XJTLU-autonomous-vehicle/runtime-data/logs/latest/console/survey_node.log
+  ```
 - Look for state transition logs in the terminal output. Messages include `Survey node initialized in state: ...`, `Match score ... >= guess threshold. Transitioning to Hypothesis_Testing`, `Goal rejected: exceeds MAX_RADIUS`, and `Fully mapped within radius. Transitioning to Return_To_Home`.
 
 ## 4. Launch Individual Core Components

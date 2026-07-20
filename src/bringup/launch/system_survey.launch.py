@@ -2,6 +2,8 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+import launch.actions
+import launch.events
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -39,6 +41,14 @@ def generate_launch_description():
         name="survey_node",
         output="screen",
         parameters=[LaunchConfiguration("survey_params_file")],
+        on_exit=launch.actions.EmitEvent(event=launch.events.Shutdown())
+    )
+
+    foxglove_bridge_node = Node(
+        package="foxglove_bridge",
+        executable="foxglove_bridge",
+        name="foxglove_bridge",
+        parameters=[{"port": 8765}]
     )
 
     return LaunchDescription(
@@ -46,5 +56,6 @@ def generate_launch_description():
             survey_params_arg,
             explore_launch,
             survey_node,
+            foxglove_bridge_node,
         ]
     )

@@ -44,7 +44,9 @@ def generate_launch_description():
         on_exit=launch.actions.EmitEvent(event=launch.events.Shutdown())
     )
 
-    localizer_config_path = os.path.join(bringup_share, "config", "localizer.yaml")
+    localizer_config_path = PathJoinSubstitution(
+        [FindPackageShare("localizer"), "config", "localizer.yaml"]
+    )
     
     localizer_node = Node(
         package="localizer",

@@ -40,7 +40,7 @@ class SurveyNode(Node):
         self.localizer_client = self.create_client(GlobalRelocalize, '/localizer/global_relocalize')
         
         # Map subscriber
-        self.map_sub = self.create_subscription(OccupancyGrid, '/map', self.map_callback, 10)
+        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
         self.occupancy_grid = None
         
         # Foxglove Publishers
@@ -353,7 +353,7 @@ class SurveyNode(Node):
                 self.goal_active = False
             elif not self.goal_active:
                 if self.occupancy_grid is None:
-                    self.get_logger().info("Waiting for /map topic to be published...")
+                    self.get_logger().info("Waiting for /global_costmap/costmap topic to be published...")
                     return
                 goal = self.get_real_frontier_goal()
                 if goal:

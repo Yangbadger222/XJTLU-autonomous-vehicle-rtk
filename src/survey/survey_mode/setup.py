@@ -17,7 +17,7 @@ setup(
     maintainer_email='robot@todo.todo',
     description='Survey Mode State Machine',
     license='TODO: License declaration',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'survey_node = survey_mode.survey_node:main'

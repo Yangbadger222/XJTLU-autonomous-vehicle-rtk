@@ -175,7 +175,7 @@ localization_cmd_gate:
     obstacle_timeout_s: 0.5
     cmd_timeout_s: 0.40
     output_timeout_s: 0.25
-    publish_hz: 25.0
+    publish_hz: 20.0
     status_publish_hz: 5.0
 
 # 碰撞后处理只移除无法越过线速度死区的混合平移分量，不再放大角速度。
@@ -309,7 +309,7 @@ controller_server:
     # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。
     use_sim_time: false
     # 15Hz 与 model_dt=1/15s 配对；实车 20Hz 持续漏周期，稳定 15Hz 比抖动的 20Hz 更平滑。
-    controller_frequency: 15.0
+    controller_frequency: 20.0 # modified
     # 前向速度死区阈值；低于该值的前向速度会被视为零。
     # 调大：更能压制微抖动；调小：更容易保留细小前进速度。
     min_x_velocity_threshold: 0.001

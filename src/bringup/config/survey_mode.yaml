@@ -5,4 +5,4 @@
     confidence_guess: 0.6
     confidence_confirm: 0.8
     min_confirm_distance: 5.0
-    map_database_dir: '/home/jetson/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'
+    map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'

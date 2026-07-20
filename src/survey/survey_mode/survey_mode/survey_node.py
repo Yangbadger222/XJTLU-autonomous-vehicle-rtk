@@ -26,14 +26,14 @@ class SurveyNode(Node):
         self.declare_parameter('confidence_guess', 0.6)
         self.declare_parameter('confidence_confirm', 0.8)
         self.declare_parameter('min_confirm_distance', 5.0)
-        self.declare_parameter('map_database_dir', '/home/jetson/XJTLU-autonomous-vehicle/runtime-data/maps/indoor')
+        self.declare_parameter('map_database_dir', '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor')
         
         self.max_radius = self.get_parameter('max_radius').value
         self.threshold_x = self.get_parameter('threshold_x').value
         self.confidence_guess = self.get_parameter('confidence_guess').value
         self.confidence_confirm = self.get_parameter('confidence_confirm').value
         self.min_confirm_distance = self.get_parameter('min_confirm_distance').value
-        self.map_database_dir = self.get_parameter('map_database_dir').value
+        self.map_database_dir = os.path.expanduser(self.get_parameter('map_database_dir').value)
         
         self.state = 'Autonomous_Exploration'
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
@@ -338,6 +338,12 @@ class SurveyNode(Node):
             return
             
         if self.state == 'Autonomous_Exploration':
+            if not self.maps_tested and not self.untested_maps:
+                self.get_logger().info("No maps found in database. Transitioning directly to Pure_Mapping")
+                self.state = 'Pure_Mapping'
+                self.goal_active = False
+                return
+
             if not self.waiting_for_service and self.untested_maps:
                 self.trigger_map_evaluation()
             
@@ -345,11 +351,10 @@ class SurveyNode(Node):
                 self.get_logger().info(f"Map area {self.active_map_area} >= threshold. Transitioning to Pure_Mapping")
                 self.state = 'Pure_Mapping'
                 self.goal_active = False
-            elif not self.waiting_for_service and not self.untested_maps and not self.goal_active:
-                goal = self.get_real_frontier_goal()
-                if goal:
-                    self.send_nav_goal(goal)
             elif not self.goal_active:
+                if self.occupancy_grid is None:
+                    self.get_logger().info("Waiting for /map topic to be published...")
+                    return
                 goal = self.get_real_frontier_goal()
                 if goal:
                     self.send_nav_goal(goal)
@@ -361,6 +366,9 @@ class SurveyNode(Node):
                     
         elif self.state == 'Pure_Mapping':
             if not self.goal_active:
+                if self.occupancy_grid is None:
+                    self.get_logger().info("Waiting for /map topic to be published...")
+                    return
                 goal = self.get_real_frontier_goal()
                 if goal:
                     self.send_nav_goal(goal)

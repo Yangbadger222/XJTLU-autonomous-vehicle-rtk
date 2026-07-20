@@ -44,6 +44,27 @@ def generate_launch_description():
         on_exit=launch.actions.EmitEvent(event=launch.events.Shutdown())
     )
 
+    localizer_config_path = os.path.join(bringup_share, "config", "localizer.yaml")
+    
+    localizer_node = Node(
+        package="localizer",
+        namespace="localizer",
+        executable="localizer_node",
+        name="localizer_node",
+        output="screen",
+        parameters=[
+            {
+                "config_path": localizer_config_path,
+                "pcd_map": "",
+                "alignment_file": "",
+                "descriptor_index": "",
+                "map_id": "",
+                "auto_global_localization": False,
+                "publish_tf": False,
+            }
+        ]
+    )
+
     foxglove_bridge_node = Node(
         package="foxglove_bridge",
         executable="foxglove_bridge",
@@ -55,6 +76,7 @@ def generate_launch_description():
         [
             survey_params_arg,
             explore_launch,
+            localizer_node,
             survey_node,
             foxglove_bridge_node,
         ]

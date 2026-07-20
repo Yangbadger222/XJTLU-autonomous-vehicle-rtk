@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    max_radius: 50.0
+    threshold_x: 200.0
+    confidence_guess: 0.18
+    confidence_confirm: 0.30

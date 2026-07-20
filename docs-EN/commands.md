@@ -75,8 +75,10 @@ make launch-corridor
 make launch-travel
 make launch-explore-gps
 make launch-nav-gps
+make launch-nav-gps
 make launch-rtk-basic
 make launch-tightly-coupled
+make launch-survey
 ```
 
 Equivalent wrapper direct invocation:
@@ -89,8 +91,10 @@ bash scripts/launch_with_logs.sh corridor
 bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
+bash scripts/launch_with_logs.sh nav-gps
 bash scripts/launch_with_logs.sh rtk-basic
 bash scripts/launch_with_logs.sh tightly-coupled
+bash scripts/launch_with_logs.sh survey
 ```
 
 Equivalent `ros2 launch` invocation:
@@ -102,7 +106,9 @@ ros2 launch bringup system_gps_corridor.launch.py
 ros2 launch bringup system_tightly_coupled.launch.py
 ros2 launch bringup system_explore_gps.launch.py
 ros2 launch bringup system_nav_gps.launch.py
+ros2 launch bringup system_nav_gps.launch.py
 ros2 launch bringup system_travel.launch.py
+ros2 launch bringup system_survey.launch.py
 ```
 
 Optional RTK recording in pure SLAM mapping:
@@ -225,6 +231,24 @@ FYP_USE_RVIZ=true bash scripts/launch_with_logs.sh corridor
 Notes:
 - Corridor-specific route capture, startup watchdog, and runtime behavior are documented in Section 14
 - The wrapper maintains both session logs and the foreground status monitor output
+
+One-line command for autonomous survey mapping:
+
+```bash
+bash scripts/launch_with_logs.sh survey
+```
+
+Notes:
+- The Survey mode automatically explores unknown areas within a confined radius (`max_radius`) from the initial odometry frame `(0,0,0)`.
+- It queries a map-matching service comparing the active SLAM map to the saved map database.
+- It features 4 logic states visible in the node logs:
+  - `Autonomous_Exploration`: Commands navigation to frontiers. Rejects goals outside `max_radius`.
+  - `Hypothesis_Testing`: Suspends frontier exploration to confirm localization at a known coordinate.
+  - `Pure_Mapping`: Initiated if the active map exceeds `threshold_x` area without a match. Disables map-matching. Maps everything within `max_radius`.
+  - `Return_To_Home`: On confirmation or fully mapped, navigates back to `(0,0,0)` safely.
+
+Logs to expect:
+- Look for state transition logs in the terminal output. Messages include `Survey node initialized in state: ...`, `Match score ... >= guess threshold. Transitioning to Hypothesis_Testing`, `Goal rejected: exceeds MAX_RADIUS`, and `Fully mapped within radius. Transitioning to Return_To_Home`.
 
 ## 4. Launch Individual Core Components
 

@@ -39,6 +39,8 @@ DoubleDifferenceMeasurement syntheticDd(
     {static_cast<std::uint64_t>(target_prn), 100U + target_prn, 3U, 103U}};
   measurement.reference_position_ecef_m = reference_satellite;
   measurement.target_position_ecef_m = target_satellite;
+  measurement.reference_base_position_ecef_m = reference_satellite;
+  measurement.target_base_position_ecef_m = target_satellite;
   measurement.base_position_ecef_m = base;
   measurement.code_dd_m =
     norm(target_satellite - true_rover) - norm(target_satellite - base) -
@@ -92,6 +94,40 @@ TEST(FloatFixedLagSmoother, GnssFloatStateAndAmbiguitiesConverge)
     const auto ambiguity = smoother.ambiguity(measurements[index].ambiguity_key);
     ASSERT_TRUE(ambiguity.has_value());
     EXPECT_NEAR(*ambiguity, expected[index], 0.08);
+  }
+}
+
+TEST(FloatFixedLagSmoother, PreservesSharedReferenceCovarianceBetweenAmbiguities)
+{
+  const Vec3 truth{6378137.0, 20.0, -10.0};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  EcefState initial = stateAt(100.0, truth);
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, initial));
+  StateFactorNoise tight_prior;
+  tight_prior.position_m = 1.0e-6;
+  tight_prior.rotation_rad = 1.0e-6;
+  tight_prior.velocity_m_s = 1.0e-6;
+  tight_prior.accelerometer_bias_m_s2 = 1.0e-6;
+  tight_prior.gyroscope_bias_rad_s = 1.0e-6;
+  ASSERT_TRUE(smoother.addStatePrior(1, initial, tight_prior));
+  auto measurements = syntheticGnss(truth, base);
+  for (auto & measurement : measurements) {
+    measurement.code_valid = false;
+    measurement.carrier_target_variance_m2 = 1.0e-4;
+    measurement.carrier_reference_variance_m2 = 4.0e-4;
+    measurement.carrier_sigma_m = std::sqrt(5.0e-4);
+  }
+  ASSERT_TRUE(smoother.addGnssFactors(1, measurements));
+  ASSERT_TRUE(smoother.optimize());
+  const auto estimate = smoother.floatAmbiguityEstimate();
+  ASSERT_TRUE(estimate.has_value());
+  ASSERT_EQ(estimate->covariance_m2.rows(), 4);
+  for (int row = 0; row < 4; ++row) {
+    EXPECT_NEAR(estimate->covariance_m2(row, row), 5.0e-4, 2.0e-6);
+    for (int column = 0; column < row; ++column) {
+      EXPECT_NEAR(estimate->covariance_m2(row, column), 4.0e-4, 2.0e-6);
+    }
   }
 }
 

@@ -36,6 +36,7 @@ FloatAmbiguityEstimate estimateFromCycles(
   FloatAmbiguityEstimate estimate;
   estimate.keys = keys;
   estimate.last_observed_state_ids.assign(keys.size(), state_id);
+  estimate.observation_counts.assign(keys.size(), 5U);
   estimate.values_m.resize(cycles.size());
   estimate.covariance_m2.resize(cycles.size(), cycles.size());
   std::vector<double> wavelengths(keys.size());
@@ -194,6 +195,19 @@ TEST(IntegerAmbiguityResolver, UsesOnlyNewestObservationSetWithinBasis)
   ASSERT_TRUE(result.fixed) << toString(result.rejection_reason);
   EXPECT_EQ(result.keys.size(), 4U);
   EXPECT_FALSE(result.keys.front() == keys.front());
+}
+
+TEST(IntegerAmbiguityResolver, ExcludesImmatureAmbiguityArcs)
+{
+  std::vector<DdAmbiguityKey> keys{key(4), key(5), key(6), key(7)};
+  Eigen::Vector4d cycles;
+  cycles << 1.01, 2.01, 3.01, 4.01;
+  auto estimate = estimateFromCycles(
+    keys, cycles, Eigen::Matrix4d::Identity() * 0.0004);
+  estimate.observation_counts[2] = 1U;
+  const IntegerFixResult result = IntegerAmbiguityResolver().resolve(estimate);
+  EXPECT_FALSE(result.fixed);
+  EXPECT_EQ(result.rejection_reason, IntegerFixRejectionReason::InsufficientAmbiguities);
 }
 
 TEST(IntegerAmbiguityResolver, RejectsNonFiniteAndGlonassInputsClosed)

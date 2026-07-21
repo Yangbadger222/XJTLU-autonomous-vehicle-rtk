@@ -355,11 +355,13 @@ bool FloatFixedLagSmoother::addGnssFactors(
           ambiguities_[measurement.ambiguity_key] = -evaluation->residual_m;
         }
       }
+      ambiguity_observation_counts_[measurement.ambiguity_key] = 0U;
     }
     if (measurement.carrier_valid &&
       ambiguities_.find(measurement.ambiguity_key) != ambiguities_.end())
     {
       ambiguity_last_state_[measurement.ambiguity_key] = state;
+      ++ambiguity_observation_counts_[measurement.ambiguity_key];
     }
   }
   if (!any_valid) {
@@ -451,6 +453,37 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       }
       system.cost += robustCost(standardized, huber_delta);
       ++system.rows;
+    };
+
+  const auto add_correlated_rows = [&system](
+    const Eigen::VectorXd & residuals, const Eigen::MatrixXd & covariance,
+    const Eigen::MatrixXd & jacobian, const double huber_delta) {
+      if (residuals.size() == 0 || covariance.rows() != residuals.size() ||
+        covariance.cols() != residuals.size() || jacobian.rows() != residuals.size() ||
+        !residuals.allFinite() || !covariance.allFinite() || !jacobian.allFinite())
+      {
+        return;
+      }
+      Eigen::LLT<Eigen::MatrixXd> covariance_solver(covariance);
+      if (covariance_solver.info() != Eigen::Success) {
+        return;
+      }
+      const Eigen::MatrixXd lower = covariance_solver.matrixL();
+      const Eigen::VectorXd whitened_residuals =
+        lower.triangularView<Eigen::Lower>().solve(residuals);
+      const Eigen::MatrixXd whitened_jacobian =
+        lower.triangularView<Eigen::Lower>().solve(jacobian);
+      if (!whitened_residuals.allFinite() || !whitened_jacobian.allFinite()) {
+        return;
+      }
+      const double group_residual = whitened_residuals.norm() /
+        std::sqrt(static_cast<double>(whitened_residuals.size()));
+      const double weight = robustWeight(group_residual, huber_delta);
+      system.gradient += weight * whitened_jacobian.transpose() * whitened_residuals;
+      system.hessian += weight * whitened_jacobian.transpose() * whitened_jacobian;
+      system.cost += static_cast<double>(whitened_residuals.size()) *
+        robustCost(group_residual, huber_delta);
+      system.rows += static_cast<std::size_t>(whitened_residuals.size());
     };
 
   if (marginal_prior_.has_value()) {
@@ -649,42 +682,87 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
     if (state == states_.end() || state_offset == layout.state_offsets.end()) {
       continue;
     }
+    using CorrelationGroup = std::pair<SignalGroup, SatelliteId>;
+    std::map<CorrelationGroup, std::vector<const DoubleDifferenceMeasurement *>> code_groups;
+    std::map<CorrelationGroup, std::vector<const DoubleDifferenceMeasurement *>> carrier_groups;
     for (const auto & measurement : batch.measurements) {
+      const CorrelationGroup group{measurement.group, measurement.reference};
       if (measurement.code_valid) {
-        const auto evaluation = evaluateDdPseudorange(measurement, state->second);
-        if (evaluation.has_value()) {
-          Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kStateDimension);
-          for (int column = 0; column < 6; ++column) {
-            jacobian(column) = evaluation->pose_jacobian[static_cast<std::size_t>(column)];
-          }
-          add_dense_row(
-            evaluation->residual_m, measurement.code_sigma_m,
-            gnss_config_.code_huber_delta_sigma, {{state_offset->second, jacobian}});
-        }
+        code_groups[group].push_back(&measurement);
       }
       if (measurement.carrier_valid) {
-        const auto ambiguity = ambiguities_.find(measurement.ambiguity_key);
-        const auto ambiguity_offset = layout.ambiguity_offsets.find(measurement.ambiguity_key);
-        if (ambiguity == ambiguities_.end() || ambiguity_offset == layout.ambiguity_offsets.end()) {
-          continue;
-        }
-        const auto evaluation = evaluateDdCarrier(
-          measurement, state->second, ambiguity->second);
-        if (evaluation.has_value()) {
-          Eigen::VectorXd state_jacobian = Eigen::VectorXd::Zero(kStateDimension);
+        carrier_groups[group].push_back(&measurement);
+      }
+    }
+    const auto add_group = [&](const auto & entries, const bool carrier) {
+        const int count = static_cast<int>(entries.size());
+        Eigen::VectorXd residuals(count);
+        Eigen::MatrixXd covariance = Eigen::MatrixXd::Zero(count, count);
+        Eigen::MatrixXd jacobian = Eigen::MatrixXd::Zero(count, layout.dimension);
+        for (int row = 0; row < count; ++row) {
+          const DoubleDifferenceMeasurement & measurement =
+            *entries[static_cast<std::size_t>(row)];
+          std::optional<DdFactorEvaluation> evaluation;
+          if (carrier) {
+            const auto ambiguity = ambiguities_.find(measurement.ambiguity_key);
+            const auto ambiguity_offset = layout.ambiguity_offsets.find(measurement.ambiguity_key);
+            if (ambiguity == ambiguities_.end() ||
+              ambiguity_offset == layout.ambiguity_offsets.end())
+            {
+              return;
+            }
+            evaluation = evaluateDdCarrier(measurement, state->second, ambiguity->second);
+            if (evaluation.has_value()) {
+              jacobian(row, ambiguity_offset->second) = evaluation->ambiguity_jacobian;
+            }
+          } else {
+            evaluation = evaluateDdPseudorange(measurement, state->second);
+          }
+          if (!evaluation.has_value()) {
+            return;
+          }
+          residuals(row) = evaluation->residual_m;
           for (int column = 0; column < 6; ++column) {
-            state_jacobian(column) =
+            jacobian(row, state_offset->second + column) =
               evaluation->pose_jacobian[static_cast<std::size_t>(column)];
           }
-          Eigen::VectorXd ambiguity_jacobian(1);
-          ambiguity_jacobian(0) = evaluation->ambiguity_jacobian;
-          add_dense_row(
-            evaluation->residual_m, measurement.carrier_sigma_m,
-            gnss_config_.carrier_huber_delta_sigma,
-            {{state_offset->second, state_jacobian},
-              {ambiguity_offset->second, ambiguity_jacobian}});
+          double target_variance = carrier ?
+            measurement.carrier_target_variance_m2 : measurement.code_target_variance_m2;
+          double reference_variance = carrier ?
+            measurement.carrier_reference_variance_m2 : measurement.code_reference_variance_m2;
+          if (!std::isfinite(target_variance) || !std::isfinite(reference_variance) ||
+            target_variance <= 0.0 || reference_variance <= 0.0)
+          {
+            const double sigma = carrier ? measurement.carrier_sigma_m : measurement.code_sigma_m;
+            target_variance = sigma * sigma;
+            reference_variance = 0.0;
+          }
+          covariance(row, row) = target_variance + reference_variance;
+          for (int column = 0; column < row; ++column) {
+            const DoubleDifferenceMeasurement & other =
+              *entries[static_cast<std::size_t>(column)];
+            double other_reference_variance = carrier ?
+              other.carrier_reference_variance_m2 : other.code_reference_variance_m2;
+            if (!std::isfinite(other_reference_variance) || other_reference_variance <= 0.0) {
+              other_reference_variance = 0.0;
+            }
+            const double shared_reference_covariance = std::sqrt(
+              std::max(0.0, reference_variance) *
+              std::max(0.0, other_reference_variance));
+            covariance(row, column) = shared_reference_covariance;
+            covariance(column, row) = shared_reference_covariance;
+          }
         }
-      }
+        add_correlated_rows(
+          residuals, covariance, jacobian,
+          carrier ? gnss_config_.carrier_huber_delta_sigma :
+          gnss_config_.code_huber_delta_sigma);
+      };
+    for (const auto & group : code_groups) {
+      add_group(group.second, false);
+    }
+    for (const auto & group : carrier_groups) {
+      add_group(group.second, true);
     }
   }
   system.hessian = 0.5 * (system.hessian + system.hessian.transpose());
@@ -975,6 +1053,7 @@ bool FloatFixedLagSmoother::marginalizeOldest()
   for (auto iterator = ambiguities_.begin(); iterator != ambiguities_.end(); ) {
     if (retained_ambiguities.find(iterator->first) == retained_ambiguities.end()) {
       ambiguity_last_state_.erase(iterator->first);
+      ambiguity_observation_counts_.erase(iterator->first);
       iterator = ambiguities_.erase(iterator);
     } else {
       ++iterator;
@@ -1015,6 +1094,7 @@ std::optional<FloatAmbiguityEstimate> FloatFixedLagSmoother::floatAmbiguityEstim
   estimate.covariance_m2.resize(count, count);
   estimate.keys.reserve(ambiguities_.size());
   estimate.last_observed_state_ids.reserve(ambiguities_.size());
+  estimate.observation_counts.reserve(ambiguities_.size());
   std::vector<int> scalar_offsets;
   scalar_offsets.reserve(ambiguities_.size());
   for (const auto & ambiguity_value : ambiguities_) {
@@ -1022,6 +1102,9 @@ std::optional<FloatAmbiguityEstimate> FloatFixedLagSmoother::floatAmbiguityEstim
     const auto last_state = ambiguity_last_state_.find(ambiguity_value.first);
     estimate.last_observed_state_ids.push_back(
       last_state == ambiguity_last_state_.end() ? 0U : last_state->second);
+    const auto observation_count = ambiguity_observation_counts_.find(ambiguity_value.first);
+    estimate.observation_counts.push_back(
+      observation_count == ambiguity_observation_counts_.end() ? 0U : observation_count->second);
     estimate.values_m(static_cast<int>(scalar_offsets.size())) = ambiguity_value.second;
     scalar_offsets.push_back(layout.ambiguity_offsets.at(ambiguity_value.first));
   }

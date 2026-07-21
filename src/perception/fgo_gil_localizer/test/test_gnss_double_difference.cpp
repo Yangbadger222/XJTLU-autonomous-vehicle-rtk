@@ -167,6 +167,25 @@ TEST(AmbiguityArcManager, SkipsDopplerCheckWhenBaseDopplerIsUnavailable)
   EXPECT_EQ(continued.arc_id, first.arc_id);
 }
 
+TEST(AmbiguityArcManager, UsesReceiverSpecificObservationGap)
+{
+  AmbiguityArcManager manager;
+  GnssObservation sample = observation(3, 2.1e7, 1000.0, 0.0, 10.0);
+  sample.doppler_valid = false;
+  const auto rover_first = manager.update(GnssReceiver::Master, {2400, 100.0}, sample);
+  const auto base_first = manager.update(GnssReceiver::Base, {2400, 100.0}, sample);
+  ASSERT_TRUE(rover_first.new_arc);
+  ASSERT_TRUE(base_first.new_arc);
+
+  sample.lock_time_s = 13.0;
+  const auto rover_gap = manager.update(GnssReceiver::Master, {2400, 103.0}, sample);
+  const auto base_gap = manager.update(GnssReceiver::Base, {2400, 103.0}, sample);
+  EXPECT_TRUE(rover_gap.new_arc);
+  EXPECT_EQ(rover_gap.reason, ArcResetReason::ObservationGap);
+  EXPECT_FALSE(base_gap.new_arc);
+  EXPECT_EQ(base_gap.arc_id, base_first.arc_id);
+}
+
 TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
 {
   EcefState rover_state;
@@ -181,14 +200,22 @@ TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
   const Vec3 reference_position{26500000.0, 0.0, 4000000.0};
   const Vec3 target_position{21000000.0, 11000000.0, 9000000.0};
   SatelliteStateMap states;
-  states[reference_id] = {reference_id, {2400, 100.0}, reference_position, {}, 0.0, 0.0};
-  states[target_id] = {target_id, {2400, 100.0}, target_position, {}, 0.0, 0.0};
+  const Vec3 reference_base_position = reference_position + Vec3{12.0, -4.0, 2.0};
+  const Vec3 target_base_position = target_position + Vec3{-7.0, 9.0, -3.0};
+  states[reference_id] = {
+    {reference_id, {2400, 100.0}, reference_position, {}, 0.0, 0.0},
+    {reference_id, {2400, 100.0}, reference_base_position, {}, 0.0, 0.0}};
+  states[target_id] = {
+    {target_id, {2400, 100.0}, target_position, {}, 0.0, 0.0},
+    {target_id, {2400, 100.0}, target_base_position, {}, 0.0, 0.0}};
   const double wavelength = *carrierWavelengthM({GnssConstellation::Gps, 0, false, 0});
 
-  const auto make_receiver_observations = [&](const Vec3 & receiver, const double clock_m,
-      const double reference_ambiguity_m, const double target_ambiguity_m) {
-      const double reference_range = norm(reference_position - receiver);
-      const double target_range = norm(target_position - receiver);
+  const auto make_receiver_observations = [&](const Vec3 & receiver,
+      const Vec3 & receiver_reference_position, const Vec3 & receiver_target_position,
+      const double clock_m, const double reference_ambiguity_m,
+      const double target_ambiguity_m) {
+      const double reference_range = norm(receiver_reference_position - receiver);
+      const double target_range = norm(receiver_target_position - receiver);
       return std::vector<GnssObservation>{
       observation(
         3, reference_range + clock_m,
@@ -200,10 +227,16 @@ TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
   AlignedGnssEpochs epochs;
   epochs.rover = {
     GnssReceiver::Master, {2400, 100.0},
-    make_receiver_observations(rover_antenna, 100.0, 5.0, 17.0)};
+    make_receiver_observations(
+      rover_antenna, reference_position, target_position, 100.0, 5.0, 17.0)};
   epochs.base = {
     GnssReceiver::Base, {2400, 100.0},
-    make_receiver_observations(base, 30.0, 2.0, 4.0)};
+    make_receiver_observations(
+      base, reference_base_position, target_base_position, 30.0, 2.0, 4.0)};
+  for (auto & base_observation : epochs.base.observations) {
+    base_observation.pseudorange_std_m = 0.0;
+    base_observation.carrier_phase_std_cycles = 0.0;
+  }
 
   DoubleDifferenceBuilder builder;
   const auto measurements = builder.build(epochs, states, rover_state, base, lever_arm);
@@ -217,6 +250,8 @@ TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
   ASSERT_TRUE(measurement.code_valid);
   ASSERT_TRUE(measurement.carrier_valid);
   EXPECT_EQ(measurement.reference.prn, 3U);
+  EXPECT_GT(measurement.carrier_sigma_m, 0.014);
+  EXPECT_GT(measurement.code_sigma_m, 0.47);
   const auto code = evaluateDdPseudorange(measurement, rover_state);
   ASSERT_TRUE(code.has_value());
   EXPECT_NEAR(code->residual_m, 0.0, 1.0e-6);
@@ -234,6 +269,8 @@ TEST(DoubleDifferenceFactor, AnalyticPoseJacobianMatchesFiniteDifference)
   measurement.code_dd_m = 0.0;
   measurement.target_position_ecef_m = {21000000.0, 11000000.0, 9000000.0};
   measurement.reference_position_ecef_m = {26500000.0, 0.0, 4000000.0};
+  measurement.target_base_position_ecef_m = measurement.target_position_ecef_m;
+  measurement.reference_base_position_ecef_m = measurement.reference_position_ecef_m;
   measurement.base_position_ecef_m = {6378137.0, -10.0, 0.0};
   measurement.lever_arm_body_m = {0.2, -0.1, 0.3};
   EcefState state;

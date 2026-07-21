@@ -340,7 +340,7 @@ time_sync:
 
 完成条件：合成 rover/base 数据中 float state 与 ambiguity 收敛；reference switch 和单星周跳测试通过。
 
-实现说明：载波频率严格按 UM982 分星座 signal-ID 表解释，未知 ID 和非法 GLONASS 频点直接 fail closed。GPS/QZSS/Galileo/BDS Kepler、BDS GEO 旋转、GLONASS RK4、发射时刻和 Sagnac 修正均有单位测试。DD 载波模糊度统一存为米，key 同时包含 target/reference satellite 和 rover/base 四条 arc ID，因此参考星切换或单星周跳不会静默复用旧变量。Eigen smoother 把 Phase 3 ECEF IMU 重传播、Phase 4 原始线面因子和 DD 码/载波因子共同重线性化；窗口同时受时间和 state 数限制，旧 state 与失活 ambiguity 通过 Schur 补进入带锚点的稠密先验，禁止清图后补虚假强 prior。
+实现说明：载波频率严格按 UM982 分星座 signal-ID 表解释，未知 ID 和非法 GLONASS 频点直接 fail closed。GPS/QZSS/Galileo/BDS Kepler、BDS GEO 旋转、GLONASS RK4、发射时刻和 Sagnac 修正均有单位测试。rover 与 base 现在分别用各自伪距计算发射时刻和 Sagnac 状态，避免约 926 m 基线下共用 rover 卫星状态带来的厘米级 DD 模型误差。`OBSVBASE` 的零标准差按“不可用”处理，默认使用 0.30 m 码和 0.01 m 载波 fallback；同一参考星产生的 DD 行按完整共享参考协方差整体白化，不再当作独立标量观测重复计权。DD 载波模糊度统一存为米，key 同时包含 target/reference satellite 和 rover/base 四条 arc ID，因此参考星切换或单星周跳不会静默复用旧变量。Eigen smoother 把 Phase 3 ECEF IMU 重传播、Phase 4 原始线面因子和 DD 码/载波因子共同重线性化；窗口同时受时间和 state 数限制，旧 state 与失活 ambiguity 通过 Schur 补进入带锚点的稠密先验，禁止清图后补虚假强 prior。
 
 Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递真实点线/点面因子，而不是把 FAST-LIO pose 伪装成 LiDAR factor。`system_fgo_gil_float.launch.py` 保留 `/fgo_gil/float_odom_ecef`，Phase 6 仅增加独立 `/fgo_gil/fixed_odom_ecef`，始终不发布 TF 或控制命令。`calibration.ecef_from_lidar_world.calibrated` 与静态 `calibration.gnss.base_ecef_calibrated` 覆盖默认均为 `false`；base gate 现在可由CRC正确的RTCM 1005/1006满足，ECEF/world仍必须通过现场拟合验收。master杆臂占位值 `[0.0,-0.184,0.134] m` 由已测右天线在 `base_link` 中的 `[0.0,-0.184,0.154] m` 减去当前尚未精标的IMU Z占位 `0.02 m` 得到。
 
@@ -354,7 +354,7 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 实现说明：MLAMBDA 核心固定到 RTKLIB commit `71db0ffa0d9735697c6adfd06fdf766d0e5ce807` 的 `lambda.c`，Eigen 只替换内存管理与最终线性求解；上游版权、BSD-2-Clause 条款与附加条款完整保存在 `third_party/rtklib/LICENSE.txt`。smoother 从完整联合 Hessian 计算边缘协方差，并用与 ambiguity key 相同的确定顺序输出；DD ambiguity 从米按 signal wavelength 转成周后才进入 LAMBDA。
 
-整数解析先锁定全图最新 GNSS state，并要求每个 signal group 在该 state 只有唯一 reference satellite 与 reference rover/base arc 基底；不同星座/信号的当前变量在分别换算为 cycles 后使用完整交叉协方差联合进入 LAMBDA。参考星变化时，新变量通过 `N_i^q=N_i^r-N_q^r` 精确变换初始化；任一相关 arc 改变则无法匹配旧基底，自动回到新变量初始化。由于 GLONASS FDMA 的 target/reference wavelength 不同，本阶段明确排除 GLONASS 整数固定，避免把米制组合错误解释为单一整数周。
+整数解析先锁定全图最新 GNSS state，并要求每个 signal group 在该 state 只有唯一 reference satellite 与 reference rover/base arc 基底；不同星座/信号的当前变量在分别换算为 cycles 后使用完整交叉协方差联合进入 LAMBDA。参考星变化时，新变量通过 `N_i^q=N_i^r-N_q^r` 变换均值初值，但不继承旧变量的信息矩阵，并重新累计连续观测；任一相关 arc 改变也会创建新变量。默认至少连续 5 个有效历元后才允许进入 LAMBDA。该策略优先避免未建模的 covariance basis transform 造成过度自信，代价是参考星切换后短暂只保留 FLOAT。基站观测允许 5 s 间隔，rover 仍为 2 s；锁时间连续时不会因正常 1 Hz CORS 抖动频繁重建基站 arc。由于 GLONASS FDMA 的 target/reference wavelength 不同，本阶段明确排除 GLONASS 整数固定，避免把米制组合错误解释为单一整数周。
 
 默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解。每批新 DD factor 在下一次成功图优化后只触发一次 fixed candidate，允许该 GNSS factor 挂在时间最近且仍处于窗口内的 LiDAR state；没有新 GNSS factor 时不会从旧 ambiguity 重发 stale fixed。
 

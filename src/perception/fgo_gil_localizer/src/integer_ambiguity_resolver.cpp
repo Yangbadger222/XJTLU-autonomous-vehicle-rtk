@@ -114,7 +114,8 @@ const char * toString(const IntegerFixRejectionReason reason) noexcept
 IntegerAmbiguityResolver::IntegerAmbiguityResolver(IntegerAmbiguityResolverConfig config)
 : config_(config)
 {
-  if (config_.minimum_ambiguities == 0U || !std::isfinite(config_.ratio_threshold) ||
+  if (config_.minimum_ambiguities == 0U || config_.minimum_observation_epochs == 0U ||
+    !std::isfinite(config_.ratio_threshold) ||
     config_.ratio_threshold <= 1.0 || !std::isfinite(config_.minimum_success_rate) ||
     config_.minimum_success_rate < 0.0 || config_.minimum_success_rate > 1.0 ||
     !std::isfinite(config_.maximum_squared_norm) || config_.maximum_squared_norm <= 0.0)
@@ -136,6 +137,7 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
     return output;
   }
   if (estimate.last_observed_state_ids.size() != count ||
+    estimate.observation_counts.size() != count ||
     estimate.values_m.size() != static_cast<int>(count) ||
     estimate.covariance_m2.rows() != static_cast<int>(count) ||
     estimate.covariance_m2.cols() != static_cast<int>(count))
@@ -154,6 +156,9 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
   bool had_unsupported_signal = false;
   for (std::size_t index = 0; index < count; ++index) {
     if (estimate.last_observed_state_ids[index] != newest_state) {
+      continue;
+    }
+    if (estimate.observation_counts[index] < config_.minimum_observation_epochs) {
       continue;
     }
     const DdAmbiguityKey & key = estimate.keys[index];

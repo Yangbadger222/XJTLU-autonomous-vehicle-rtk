@@ -99,7 +99,7 @@ struct CommonObservation
 {
   const GnssObservation * rover = nullptr;
   const GnssObservation * base = nullptr;
-  const SatelliteState * satellite = nullptr;
+  const SatelliteLinkStates * satellite = nullptr;
   double wavelength_m = 0.0;
   double elevation_rad = 0.0;
   ArcUpdate rover_arc;
@@ -112,15 +112,17 @@ double geometricRange(const Vec3 & satellite, const Vec3 & receiver)
 }
 
 double predictedDoubleDifference(
-  const Vec3 & target_satellite,
-  const Vec3 & reference_satellite,
+  const Vec3 & target_rover_satellite,
+  const Vec3 & target_base_satellite,
+  const Vec3 & reference_rover_satellite,
+  const Vec3 & reference_base_satellite,
   const Vec3 & rover_antenna,
   const Vec3 & base)
 {
-  return geometricRange(target_satellite, rover_antenna) -
-         geometricRange(target_satellite, base) -
-         geometricRange(reference_satellite, rover_antenna) +
-         geometricRange(reference_satellite, base);
+  return geometricRange(target_rover_satellite, rover_antenna) -
+         geometricRange(target_base_satellite, base) -
+         geometricRange(reference_rover_satellite, rover_antenna) +
+         geometricRange(reference_base_satellite, base);
 }
 
 std::optional<Vec3> rangeGradient(const Vec3 & satellite, const Vec3 & receiver)
@@ -143,13 +145,10 @@ bool finiteObservation(const GnssObservation & observation)
          std::isfinite(observation.cn0_db_hz) && std::isfinite(observation.lock_time_s);
 }
 
-double combinedSigma(const std::array<double, 4> & sigmas, const double minimum)
+double usableSigma(const double reported, const double minimum, const double unavailable)
 {
-  double variance = 0.0;
-  for (const double sigma : sigmas) {
-    variance += std::max(std::abs(sigma), minimum) * std::max(std::abs(sigma), minimum);
-  }
-  return std::sqrt(variance);
+  return std::isfinite(reported) && reported > 0.0 ?
+         std::max(reported, minimum) : std::max(unavailable, minimum);
 }
 
 }  // namespace
@@ -334,8 +333,10 @@ AmbiguityArcManager::AmbiguityArcManager(AmbiguityArcConfig config)
 {
   if (!std::isfinite(config_.lock_time_tolerance_s) ||
     !std::isfinite(config_.maximum_observation_gap_s) ||
+    !std::isfinite(config_.base_maximum_observation_gap_s) ||
     !std::isfinite(config_.doppler_phase_threshold_cycles) ||
     config_.lock_time_tolerance_s < 0.0 || config_.maximum_observation_gap_s <= 0.0 ||
+    config_.base_maximum_observation_gap_s <= 0.0 ||
     config_.doppler_phase_threshold_cycles <= 0.0)
   {
     throw std::invalid_argument("ambiguity arc configuration is outside valid bounds");
@@ -372,7 +373,9 @@ ArcUpdate AmbiguityArcManager::update(
     const double delta_s = epochDelta(time, state.time);
     if (delta_s <= 0.0) {
       reset = ArcResetReason::TimeReversal;
-    } else if (delta_s > config_.maximum_observation_gap_s) {
+    } else if (delta_s > (receiver == GnssReceiver::Base ?
+      config_.base_maximum_observation_gap_s : config_.maximum_observation_gap_s))
+    {
       reset = ArcResetReason::ObservationGap;
     } else if (observation.lock_time_s + config_.lock_time_tolerance_s < state.lock_time_s) {
       reset = ArcResetReason::LockTimeReset;
@@ -444,8 +447,12 @@ DoubleDifferenceBuilder::DoubleDifferenceBuilder(
     !std::isfinite(config_.maximum_code_innovation_m) ||
     !std::isfinite(config_.minimum_code_sigma_m) ||
     !std::isfinite(config_.minimum_carrier_sigma_m) ||
+    !std::isfinite(config_.unavailable_base_code_sigma_m) ||
+    !std::isfinite(config_.unavailable_base_carrier_sigma_m) ||
     config_.maximum_baseline_m <= 0.0 || config_.maximum_code_innovation_m <= 0.0 ||
-    config_.minimum_code_sigma_m <= 0.0 || config_.minimum_carrier_sigma_m <= 0.0)
+    config_.minimum_code_sigma_m <= 0.0 || config_.minimum_carrier_sigma_m <= 0.0 ||
+    config_.unavailable_base_code_sigma_m <= 0.0 ||
+    config_.unavailable_base_carrier_sigma_m <= 0.0)
   {
     throw std::invalid_argument("double-difference builder configuration is outside valid bounds");
   }
@@ -501,7 +508,10 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       continue;
     }
     const auto satellite = satellite_states.find(rover_observation.satellite);
-    if (satellite == satellite_states.end() || !finite(satellite->second.position_ecef_m)) {
+    if (satellite == satellite_states.end() ||
+      !finite(satellite->second.rover.position_ecef_m) ||
+      !finite(satellite->second.base.position_ecef_m))
+    {
       reject(DdRejectReason::MissingSatelliteState);
       continue;
     }
@@ -512,7 +522,7 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       reject(DdRejectReason::LowQuality);
       continue;
     }
-    const Vec3 line_of_sight = satellite->second.position_ecef_m - rover_antenna;
+    const Vec3 line_of_sight = satellite->second.rover.position_ecef_m - rover_antenna;
     const double line_norm = norm(line_of_sight);
     const double up_norm = norm(rover_antenna);
     if (line_norm < 1.0 || up_norm < 1.0) {
@@ -545,10 +555,12 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       }
     }
     common[key] = value;
-    candidates.push_back(
-      {
-        rover_observation.satellite, signalGroup(rover_observation.signal), elevation,
-        std::min(rover_observation.cn0_db_hz, base_observation.cn0_db_hz)});
+    if (value.rover_arc.usable && value.base_arc.usable) {
+      candidates.push_back(
+        {
+          rover_observation.satellite, signalGroup(rover_observation.signal), elevation,
+          std::min(rover_observation.cn0_db_hz, base_observation.cn0_db_hz)});
+    }
   }
 
   const auto references = reference_selector_.select(candidates);
@@ -581,8 +593,10 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
     measurement.group = group;
     measurement.reference = reference_key.satellite;
     measurement.target = target_key.satellite;
-    measurement.target_position_ecef_m = target.satellite->position_ecef_m;
-    measurement.reference_position_ecef_m = reference.satellite->position_ecef_m;
+    measurement.target_position_ecef_m = target.satellite->rover.position_ecef_m;
+    measurement.reference_position_ecef_m = reference.satellite->rover.position_ecef_m;
+    measurement.target_base_position_ecef_m = target.satellite->base.position_ecef_m;
+    measurement.reference_base_position_ecef_m = reference.satellite->base.position_ecef_m;
     measurement.base_position_ecef_m = base_position_ecef_m;
     measurement.lever_arm_body_m = lever_arm_body_m;
     measurement.target_elevation_rad = target.elevation_rad;
@@ -590,7 +604,8 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
     measurement.reference_switched = reference_selection->second.switched;
 
     const double predicted = predictedDoubleDifference(
-      measurement.target_position_ecef_m, measurement.reference_position_ecef_m,
+      measurement.target_position_ecef_m, measurement.target_base_position_ecef_m,
+      measurement.reference_position_ecef_m, measurement.reference_base_position_ecef_m,
       rover_antenna, base_position_ecef_m);
     const bool code_inputs_valid = target.rover->pseudorange_valid &&
       target.base->pseudorange_valid && reference.rover->pseudorange_valid &&
@@ -599,10 +614,25 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       measurement.code_dd_m =
         target.rover->pseudorange_m - target.base->pseudorange_m -
         reference.rover->pseudorange_m + reference.base->pseudorange_m;
-      measurement.code_sigma_m = combinedSigma(
-        {target.rover->pseudorange_std_m, target.base->pseudorange_std_m,
-          reference.rover->pseudorange_std_m, reference.base->pseudorange_std_m},
+      const double target_rover_sigma = usableSigma(
+        target.rover->pseudorange_std_m, config_.minimum_code_sigma_m,
         config_.minimum_code_sigma_m);
+      const double target_base_sigma = usableSigma(
+        target.base->pseudorange_std_m, config_.minimum_code_sigma_m,
+        config_.unavailable_base_code_sigma_m);
+      const double reference_rover_sigma = usableSigma(
+        reference.rover->pseudorange_std_m, config_.minimum_code_sigma_m,
+        config_.minimum_code_sigma_m);
+      const double reference_base_sigma = usableSigma(
+        reference.base->pseudorange_std_m, config_.minimum_code_sigma_m,
+        config_.unavailable_base_code_sigma_m);
+      measurement.code_target_variance_m2 = target_rover_sigma * target_rover_sigma +
+        target_base_sigma * target_base_sigma;
+      measurement.code_reference_variance_m2 =
+        reference_rover_sigma * reference_rover_sigma +
+        reference_base_sigma * reference_base_sigma;
+      measurement.code_sigma_m = std::sqrt(
+        measurement.code_target_variance_m2 + measurement.code_reference_variance_m2);
       measurement.code_valid = std::isfinite(measurement.code_dd_m) &&
         std::abs(measurement.code_dd_m - predicted) <= config_.maximum_code_innovation_m;
       if (!measurement.code_valid) {
@@ -620,12 +650,26 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
         (target.rover->carrier_phase_cycles - target.base->carrier_phase_cycles) -
         reference.wavelength_m *
         (reference.rover->carrier_phase_cycles - reference.base->carrier_phase_cycles);
-      measurement.carrier_sigma_m = combinedSigma(
-        {target.wavelength_m * target.rover->carrier_phase_std_cycles,
-          target.wavelength_m * target.base->carrier_phase_std_cycles,
-          reference.wavelength_m * reference.rover->carrier_phase_std_cycles,
-          reference.wavelength_m * reference.base->carrier_phase_std_cycles},
-        config_.minimum_carrier_sigma_m);
+      const double target_rover_sigma = usableSigma(
+        target.wavelength_m * target.rover->carrier_phase_std_cycles,
+        config_.minimum_carrier_sigma_m, config_.minimum_carrier_sigma_m);
+      const double target_base_sigma = usableSigma(
+        target.wavelength_m * target.base->carrier_phase_std_cycles,
+        config_.minimum_carrier_sigma_m, config_.unavailable_base_carrier_sigma_m);
+      const double reference_rover_sigma = usableSigma(
+        reference.wavelength_m * reference.rover->carrier_phase_std_cycles,
+        config_.minimum_carrier_sigma_m, config_.minimum_carrier_sigma_m);
+      const double reference_base_sigma = usableSigma(
+        reference.wavelength_m * reference.base->carrier_phase_std_cycles,
+        config_.minimum_carrier_sigma_m, config_.unavailable_base_carrier_sigma_m);
+      measurement.carrier_target_variance_m2 = target_rover_sigma * target_rover_sigma +
+        target_base_sigma * target_base_sigma;
+      measurement.carrier_reference_variance_m2 =
+        reference_rover_sigma * reference_rover_sigma +
+        reference_base_sigma * reference_base_sigma;
+      measurement.carrier_sigma_m = std::sqrt(
+        measurement.carrier_target_variance_m2 +
+        measurement.carrier_reference_variance_m2);
       measurement.ambiguity_key = {
         group, measurement.reference, measurement.target,
         {target.rover_arc.arc_id, target.base_arc.arc_id,
@@ -663,7 +707,8 @@ std::optional<DdFactorEvaluation> evaluateDdPseudorange(
   const Vec3 position_gradient = *target_gradient - *reference_gradient;
   const Vec3 rotation_gradient = cross(lever_ecef, position_gradient);
   const double predicted = predictedDoubleDifference(
-    measurement.target_position_ecef_m, measurement.reference_position_ecef_m,
+    measurement.target_position_ecef_m, measurement.target_base_position_ecef_m,
+    measurement.reference_position_ecef_m, measurement.reference_base_position_ecef_m,
     rover_antenna, measurement.base_position_ecef_m);
   DdFactorEvaluation evaluation;
   evaluation.residual_m = predicted - measurement.code_dd_m;

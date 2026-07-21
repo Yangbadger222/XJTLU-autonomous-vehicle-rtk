@@ -15,6 +15,7 @@ struct FloatAmbiguityEstimate
 {
   std::vector<DdAmbiguityKey> keys;
   std::vector<std::uint64_t> last_observed_state_ids;
+  std::vector<std::size_t> observation_counts;
   Eigen::VectorXd values_m;
   Eigen::MatrixXd covariance_m2;
 };
@@ -45,6 +46,7 @@ struct IntegerAmbiguityResolverConfig
   bool enabled = true;
   bool partial_fixing = true;
   std::size_t minimum_ambiguities = 4;
+  std::size_t minimum_observation_epochs = 5;
   double ratio_threshold = 3.0;
   double minimum_success_rate = 0.99;
   double maximum_squared_norm = 25.0;

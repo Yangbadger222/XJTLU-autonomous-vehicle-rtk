@@ -159,6 +159,7 @@ struct AmbiguityArcConfig
 {
   double lock_time_tolerance_s = 0.050;
   double maximum_observation_gap_s = 2.0;
+  double base_maximum_observation_gap_s = 5.0;
   double doppler_phase_threshold_cycles = 0.75;
 };
 
@@ -222,12 +223,18 @@ struct DoubleDifferenceMeasurement
   DdAmbiguityKey ambiguity_key;
   Vec3 target_position_ecef_m;
   Vec3 reference_position_ecef_m;
+  Vec3 target_base_position_ecef_m;
+  Vec3 reference_base_position_ecef_m;
   Vec3 base_position_ecef_m;
   Vec3 lever_arm_body_m;
   double code_dd_m = 0.0;
   double carrier_dd_m = 0.0;
   double code_sigma_m = 0.0;
   double carrier_sigma_m = 0.0;
+  double code_target_variance_m2 = 0.0;
+  double code_reference_variance_m2 = 0.0;
+  double carrier_target_variance_m2 = 0.0;
+  double carrier_reference_variance_m2 = 0.0;
   double target_elevation_rad = 0.0;
   double reference_elevation_rad = 0.0;
   bool code_valid = false;
@@ -269,9 +276,17 @@ struct DoubleDifferenceBuilderConfig
   double maximum_code_innovation_m = 30.0;
   double minimum_code_sigma_m = 0.05;
   double minimum_carrier_sigma_m = 0.001;
+  double unavailable_base_code_sigma_m = 0.30;
+  double unavailable_base_carrier_sigma_m = 0.01;
 };
 
-using SatelliteStateMap = std::map<SatelliteId, SatelliteState>;
+struct SatelliteLinkStates
+{
+  SatelliteState rover;
+  SatelliteState base;
+};
+
+using SatelliteStateMap = std::map<SatelliteId, SatelliteLinkStates>;
 
 class DoubleDifferenceBuilder
 {

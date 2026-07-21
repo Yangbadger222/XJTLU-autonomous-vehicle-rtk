@@ -250,6 +250,7 @@ private:
   std::vector<StateId> state_order_;
   std::map<DdAmbiguityKey, double> ambiguities_;
   std::map<DdAmbiguityKey, StateId> ambiguity_last_state_;
+  std::map<DdAmbiguityKey, std::size_t> ambiguity_observation_counts_;
   std::vector<StatePriorFactor> state_priors_;
   std::vector<ImuFactor> imu_factors_;
   std::vector<LidarFactorBatch> lidar_factors_;

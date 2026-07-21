@@ -226,6 +226,7 @@ fgo_gil_float_fgo:
       enabled: true
       partial_fixing: true
       minimum_ambiguities: 4
+      minimum_observation_epochs: 5
       ratio_threshold: 3.0
       minimum_success_rate: 0.99
       maximum_squared_norm: 25.0
@@ -258,6 +259,10 @@ fgo_gil_float_fgo:
       maximum_kepler_age_s: 14400.0
       maximum_glonass_age_s: 1800.0
       arc_maximum_gap_s: 2.0
+      base_arc_maximum_gap_s: 5.0
       doppler_phase_threshold_cycles: 0.75
+      # OBSVBASE currently reports zero standard deviations; zero means unavailable.
+      unavailable_base_code_sigma_m: 0.30
+      unavailable_base_carrier_sigma_m: 0.01
 
     diagnostics_period_s: 1.0

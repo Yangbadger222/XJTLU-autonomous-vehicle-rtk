@@ -262,6 +262,7 @@ private:
     declare_parameter<bool>("integer_fixing.enabled", true);
     declare_parameter<bool>("integer_fixing.partial_fixing", true);
     declare_parameter<int>("integer_fixing.minimum_ambiguities", 4);
+    declare_parameter<int>("integer_fixing.minimum_observation_epochs", 5);
     declare_parameter<double>("integer_fixing.ratio_threshold", 3.0);
     declare_parameter<double>("integer_fixing.minimum_success_rate", 0.99);
     declare_parameter<double>("integer_fixing.maximum_squared_norm", 25.0);
@@ -290,7 +291,10 @@ private:
     declare_parameter<double>("gnss.maximum_kepler_age_s", 14400.0);
     declare_parameter<double>("gnss.maximum_glonass_age_s", 1800.0);
     declare_parameter<double>("gnss.arc_maximum_gap_s", 2.0);
+    declare_parameter<double>("gnss.base_arc_maximum_gap_s", 5.0);
     declare_parameter<double>("gnss.doppler_phase_threshold_cycles", 0.75);
+    declare_parameter<double>("gnss.unavailable_base_code_sigma_m", 0.30);
+    declare_parameter<double>("gnss.unavailable_base_carrier_sigma_m", 0.01);
     declare_parameter<double>("diagnostics_period_s", 1.0);
   }
 
@@ -433,6 +437,8 @@ private:
       get_parameter("integer_fixing.partial_fixing").as_bool();
     integer_resolver_config_.minimum_ambiguities =
       positiveSizeParameter("integer_fixing.minimum_ambiguities");
+    integer_resolver_config_.minimum_observation_epochs =
+      positiveSizeParameter("integer_fixing.minimum_observation_epochs");
     integer_resolver_config_.ratio_threshold =
       get_parameter("integer_fixing.ratio_threshold").as_double();
     integer_resolver_config_.minimum_success_rate =
@@ -463,12 +469,18 @@ private:
     dd_builder_config_.maximum_baseline_m = get_parameter("gnss.maximum_baseline_m").as_double();
     dd_builder_config_.maximum_code_innovation_m =
       get_parameter("gnss.maximum_code_innovation_m").as_double();
+    dd_builder_config_.unavailable_base_code_sigma_m =
+      get_parameter("gnss.unavailable_base_code_sigma_m").as_double();
+    dd_builder_config_.unavailable_base_carrier_sigma_m =
+      get_parameter("gnss.unavailable_base_carrier_sigma_m").as_double();
     reference_selector_config_.minimum_elevation_rad = dd_builder_config_.minimum_elevation_rad;
     reference_selector_config_.minimum_cn0_db_hz = dd_builder_config_.minimum_cn0_db_hz;
     reference_selector_config_.switch_margin_rad =
       get_parameter("gnss.reference_switch_margin_deg").as_double() * degrees_to_radians;
     ambiguity_arc_config_.maximum_observation_gap_s =
       get_parameter("gnss.arc_maximum_gap_s").as_double();
+    ambiguity_arc_config_.base_maximum_observation_gap_s =
+      get_parameter("gnss.base_arc_maximum_gap_s").as_double();
     ambiguity_arc_config_.doppler_phase_threshold_cycles =
       get_parameter("gnss.doppler_phase_threshold_cycles").as_double();
     dd_builder_ = std::make_unique<DoubleDifferenceBuilder>(
@@ -948,10 +960,22 @@ private:
       if (broadcast == ephemerides_.end()) {
         continue;
       }
-      const auto propagated = satellite_propagator_->propagateToReceiveFrame(
+      const auto base_observation = std::find_if(
+        epochs.base.observations.begin(), epochs.base.observations.end(),
+        [&observation](const GnssObservation & candidate) {
+          return candidate.satellite == observation.satellite &&
+          candidate.signal == observation.signal && candidate.pseudorange_valid;
+        });
+      if (base_observation == epochs.base.observations.end()) {
+        continue;
+      }
+      const auto rover_propagated = satellite_propagator_->propagateToReceiveFrame(
         broadcast->second, epochs.rover.time, observation.pseudorange_m);
-      if (propagated.ok()) {
-        satellite_states[observation.satellite] = *propagated.state;
+      const auto base_propagated = satellite_propagator_->propagateToReceiveFrame(
+        broadcast->second, epochs.base.time, base_observation->pseudorange_m);
+      if (rover_propagated.ok() && base_propagated.ok()) {
+        satellite_states[observation.satellite] =
+        {*rover_propagated.state, *base_propagated.state};
       } else {
         ++satellite_propagation_failures_;
       }

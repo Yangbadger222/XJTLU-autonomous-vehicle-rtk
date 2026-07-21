@@ -68,11 +68,18 @@ def test_nav_gps_applies_qgis_road_keepout_to_both_costmaps():
 
 def test_nav_gps_routes_commands_through_authority_guard():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+    explore_text = Path("src/bringup/launch/system_explore.launch.py").read_text(
+        encoding="utf-8"
+    )
 
     assert '"guarded_cmd_vel": "true"' in text
     assert 'executable="corridor_cmd_vel_guard_node"' in text
     assert '"stop_override_topic": "/gps_nav/stop_override"' in text
     assert '"/localization_authority/motion_allowed"' in text
+    assert 'src="/cmd_vel"' in explore_text
+    assert 'dst="/cmd_vel_guarded"' in explore_text
+    assert '"/cmd_vel_guarded",' in text
+    assert '"/cmd_vel_controller",' not in text
 
 
 def test_nav_gps_keeps_fgo_shadow_side_effect_free():

@@ -259,16 +259,15 @@ def test_corridor_command_topology_has_one_guarded_cmd_vel_publisher():
     runner_text = ROUTE_RUNNER.read_text(encoding="utf-8")
 
     assert '"guarded_cmd_vel"' in explore_text
-    assert 'src="/cmd_vel_nav"' in explore_text
-    assert 'dst="/cmd_vel_controller"' in explore_text
     assert 'src="/cmd_vel"' in explore_text
-    assert 'dst="/cmd_vel_nav"' in explore_text
+    assert 'dst="/cmd_vel_guarded"' in explore_text
+    assert "actions=[nav2_launch]" in explore_text
     assert "'guarded_cmd_vel': 'true'" in corridor_text
     assert "corridor_cmd_vel_guard_node" in corridor_text
     assert "on_exit=Shutdown(reason='corridor_cmd_vel_guard exited')" in corridor_text
     assert "create_publisher(Twist" not in runner_text
-    assert "'/cmd_vel_controller'," in corridor_text
     assert "'/cmd_vel_nav'," in corridor_text
+    assert "'/cmd_vel_guarded'," in corridor_text
     assert "'/localization_authority/motion_allowed'," in corridor_text
     assert "'/gps_corridor/stop_override'," in corridor_text
 
@@ -278,8 +277,8 @@ def test_corridor_guard_and_hold_defaults_match_safety_spec():
     guard = params["/corridor_cmd_vel_guard"]["ros__parameters"]
     runner = params["/gps_route_runner"]["ros__parameters"]
 
-    assert guard["input_topic"] == "/cmd_vel_nav"
-    assert guard["output_topic"] == "/cmd_vel"
+    assert guard["input_topic"] == "/cmd_vel"
+    assert guard["output_topic"] == "/cmd_vel_guarded"
     assert guard["straight_max_mps"] == 0.85
     assert guard["turn_product_limit"] == 0.25
     assert guard["command_timeout_s"] == 0.25

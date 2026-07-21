@@ -143,6 +143,16 @@ def generate_launch_description():
         output="screen",
         parameters=[LaunchConfiguration("master_params_file")],
     )
+    guarded_serial = GroupAction(
+        [
+            SetRemap(
+                src="/cmd_vel",
+                dst="/cmd_vel_guarded",
+                condition=IfCondition(LaunchConfiguration("guarded_cmd_vel")),
+            ),
+            serial_node,
+        ]
+    )
 
     serial_reader_node = launch_ros.actions.Node(
         package="serial_reader",
@@ -166,22 +176,7 @@ def generate_launch_description():
         }.items(),
     )
 
-    guarded_nav2 = GroupAction(
-        [
-            SetRemap(
-                src="/cmd_vel_nav",
-                dst="/cmd_vel_controller",
-                condition=IfCondition(LaunchConfiguration("guarded_cmd_vel")),
-            ),
-            SetRemap(
-                src="/cmd_vel",
-                dst="/cmd_vel_nav",
-                condition=IfCondition(LaunchConfiguration("guarded_cmd_vel")),
-            ),
-            nav2_launch,
-        ]
-    )
-    delayed_nav2 = TimerAction(period=5.0, actions=[guarded_nav2])
+    delayed_nav2 = TimerAction(period=5.0, actions=[nav2_launch])
 
     # P5（FRC）：frc_mode != off 时附加 FRC 栈（延时 8 秒，等 LIO/PGO 起稳）
     frc_launch = IncludeLaunchDescription(
@@ -227,7 +222,7 @@ def generate_launch_description():
             guarded_cmd_vel_arg,
             livox_launch,
             pgo_launch,
-            serial_node,
+            guarded_serial,
             serial_reader_node,
             delayed_nav2,
             delayed_frc,

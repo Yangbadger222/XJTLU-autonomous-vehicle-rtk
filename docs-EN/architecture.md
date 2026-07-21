@@ -115,7 +115,8 @@ goto_name / /goal_pose / /gps_goal
             |  produce one continuous NavPath at 0.35m density
             v
      FollowPath -> MPPI + obstacle cloud + road keepout
-                -> /cmd_vel_nav -> authority guard -> /cmd_vel
+                -> /cmd_vel_nav -> velocity smoother -> /cmd_vel
+                -> authority guard -> /cmd_vel_guarded -> serial
 ```
 
 The core of `nav-gps` is:
@@ -334,9 +335,9 @@ raw GGA + stamped fix/heading + stamped LIO history
                          -> base-space correction release
                          -> map -> odom + motion_allowed heartbeat
 
-controller_server -> /cmd_vel_controller -> velocity_smoother -> /cmd_vel_nav
+controller_server -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel
 motion_allowed ----------------------------------------------------------+
-gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corridor_cmd_vel_guard -> /cmd_vel -> serial_twistctl
+gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corridor_cmd_vel_guard -> /cmd_vel_guarded -> serial_twistctl
 ```
 
-The corrector is the only corridor `map->odom` owner. The runner owns stop intent and action retry, but never Twist. The guard is the only corridor `/cmd_vel` publisher and is a required launch process. Missing either 10 Hz Bool heartbeat for 0.50 s stops output. Explore and other modes do not enable these remaps.
+The corrector is the only corridor `map->odom` owner. The runner owns stop intent and action retry, but never Twist. The guard is the only corridor `/cmd_vel_guarded` publisher and is a required launch process. In guarded mode serial subscribes only to that topic; missing either 10 Hz Bool heartbeat for 0.50 s stops output. Explore and other modes continue to use Nav2 `/cmd_vel` directly.

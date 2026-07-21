@@ -102,10 +102,10 @@ def test_guard_node_contract_and_setup_entrypoint():
     ).read_text(encoding="utf-8")
     setup_text = (package_root / "setup.py").read_text(encoding="utf-8")
 
-    assert '"/cmd_vel_nav"' in node_text
+    assert '"/cmd_vel"' in node_text
     assert '"/localization_authority/motion_allowed"' in node_text
     assert '"/gps_corridor/stop_override"' in node_text
-    assert '"/cmd_vel"' in node_text
+    assert '"/cmd_vel_guarded"' in node_text
     assert "time.monotonic()" in node_text
     assert "create_timer(0.05" in node_text
     assert "corridor_cmd_vel_guard_node = " in setup_text

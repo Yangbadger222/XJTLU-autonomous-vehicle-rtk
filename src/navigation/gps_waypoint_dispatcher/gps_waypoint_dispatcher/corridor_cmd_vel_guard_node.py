@@ -14,10 +14,10 @@ from gps_waypoint_dispatcher.corridor_cmd_guard import CorridorCommandGuard
 class CorridorCmdVelGuard(Node):
     def __init__(self) -> None:
         super().__init__("corridor_cmd_vel_guard")
-        self.declare_parameter("input_topic", "/cmd_vel_nav")
+        self.declare_parameter("input_topic", "/cmd_vel")
         self.declare_parameter("motion_allowed_topic", "/localization_authority/motion_allowed")
         self.declare_parameter("stop_override_topic", "/gps_corridor/stop_override")
-        self.declare_parameter("output_topic", "/cmd_vel")
+        self.declare_parameter("output_topic", "/cmd_vel_guarded")
         self.declare_parameter("straight_max_mps", 0.85)
         self.declare_parameter("turn_product_limit", 0.25)
         self.declare_parameter("min_turn_rate_radps", 0.05)

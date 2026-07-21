@@ -47,7 +47,7 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/rtk_fgo/factor_diagnostics",
     "/cmd_vel",
     "/cmd_vel_nav",
-    "/cmd_vel_controller",
+    "/cmd_vel_guarded",
     "/local_costmap/costmap",
     "/plan",
 ]

@@ -52,7 +52,7 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/gps_corridor/path_map',
     '/cmd_vel',
     '/cmd_vel_nav',
-    '/cmd_vel_controller',
+    '/cmd_vel_guarded',
     '/local_costmap/costmap',
     '/global_costmap/costmap',
     '/plan',

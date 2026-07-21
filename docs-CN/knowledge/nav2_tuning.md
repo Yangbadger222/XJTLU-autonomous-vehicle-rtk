@@ -180,6 +180,6 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。
 
-命令链现为 `controller_server -> /cmd_vel_controller -> velocity_smoother -> /cmd_vel_nav -> corridor_cmd_vel_guard -> /cmd_vel`。guard 保留最高 `0.85 m/s` 直线速度，但按 `min(0.85, 0.25/max(|w|, 0.05))` 限制转弯线速度；命令、authority 或 stop override 心跳过期时发布零速度。这些参数仅用于 corridor；Explore 未显式传入 `guarded_cmd_vel=true` 时保持原拓扑。
+命令链现为 `controller_server -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel -> corridor_cmd_vel_guard -> /cmd_vel_guarded -> serial_twistctl`。guard 保留最高 `0.85 m/s` 直线速度，但按 `min(0.85, 0.25/max(|w|, 0.05))` 限制转弯线速度；命令、authority 或 stop override 心跳过期时发布零速度。guarded 模式下串口只订阅 `/cmd_vel_guarded`，未经保护的 Nav2 输出不能绕过 guard；Explore 未显式传入 `guarded_cmd_vel=true` 时仍直接订阅 `/cmd_vel`。
 
 原因：2026-07-10 bags 分别暴露了 51.75 度 heading outlier、旧 authority 的 8-13 m target gap，以及 20 秒底盘/LIO no-progress。把三者都当成 `map→base` odom divergence 会导致全局坐标快速移动，或把错误归因到 local LIO。

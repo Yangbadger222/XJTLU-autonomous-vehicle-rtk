@@ -115,7 +115,8 @@ goto_name / /goal_pose / /gps_goal
             |  生成一条 0.35m 密度的连续 NavPath
             v
      FollowPath -> MPPI + obstacle cloud + road keepout
-                -> /cmd_vel_nav -> authority guard -> /cmd_vel
+                -> /cmd_vel_nav -> velocity smoother -> /cmd_vel
+                -> authority guard -> /cmd_vel_guarded -> serial
 ```
 
 `nav-gps` 的核心是：
@@ -334,9 +335,9 @@ raw GGA + stamped fix/heading + stamped LIO history
                          -> base-space correction release
                          -> map -> odom + motion_allowed heartbeat
 
-controller_server -> /cmd_vel_controller -> velocity_smoother -> /cmd_vel_nav
+controller_server -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel
 motion_allowed ----------------------------------------------------------+
-gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corridor_cmd_vel_guard -> /cmd_vel -> serial_twistctl
+gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corridor_cmd_vel_guard -> /cmd_vel_guarded -> serial_twistctl
 ```
 
-corrector 是 corridor 唯一 `map→odom` owner。runner 只拥有 stop intent 与 action retry，不发布 Twist。guard 是 corridor 唯一 `/cmd_vel` publisher，也是 required launch process；任一 10 Hz Bool heartbeat 超过 0.50 秒缺失都会输出停车。Explore 与其他模式不启用这些 remap。
+corrector 是 corridor 唯一 `map→odom` owner。runner 只拥有 stop intent 与 action retry，不发布 Twist。guard 是 corridor 唯一 `/cmd_vel_guarded` publisher，也是 required launch process；guarded 模式下 serial 只订阅该话题，任一 10 Hz Bool heartbeat 超过 0.50 秒缺失都会输出停车。Explore 与其他模式仍直接使用 Nav2 的 `/cmd_vel`。

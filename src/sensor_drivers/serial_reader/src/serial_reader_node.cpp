@@ -312,14 +312,13 @@ private:
     // 解析并发布数据函数
     void parseAndPublish(const std::string &line)
     {
-        // P3（FRC）：CSV 解析改为 "前 16 字段必须齐全，第 17/18 字段可选"。
-        // 旧固件 16 字段照常解析（回归不变）；新固件追加 ctrl_mode + ps2_key。
+        // 当前固件固定发送 16 字段遥测。
         std::vector<double> vals;
-        vals.reserve(18);
+        vals.reserve(16);
         // 创建字符串流
         std::stringstream ss(line);
         // 解析逗号分隔的值
-        for (int i = 0; i < 18; i++) {
+        for (int i = 0; i < 16; i++) {
             // 获取令牌
             std::string token;
             if (!std::getline(ss, token, ',')) {
@@ -334,15 +333,14 @@ private:
             }
         }
 
-        // 检查值数量是否足够（前 16 字段必须齐全）
+        // 只接受完整的 16 字段遥测帧。
         if (vals.size() < 16) {
             // 返回
             return;
         }
 
-        // 第 17/18 字段缺省补 0（旧固件兼容）
-        const double ctrl_mode_raw = vals.size() >= 17 ? vals[16] : 0.0;
-        const double ps2_key_raw = vals.size() >= 18 ? vals[17] : 0.0;
+        const double ctrl_mode_raw = 0.0;
+        const double ps2_key_raw = 0.0;
 
         // 获取当前时间
         auto now = this->now();

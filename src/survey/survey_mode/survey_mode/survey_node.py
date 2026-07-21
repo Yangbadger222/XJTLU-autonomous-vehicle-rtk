@@ -93,10 +93,10 @@ class SurveyNode(Node):
 
     def get_current_pose(self):
         try:
-            now = rclpy.time.Time()
-            trans = self.tf_buffer.lookup_transform('map', 'base_link', now)
+            # Use a small timeout to allow tf2 to interpolate if timestamps are slightly misaligned
+            trans = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=0.5))
             return trans.transform.translation.x, trans.transform.translation.y
-        except (LookupException, ConnectivityException, ExtrapolationException) as e:
+        except Exception as e:
             self.get_logger().debug(f"TF Lookup failed: {e}")
             return None, None
 
@@ -275,6 +275,12 @@ class SurveyNode(Node):
 
     def trigger_map_evaluation(self):
         if not self.untested_maps or self.waiting_for_service:
+            return
+
+        # Wait for a valid pose to ensure pointclouds are flowing and the localizer has data
+        current_x, current_y = self.get_current_pose()
+        if current_x is None:
+            self.get_logger().info("Waiting for valid pose before evaluating maps...", throttle_duration_sec=2.0)
             return
 
         self.currently_testing_map = self.untested_maps.pop(0)

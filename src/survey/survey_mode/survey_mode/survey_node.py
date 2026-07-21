@@ -129,7 +129,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        free_cells = (data >= 0) & (data < 50)
+        free_cells = (data >= 0) & (data < 200)
         unknown_cells = (data == -1)
         
         up = np.roll(unknown_cells, 1, axis=0); up[0,:] = False
@@ -189,7 +189,8 @@ class SurveyNode(Node):
         info = self.occupancy_grid.info
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
-        y_idx, x_idx = np.where(data == 0)
+        
+        y_idx, x_idx = np.where((data >= 0) & (data < 200))
         
         current_x, current_y = self.get_current_pose()
         if current_x is None:
@@ -199,21 +200,27 @@ class SurveyNode(Node):
         for y, x in zip(y_idx, x_idx):
             wx = info.origin.position.x + (x + 0.5) * info.resolution
             wy = info.origin.position.y + (y + 0.5) * info.resolution
-            if math.hypot(wx, wy) <= self.max_radius:
-                dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+            
+            # check distance from the robot, not from the map origin
+            dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+            
+            if dist_to_robot <= self.max_radius:
                 if dist_to_robot >= 3.0:
                     points.append((wx, wy))
         
+        # Fallback if no points are far enough
         if not points:
             for y, x in zip(y_idx, x_idx):
                 wx = info.origin.position.x + (x + 0.5) * info.resolution
                 wy = info.origin.position.y + (y + 0.5) * info.resolution
-                if math.hypot(wx, wy) <= self.max_radius:
-                    dist_to_robot = math.hypot(wx - current_x, wy - current_y)
-                    # Relax distance constraint to 1 m
-                    if dist_to_robot >= 1:
+                
+                dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+                
+                if dist_to_robot <= self.max_radius:
+                    # Relaxed distance constraint
+                    if dist_to_robot >= 0.5:
                         points.append((wx, wy))
-
+        
         if not points:
             return None
             

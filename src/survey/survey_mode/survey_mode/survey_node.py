@@ -40,7 +40,8 @@ class SurveyNode(Node):
         self.localizer_client = self.create_client(GlobalRelocalize, '/localizer/global_relocalize')
         
         # Map subscriber
-        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
+        # self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
+        self.map_sub = self.create_subscription(OccupancyGrid, '/map', self.map_callback, 10)
         self.occupancy_grid = None
         
         # Foxglove Publishers
@@ -146,18 +147,22 @@ class SurveyNode(Node):
         for y, x in zip(y_idx, x_idx):
             wx = info.origin.position.x + (x + 0.5) * info.resolution
             wy = info.origin.position.y + (y + 0.5) * info.resolution
-            if math.hypot(wx, wy) <= self.max_radius:
-                # Ensure the frontier is at least 2.0 meters away from the robot
-                dist_to_robot = math.hypot(wx - current_x, wy - current_y)
-                if dist_to_robot >= 2.0:
-                    points.append((wx, wy))
+            
+            # Check distance from the robot, NOT from the map origin
+            dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+            
+            if dist_to_robot <= self.max_radius and dist_to_robot >= 1.5:
+                points.append((wx, wy))
         
-        # If no points are far enough, relax the distance constraint as fallback
+        # Fallback: Find the furthest point we can if everything is close
         if not points:
             for y, x in zip(y_idx, x_idx):
                 wx = info.origin.position.x + (x + 0.5) * info.resolution
                 wy = info.origin.position.y + (y + 0.5) * info.resolution
-                if math.hypot(wx, wy) <= self.max_radius:
+                dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+                
+                # Absolute minimum distance safety net of 0.5m
+                if dist_to_robot >= 0.5 and dist_to_robot <= self.max_radius:
                     points.append((wx, wy))
 
         return points

@@ -18,6 +18,7 @@ def generate_launch_description():
     """
     bringup_share = get_package_share_directory("bringup")
     default_survey_params_file = os.path.join(bringup_share, "config", "survey_mode.yaml")
+    default_nav2_survey_params_file = os.path.join(bringup_share, "config", "nav2_survey.yaml")
     
     survey_params_arg = DeclareLaunchArgument(
         "survey_params_file",
@@ -32,7 +33,10 @@ def generate_launch_description():
                     [FindPackageShare("bringup"), "launch", "system_explore.launch.py"]
                 )
             ]
-        )
+        ),
+        launch_arguments={
+            "nav2_params_file": default_nav2_survey_params_file,
+        }.items(),
     )
 
     survey_node = Node(

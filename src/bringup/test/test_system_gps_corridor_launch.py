@@ -94,7 +94,7 @@ def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
     assert local_costmap["inflation_layer"]["inflation_radius"] >= 0.4
     assert stvl["pointcloud_mark"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
     assert stvl["pointcloud_clear"]["topic"] == "/fastlio2/body_cloud_nav2_obstacles"
-    assert stvl["pointcloud_mark"]["min_obstacle_height"] <= -0.20
+    assert stvl["pointcloud_mark"]["min_obstacle_height"] == 0.08
     assert stvl["pointcloud_mark"]["max_obstacle_height"] >= 1.20
     assert stvl["pointcloud_clear"]["min_z"] <= -0.20
     assert stvl["pointcloud_clear"]["max_z"] >= 1.20
@@ -366,7 +366,7 @@ def test_fastlio_publishes_a_separate_wide_nav2_obstacle_cloud():
     assert lio_params["publish_cloud_height_filter_enabled"] is True
     assert lio_params["publish_cloud_max_z"] <= 0.30
     assert lio_params["nav2_obstacle_cloud_enabled"] is True
-    assert lio_params["nav2_obstacle_cloud_min_z"] <= -0.20
+    assert lio_params["nav2_obstacle_cloud_min_z"] == 0.08
     assert lio_params["nav2_obstacle_cloud_max_z"] >= 1.20
     assert "nav2_obstacle_cloud_max_z: 1.20" in legacy_text
     assert 'create_publisher<sensor_msgs::msg::PointCloud2>("body_cloud_nav2_obstacles"' in lio_text

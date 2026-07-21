@@ -23,6 +23,8 @@ from gps_waypoint_dispatcher.route_graph_planner import (
     densify_polyline,
 )
 from gps_waypoint_dispatcher.route_safety import (
+    BlockedRetryDecision,
+    BlockedRetryState,
     ContinuousReadiness,
     LocalOdomWatchdog,
     WatchdogDecision,
@@ -64,6 +66,9 @@ class GPSGoalManager(Node):
         self.declare_parameter("authority_ready_confirmation_s", 1.0)
         self.declare_parameter("authority_loss_replan_delay_s", 2.0)
         self.declare_parameter("global_hold_timeout_s", 15.0)
+        self.declare_parameter("blocked_retry_delay_s", 2.0)
+        self.declare_parameter("blocked_wait_timeout_s", 60.0)
+        self.declare_parameter("blocked_recovery_confirmation_s", 3.0)
         self.declare_parameter("local_rate_abort_mps", 3.0)
         self.declare_parameter("local_yaw_rate_abort_radps", 3.0)
         self.declare_parameter("local_rate_abort_count", 3)
@@ -95,6 +100,15 @@ class GPSGoalManager(Node):
         )
         self.global_hold_timeout_s = float(
             self.get_parameter("global_hold_timeout_s").value
+        )
+        self.blocked_retry = BlockedRetryState(
+            retry_delay_s=float(
+                self.get_parameter("blocked_retry_delay_s").value
+            ),
+            timeout_s=float(self.get_parameter("blocked_wait_timeout_s").value),
+            recovery_confirmation_s=float(
+                self.get_parameter("blocked_recovery_confirmation_s").value
+            ),
         )
 
         scene = load_scene_points(self.scene_points_file)
@@ -358,6 +372,7 @@ class GPSGoalManager(Node):
         self.cancel_reason = None
         self.authority_loss_started_mono = None
         self.hold_started_mono = time.monotonic()
+        self.blocked_retry.clear()
         self.local_watchdog = self._make_local_watchdog()
         self.local_watchdog_result = None
         self.authority_readiness = ContinuousReadiness(
@@ -539,6 +554,7 @@ class GPSGoalManager(Node):
 
         if self.cancel_reason == "AUTHORITY_HOLD":
             self.cancel_reason = None
+            self.blocked_retry.clear()
             self.authority_readiness = ContinuousReadiness(
                 self.authority_ready_confirmation_s
             )
@@ -547,7 +563,35 @@ class GPSGoalManager(Node):
                 f"target={self.current_target_label}; result={wrapped.status}",
             )
             return
+        if self.cancel_reason == "BLOCKED_TIMEOUT":
+            self.cancel_reason = None
+            self._finish_failure("blocked_timeout")
+            return
 
+        local_odom_healthy = not (
+            self.local_watchdog_result is not None
+            and self.local_watchdog_result.decision is WatchdogDecision.LOCAL_ABORT
+        )
+        if (
+            wrapped.status == GoalStatus.STATUS_ABORTED
+            and self.cancel_reason is None
+            and local_odom_healthy
+            and not self._authority_faulted()
+        ):
+            blocked = self.blocked_retry.enter(time.monotonic())
+            self.authority_loss_started_mono = None
+            self.hold_started_mono = None
+            self._publish_status(
+                "BLOCKED_WAIT",
+                "target=%s; result=%d; retry_in=%.2fs; timeout=%.1fs"
+                % (
+                    self.current_target_label,
+                    wrapped.status,
+                    self.blocked_retry.retry_delay_s,
+                    self.blocked_retry.timeout_s - blocked.elapsed_s,
+                ),
+            )
+            return
         if wrapped.status != GoalStatus.STATUS_SUCCEEDED:
             self._finish_failure(f"follow_path_status={wrapped.status}")
             return
@@ -608,6 +652,45 @@ class GPSGoalManager(Node):
                     self._request_cancel()
             return
 
+        ready = self._authority_ready()
+        action_active = (
+            self.follow_path_goal_handle is not None or self.goal_send_pending
+        )
+        if action_active and self.blocked_retry.active:
+            blocked = self.blocked_retry.poll(
+                now_mono,
+                retry_allowed=False,
+            )
+            if blocked.decision is BlockedRetryDecision.TIMEOUT:
+                if self.cancel_reason != "BLOCKED_TIMEOUT":
+                    self.cancel_reason = "BLOCKED_TIMEOUT"
+                    self._publish_status(
+                        "BLOCKED_TIMEOUT",
+                        "blocked_for=%.1fs; retries=%d"
+                        % (blocked.elapsed_s, blocked.retry_count),
+                    )
+                    self._request_cancel()
+                return
+        local_motion_observed = bool(
+            self.local_watchdog_result is not None
+            and (
+                self.local_watchdog_result.linear_rate_mps >= 0.05
+                or self.local_watchdog_result.yaw_rate_radps >= 0.05
+            )
+        )
+        if (
+            self.follow_path_goal_handle is not None
+            and ready
+            and self.blocked_retry.confirm_action_running(
+                now_mono,
+                moving=local_motion_observed,
+            )
+        ):
+            self._publish_status(
+                "BLOCKED_RECOVERED",
+                f"target={self.current_target_label}; controller_stable",
+            )
+
         if (
             self.cancel_reason == "AUTHORITY_HOLD"
             and self.hold_started_mono is not None
@@ -616,8 +699,7 @@ class GPSGoalManager(Node):
             self._finish_failure("authority_hold_timeout")
             return
 
-        ready = self._authority_ready()
-        if (self.follow_path_goal_handle is not None or self.goal_send_pending) and not ready:
+        if action_active and not ready:
             self._publish_stop_override(True)
             if self.authority_loss_started_mono is None:
                 self.authority_loss_started_mono = now_mono
@@ -639,7 +721,7 @@ class GPSGoalManager(Node):
                 )
                 self._request_cancel()
             return
-        if self.follow_path_goal_handle is not None or self.goal_send_pending:
+        if action_active:
             if self.cancel_reason is not None:
                 self._publish_stop_override(True)
                 return
@@ -649,6 +731,31 @@ class GPSGoalManager(Node):
                     "FOLLOWING_ROUTE", "motion_authority_recovered"
                 )
             self._publish_stop_override(False)
+            return
+        if self.blocked_retry.active:
+            self._publish_stop_override(True)
+            blocked = self.blocked_retry.poll(
+                now_mono,
+                retry_allowed=ready,
+            )
+            if blocked.decision is BlockedRetryDecision.TIMEOUT:
+                self._finish_failure(
+                    "blocked_timeout=%.1fs; retries=%d"
+                    % (blocked.elapsed_s, blocked.retry_count)
+                )
+                return
+            if blocked.decision is BlockedRetryDecision.RETRY:
+                self._publish_status(
+                    "BLOCKED_RETRY",
+                    "target=%s; attempt=%d; blocked_for=%.1fs"
+                    % (
+                        self.current_target_label,
+                        blocked.retry_count,
+                        blocked.elapsed_s,
+                    ),
+                )
+                if self._plan_from_current_pose():
+                    self._send_follow_path()
             return
         if self.hold_started_mono is None:
             self.hold_started_mono = now_mono
@@ -681,6 +788,7 @@ class GPSGoalManager(Node):
         self.cancel_reason = None
         self.authority_loss_started_mono = None
         self.hold_started_mono = None
+        self.blocked_retry.clear()
         self._publish_stop_override(True)
 
     def _finish_success(self) -> None:

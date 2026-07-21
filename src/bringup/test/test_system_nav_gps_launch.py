@@ -101,8 +101,17 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert 'follow_path["time_steps"] = 32' in text
     assert 'follow_path["batch_size"] = 200' in text
     assert 'follow_path["publish_critics_stats"] = False' in text
+    assert 'follow_path["retry_attempt_limit"] = 3' in text
     assert 'follow_path["open_loop"] = False' in text
     assert '"path_density_m": 0.35' in text
+
+
+def test_nav_gps_waits_and_replans_when_dynamic_obstacles_block_mppi():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"blocked_retry_delay_s": 2.0' in text
+    assert '"blocked_wait_timeout_s": 60.0' in text
+    assert '"blocked_recovery_confirmation_s": 3.0' in text
 
 
 def test_nav_gps_rotates_to_large_path_heading_changes_before_mppi():

@@ -4,6 +4,8 @@ import pytest
 from pathlib import Path
 
 from gps_waypoint_dispatcher.route_safety import (
+    BlockedRetryDecision,
+    BlockedRetryState,
     ContinuousReadiness,
     GlobalCorrectionWatchdog,
     LocalOdomWatchdog,
@@ -305,3 +307,68 @@ def test_authority_readiness_must_be_continuous_for_one_second():
     assert readiness.update(ready=False, now_s=10.95) is False
     assert readiness.update(ready=True, now_s=11.0) is False
     assert readiness.update(ready=True, now_s=12.0) is True
+
+
+def test_blocked_retry_waits_then_retries_only_with_authority():
+    blocked = BlockedRetryState(
+        retry_delay_s=2.0,
+        timeout_s=60.0,
+        recovery_confirmation_s=3.0,
+    )
+
+    entered = blocked.enter(10.0)
+    no_authority = blocked.poll(12.5, retry_allowed=False)
+    retry = blocked.poll(12.5, retry_allowed=True)
+
+    assert entered.decision is BlockedRetryDecision.WAIT
+    assert no_authority.decision is BlockedRetryDecision.WAIT
+    assert retry.decision is BlockedRetryDecision.RETRY
+    assert retry.retry_count == 1
+    assert retry.elapsed_s == pytest.approx(2.5)
+
+
+def test_blocked_retry_preserves_timeout_across_repeated_aborts():
+    blocked = BlockedRetryState(retry_delay_s=2.0, timeout_s=10.0)
+    blocked.enter(10.0)
+    blocked.poll(12.0, retry_allowed=True)
+
+    reentered = blocked.enter(12.2)
+    second_retry = blocked.poll(14.2, retry_allowed=True)
+    timeout = blocked.poll(20.0, retry_allowed=True)
+
+    assert reentered.elapsed_s == pytest.approx(2.2)
+    assert second_retry.retry_count == 2
+    assert timeout.decision is BlockedRetryDecision.TIMEOUT
+    assert timeout.retry_count == 2
+
+
+def test_blocked_retry_clears_after_retry_runs_stably():
+    blocked = BlockedRetryState(
+        retry_delay_s=2.0,
+        timeout_s=60.0,
+        recovery_confirmation_s=3.0,
+    )
+    blocked.enter(10.0)
+    blocked.poll(12.0, retry_allowed=True)
+
+    assert blocked.confirm_action_running(13.0, moving=False) is False
+    assert blocked.confirm_action_running(14.0, moving=True) is False
+    assert blocked.confirm_action_running(16.9, moving=True) is False
+    assert blocked.confirm_action_running(17.0, moving=True) is True
+    assert blocked.active is False
+    assert blocked.poll(16.0, retry_allowed=True).decision is BlockedRetryDecision.INACTIVE
+
+
+def test_blocked_retry_requires_continuous_motion_for_recovery():
+    blocked = BlockedRetryState(
+        retry_delay_s=1.0,
+        timeout_s=60.0,
+        recovery_confirmation_s=2.0,
+    )
+    blocked.enter(10.0)
+    blocked.poll(11.0, retry_allowed=True)
+
+    assert blocked.confirm_action_running(12.0, moving=True) is False
+    assert blocked.confirm_action_running(13.0, moving=False) is False
+    assert blocked.confirm_action_running(14.0, moving=True) is False
+    assert blocked.confirm_action_running(16.0, moving=True) is True

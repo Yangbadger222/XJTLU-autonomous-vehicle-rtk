@@ -103,6 +103,7 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["temperature"] = 0.45
     follow_path["publish_critics_stats"] = False
     follow_path["regenerate_noises"] = True
+    follow_path["retry_attempt_limit"] = 3
     follow_path["open_loop"] = False
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
     follow_path["plugin"] = (
@@ -339,6 +340,9 @@ def generate_launch_description():
                 "scene_points_file": scene_points_file,
                 "require_nav_ready": False,
                 "path_density_m": 0.35,
+                "blocked_retry_delay_s": 2.0,
+                "blocked_wait_timeout_s": 60.0,
+                "blocked_recovery_confirmation_s": 3.0,
                 "stop_override_topic": "/gps_nav/stop_override",
             },
         ],

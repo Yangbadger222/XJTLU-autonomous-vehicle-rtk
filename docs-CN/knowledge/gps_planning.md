@@ -99,6 +99,7 @@ python3 scripts/build_scene_runtime.py
 - 将当前位姿与终点投影到最近 graph edge
 - 在虚拟起终点之间执行欧氏启发式 A*
 - authority hold 时取消，恢复后从当前位置重新规划
+- MPPI 无可行轨迹时进入 `BLOCKED_WAIT`，保持目的地并周期重规划
 - `stop`
 
 ### 4.2 连续路径动作
@@ -108,6 +109,7 @@ python3 scripts/build_scene_runtime.py
 - 规划折线按 `0.35m` 加密后作为一次 `/follow_path` 发送，减少长路线的 MPPI 路径处理负载
 - 中间图节点只是路径采样，不运行 goal checker，因此不会逐点停车
 - Nav2 MPPI 在 QGIS KeepoutFilter 道路面内完成跟踪和动态避障
+- MPPI 每次无解先做 3 轮噪声重采样；仍无解则停车，每 2 秒从当前位置重算 A*，障碍移开并连续运动 3 秒后恢复正常状态
 
 输入接口：
 - `ros2 run gps_waypoint_dispatcher list_destinations`
@@ -138,7 +140,7 @@ python3 scripts/build_scene_runtime.py
 - 有静态或动态障碍时：允许安全绕开
 - 绕开后：尽量回到原 path
 
-这正是当前 `nav2_gps.yaml` 中 DWB critic 权重的预期行为。
+这由当前 nav-gps 的 corridor MPPI profile 完成。若全部候选轨迹碰撞，goal manager 会进入最长 60 秒的 `BLOCKED_WAIT`，而不是把临时行人阻挡直接当作终端导航失败。
 
 ## 6. 采图脚本
 

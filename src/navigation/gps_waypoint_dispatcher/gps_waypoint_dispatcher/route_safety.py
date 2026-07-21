@@ -214,6 +214,122 @@ class ContinuousReadiness:
         return now_s - self._ready_since_s >= self.confirmation_s
 
 
+class BlockedRetryDecision(Enum):
+    INACTIVE = "INACTIVE"
+    WAIT = "WAIT"
+    RETRY = "RETRY"
+    TIMEOUT = "TIMEOUT"
+
+
+@dataclass(frozen=True)
+class BlockedRetryResult:
+    decision: BlockedRetryDecision
+    elapsed_s: float
+    retry_count: int
+
+
+class BlockedRetryState:
+    def __init__(
+        self,
+        *,
+        retry_delay_s: float = 2.0,
+        timeout_s: float = 60.0,
+        recovery_confirmation_s: float = 3.0,
+    ) -> None:
+        values = (retry_delay_s, timeout_s, recovery_confirmation_s)
+        if not all(math.isfinite(value) and value >= 0.0 for value in values):
+            raise ValueError("blocked retry durations must be finite and nonnegative")
+        if timeout_s <= 0.0:
+            raise ValueError("blocked retry timeout must be positive")
+        self.retry_delay_s = retry_delay_s
+        self.timeout_s = timeout_s
+        self.recovery_confirmation_s = recovery_confirmation_s
+        self._started_s: float | None = None
+        self._retry_due_s: float | None = None
+        self._retry_started_s: float | None = None
+        self._recovery_started_s: float | None = None
+        self._retry_count = 0
+
+    @property
+    def active(self) -> bool:
+        return self._started_s is not None
+
+    @property
+    def retry_count(self) -> int:
+        return self._retry_count
+
+    def enter(self, now_s: float) -> BlockedRetryResult:
+        self._validate_now(now_s)
+        if self._started_s is None:
+            self._started_s = now_s
+            self._retry_count = 0
+        self._retry_due_s = now_s + self.retry_delay_s
+        self._retry_started_s = None
+        self._recovery_started_s = None
+        return self._result(BlockedRetryDecision.WAIT, now_s)
+
+    def poll(
+        self,
+        now_s: float,
+        *,
+        retry_allowed: bool,
+    ) -> BlockedRetryResult:
+        self._validate_now(now_s)
+        if self._started_s is None:
+            return BlockedRetryResult(BlockedRetryDecision.INACTIVE, 0.0, 0)
+        if now_s - self._started_s >= self.timeout_s:
+            return self._result(BlockedRetryDecision.TIMEOUT, now_s)
+        if (
+            retry_allowed
+            and self._retry_due_s is not None
+            and now_s >= self._retry_due_s
+        ):
+            self._retry_due_s = None
+            self._retry_started_s = now_s
+            self._recovery_started_s = None
+            self._retry_count += 1
+            return self._result(BlockedRetryDecision.RETRY, now_s)
+        return self._result(BlockedRetryDecision.WAIT, now_s)
+
+    def confirm_action_running(self, now_s: float, *, moving: bool) -> bool:
+        self._validate_now(now_s)
+        if self._retry_started_s is None:
+            return False
+        if not moving:
+            self._recovery_started_s = None
+            return False
+        if self._recovery_started_s is None:
+            self._recovery_started_s = now_s
+        if now_s - self._recovery_started_s < self.recovery_confirmation_s:
+            return False
+        self.clear()
+        return True
+
+    def clear(self) -> None:
+        self._started_s = None
+        self._retry_due_s = None
+        self._retry_started_s = None
+        self._recovery_started_s = None
+        self._retry_count = 0
+
+    @staticmethod
+    def _validate_now(now_s: float) -> None:
+        if not math.isfinite(now_s):
+            raise ValueError("blocked retry time must be finite")
+
+    def _result(
+        self,
+        decision: BlockedRetryDecision,
+        now_s: float,
+    ) -> BlockedRetryResult:
+        elapsed_s = (
+            max(0.0, now_s - self._started_s)
+            if self._started_s is not None
+            else 0.0
+        )
+        return BlockedRetryResult(decision, elapsed_s, self._retry_count)
+
+
 @dataclass(frozen=True)
 class MapGpsConsistencySummary:
     ok: bool

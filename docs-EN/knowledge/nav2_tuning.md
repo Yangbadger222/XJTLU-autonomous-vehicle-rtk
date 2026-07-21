@@ -145,7 +145,7 @@ Corridor v2 uses Rotation Shim + Regulated Pure Pursuit instead of DWB:
 The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-gps` entry point no longer uses it as the main profile. `system_nav_gps.launch.py` reuses the corridor RTK profile:
 
 - Generates a temporary Nav2 parameter file from `nav2_corridor_rtk.yaml`.
-- Uses MPPI with `controller_frequency=20Hz` aligned to `model_dt=0.05s`. `batch_size=200` and `time_steps=32` retain a 1.6-second horizon while cutting trajectory simulation by about 73% from the old `500x48` workload. Critic-stat publication is disabled by default; the profile retains `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`.
+- Uses MPPI with `controller_frequency=20Hz` aligned to `model_dt=0.05s`. `batch_size=200` and `time_steps=32` retain a 1.6-second horizon while cutting trajectory simulation by about 73% from the old `500x48` workload. Critic-stat publication is disabled by default; the profile retains `failure_tolerance=1.5s`, `vx_max=0.85`, `wz_max=0.70`, `temperature=0.45`, and `regenerate_noises=true`. `retry_attempt_limit=3` adds resampling only when every trajectory is invalid.
 - Wraps MPPI in Rotation Shim. A new path heading error above `0.52rad` is aligned in place at `0.35rad/s`; control returns to MPPI below `0.26rad`. `PoseProgressChecker.required_movement_angle=0.15rad` counts valid rotation as progress instead of failing after 15 seconds without translation.
 - Rotation Shim uses `closed_loop=false` only for its angular acceleration ramp because FAST-LIO2 odometry currently omits `twist.angular.z`; MPPI itself remains `open_loop=false` and continues to initialize prediction from measured odometry.
 - The local costmap uses `/fastlio2/body_cloud_nav2_obstacles`, preserving the high-window obstacle cloud around `[-0.20, 1.20]m`.
@@ -154,6 +154,7 @@ The old `nav2_gps.yaml` remains in the repository, but the current vehicle `nav-
 - `general_goal_checker.stateful=false`, preventing a reached-state latch from one destination from carrying into the next route-graph goal.
 - The goal manager projects the current pose and destination onto their nearest graph edges, inserts virtual endpoints, and runs Euclidean-heuristic A*. It no longer calls route-server Dijkstra or depends on a small anchor set.
 - The QGIS road polygon is compiled into KeepoutFilters for both costmaps, while MPPI keeps using the high-window obstacle cloud for avoidance inside the road.
+- The current Humble MPPI throws `std::runtime_error` when every sampled trajectory collides, bypassing the controller server's `failure_tolerance` handler for `PlannerException`. Nav-gps therefore handles the abort in the goal manager: it preserves the destination at zero velocity, replans A* every two seconds, requires three seconds of measured motion to confirm recovery, and fails only after 60 seconds of persistent blockage.
 - `nav-gps` and corridor use the guarded command topology; any stale authority or stop heartbeat yields zero, and recovery replans A* from the current pose.
 
 Localization semantics:

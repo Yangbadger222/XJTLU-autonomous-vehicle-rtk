@@ -99,6 +99,7 @@ It now serves as a goal manager, responsible for:
 - Projecting the current pose and destination onto nearest graph edges
 - Running Euclidean-heuristic A* between virtual endpoints
 - Canceling on authority hold and replanning from the current pose after recovery
+- Entering `BLOCKED_WAIT` and periodically replanning when MPPI has no feasible trajectory
 - `stop`
 
 ### 4.2 Continuous Path Action
@@ -108,6 +109,7 @@ It now serves as a goal manager, responsible for:
 - The polyline is densified at `0.35m` and sent as one `/follow_path`, reducing MPPI path-processing load on long routes
 - Intermediate graph nodes are path samples, not goal-checker stops
 - Nav2 MPPI tracks and avoids dynamic obstacles inside the QGIS KeepoutFilter road area
+- MPPI first performs three noise-resampling attempts when no solution exists. If all still fail, the vehicle stops and replans A* every two seconds; normal state returns only after three seconds of continuous measured motion.
 
 Input interfaces:
 - `ros2 run gps_waypoint_dispatcher list_destinations`
@@ -138,7 +140,7 @@ The global path must follow graph edges as closely as possible, but local behavi
 - Static or dynamic obstacles: Allow safe detours
 - After detour: Return to the original path as soon as possible
 
-This is exactly the intended behavior of the DWB critic weights in the current `nav2_gps.yaml`.
+The current nav-gps corridor MPPI profile provides this behavior. If all sampled trajectories collide, the goal manager enters a bounded 60-second `BLOCKED_WAIT` instead of treating a temporary pedestrian blockage as an immediate terminal navigation failure.
 
 ## 6. Scene Collection Scripts
 

@@ -145,7 +145,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
 - 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
-- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=200`、`time_steps=32`，保留1.6秒预测视野并比旧 `500x48` 降低约73%轨迹仿真量。默认关闭 critics stats 发布，其余保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
+- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=200`、`time_steps=32`，保留1.6秒预测视野并比旧 `500x48` 降低约73%轨迹仿真量。默认关闭 critics stats 发布，保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`；`retry_attempt_limit=3` 只在全部轨迹无效时增加重采样。
 - MPPI 外层使用 Rotation Shim。新路径方向误差超过 `0.52rad` 时，先以 `0.35rad/s` 原地对正，降到 `0.26rad` 后再交回 MPPI；`PoseProgressChecker.required_movement_angle=0.15rad` 让有效转头计入进展，不再因 15 秒内没有平移误报失败。
 - Rotation Shim 使用 `closed_loop=false` 仅指角速度斜坡基于上一帧 shim 命令，因为 FAST-LIO2 odom 当前不发布 `twist.angular.z`；MPPI 自身继续保持 `open_loop=false`，仍从实测 odometry 初始化预测。
 - local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。
@@ -154,6 +154,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
 - goal manager 将当前位置和终点投影到最近 graph edge，插入虚拟端点后执行欧氏启发式 A*；不再调用 route server 的 Dijkstra，也不依赖少数 anchor。
 - QGIS 道路 Polygon 编译为 local/global costmap 的 KeepoutFilter；MPPI 继续使用高窗点云在道路内部避障。
+- 当前 Humble MPPI 在全部候选轨迹碰撞时抛出 `std::runtime_error`，绕过 controller server 只捕获 `PlannerException` 的 `failure_tolerance`。nav-gps 因此在 goal manager 层处理 abort：保持零速和原目的地，每 2 秒重新 A*，连续实际运动 3 秒确认恢复，60 秒仍阻塞才失败。
 - `nav-gps` 与 corridor 共用 guarded command 拓扑；authority/stop heartbeat 任一失效都输出零速度，恢复后从当前 pose 重新 A*。
 
 定位语义：

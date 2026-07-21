@@ -546,7 +546,8 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
-- MPPI 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，实车采样量收敛为 `batch_size=200`、`time_steps=32`，A* 连续路径按 `0.35m` 加密；1.6 秒预测视野下相比旧 `500x48` 每周期轨迹仿真量降低约73%。
+- MPPI 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，实车采样量收敛为 `batch_size=200`、`time_steps=32`，A* 连续路径按 `0.35m` 加密；1.6 秒预测视野下相比旧 `500x48` 每周期轨迹仿真量降低约73%。只有全部轨迹碰撞时才额外执行最多 3 轮噪声重采样，正常控制周期不增加这部分计算。
+- 动态障碍使 `FollowPath` abort 时，goal manager 不再清空目的地：先进入 `BLOCKED_WAIT` 并保持零速，每 `2s` 从当前位置重新 A*。重试后 LIO 连续运动 `3s` 才发布 `BLOCKED_RECOVERED`；持续阻塞 `60s` 才最终失败，期间可用菜单 `s` 主动取消。
 - `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
 - 当前 RTK-authority/A* 链默认不启动旧 `gps_anchor_localizer`，因为规划与运动许可均不依赖 anchor 或 `/gnss`；兼容实验可设置 `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true`。
 - 默认 lean bag 记录 RTK、FAST-LIO2 odom、`/rtk_fgo/*`、TF、goal/authority 状态、三层速度和 `/plan`；200Hz Livox IMU、底盘 `/odom_CBoar`、local/global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。

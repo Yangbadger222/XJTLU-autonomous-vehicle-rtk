@@ -54,6 +54,24 @@ def test_goal_manager_debounces_authority_loss_before_replan():
     assert grace_index < cancel_index
 
 
+def test_goal_manager_waits_and_replans_after_blocked_follow_path():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("blocked_retry_delay_s", 2.0)' in text
+    assert 'self.declare_parameter("blocked_wait_timeout_s", 60.0)' in text
+    assert "wrapped.status == GoalStatus.STATUS_ABORTED" in text
+    assert '"BLOCKED_WAIT"' in text
+    assert '"BLOCKED_RETRY"' in text
+    assert '"BLOCKED_RECOVERED"' in text
+    assert "self.blocked_retry.poll(" in text
+    assert "retry_allowed=ready" in text
+    assert 'self.cancel_reason = "BLOCKED_TIMEOUT"' in text
+    assert "and ready\n            and self.blocked_retry.confirm_action_running" in text
+    assert "moving=local_motion_observed" in text
+    assert "and self.cancel_reason is None" in text
+    assert "if self._plan_from_current_pose():" in text
+
+
 def test_goal_manager_ignores_reliable_republish_of_the_active_goal():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 

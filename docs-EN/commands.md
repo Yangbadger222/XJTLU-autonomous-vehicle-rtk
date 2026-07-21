@@ -828,6 +828,14 @@ ros2 topic echo /fgo_gil/timing_status
 ros2 topic echo /fgo_gil/performance
 ```
 
+`/fgo_gil/factor_diagnostics` also publishes one status for the newest GNSS factor per
+`fgo_gil/carrier_residual/<CONSTELLATION>_signal_<ID>[_l2c]` group. Inspect
+`raw_rms_m`/`raw_max_m`, `normalized_rms`/`normalized_max`, the effective
+`sigma_*_m`, `minimum_arc_observations`/`maximum_arc_observations`,
+`fix_eligible_ambiguities`, `candidate_ambiguities`, and `confirmation_count`.
+These fields isolate constellation/signal model faults; do not hide large normalized
+residuals by weakening integer gates.
+
 Full decoding requires the ROS 2 and workspace setup to be sourced. A workstation can audit topic evidence in an older bag with `--metadata-only`:
 
 ```bash

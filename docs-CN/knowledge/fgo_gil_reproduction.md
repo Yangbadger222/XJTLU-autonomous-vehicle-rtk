@@ -387,6 +387,10 @@ bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master�
 
 统一 `/fgo_gil/odom` 优先选用当前历元已验证 fixed candidate，否则使用 float，并同步发布有界 ECEF path。factor diagnostics 分层输出 IMU、LiDAR line/plane、GNSS code/carrier 数量、residual RMS、DD reject reason、arc reset 和 optimizer rollback；ambiguity/timing/performance 分别输出整数状态、时钟状态、窗口/延迟/实时因子、stale/non-finite 与 control ownership。raw observation 使用 2 s stale 阈值，低频 broadcast ephemeris 使用独立 300 s 阈值，避免把正常星历刷新周期误判为断流。
 
+2026-07-21 的 carrier/performance 回放将每组 DD 的相关协方差白化限制在局部变量块：码因子只构造 `rows x 6` Jacobian，载波因子构造 `rows x (6 + ambiguity_count)` Jacobian，再按全局 scalar offset 回填 gradient/Hessian。共享参考星 covariance、组级 Mahalanobis RMS Huber 权重与最终图模型不变。相同 418.5 s direct-constraint 1x bag 上，优化延迟 mean/p95/max 从 `163.83/305.17/450.25 ms` 降至 `120.28/160.28/181.68 ms`，RTF p95 从 `0.564` 降至 `0.310`；567 个输出、`96.98%` availability 和 `0.2355/0.1025 m` APE/RPE RMSE 保持一致。
+
+同一回放新增逐 `(constellation, signal_type, l2c)` 的最新载波 raw/normalized residual、有效 sigma、arc 观测数、fix-eligible/candidate 维数和 confirmation count。结果显示 sigma 主要为 `14--22 mm`，但 GPS signal 0 的 residual RMS 中位数为 `0.555 m`（`38.9 sigma`），Galileo signal 12 为 `0.760 m`（`50.5 sigma`），多个频点 p95 达数米。整数确认最多只有 1 次且没有 fixed 输出。这证明当前主要阻塞是载波观测模型、跨接收机时间/大气项或 arc 一致性，而不是 LAMBDA 门限太严；实车只能继续 shadow 诊断，禁止接管 `map->odom`。
+
 `evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收

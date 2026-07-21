@@ -829,6 +829,13 @@ ros2 topic echo /fgo_gil/timing_status
 ros2 topic echo /fgo_gil/performance
 ```
 
+`/fgo_gil/factor_diagnostics` 还会为当前最新 GNSS factor 按
+`fgo_gil/carrier_residual/<CONSTELLATION>_signal_<ID>[_l2c]` 发布一个状态。
+重点检查 `raw_rms_m`/`raw_max_m`、`normalized_rms`/`normalized_max`、实际
+`sigma_*_m`、`minimum_arc_observations`/`maximum_arc_observations`、
+`fix_eligible_ambiguities`、`candidate_ambiguities` 和 `confirmation_count`。
+这些字段用于定位星座/频点模型问题；高归一化残差不能通过放宽整数门限掩盖。
+
 完整解码评价需要 source ROS 2 和 workspace；已有旧 bag 仅检查 topic 证据时可在工作站使用 `--metadata-only`：
 
 ```bash

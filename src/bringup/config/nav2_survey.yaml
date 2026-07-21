@@ -847,7 +847,7 @@ velocity_smoother:
     max_decel: [-3.0, 0.0, -6.0]
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。 (Input or output topic name; determines where the module gets or sends data.)
     # 改错话题：上下游节点会直接断链。 (Incorrect topic: upstream/downstream nodes will directly disconnect.)
-    odom_topic: "odom_CBoar"
+    odom_topic: "/fastlio2/lio_odom"
     # 里程计有效时长；超过该时间的反馈会被视为过期。 (Odometry valid duration; feedback exceeding this time will be considered expired.)
     # 调大：更能容忍慢反馈；调小：更严格但更容易判为过期。 (Increase: more tolerant of slow feedback; Decrease: stricter but easier to judge as expired.)
     odom_duration: 0.1

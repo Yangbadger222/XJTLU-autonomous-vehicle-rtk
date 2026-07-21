@@ -41,7 +41,7 @@ class SurveyNode(Node):
         
         # Map subscriber
         from rclpy.qos import QoSProfile, DurabilityPolicy
-        qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        qos = QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
         self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, qos)
         self.occupancy_grid = None
         
@@ -93,8 +93,7 @@ class SurveyNode(Node):
 
     def get_current_pose(self):
         try:
-            # Use a small timeout to allow tf2 to interpolate if timestamps are slightly misaligned
-            trans = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time(), timeout=rclpy.duration.Duration(seconds=0.5))
+            trans = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
             return trans.transform.translation.x, trans.transform.translation.y
         except Exception as e:
             self.get_logger().debug(f"TF Lookup failed: {e}")

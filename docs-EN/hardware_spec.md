@@ -151,9 +151,9 @@
 | Accuracy | Centimeter-level RTK (via 4G NTRIP / CORS network differential stream) |
 | Signal Hardware | GNSS Antenna + Carbon fiber mount, 2x 50 cm feeder cables, 4G module + antenna |
 | Wiring Interfaces | GH1.25 / JST-GH to USB communication lines |
-| Baud rate | 115200 |
+| Baud rate | 921600 |
 | Heading Strategy | Dual-antenna hardware heading disabled short-term to avoid structural risks of chassis drilling. **Static yaw continues to be fused via FAST-LIO2 / IMU / launch_yaw_deg**. |
-| Device File | /dev/rtk_gps |
+| Device File | /dev/rtk_um982 |
 | GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 (not updated) |
 
 ## 7. Power

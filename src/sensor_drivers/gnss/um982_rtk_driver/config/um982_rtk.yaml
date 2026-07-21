@@ -1,7 +1,7 @@
 um982_rtk_driver:
   ros__parameters:
     port: /dev/rtk_um982
-    baud: 115200
+    baud: 921600
     frame_id: gps
     heading_offset_deg: 88.5
     publish_raw: true

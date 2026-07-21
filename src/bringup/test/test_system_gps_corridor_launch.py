@@ -18,6 +18,12 @@ FASTLIO_NODE = Path("src/perception/fastlio2/src/lio_node.cpp")
 PGO_NODE = Path("src/perception/pgo_gps_fusion/src/pgo_node.cpp")
 PGO_LAUNCH = Path("src/perception/pgo_gps_fusion/launch/pgo_launch.py")
 MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
+UM982_RTK_PARAMS = Path(
+    "src/sensor_drivers/gnss/um982_rtk_driver/config/um982_rtk.yaml"
+)
+NMEA_SERIAL_PARAMS = Path(
+    "src/sensor_drivers/gnss/nmea_navsat_driver/config/nmea_serial_driver.yaml"
+)
 FASTLIO_LEGACY_PARAMS = Path("src/perception/fastlio2/config/lio.yaml")
 NAV2_EXPLORE_PARAMS = Path("src/bringup/config/nav2_explore.yaml")
 CORRIDOR_NAV2_PARAMS = Path("src/bringup/config/nav2_corridor_rtk.yaml")
@@ -355,6 +361,19 @@ def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
     for lio_params in profiles:
         assert lio_params["lidar_filter_num"] <= 4
         assert lio_params["lidar_max_range"] >= 25.0
+
+
+def test_um982_and_chassis_serial_links_keep_their_verified_baud_rates():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    standalone_rtk = yaml.safe_load(UM982_RTK_PARAMS.read_text(encoding="utf-8"))
+    legacy_nmea = yaml.safe_load(NMEA_SERIAL_PARAMS.read_text(encoding="utf-8"))
+
+    assert master_params["/um982_rtk_driver"]["ros__parameters"]["baud"] == 921600
+    assert master_params["/nmea_navsat_driver"]["ros__parameters"]["baud"] == 921600
+    assert standalone_rtk["um982_rtk_driver"]["ros__parameters"]["baud"] == 921600
+    assert legacy_nmea["nmea_navsat_driver"]["ros__parameters"]["baud"] == 921600
+    assert master_params["/serial_twistctl_node"]["ros__parameters"]["baudrate"] == 115200
+    assert master_params["/serial_reader_node"]["ros__parameters"]["baud"] == 115200
 
 
 def test_fastlio_publishes_a_separate_wide_nav2_obstacle_cloud():

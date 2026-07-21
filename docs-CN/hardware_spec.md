@@ -151,8 +151,9 @@
 | 精度 | RTK 厘米级定位 (自带有源 4G 模块，通过移动网络引入 NTRIP / CORS 差分数据) |
 | 信号硬件 | GNSS 天线 + 碳纤天线支架、50 cm 馈线 x2、4G 模块及配套天线 |
 | 配套线材 | GH1.25 / JST-GH 转 USB 通讯线 |
+| 串口波特率 | 921600 |
 | 航向策略 | 双天线定向硬件功能短期内暂不启用。静止 yaw 仍由 FAST-LIO2 / IMU / launch_yaw_deg 处理，避免底盘打孔或外贴双天线带来的结构风险。 |
-| 设备文件 | /dev/rtk_gps |
+| 设备文件 | /dev/rtk_um982 |
 | GPS Factor | noise_xy=2.5 m, interval=10, hdop_max=3.0 (未更新) |
 
 ## 7. 电源

@@ -538,6 +538,7 @@ python3 scripts/nav_gps_menu.py
 ```
 
 Runtime notes:
+- The vehicle UM982 currently outputs through `/dev/rtk_um982` at `921600` baud. Chassis `/dev/serial_twistctl` remains at `115200`; these links must not be changed together.
 - After modifying or importing a new QGIS/scene map, rerun `python3 scripts/build_scene_runtime.py` so `master_params_scene.yaml` records the scene fixed origin plus `rtk_map_odom_corrector`'s `scene_points_file` and `use_scene_identity_alignment=true`.
 - `nav-gps` does not require a nearby anchor. The goal manager projects the current pose and destination onto graph edges, inserts virtual endpoints, runs A*, and sends the whole route as one `FollowPath`.
 - After the RTK position and heading gates first lock, scene-identity mode seeds the absolute `map->odom` directly. This permits startup anywhere near the route network; subsequent updates still pass through corridor-authority smoothing, jump, and fault gates.

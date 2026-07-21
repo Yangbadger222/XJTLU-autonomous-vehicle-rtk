@@ -350,8 +350,8 @@
   ros__parameters:
     # Legacy Python GNSS driver fallback; new GPS launch paths use /um982_rtk_driver below.
     port: /dev/rtk_um982
-    # UM982 RTK rover serial baud.
-    baud: 115200
+    # UM982 RTK rover serial baud, verified against raw NMEA output on the vehicle.
+    baud: 921600
     # GPS 数据坐标系 ID；影响 TF 和下游传感器语义。
     frame_id: gps
     # 时间参考来源标识；用于 time reference 语义说明。
@@ -364,7 +364,7 @@
     # UM982 RTK rover serial device. Jetson udev should provide /dev/rtk_um982.
     port: /dev/rtk_um982
     # Current rover output baud verified on Jetson raw serial.
-    baud: 115200
+    baud: 921600
     # Antenna reference frame used by /fix and /heading.
     frame_id: gps
     # Convert UM982 dual-antenna baseline heading to vehicle heading.

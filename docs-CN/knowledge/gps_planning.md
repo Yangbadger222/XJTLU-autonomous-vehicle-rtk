@@ -436,3 +436,11 @@ Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_correc
 `gps_route_runner` 现在分别消费带时间戳的 LIO 与 `map→odom`。local odom 非有限、时间回退或速率超过 `10 m/s`/`10 rad/s` 时单帧立即 abort；超过 `3 m/s`/`3 rad/s` 连续 3 帧才 abort。`map→odom` 超过 `0.50 m/s` 或 `5 deg/s`，以及 motion authority false/过期，统一归类为 `GLOBAL_CORRECTION_HOLD`，不能报成 `ODOM_DIVERGENCE_ABORT`。
 
 进入 hold 后，runner 先置位 `/gps_corridor/stop_override`，再请求 action cancel；2 秒内必须收到非空 acknowledgement。随后最多等待 15 秒，并要求 authority 连续 ready 1 秒，再按当前 alignment 重算并发送同一个已保存 ENU 子目标。cancel 拒绝/超时或出现 `FAULT_HOLD` 时终止路线。runner 不再直接发布 Twist。
+
+## 14. RTK correction target 的时间一致性（2026-07-21）
+
+`map->odom` 的平移与旋转必须来自同一组 RTK fix、匹配 heading 和该时间戳插值出的 LIO pose。不能把最新 heading gate 的 yaw 与较早 position gate 的 `x/y` 直接拼接：车辆离 odom 原点越远，这种时间错配越容易被旋转杠杆臂放大。例如车辆距原点约 18m 时，2 度错配会产生 `18*sin(2deg)≈0.63m` 的虚假 base correction，超过 `backlog_translation_m=0.50m`，即使 RTK 实际距路线只有约 0.4m，也会在相同路段反复停车。
+
+当前 corrector 仅在 position gate 接受一个 Fixed fix 时，使用该 fix 对应的 heading correction 和插值 LIO pose 原子生成完整 `Pose2D(x,y,yaw)` target。Heading-only 更新仍参与质量门控，但不能单独改写 release target。诊断数组原有 0-18 字段不变，末尾追加 coherent target 的 `x/y/yaw/age`。
+
+安全边界没有放宽：真实的当前 base correction 达到 `0.50m/5deg` 仍进入 backlog，达到 `2.0m/20deg` 仍锁存 fault；非 Fixed、数据过期或 gate 未锁定仍立即撤销运动权限。此次修改只消除跨时间拼接产生的假 correction。

@@ -27,8 +27,6 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/rtk/status",
     "/rtk/nmea_sentence",
     "/fastlio2/lio_odom",
-    "/livox/imu",
-    "/odom_CBoar",
     "/tf",
     "/tf_static",
     "/gps_goal_manager/status",
@@ -48,11 +46,13 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/cmd_vel",
     "/cmd_vel_nav",
     "/cmd_vel_guarded",
-    "/local_costmap/costmap",
     "/plan",
 ]
 
 _NAV_GPS_BAG_DEBUG_TOPICS = [
+    "/livox/imu",
+    "/odom_CBoar",
+    "/local_costmap/costmap",
     "/gps_system/status",
     "/gps_system/nearest_anchor",
     "/gps_system/nearest_anchor_id",
@@ -82,7 +82,11 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     controller_params = data["controller_server"]["ros__parameters"]
     controller_params["controller_frequency"] = 20.0
     controller_params["failure_tolerance"] = 1.5
+    controller_params["progress_checker"]["plugin"] = (
+        "nav2_controller::PoseProgressChecker"
+    )
     controller_params["progress_checker"]["required_movement_radius"] = 0.10
+    controller_params["progress_checker"]["required_movement_angle"] = 0.15
     controller_params["progress_checker"]["movement_time_allowance"] = 15.0
     controller_params["general_goal_checker"]["stateful"] = False
 
@@ -99,6 +103,27 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["temperature"] = 0.45
     follow_path["regenerate_noises"] = True
     follow_path["open_loop"] = False
+    follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
+    follow_path["plugin"] = (
+        "nav2_rotation_shim_controller::RotationShimController"
+    )
+    follow_path["angular_dist_threshold"] = 0.52
+    follow_path["angular_disengage_threshold"] = 0.26
+    follow_path["forward_sampling_distance"] = 0.50
+    follow_path["rotate_to_heading_angular_vel"] = 0.35
+    follow_path["max_angular_accel"] = 1.4
+    follow_path["simulate_ahead_time"] = 0.8
+    follow_path["rotate_to_goal_heading"] = False
+    # FAST-LIO2 does not publish angular twist. Use the shim command history
+    # for acceleration limiting while MPPI itself remains closed-loop.
+    follow_path["closed_loop"] = False
+
+    local_costmap_params = data["local_costmap"]["local_costmap"]["ros__parameters"]
+    local_costmap_params["update_frequency"] = 8.0
+    local_costmap_params["publish_frequency"] = 2.0
+    global_costmap_params = data["global_costmap"]["global_costmap"]["ros__parameters"]
+    global_costmap_params["update_frequency"] = 2.0
+    global_costmap_params["publish_frequency"] = 1.0
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
     smoother_params["max_velocity"] = [0.85, 0.0, 0.70]

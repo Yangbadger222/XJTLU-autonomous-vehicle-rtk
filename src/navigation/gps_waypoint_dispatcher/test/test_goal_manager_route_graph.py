@@ -43,6 +43,17 @@ def test_goal_manager_holds_and_replans_on_authority_loss():
     assert "goal_handle.cancel_goal_async()" in text
 
 
+def test_goal_manager_debounces_authority_loss_before_replan():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("authority_loss_replan_delay_s", 2.0)' in text
+    assert '"AUTHORITY_GRACE"' in text
+    assert "authority_loss_s >= self.authority_loss_replan_delay_s" in text
+    grace_index = text.index('"AUTHORITY_GRACE"')
+    cancel_index = text.index('self.cancel_reason = "AUTHORITY_HOLD"', grace_index)
+    assert grace_index < cancel_index
+
+
 def test_goal_manager_ignores_reliable_republish_of_the_active_goal():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 

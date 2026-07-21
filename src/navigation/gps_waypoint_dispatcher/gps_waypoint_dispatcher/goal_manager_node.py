@@ -62,6 +62,7 @@ class GPSGoalManager(Node):
         self.declare_parameter("stop_override_publish_hz", 20.0)
         self.declare_parameter("motion_authority_max_age_s", 0.50)
         self.declare_parameter("authority_ready_confirmation_s", 1.0)
+        self.declare_parameter("authority_loss_replan_delay_s", 2.0)
         self.declare_parameter("global_hold_timeout_s", 15.0)
         self.declare_parameter("local_rate_abort_mps", 3.0)
         self.declare_parameter("local_yaw_rate_abort_radps", 3.0)
@@ -87,6 +88,10 @@ class GPSGoalManager(Node):
         )
         self.authority_ready_confirmation_s = float(
             self.get_parameter("authority_ready_confirmation_s").value
+        )
+        self.authority_loss_replan_delay_s = max(
+            0.0,
+            float(self.get_parameter("authority_loss_replan_delay_s").value),
         )
         self.global_hold_timeout_s = float(
             self.get_parameter("global_hold_timeout_s").value
@@ -178,6 +183,7 @@ class GPSGoalManager(Node):
         self.follow_path_goal_handle = None
         self.goal_send_pending = False
         self.cancel_reason: str | None = None
+        self.authority_loss_started_mono: float | None = None
         self.hold_started_mono: float | None = None
         self.generation = 0
 
@@ -350,6 +356,7 @@ class GPSGoalManager(Node):
         self.snapped_goal_xy = None
         self.pending_path = None
         self.cancel_reason = None
+        self.authority_loss_started_mono = None
         self.hold_started_mono = time.monotonic()
         self.local_watchdog = self._make_local_watchdog()
         self.local_watchdog_result = None
@@ -462,10 +469,15 @@ class GPSGoalManager(Node):
             self._finish_failure("follow_path_rejected")
             return
         self.follow_path_goal_handle = goal_handle
-        if self.cancel_reason is not None or not self._authority_ready():
-            self.cancel_reason = self.cancel_reason or "AUTHORITY_HOLD"
+        if self.cancel_reason is not None:
             self._request_cancel()
+        elif not self._authority_ready():
+            self.authority_loss_started_mono = (
+                self.authority_loss_started_mono or time.monotonic()
+            )
+            self._publish_stop_override(True)
         else:
+            self.authority_loss_started_mono = None
             self._publish_stop_override(False)
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(
@@ -606,15 +618,37 @@ class GPSGoalManager(Node):
 
         ready = self._authority_ready()
         if (self.follow_path_goal_handle is not None or self.goal_send_pending) and not ready:
-            if self.cancel_reason is None:
+            self._publish_stop_override(True)
+            if self.authority_loss_started_mono is None:
+                self.authority_loss_started_mono = now_mono
+                self._publish_status(
+                    "AUTHORITY_GRACE",
+                    "motion_authority_not_ready; replan_after=%.2fs"
+                    % self.authority_loss_replan_delay_s,
+                )
+            authority_loss_s = now_mono - self.authority_loss_started_mono
+            if (
+                self.cancel_reason is None
+                and authority_loss_s >= self.authority_loss_replan_delay_s
+            ):
                 self.cancel_reason = "AUTHORITY_HOLD"
                 self.hold_started_mono = now_mono
                 self._publish_status(
-                    "GLOBAL_CORRECTION_HOLD", "motion_authority_not_ready"
+                    "GLOBAL_CORRECTION_HOLD",
+                    "motion_authority_not_ready_for=%.2fs" % authority_loss_s,
                 )
                 self._request_cancel()
             return
         if self.follow_path_goal_handle is not None or self.goal_send_pending:
+            if self.cancel_reason is not None:
+                self._publish_stop_override(True)
+                return
+            if self.authority_loss_started_mono is not None:
+                self.authority_loss_started_mono = None
+                self._publish_status(
+                    "FOLLOWING_ROUTE", "motion_authority_recovered"
+                )
+            self._publish_stop_override(False)
             return
         if self.hold_started_mono is None:
             self.hold_started_mono = now_mono
@@ -645,6 +679,7 @@ class GPSGoalManager(Node):
         self.follow_path_goal_handle = None
         self.goal_send_pending = False
         self.cancel_reason = None
+        self.authority_loss_started_mono = None
         self.hold_started_mono = None
         self._publish_stop_override(True)
 

@@ -159,6 +159,8 @@
     enu_origin_alt: 0.0
     # 是否允许在路网外回退到直线直达；v4 默认关闭。
     allow_direct_fallback: false
+    # 运动权限异常时立即停车；仅连续异常达到该时长后取消 FollowPath 并重新规划。
+    authority_loss_replan_delay_s: 2.0
 
 /gps_global_aligner:
   ros__parameters:

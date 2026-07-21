@@ -25,6 +25,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
     PrerequisiteFailureKind,
     StampedPoseHistory,
+    compute_map_to_odom,
     normalize_angle,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
@@ -331,6 +332,8 @@ class RtkMapOdomCorrector(Node):
         self._latest_alignment: tuple[float, float, float, bool] | None = None
         self._bootstrap_alignment: tuple[float, float, float, bool] | None = None
         self._last_output: Pose2D | None = None
+        self._coherent_target_map_odom: Pose2D | None = None
+        self._coherent_target_stamp_s: float | None = None
         self._last_release = None
         self._last_heading_innovation_rad: float | None = None
         self._last_position_innovation_m: float | None = None
@@ -668,16 +671,22 @@ class RtkMapOdomCorrector(Node):
             map_x = cos_theta * enu_x - sin_theta * enu_y + tx
             map_y = sin_theta * enu_x + cos_theta * enu_y + ty
             local = interpolated.pose
-            cos_yaw = math.cos(yaw_correction)
-            sin_yaw = math.sin(yaw_correction)
+            map_yaw = normalize_angle(local.yaw + yaw_correction)
+            coherent_target = compute_map_to_odom(
+                Pose2D(map_x, map_y, map_yaw),
+                local,
+            )
             correction_xy = (
-                map_x - (cos_yaw * local.x - sin_yaw * local.y),
-                map_y - (sin_yaw * local.x + cos_yaw * local.y),
+                coherent_target.x,
+                coherent_target.y,
             )
             result = self._position_gate.observe(
                 pending.stamp_s, correction_xy, now_s=now_mono_s
             )
             self._last_position_innovation_m = result.innovation
+            if result.accepted:
+                self._coherent_target_map_odom = coherent_target
+                self._coherent_target_stamp_s = pending.stamp_s
             self._fix_queue.popleft()
 
     def _try_bootstrap(self, now_mono_s: float) -> bool:
@@ -703,6 +712,8 @@ class RtkMapOdomCorrector(Node):
             return False
         self._bootstrap_alignment = (theta, tx, ty, True)
         self._last_output = Pose2D(0.0, 0.0, 0.0)
+        self._coherent_target_map_odom = None
+        self._coherent_target_stamp_s = None
         self._heading_queue.clear()
         self._fix_queue.clear()
         self._publish_tf(self._last_output)
@@ -731,13 +742,9 @@ class RtkMapOdomCorrector(Node):
             or self._latest_lio_stamp_s is None
         ):
             return None
-        heading_target = self._heading_gate.target
-        position_target = self._position_gate.target
-        if not isinstance(heading_target, (float, int)) or not isinstance(
-            position_target, tuple
-        ):
+        if self._coherent_target_map_odom is None:
             return None
-        target = Pose2D(position_target[0], position_target[1], float(heading_target))
+        target = self._coherent_target_map_odom
         if self._last_output is None:
             self._last_output = (
                 target
@@ -821,6 +828,12 @@ class RtkMapOdomCorrector(Node):
             else math.nan
         )
         output = self._last_output
+        coherent_target = self._coherent_target_map_odom
+        coherent_target_age_s = (
+            max(0.0, self._ros_now_s() - self._coherent_target_stamp_s)
+            if self._coherent_target_stamp_s is not None
+            else math.nan
+        )
         data = [
             1.0 if motion_allowed else 0.0,
             self._age_s(self._latest_fix_mono_s, now_mono_s),
@@ -841,6 +854,12 @@ class RtkMapOdomCorrector(Node):
             release.translation_gap_m if release is not None else math.nan,
             math.degrees(release.yaw_gap_rad) if release is not None else math.nan,
             1.0 if motion_allowed else 0.0,
+            coherent_target.x if coherent_target is not None else math.nan,
+            coherent_target.y if coherent_target is not None else math.nan,
+            math.degrees(coherent_target.yaw)
+            if coherent_target is not None
+            else math.nan,
+            coherent_target_age_s,
         ]
         self._safe_publish(self._diagnostics_pub, Float64MultiArray(data=data))
 

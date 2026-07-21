@@ -104,21 +104,51 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert '"path_density_m": 0.35' in text
 
 
+def test_nav_gps_rotates_to_large_path_heading_changes_before_mppi():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"nav2_controller::PoseProgressChecker"' in text
+    assert (
+        'controller_params["progress_checker"]["required_movement_angle"] = 0.15'
+        in text
+    )
+    assert '"nav2_rotation_shim_controller::RotationShimController"' in text
+    assert (
+        'follow_path["primary_controller"] = '
+        '"nav2_mppi_controller::MPPIController"' in text
+    )
+    assert 'follow_path["rotate_to_heading_angular_vel"] = 0.35' in text
+    assert 'follow_path["closed_loop"] = False' in text
+
+
 def test_nav_gps_lean_bag_and_default_nodes_respect_vehicle_cpu_budget():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
     base_topics = _launch_topic_list(text, "_NAV_GPS_BAG_BASE_TOPICS")
     debug_topics = _launch_topic_list(text, "_NAV_GPS_BAG_DEBUG_TOPICS")
 
-    assert "/local_costmap/costmap" in base_topics
+    assert "/local_costmap/costmap" not in base_topics
+    assert "/local_costmap/costmap" in debug_topics
     assert "/global_costmap/costmap" not in base_topics
     assert "/global_costmap/costmap" in debug_topics
-    assert "/livox/imu" in base_topics
+    assert "/livox/imu" not in base_topics
+    assert "/livox/imu" in debug_topics
+    assert "/odom_CBoar" not in base_topics
+    assert "/odom_CBoar" in debug_topics
     assert "/fastlio2/lio_odom" in base_topics
     assert "/cmd_vel" in base_topics
     assert "/plan" in base_topics
     assert "FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER" in text
     assert '"FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER", "false"' in text
     assert 'condition=IfCondition(LaunchConfiguration("enable_legacy_anchor_localizer"))' in text
+
+
+def test_nav_gps_costmap_rates_preserve_obstacle_updates_with_lower_cpu_load():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert 'local_costmap_params["update_frequency"] = 8.0' in text
+    assert 'local_costmap_params["publish_frequency"] = 2.0' in text
+    assert 'global_costmap_params["update_frequency"] = 2.0' in text
+    assert 'global_costmap_params["publish_frequency"] = 1.0' in text
 
 
 def test_scene_runtime_writes_rtk_authority_scene_origin():

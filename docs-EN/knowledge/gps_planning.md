@@ -436,3 +436,11 @@ Field diagnostic rule: if `/rtk/status` stays `q=4` and `/fastlio2/lio_odom` has
 `gps_route_runner` now consumes stamped LIO separately from `map->odom`. Non-finite/regressing local odom or rates above `10 m/s`/`10 rad/s` abort immediately; rates above `3 m/s`/`3 rad/s` abort after three consecutive samples. A `map->odom` rate above `0.50 m/s` or `5 deg/s`, or false/stale motion authority, is `GLOBAL_CORRECTION_HOLD`, never `ODOM_DIVERGENCE_ABORT`.
 
 On hold the runner asserts `/gps_corridor/stop_override`, requests action cancellation, requires a nonempty acknowledgement within 2 s, waits up to 15 s for one continuous second of authority readiness, then recomputes the same stored ENU subgoal under the current alignment. Cancellation rejection, timeout, or `FAULT_HOLD` aborts the route. The runner no longer publishes Twist directly.
+
+## 14. Timestamp-Coherent RTK Correction Targets (2026-07-21)
+
+The translation and rotation of a `map->odom` target must come from one RTK fix, its matched heading, and the LIO pose interpolated at that timestamp. Combining the newest heading-gate yaw with older position-gate `x/y` values is invalid. The farther the vehicle is from the odom origin, the more this timestamp mismatch is amplified by the rotation lever arm. At about 18m, a two-degree mismatch produces `18*sin(2deg)≈0.63m` of false base correction, crossing `backlog_translation_m=0.50m` even when the RTK trajectory is only about 0.4m from the route.
+
+The corrector now atomically constructs a complete `Pose2D(x,y,yaw)` target only when the position gate accepts a Fixed fix, using that fix's matched heading correction and interpolated LIO pose. Heading-only updates still participate in quality gating but cannot independently rewrite the release target. Existing diagnostic fields 0-18 remain stable; coherent target `x/y/yaw/age` values are appended.
+
+Safety limits are unchanged. A real current-base correction at `0.50m/5deg` still enters backlog, `2.0m/20deg` still latches a fault, and non-Fixed, stale, or unlocked inputs still revoke motion authority immediately. This change removes only corrections manufactured by cross-timestamp component mixing.

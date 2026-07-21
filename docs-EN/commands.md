@@ -548,7 +548,7 @@ Runtime notes:
 - MPPI keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while the vehicle profile uses `batch_size=350`, `time_steps=40`, and densifies the continuous A* path at `0.35m`. This cuts trajectory simulation per cycle by about 42% from the previous `500x48` workload.
 - The `nav-gps` vehicle entry point disables RTK FGO shadow by default so it does not compete with FAST-LIO2/Nav2 for Jetson CPU. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` only for shadow evidence; it still forces `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract.
 - The current RTK-authority/A* chain disables the legacy `gps_anchor_localizer` by default because planning and motion permission consume neither anchors nor `/gnss`; set `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true` for compatibility experiments.
-- The default lean bag records RTK, FAST-LIO2 odom, Livox IMU, chassis `/odom_CBoar`, `/rtk_fgo/*`, TF, goal/authority status, all three velocity stages, the local costmap, and `/plan`. The global costmap, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
+- The default lean bag records RTK, FAST-LIO2 odom, `/rtk_fgo/*`, TF, goal/authority status, all three velocity stages, and `/plan`. The 200Hz Livox IMU, chassis `/odom_CBoar`, local/global costmaps, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
 - On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 
 ## 14. Fixed-Launch GPS Corridor

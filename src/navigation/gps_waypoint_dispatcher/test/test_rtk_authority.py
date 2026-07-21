@@ -1610,6 +1610,56 @@ def test_correction_release_backlog_uses_base_yaw_lever_arm_translation_gap():
     assert result.mode is CorrectionReleaseMode.FAULT_HOLD
 
 
+def test_timestamp_coherent_target_avoids_false_far_origin_backlog():
+    local = _pose(x=18.0)
+    previous = _pose()
+    desired_map_base = _pose(x=18.0, yaw=math.radians(2.0))
+    coherent_target = compute_map_to_odom(desired_map_base, local)
+    mixed_target = _pose(yaw=coherent_target.yaw)
+
+    mixed_state = CorrectionReleaseState()
+    _release_update(
+        mixed_state,
+        previous=previous,
+        local=local,
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+    mixed = _release_update(
+        mixed_state,
+        previous=previous,
+        target=mixed_target,
+        local=local,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    coherent_state = CorrectionReleaseState()
+    _release_update(
+        coherent_state,
+        previous=previous,
+        local=local,
+        now_s=10.0,
+        lio_stamp_s=1.0,
+    )
+    coherent = _release_update(
+        coherent_state,
+        previous=previous,
+        target=coherent_target,
+        local=local,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+
+    assert mixed.translation_gap_m == pytest.approx(
+        18.0 * math.sin(math.radians(2.0)), rel=0.02
+    )
+    assert mixed.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert coherent.translation_gap_m == pytest.approx(0.0, abs=1e-9)
+    assert coherent.mode is CorrectionReleaseMode.NORMAL
+    assert coherent.motion_allowed is True
+
+
 def test_correction_release_still_detects_fault_on_duplicate_lio_cycle():
     state = CorrectionReleaseState()
     previous = _pose()
@@ -2372,6 +2422,20 @@ def test_rtk_map_odom_corrector_appends_fixed_diagnostic_fields():
     assert "release.translation_gap_m" in node_text
     assert "math.degrees(release.yaw_gap_rad)" in node_text
     assert "1.0 if motion_allowed else 0.0" in node_text
+    assert "coherent_target_age_s" in node_text
+
+
+def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "coherent_target = compute_map_to_odom(" in node_text
+    assert "if result.accepted:" in node_text
+    assert "self._coherent_target_map_odom = coherent_target" in node_text
+    assert "target = self._coherent_target_map_odom" in node_text
 
 
 def test_dispatcher_declares_raw_nmea_runtime_dependency():

@@ -236,6 +236,10 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
           std::numeric_limits<double>::infinity() : second_norm / best_norm;
         const double success_rate = bootstrapSuccessRate(
           lambda_result.conditional_variances);
+        output.best_squared_norm = best_norm;
+        output.second_squared_norm = second_norm;
+        output.ratio = ratio;
+        output.success_rate = success_rate;
         last_rejection = failedTest(config_, ratio, success_rate, best_norm);
         if (last_rejection == IntegerFixRejectionReason::None) {
           output.fixed = true;
@@ -249,10 +253,6 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
             output.fixed_values_m(index) = output.integer_cycles(index) *
               wavelengths[static_cast<std::size_t>(index)];
           }
-          output.best_squared_norm = best_norm;
-          output.second_squared_norm = second_norm;
-          output.ratio = ratio;
-          output.success_rate = success_rate;
           return output;
         }
       }

@@ -125,6 +125,10 @@ TEST(IntegerAmbiguityResolver, EqualIntegerCandidatesFailRatioTest)
   const IntegerFixResult result = resolver.resolve(estimateFromCycles(keys, cycles, covariance));
   EXPECT_FALSE(result.fixed);
   EXPECT_EQ(result.rejection_reason, IntegerFixRejectionReason::RatioTest);
+  EXPECT_NEAR(result.ratio, 1.0, 1.0e-12);
+  EXPECT_GT(result.best_squared_norm, 0.0);
+  EXPECT_GT(result.second_squared_norm, 0.0);
+  EXPECT_GT(result.success_rate, 0.0);
 }
 
 TEST(IntegerAmbiguityResolver, PartialFixDropsWorstVarianceAmbiguity)

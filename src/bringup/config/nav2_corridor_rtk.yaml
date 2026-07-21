@@ -311,7 +311,7 @@ controller_server:
       gamma: 0.015
       motion_model: "DiffDrive"
       publish_critics_stats: true
-      open_loop: true
+      open_loop: false
       visualize: false
       reset_period: 1.0
       regenerate_noises: true

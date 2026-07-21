@@ -99,6 +99,7 @@ def _make_corridor_nav2_params(source_file):
     follow_path['az_max'] = 1.4
     follow_path['temperature'] = 0.45
     follow_path['regenerate_noises'] = True
+    follow_path['open_loop'] = False
 
     smoother_params = data['velocity_smoother']['ros__parameters']
     smoother_params['max_velocity'] = [0.85, 0.0, 0.70]
@@ -165,8 +166,8 @@ def generate_launch_description():
     )
     enable_fgo_shadow_arg = DeclareLaunchArgument(
         'enable_fgo_shadow',
-        default_value=os.environ.get('FYP_CORRIDOR_ENABLE_FGO_SHADOW', 'true'),
-        description='Start RTK FGO in shadow mode for default corridor rosbag evidence',
+        default_value=os.environ.get('FYP_CORRIDOR_ENABLE_FGO_SHADOW', 'false'),
+        description='Optionally start RTK FGO in shadow mode for corridor rosbag evidence',
     )
 
     explore_launch = IncludeLaunchDescription(

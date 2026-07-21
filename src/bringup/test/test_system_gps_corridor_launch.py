@@ -100,6 +100,15 @@ def test_corridor_nav2_keeps_live_obstacles_in_local_costmap():
     assert stvl["pointcloud_clear"]["max_z"] >= 1.20
 
 
+def test_corridor_mppi_uses_measured_odometry_feedback():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    follow_path = config["controller_server"]["ros__parameters"]["FollowPath"]
+    launch_text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
+
+    assert follow_path["open_loop"] is False
+    assert "follow_path['open_loop'] = False" in launch_text
+
+
 def test_corridor_local_costmap_is_near_field_for_mppi_stability():
     config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
     controller = config["controller_server"]["ros__parameters"]
@@ -164,7 +173,7 @@ def test_nav2_profiles_expose_both_bt_xml_rewrite_slots():
         assert bt_params["default_nav_through_poses_bt_xml"] == ""
 
 
-def test_corridor_bag_defaults_to_fgo_shadow_evidence_without_raw_lidar():
+def test_corridor_bag_keeps_fgo_shadow_topics_without_raw_lidar():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     base_topics = re.search(
@@ -193,12 +202,13 @@ def test_corridor_bag_defaults_to_fgo_shadow_evidence_without_raw_lidar():
     assert "'/fastlio2/body_cloud_nav2_obstacles'," in debug_topics
 
 
-def test_corridor_launch_starts_fgo_shadow_without_owning_tf_or_nav2():
+def test_corridor_launch_keeps_fgo_shadow_opt_in_without_owning_tf_or_nav2():
     text = CORRIDOR_LAUNCH.read_text(encoding="utf-8")
 
     assert "rtk_fgo_params_file" in text
     assert "enable_fgo_shadow_arg" in text
     assert "FYP_CORRIDOR_ENABLE_FGO_SHADOW" in text
+    assert "os.environ.get('FYP_CORRIDOR_ENABLE_FGO_SHADOW', 'false')" in text
     assert "rtk_fgo_localizer" in text
     assert "rtk_fgo_node" in text
     assert "'publish_tf': False" in text

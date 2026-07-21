@@ -142,7 +142,7 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-This mode can be launched standalone with `make launch-tightly-coupled`. Corridor starts it by default for shadow evidence; the `nav-gps` vehicle entry point disables it by default for CPU budget and enables it only with `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`:
+This mode can be launched standalone with `make launch-tightly-coupled`. Both corridor and `nav-gps` vehicle entry points disable it by default for CPU budget; enable it explicitly with `FYP_CORRIDOR_ENABLE_FGO_SHADOW=true` or `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`, respectively:
 - `publish_tf=false` by default; it does not broadcast production `map -> odom`
 - Nav2 is not remapped to FGO output, and the production localization output of `corridor`, `explore-gps`, and `nav-gps` is not replaced
 - Source sensor topics and `/rtk_fgo/*` are recorded automatically for rosbag replay and vehicle shadow validation

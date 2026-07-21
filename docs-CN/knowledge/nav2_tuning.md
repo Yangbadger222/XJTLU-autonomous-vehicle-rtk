@@ -168,7 +168,8 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
 6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
-8. Corridor 默认启动 RTK FGO shadow；`nav-gps` 实车入口默认关闭，只有 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` 时启用。Shadow 始终设置 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2。`nav-gps` lean bag 保留 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、TF、状态、目标、三层速度、local costmap 和 `/plan`；占本次 bag `77.5%` 的 global costmap、旧 anchor 状态与原始点云只进入 debug profile，避免录包线程挤占控制循环。
+8. Corridor 和 `nav-gps` 实车入口都默认关闭 RTK FGO shadow，以给 FAST-LIO2、costmap 和 MPPI 留出 CPU；分别只有设置 `FYP_CORRIDOR_ENABLE_FGO_SHADOW=true` 或 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` 时启用。Shadow 始终设置 `publish_tf=false`、`nav2_use_fgo=false`，不接管 `map→odom` 或 Nav2。`nav-gps` lean bag 保留 RTK、FAST-LIO2 odom、Livox IMU、底盘 `/odom_CBoar`、TF、状态、目标、三层速度、local costmap 和 `/plan`；占本次 bag `77.5%` 的 global costmap、旧 anchor 状态与原始点云只进入 debug profile，避免录包线程挤占控制循环。
+9. Corridor 与 `nav-gps` 的 RTK MPPI 固定使用 `open_loop=false`，用实际 odometry 速度初始化每轮预测；底盘丢帧或转向执行不足时，不再把上一条命令误当成已执行运动。
 
 ## 8. 航点系统
 

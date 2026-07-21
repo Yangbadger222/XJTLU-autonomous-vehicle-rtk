@@ -142,7 +142,7 @@ Explore stack + UM982 RTK
                 /rtk_fgo/correction_status, /rtk_fgo/factor_diagnostics
 ```
 
-该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 默认旁路启动，`nav-gps` 实车入口因 CPU 预算默认关闭，可通过 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` 显式启用：
+该模式可通过 `make launch-tightly-coupled` 单独启动；`corridor` 和 `nav-gps` 实车入口都因 CPU 预算默认关闭，分别可通过 `FYP_CORRIDOR_ENABLE_FGO_SHADOW=true` 和 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` 显式启用：
 - 默认 `publish_tf=false`，不广播生产 `map -> odom`
 - 不 remap Nav2，不替换 `corridor`、`explore-gps`、`nav-gps` 的生产定位输出
 - 自动录制源传感器 topic 与 `/rtk_fgo/*`，用于 rosbag replay 和实车旁路验证

@@ -272,18 +272,22 @@ def rasterize_keepout(
     *,
     resolution_m: float,
     padding_m: float,
+    drivable_expansion_m: float = 0.0,
 ) -> tuple[bytearray, int, int, float, float]:
     if not math.isfinite(resolution_m) or resolution_m <= 0.0:
         raise ValueError("resolution_m must be finite and positive")
     if not math.isfinite(padding_m) or padding_m < 0.0:
         raise ValueError("padding_m must be finite and nonnegative")
+    if not math.isfinite(drivable_expansion_m) or drivable_expansion_m < 0.0:
+        raise ValueError("drivable_expansion_m must be finite and nonnegative")
     all_points = [point for polygon in polygons for ring in polygon for point in ring]
     if not all_points:
         raise ValueError("drivable area has no polygon points")
-    min_x = min(point[0] for point in all_points) - padding_m
-    min_y = min(point[1] for point in all_points) - padding_m
-    max_x = max(point[0] for point in all_points) + padding_m
-    max_y = max(point[1] for point in all_points) + padding_m
+    map_margin_m = padding_m + drivable_expansion_m
+    min_x = min(point[0] for point in all_points) - map_margin_m
+    min_y = min(point[1] for point in all_points) - map_margin_m
+    max_x = max(point[0] for point in all_points) + map_margin_m
+    max_y = max(point[1] for point in all_points) + map_margin_m
     width = max(1, int(math.ceil((max_x - min_x) / resolution_m)))
     height = max(1, int(math.ceil((max_y - min_y) / resolution_m)))
     pixels = bytearray(width * height)
@@ -314,7 +318,60 @@ def rasterize_keepout(
             pixels[offset : offset + end_col - start_col + 1] = bytes(
                 [254]
             ) * (end_col - start_col + 1)
+    if drivable_expansion_m > 0.0:
+        pixels = _expand_drivable_pixels(
+            pixels,
+            width,
+            height,
+            resolution_m=resolution_m,
+            expansion_m=drivable_expansion_m,
+        )
     return pixels, width, height, min_x, min_y
+
+
+def _expand_drivable_pixels(
+    pixels: bytearray,
+    width: int,
+    height: int,
+    *,
+    resolution_m: float,
+    expansion_m: float,
+) -> bytearray:
+    source = bytes(pixels)
+    expanded = bytearray(pixels)
+    row_radius = int(math.floor(expansion_m / resolution_m + 1e-9))
+    offsets = []
+    for row_offset in range(-row_radius, row_radius + 1):
+        vertical_m = abs(row_offset) * resolution_m
+        horizontal_m = math.sqrt(max(0.0, expansion_m**2 - vertical_m**2))
+        offsets.append(
+            (row_offset, int(math.floor(horizontal_m / resolution_m + 1e-9)))
+        )
+
+    free = bytes([254])
+    lethal = bytes([0])
+    for row in range(height):
+        row_start = row * width
+        row_end = row_start + width
+        run_start = source.find(free, row_start, row_end)
+        while run_start >= 0:
+            run_end = source.find(lethal, run_start, row_end)
+            if run_end < 0:
+                run_end = row_end
+            start_col = run_start - row_start
+            end_col = run_end - row_start - 1
+            for row_offset, horizontal_cells in offsets:
+                target_row = row + row_offset
+                if target_row < 0 or target_row >= height:
+                    continue
+                left = max(0, start_col - horizontal_cells)
+                right = min(width - 1, end_col + horizontal_cells)
+                target_start = target_row * width + left
+                expanded[target_start : target_start + right - left + 1] = free * (
+                    right - left + 1
+                )
+            run_start = source.find(free, run_end, row_end)
+    return expanded
 
 
 def compile_gpkg_keepout(
@@ -327,6 +384,7 @@ def compile_gpkg_keepout(
     layer_name: str | None = None,
     resolution_m: float = 0.10,
     padding_m: float = 2.0,
+    drivable_expansion_m: float = 0.0,
 ) -> dict:
     polygons, srs_id, resolved_layer = read_gpkg_polygons(gpkg_path, layer_name)
     transformer = GpkgToLocalENU(srs_id, origin_lat, origin_lon, origin_alt)
@@ -335,6 +393,7 @@ def compile_gpkg_keepout(
         local_polygons,
         resolution_m=resolution_m,
         padding_m=padding_m,
+        drivable_expansion_m=drivable_expansion_m,
     )
 
     output = Path(output_dir).expanduser()
@@ -365,6 +424,7 @@ def compile_gpkg_keepout(
         "keepout_map_yaml": yaml_path.name,
         "keepout_map_image": pgm_path.name,
         "resolution_m": float(resolution_m),
+        "drivable_expansion_m": float(drivable_expansion_m),
         "width_cells": width,
         "height_cells": height,
     }

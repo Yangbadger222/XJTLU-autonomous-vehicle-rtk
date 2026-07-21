@@ -335,6 +335,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=2.0,
         help="Lethal padding around the generated road keepout mask.",
     )
+    parser.add_argument(
+        "--road-mask-expansion-m",
+        type=float,
+        default=0.0,
+        help="Expand the drivable road polygon outward by this distance on every side.",
+    )
     return parser.parse_args(argv)
 
 
@@ -359,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
             layer_name=args.road_area_layer,
             resolution_m=args.road_mask_resolution_m,
             padding_m=args.road_mask_padding_m,
+            drivable_expansion_m=args.road_mask_expansion_m,
         )
     with open(output_path, "w", encoding="utf-8") as output_file:
         yaml.safe_dump(bundle, output_file, allow_unicode=True, sort_keys=False)
@@ -377,12 +384,13 @@ def main(argv: list[str] | None = None) -> int:
     if bundle.get("drivable_area"):
         area = bundle["drivable_area"]
         print(
-            "  road_mask:    %s (%dx%d @ %.2fm)"
+            "  road_mask:    %s (%dx%d @ %.2fm, expansion %.2fm)"
             % (
                 area["keepout_map_yaml"],
                 area["width_cells"],
                 area["height_cells"],
                 area["resolution_m"],
+                area["drivable_expansion_m"],
             )
         )
     for name in destinations[:30]:

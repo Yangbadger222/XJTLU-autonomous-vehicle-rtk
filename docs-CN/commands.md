@@ -477,14 +477,15 @@ python3 scripts/compile_qgis_scene.py \
   --scene-name qgis_4 \
   --densify-step-m 5.0 \
   --road-mask-resolution-m 0.10 \
+  --road-mask-expansion-m 1.0 \
   --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
 
 python3 scripts/build_scene_runtime.py
 ```
 
-`compile_qgis_scene.py` 会把 `feature_type=route` 的 LineString 转成连通 scene graph，按 5m 最大边长补点，并将 GeoPackage 道路面栅格化为 `road_keepout.yaml/.pgm`。对当前包，生成 `557` 个节点、`558` 条边、12 个 destination，以及约 `5938x3552 @ 0.10m` 的道路 mask；图不连通时编译会拒绝，需先在 QGIS 中 split/snap 路口。
+`compile_qgis_scene.py` 会把 `feature_type=route` 的 LineString 转成连通 scene graph，按 5m 最大边长补点，并将 GeoPackage 道路面栅格化为 `road_keepout.yaml/.pgm`。对当前包及每侧 `1.0m` 扩张，生成 `557` 个节点、`558` 条边、12 个 destination，以及约 `5958x3572 @ 0.10m` 的道路 mask；图不连通时编译会拒绝，需先在 QGIS 中 split/snap 路口。
 
-当前 `road_wide_all.gpkg` 是中心线两侧各约 `0.50m`，总宽约 `1.0m`；对导航半径约 `0.386m` 的车辆余量很小。实车启用 keepout 前应按真实道路边界重画，建议至少为定位误差和避障留出额外横向空间。
+当前 `road_wide_all.gpkg` 是中心线两侧各约 `0.50m`，总宽约 `1.0m`；对导航半径约 `0.386m` 的车辆余量很小。当前实车编译命令用 `--road-mask-expansion-m 1.0` 将可通行边界每侧外扩 `1.0m`，得到约 `3.0m` 的有效总宽。该补偿只用于现阶段测试，最终仍应按真实道路边界重画 polygon，并将扩张参数逐步降回 `0`。
 
 采集规范：
 - 所有转弯、路口、目的地入口必须踩点

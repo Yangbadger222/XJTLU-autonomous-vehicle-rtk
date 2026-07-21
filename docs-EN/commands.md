@@ -476,14 +476,15 @@ python3 scripts/compile_qgis_scene.py \
   --scene-name qgis_4 \
   --densify-step-m 5.0 \
   --road-mask-resolution-m 0.10 \
+  --road-mask-expansion-m 1.0 \
   --output ~/XJTLU-autonomous-vehicle/runtime-data/gnss/scene_gps_bundle.yaml
 
 python3 scripts/build_scene_runtime.py
 ```
 
-`compile_qgis_scene.py` converts `feature_type=route` LineStrings into a connected scene graph, densifies edges to at most 5m, and rasterizes the GeoPackage road polygon into `road_keepout.yaml/.pgm`. The current package produces 557 nodes, 558 edges, 12 destinations, and an approximately `5938x3552 @ 0.10m` road mask. Disconnected graphs are rejected so intersections can be split/snapped in QGIS first.
+`compile_qgis_scene.py` converts `feature_type=route` LineStrings into a connected scene graph, densifies edges to at most 5m, and rasterizes the GeoPackage road polygon into `road_keepout.yaml/.pgm`. With the current package and `1.0m` expansion on each side, it produces 557 nodes, 558 edges, 12 destinations, and an approximately `5958x3572 @ 0.10m` road mask. Disconnected graphs are rejected so intersections can be split/snapped in QGIS first.
 
-The current `road_wide_all.gpkg` extends only about `0.50m` to each side of the centerline, or roughly `1.0m` total. That leaves little margin around the configured navigation radius of about `0.386m`; redraw it from real road boundaries before vehicle keepout acceptance, leaving additional lateral room for localization error and obstacle avoidance.
+The current `road_wide_all.gpkg` extends only about `0.50m` to each side of the centerline, or roughly `1.0m` total. That leaves little margin around the configured navigation radius of about `0.386m`. The current vehicle compile command uses `--road-mask-expansion-m 1.0` to expand each drivable boundary by `1.0m`, producing roughly `3.0m` of effective total width. This is a test-stage compensation; redraw the polygon from real road boundaries and reduce the expansion toward `0` before final acceptance.
 
 Collection guidelines:
 - All turns, intersections, and destination entrances must have waypoints

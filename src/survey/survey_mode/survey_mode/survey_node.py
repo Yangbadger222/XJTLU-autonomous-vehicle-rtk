@@ -40,8 +40,7 @@ class SurveyNode(Node):
         self.localizer_client = self.create_client(GlobalRelocalize, '/localizer/global_relocalize')
         
         # Map subscriber
-        # self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
-        self.map_sub = self.create_subscription(OccupancyGrid, '/map', self.map_callback, 10)
+        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
         self.occupancy_grid = None
         
         # Foxglove Publishers

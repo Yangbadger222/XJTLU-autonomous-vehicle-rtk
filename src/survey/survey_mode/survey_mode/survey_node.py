@@ -138,12 +138,28 @@ class SurveyNode(Node):
         frontier_mask = free_cells & (up | down | left | right)
         y_idx, x_idx = np.where(frontier_mask)
         
+        current_x, current_y = self.get_current_pose()
+        if current_x is None:
+            return []
+
         points = []
         for y, x in zip(y_idx, x_idx):
             wx = info.origin.position.x + (x + 0.5) * info.resolution
             wy = info.origin.position.y + (y + 0.5) * info.resolution
             if math.hypot(wx, wy) <= self.max_radius:
-                points.append((wx, wy))
+                # Ensure the frontier is at least 2.0 meters away from the robot
+                dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+                if dist_to_robot >= 2.0:
+                    points.append((wx, wy))
+        
+        # If no points are far enough, relax the distance constraint as fallback
+        if not points:
+            for y, x in zip(y_idx, x_idx):
+                wx = info.origin.position.x + (x + 0.5) * info.resolution
+                wy = info.origin.position.y + (y + 0.5) * info.resolution
+                if math.hypot(wx, wy) <= self.max_radius:
+                    points.append((wx, wy))
+
         return points
 
     def get_real_frontier_goal(self):

@@ -457,10 +457,12 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
 
   const auto add_correlated_rows = [&system](
     const Eigen::VectorXd & residuals, const Eigen::MatrixXd & covariance,
-    const Eigen::MatrixXd & jacobian, const double huber_delta) {
+    const Eigen::MatrixXd & local_jacobian, const std::vector<int> & scalar_offsets,
+    const double huber_delta) {
       if (residuals.size() == 0 || covariance.rows() != residuals.size() ||
-        covariance.cols() != residuals.size() || jacobian.rows() != residuals.size() ||
-        !residuals.allFinite() || !covariance.allFinite() || !jacobian.allFinite())
+        covariance.cols() != residuals.size() || local_jacobian.rows() != residuals.size() ||
+        local_jacobian.cols() != static_cast<int>(scalar_offsets.size()) ||
+        !residuals.allFinite() || !covariance.allFinite() || !local_jacobian.allFinite())
       {
         return;
       }
@@ -472,15 +474,25 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       const Eigen::VectorXd whitened_residuals =
         lower.triangularView<Eigen::Lower>().solve(residuals);
       const Eigen::MatrixXd whitened_jacobian =
-        lower.triangularView<Eigen::Lower>().solve(jacobian);
+        lower.triangularView<Eigen::Lower>().solve(local_jacobian);
       if (!whitened_residuals.allFinite() || !whitened_jacobian.allFinite()) {
         return;
       }
       const double group_residual = whitened_residuals.norm() /
         std::sqrt(static_cast<double>(whitened_residuals.size()));
       const double weight = robustWeight(group_residual, huber_delta);
-      system.gradient += weight * whitened_jacobian.transpose() * whitened_residuals;
-      system.hessian += weight * whitened_jacobian.transpose() * whitened_jacobian;
+      const Eigen::VectorXd local_gradient =
+        weight * whitened_jacobian.transpose() * whitened_residuals;
+      const Eigen::MatrixXd local_hessian =
+        weight * whitened_jacobian.transpose() * whitened_jacobian;
+      for (int row = 0; row < local_gradient.size(); ++row) {
+        const int global_row = scalar_offsets[static_cast<std::size_t>(row)];
+        system.gradient(global_row) += local_gradient(row);
+        for (int column = 0; column < local_hessian.cols(); ++column) {
+          const int global_column = scalar_offsets[static_cast<std::size_t>(column)];
+          system.hessian(global_row, global_column) += local_hessian(row, column);
+        }
+      }
       system.cost += static_cast<double>(whitened_residuals.size()) *
         robustCost(group_residual, huber_delta);
       system.rows += static_cast<std::size_t>(whitened_residuals.size());
@@ -698,7 +710,14 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
         const int count = static_cast<int>(entries.size());
         Eigen::VectorXd residuals(count);
         Eigen::MatrixXd covariance = Eigen::MatrixXd::Zero(count, count);
-        Eigen::MatrixXd jacobian = Eigen::MatrixXd::Zero(count, layout.dimension);
+        const int ambiguity_columns = carrier ? count : 0;
+        Eigen::MatrixXd local_jacobian = Eigen::MatrixXd::Zero(
+          count, 6 + ambiguity_columns);
+        std::vector<int> scalar_offsets;
+        scalar_offsets.reserve(static_cast<std::size_t>(6 + ambiguity_columns));
+        for (int column = 0; column < 6; ++column) {
+          scalar_offsets.push_back(state_offset->second + column);
+        }
         for (int row = 0; row < count; ++row) {
           const DoubleDifferenceMeasurement & measurement =
             *entries[static_cast<std::size_t>(row)];
@@ -713,7 +732,8 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
             }
             evaluation = evaluateDdCarrier(measurement, state->second, ambiguity->second);
             if (evaluation.has_value()) {
-              jacobian(row, ambiguity_offset->second) = evaluation->ambiguity_jacobian;
+              local_jacobian(row, 6 + row) = evaluation->ambiguity_jacobian;
+              scalar_offsets.push_back(ambiguity_offset->second);
             }
           } else {
             evaluation = evaluateDdPseudorange(measurement, state->second);
@@ -723,7 +743,7 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
           }
           residuals(row) = evaluation->residual_m;
           for (int column = 0; column < 6; ++column) {
-            jacobian(row, state_offset->second + column) =
+            local_jacobian(row, column) =
               evaluation->pose_jacobian[static_cast<std::size_t>(column)];
           }
           double target_variance = carrier ?
@@ -754,7 +774,7 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
           }
         }
         add_correlated_rows(
-          residuals, covariance, jacobian,
+          residuals, covariance, local_jacobian, scalar_offsets,
           carrier ? gnss_config_.carrier_huber_delta_sigma :
           gnss_config_.code_huber_delta_sigma);
       };
@@ -1076,6 +1096,72 @@ std::optional<double> FloatFixedLagSmoother::ambiguity(const DdAmbiguityKey & ke
     return std::nullopt;
   }
   return iterator->second;
+}
+
+std::vector<CarrierResidualDiagnostics> FloatFixedLagSmoother::carrierResidualDiagnostics(
+  const std::size_t minimum_observation_epochs) const
+{
+  std::map<SignalGroup, CarrierResidualDiagnostics> summaries;
+  if (gnss_factors_.empty()) {
+    return {};
+  }
+  const GnssFactorBatch & batch = gnss_factors_.back();
+  const auto state_iterator = states_.find(batch.state);
+  if (state_iterator == states_.end()) {
+    return {};
+  }
+  for (const DoubleDifferenceMeasurement & measurement : batch.measurements) {
+    if (!measurement.carrier_valid) {
+      continue;
+    }
+    const auto ambiguity_iterator = ambiguities_.find(measurement.ambiguity_key);
+    if (ambiguity_iterator == ambiguities_.end()) {
+      continue;
+    }
+    const auto evaluation = evaluateDdCarrier(
+      measurement, state_iterator->second, ambiguity_iterator->second);
+    const double sigma = measurement.carrier_sigma_m;
+    if (!evaluation.has_value() || !std::isfinite(sigma) || sigma <= 0.0) {
+      continue;
+    }
+    const double raw = std::abs(evaluation->residual_m);
+    const double normalized = raw / sigma;
+    const auto observation_iterator =
+      ambiguity_observation_counts_.find(measurement.ambiguity_key);
+    const std::size_t observations = observation_iterator == ambiguity_observation_counts_.end() ?
+      0U : observation_iterator->second;
+    CarrierResidualDiagnostics & summary = summaries[measurement.group];
+    if (summary.factors == 0U) {
+      summary.group = measurement.group;
+      summary.minimum_arc_observations = observations;
+      summary.sigma_min_m = sigma;
+    }
+    ++summary.factors;
+    summary.fix_eligible_ambiguities +=
+      static_cast<std::size_t>(observations >= minimum_observation_epochs);
+    summary.minimum_arc_observations = std::min(
+      summary.minimum_arc_observations, observations);
+    summary.maximum_arc_observations = std::max(
+      summary.maximum_arc_observations, observations);
+    summary.raw_rms_m += raw * raw;
+    summary.raw_max_m = std::max(summary.raw_max_m, raw);
+    summary.normalized_rms += normalized * normalized;
+    summary.normalized_max = std::max(summary.normalized_max, normalized);
+    summary.sigma_mean_m += sigma;
+    summary.sigma_min_m = std::min(summary.sigma_min_m, sigma);
+    summary.sigma_max_m = std::max(summary.sigma_max_m, sigma);
+  }
+  std::vector<CarrierResidualDiagnostics> output;
+  output.reserve(summaries.size());
+  for (auto & entry : summaries) {
+    CarrierResidualDiagnostics & summary = entry.second;
+    const double count = static_cast<double>(summary.factors);
+    summary.raw_rms_m = std::sqrt(summary.raw_rms_m / count);
+    summary.normalized_rms = std::sqrt(summary.normalized_rms / count);
+    summary.sigma_mean_m /= count;
+    output.push_back(summary);
+  }
+  return output;
 }
 
 std::optional<FloatAmbiguityEstimate> FloatFixedLagSmoother::floatAmbiguityEstimate()

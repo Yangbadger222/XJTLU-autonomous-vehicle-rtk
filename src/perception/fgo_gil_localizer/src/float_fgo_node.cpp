@@ -84,6 +84,26 @@ double absoluteGnssSeconds(const GnssTime & time)
   return static_cast<double>(time.week) * kGnssWeekSeconds + time.tow_s;
 }
 
+const char * constellationLabel(const GnssConstellation constellation)
+{
+  switch (constellation) {
+    case GnssConstellation::Gps: return "GPS";
+    case GnssConstellation::Glonass: return "GLONASS";
+    case GnssConstellation::Galileo: return "GALILEO";
+    case GnssConstellation::Bds: return "BEIDOU";
+    case GnssConstellation::Qzss: return "QZSS";
+    case GnssConstellation::Sbas: return "SBAS";
+    case GnssConstellation::Irnss: return "IRNSS";
+    default: return "UNKNOWN";
+  }
+}
+
+std::string signalGroupLabel(const SignalGroup & group)
+{
+  return std::string(constellationLabel(group.constellation)) + "_signal_" +
+         std::to_string(group.signal_type) + (group.l2c_signal ? "_l2c" : "");
+}
+
 GnssConstellation constellation(const std::uint8_t value)
 {
   if (value > static_cast<std::uint8_t>(GnssConstellation::Irnss)) {
@@ -1609,6 +1629,40 @@ private:
         numericKeyValue(std::string("dd_rejected_") + toString(reason), dd.rejected[index]));
     }
     factor_array.status.push_back(std::move(factor_status));
+    for (const CarrierResidualDiagnostics & carrier :
+      smoother_->carrierResidualDiagnostics(integer_resolver_config_.minimum_observation_epochs))
+    {
+      diagnostic_msgs::msg::DiagnosticStatus carrier_status;
+      carrier_status.name = "fgo_gil/carrier_residual/" + signalGroupLabel(carrier.group);
+      carrier_status.hardware_id = "um982_raw";
+      carrier_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+      carrier_status.message = "CARRIER_RESIDUAL_OBSERVED";
+      std::size_t candidate_ambiguities = 0U;
+      for (const DdAmbiguityKey & key : last_integer_fix_.keys) {
+        candidate_ambiguities += static_cast<std::size_t>(key.group == carrier.group);
+      }
+      carrier_status.values.push_back(numericKeyValue("factors", carrier.factors));
+      carrier_status.values.push_back(numericKeyValue("raw_rms_m", carrier.raw_rms_m));
+      carrier_status.values.push_back(numericKeyValue("raw_max_m", carrier.raw_max_m));
+      carrier_status.values.push_back(
+        numericKeyValue("normalized_rms", carrier.normalized_rms));
+      carrier_status.values.push_back(
+        numericKeyValue("normalized_max", carrier.normalized_max));
+      carrier_status.values.push_back(numericKeyValue("sigma_mean_m", carrier.sigma_mean_m));
+      carrier_status.values.push_back(numericKeyValue("sigma_min_m", carrier.sigma_min_m));
+      carrier_status.values.push_back(numericKeyValue("sigma_max_m", carrier.sigma_max_m));
+      carrier_status.values.push_back(
+        numericKeyValue("minimum_arc_observations", carrier.minimum_arc_observations));
+      carrier_status.values.push_back(
+        numericKeyValue("maximum_arc_observations", carrier.maximum_arc_observations));
+      carrier_status.values.push_back(
+        numericKeyValue("fix_eligible_ambiguities", carrier.fix_eligible_ambiguities));
+      carrier_status.values.push_back(
+        numericKeyValue("candidate_ambiguities", candidate_ambiguities));
+      carrier_status.values.push_back(
+        numericKeyValue("confirmation_count", integer_confirmation_->count()));
+      factor_array.status.push_back(std::move(carrier_status));
+    }
     factor_diagnostics_pub_->publish(std::move(factor_array));
 
     diagnostic_msgs::msg::DiagnosticArray ambiguity_array;

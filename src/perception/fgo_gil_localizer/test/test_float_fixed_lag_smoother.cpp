@@ -131,6 +131,37 @@ TEST(FloatFixedLagSmoother, PreservesSharedReferenceCovarianceBetweenAmbiguities
   }
 }
 
+TEST(FloatFixedLagSmoother, ReportsLatestCarrierResidualsAndArcMaturityBySignal)
+{
+  const Vec3 truth{6378137.0, 20.0, -10.0};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, stateAt(100.0, truth)));
+  auto measurements = syntheticGnss(truth, base);
+  ASSERT_TRUE(smoother.addGnssFactors(1, measurements));
+  for (auto & measurement : measurements) {
+    measurement.carrier_dd_m += 0.006;
+  }
+  ASSERT_TRUE(smoother.addGnssFactors(1, measurements));
+
+  const auto diagnostics = smoother.carrierResidualDiagnostics(2U);
+  ASSERT_EQ(diagnostics.size(), 1U);
+  const auto & gps = diagnostics.front();
+  EXPECT_EQ(gps.group.constellation, GnssConstellation::Gps);
+  EXPECT_EQ(gps.group.signal_type, 0U);
+  EXPECT_EQ(gps.factors, 4U);
+  EXPECT_EQ(gps.fix_eligible_ambiguities, 4U);
+  EXPECT_EQ(gps.minimum_arc_observations, 2U);
+  EXPECT_EQ(gps.maximum_arc_observations, 2U);
+  EXPECT_NEAR(gps.raw_rms_m, 0.006, 1.0e-9);
+  EXPECT_NEAR(gps.raw_max_m, 0.006, 1.0e-9);
+  EXPECT_NEAR(gps.normalized_rms, 3.0, 1.0e-9);
+  EXPECT_NEAR(gps.normalized_max, 3.0, 1.0e-9);
+  EXPECT_NEAR(gps.sigma_mean_m, 0.002, 1.0e-12);
+  EXPECT_NEAR(gps.sigma_min_m, 0.002, 1.0e-12);
+  EXPECT_NEAR(gps.sigma_max_m, 0.002, 1.0e-12);
+}
+
 TEST(FloatFixedLagSmoother, JointImuLidarAndGnssFactorsCorrectNextState)
 {
   const Vec3 first_position{6378137.0, 0.0, 0.0};

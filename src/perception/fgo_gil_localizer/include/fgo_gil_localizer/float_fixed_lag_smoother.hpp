@@ -83,6 +83,22 @@ struct FloatSmootherDiagnostics
   bool last_solve_succeeded = false;
 };
 
+struct CarrierResidualDiagnostics
+{
+  SignalGroup group;
+  std::size_t factors = 0;
+  std::size_t fix_eligible_ambiguities = 0;
+  std::size_t minimum_arc_observations = 0;
+  std::size_t maximum_arc_observations = 0;
+  double raw_rms_m = 0.0;
+  double raw_max_m = 0.0;
+  double normalized_rms = 0.0;
+  double normalized_max = 0.0;
+  double sigma_mean_m = 0.0;
+  double sigma_min_m = 0.0;
+  double sigma_max_m = 0.0;
+};
+
 enum class FixedBackSubstitutionRejection : std::uint8_t
 {
   None,
@@ -147,6 +163,8 @@ public:
 
   const EcefState * state(StateId id) const noexcept;
   std::optional<double> ambiguity(const DdAmbiguityKey & key) const;
+  std::vector<CarrierResidualDiagnostics> carrierResidualDiagnostics(
+    std::size_t minimum_observation_epochs) const;
   std::optional<FloatAmbiguityEstimate> floatAmbiguityEstimate();
   FixedBackSubstitutionResult previewFixedAmbiguities(
     const std::vector<DdAmbiguityKey> & keys,

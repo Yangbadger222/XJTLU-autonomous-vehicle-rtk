@@ -145,7 +145,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
 - 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
-- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=350`、`time_steps=40`，保留2秒预测视野并比旧 `500x48` 降低约42%轨迹仿真量。其余保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
+- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=200`、`time_steps=32`，保留1.6秒预测视野并比旧 `500x48` 降低约73%轨迹仿真量。默认关闭 critics stats 发布，其余保持 `failure_tolerance=1.5s`、`vx_max=0.85`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`。
 - MPPI 外层使用 Rotation Shim。新路径方向误差超过 `0.52rad` 时，先以 `0.35rad/s` 原地对正，降到 `0.26rad` 后再交回 MPPI；`PoseProgressChecker.required_movement_angle=0.15rad` 让有效转头计入进展，不再因 15 秒内没有平移误报失败。
 - Rotation Shim 使用 `closed_loop=false` 仅指角速度斜坡基于上一帧 shim 命令，因为 FAST-LIO2 odom 当前不发布 `twist.angular.z`；MPPI 自身继续保持 `open_loop=false`，仍从实测 odometry 初始化预测。
 - local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[-0.20, 1.20]m` 级别的高窗障碍点云。

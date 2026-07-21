@@ -98,8 +98,9 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
 
     assert 'controller_params["controller_frequency"] = 20.0' in text
-    assert 'follow_path["time_steps"] = 40' in text
-    assert 'follow_path["batch_size"] = 350' in text
+    assert 'follow_path["time_steps"] = 32' in text
+    assert 'follow_path["batch_size"] = 200' in text
+    assert 'follow_path["publish_critics_stats"] = False' in text
     assert 'follow_path["open_loop"] = False' in text
     assert '"path_density_m": 0.35' in text
 

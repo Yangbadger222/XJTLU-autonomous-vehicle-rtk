@@ -1660,6 +1660,40 @@ def test_timestamp_coherent_target_avoids_false_far_origin_backlog():
     assert coherent.motion_allowed is True
 
 
+def test_position_gate_rebases_incremental_correction_after_acceptance():
+    gate = CorrectionGate.translation(min_candidates=1, min_span_s=0.0)
+    locked = gate.observe(1.0, (156.0, -89.0), now_s=10.0)
+
+    assert locked.accepted is True
+    assert gate.state is CorrectionGateState.LOCKED
+
+    gate.rebase_locked_target((0.0, 0.0))
+    incremental = gate.observe(1.1, (0.12, -0.04), now_s=10.1)
+
+    assert incremental.accepted is True
+    assert incremental.innovation == pytest.approx(math.hypot(0.12, 0.04))
+
+
+def test_common_base_position_gate_ignores_transform_lever_arm_components():
+    local = _pose(x=18.0)
+    reference_target = _pose()
+    candidate_target = compute_map_to_odom(
+        _pose(x=18.0, yaw=math.radians(2.0)),
+        local,
+    )
+    reference_map_base = compose_pose(reference_target, local)
+    candidate_map_base = compose_pose(candidate_target, local)
+
+    transform_translation_m = math.hypot(candidate_target.x, candidate_target.y)
+    base_translation_m = math.hypot(
+        candidate_map_base.x - reference_map_base.x,
+        candidate_map_base.y - reference_map_base.y,
+    )
+
+    assert transform_translation_m > 0.6
+    assert base_translation_m == pytest.approx(0.0, abs=1e-9)
+
+
 def test_correction_release_still_detects_fault_on_duplicate_lio_cycle():
     state = CorrectionReleaseState()
     previous = _pose()
@@ -2436,6 +2470,8 @@ def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():
     assert "if result.accepted:" in node_text
     assert "self._coherent_target_map_odom = coherent_target" in node_text
     assert "target = self._coherent_target_map_odom" in node_text
+    assert "reference_map_base = compose_pose(reference_target, local)" in node_text
+    assert "self._position_gate.rebase_locked_target((0.0, 0.0))" in node_text
 
 
 def test_dispatcher_declares_raw_nmea_runtime_dependency():

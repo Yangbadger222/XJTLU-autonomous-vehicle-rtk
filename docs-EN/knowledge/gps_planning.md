@@ -443,4 +443,6 @@ The translation and rotation of a `map->odom` target must come from one RTK fix,
 
 The corrector now atomically constructs a complete `Pose2D(x,y,yaw)` target only when the position gate accepts a Fixed fix, using that fix's matched heading correction and interpolated LIO pose. Heading-only updates still participate in quality gating but cannot independently rewrite the release target. Existing diagnostic fields 0-18 remain stable; coherent target `x/y/yaw/age` values are appended.
 
+The position gate must not compare raw `map->odom.x/y` components either. It now applies the previous trusted correction and the new candidate correction to the same LIO base pose at the fix timestamp, then gates their actual map-base position difference. After acceptance, the gate baseline is rebased to zero incremental correction. Normal vehicle travel therefore does not count as innovation, and yaw lever-arm terms cannot repeatedly force the position gate into `REACQUIRING`.
+
 Safety limits are unchanged. A real current-base correction at `0.50m/5deg` still enters backlog, `2.0m/20deg` still latches a fault, and non-Fixed, stale, or unlocked inputs still revoke motion authority immediately. This change removes only corrections manufactured by cross-timestamp component mixing.

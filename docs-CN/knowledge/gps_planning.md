@@ -443,4 +443,6 @@ Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_correc
 
 当前 corrector 仅在 position gate 接受一个 Fixed fix 时，使用该 fix 对应的 heading correction 和插值 LIO pose 原子生成完整 `Pose2D(x,y,yaw)` target。Heading-only 更新仍参与质量门控，但不能单独改写 release target。诊断数组原有 0-18 字段不变，末尾追加 coherent target 的 `x/y/yaw/age`。
 
+Position gate 同样不能比较 `map->odom.x/y` 分量。它现在把上一可信 correction 和本次候选 correction 都作用到本次 fix 的同一个 LIO base pose，比较两者产生的实际 map-base 位置差；接受后将 gate 基线重置为零增量。这样车辆自身正常前进不计入 innovation，yaw 杠杆臂也不会导致 position gate 反复进入 `REACQUIRING`。
+
 安全边界没有放宽：真实的当前 base correction 达到 `0.50m/5deg` 仍进入 backlog，达到 `2.0m/20deg` 仍锁存 fault；非 Fixed、数据过期或 gate 未锁定仍立即撤销运动权限。此次修改只消除跨时间拼接产生的假 correction。

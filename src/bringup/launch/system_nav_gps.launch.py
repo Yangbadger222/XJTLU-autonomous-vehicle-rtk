@@ -91,8 +91,8 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     controller_params["general_goal_checker"]["stateful"] = False
 
     follow_path = controller_params["FollowPath"]
-    follow_path["time_steps"] = 40
-    follow_path["batch_size"] = 350
+    follow_path["time_steps"] = 32
+    follow_path["batch_size"] = 200
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
     follow_path["vx_max"] = 0.85
@@ -101,6 +101,7 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["ax_min"] = -1.2
     follow_path["az_max"] = 1.4
     follow_path["temperature"] = 0.45
+    follow_path["publish_critics_stats"] = False
     follow_path["regenerate_noises"] = True
     follow_path["open_loop"] = False
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"

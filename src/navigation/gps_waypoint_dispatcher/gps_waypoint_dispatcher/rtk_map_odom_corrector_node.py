@@ -25,6 +25,7 @@ from gps_waypoint_dispatcher.rtk_authority import (
     Pose2D,
     PrerequisiteFailureKind,
     StampedPoseHistory,
+    compose_pose,
     compute_map_to_odom,
     normalize_angle,
 )
@@ -676,17 +677,26 @@ class RtkMapOdomCorrector(Node):
                 Pose2D(map_x, map_y, map_yaw),
                 local,
             )
-            correction_xy = (
-                coherent_target.x,
-                coherent_target.y,
+            reference_target = (
+                self._coherent_target_map_odom
+                or self._last_output
+                or Pose2D(0.0, 0.0, 0.0)
+            )
+            reference_map_base = compose_pose(reference_target, local)
+            correction_innovation_xy = (
+                map_x - reference_map_base.x,
+                map_y - reference_map_base.y,
             )
             result = self._position_gate.observe(
-                pending.stamp_s, correction_xy, now_s=now_mono_s
+                pending.stamp_s,
+                correction_innovation_xy,
+                now_s=now_mono_s,
             )
             self._last_position_innovation_m = result.innovation
             if result.accepted:
                 self._coherent_target_map_odom = coherent_target
                 self._coherent_target_stamp_s = pending.stamp_s
+                self._position_gate.rebase_locked_target((0.0, 0.0))
             self._fix_queue.popleft()
 
     def _try_bootstrap(self, now_mono_s: float) -> bool:

@@ -366,6 +366,15 @@ class CorrectionGate:
             consecutive_failures=self._consecutive_failures,
         )
 
+    def rebase_locked_target(self, value: GateValue) -> None:
+        if self.state is not CorrectionGateState.LOCKED:
+            raise RuntimeError("can only rebase a locked correction gate")
+        normalized_value = self._validated_value(value)
+        if normalized_value is None:
+            raise ValueError("gate rebase target must be finite")
+        self._target = normalized_value
+        self._candidates.clear()
+
     def observe(
         self,
         stamp_s: float,

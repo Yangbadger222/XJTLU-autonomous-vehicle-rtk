@@ -138,12 +138,21 @@ class SurveyNode(Node):
         frontier_mask = free_cells & (up | down | left | right)
         y_idx, x_idx = np.where(frontier_mask)
         
-        points = []
-        for y, x in zip(y_idx, x_idx):
-            wx = info.origin.position.x + (x + 0.5) * info.resolution
-            wy = info.origin.position.y + (y + 0.5) * info.resolution
-            if math.hypot(wx, wy) <= self.max_radius:
-                points.append((wx, wy))
+        # Convert indices to world coordinates in bulk
+        wx = info.origin.position.x + (x_idx + 0.5) * info.resolution
+        wy = info.origin.position.y + (y_idx + 0.5) * info.resolution
+
+        # Calculate distances in bulk
+        dist_to_center = np.hypot(wx, wy)
+        dist_to_robot = np.hypot(wx - current_x, wy - current_y)
+
+        # Create a boolean mask for valid points
+        valid_mask = (dist_to_center <= self.max_radius) & (dist_to_robot >= 3.0)
+
+        # Apply mask and format as a list of tuples
+        valid_wx = wx[valid_mask]
+        valid_wy = wy[valid_mask]
+        points = list(zip(valid_wx, valid_wy))
         return points
 
     def get_real_frontier_goal(self):

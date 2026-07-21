@@ -40,7 +40,9 @@ class SurveyNode(Node):
         self.localizer_client = self.create_client(GlobalRelocalize, '/localizer/global_relocalize')
         
         # Map subscriber
-        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, 10)
+        from rclpy.qos import QoSProfile, DurabilityPolicy
+        qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, qos)
         self.occupancy_grid = None
         
         # Foxglove Publishers

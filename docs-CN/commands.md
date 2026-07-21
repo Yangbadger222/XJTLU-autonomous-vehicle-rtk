@@ -661,7 +661,7 @@ ros2 topic echo /gnss/raw/diagnostics --once
 ```bash
 make kill-runtime
 python3 scripts/configure_um982_transient.py mixed --dry-run
-python3 scripts/configure_um982_transient.py mixed
+python3 scripts/configure_um982_transient.py mixed --ephemeris-period 60
 make launch-rtk-raw
 ```
 
@@ -673,8 +673,9 @@ ros2 topic hz /heading
 ros2 topic hz /gnss/raw/frame
 ros2 topic hz /gnss/raw/observation_epoch
 ros2 topic hz /gnss/raw/ephemeris
+ros2 topic echo /gnss/rtcm/reference_station --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/rtcm/reference_station|/gnss/raw/diagnostics'
 ```
 
 恢复 115200 NMEA-only：
@@ -685,7 +686,7 @@ python3 scripts/configure_um982_transient.py restore-nmea
 make launch-rtk-basic
 ```
 
-本流程使用官方 `OBSVMB/OBSVHB` 固定周期、`OBSVBASEB ONCHANGED` 和五类 `*EPHB ONCHANGED` 命令。ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。只有 `/fix`、`/heading`、raw observation、星历和同口 RTCM 写入连续验收后，才允许另行人工执行持久化保存。现有 `/dev/pps0` 是 `ktimer` 虚拟源，时间状态仍使用 `COARSE_NO_PPS`，不能标为 GNSS PPS。
+本流程使用固定周期 `OBSVMB/OBSVHB`、`OBSVBASEB ONCHANGED`，五类 `*EPHB` 则固定每 60 s 刷新。实测 `ONCHANGED` 星历在 driver 重启后不会可靠重发；60 s 易失配置无需 `SAVECONFIG` 即可持续得到五系统星历。ID 12/13/284 分别发布 master/secondary/base epoch；ID 106/107/108/109/110 分别发布 GPS/GLONASS/BDS/Galileo/QZSS 星历。NTRIP 接收链同时校验 RTCM3 分帧与 CRC，并把 1005/1006 天线参考点 ECEF 发布到 `/gnss/rtcm/reference_station`；写入 UM982 的修正字节保持原样。只有连续验收通过后才允许另行持久化。现有 `/dev/pps0` 是 `ktimer` 虚拟源，时间状态仍使用 `COARSE_NO_PPS`，不能标为 GNSS PPS。
 
 ## FGO-GIL Phase 3 时间同步与 IMU 前端
 
@@ -764,14 +765,26 @@ ros2 topic echo /fgo_gil/float_odom_ecef --once
 ros2 topic echo /fgo_gil/fixed_odom_ecef --once
 ```
 
-仓库参数有意把以下两个开关保持为 `false`：
+仓库参数有意让 ECEF/world 变换和静态 base 覆盖保持未标定：
 
 ```yaml
 calibration.ecef_from_lidar_world.calibrated: false
 calibration.gnss.base_ecef_calibrated: false
 ```
 
-现场回放前，必须用未提交的参数覆盖文件填入实测 `T_ecef_lidar_world` 和 CORS 基站 ECEF 坐标。禁止在仍为零占位时把开关改成 `true`。master 在 IMU 中的默认杆臂为 `[0.0, -0.184, 0.134] m`，其中仍包含尚未精标的 2 cm IMU 高度假设。
+当 `calibration.gnss.dynamic_base.enabled=true` 时，静态 base flag 可以保持 false：CRC 正确的 RTCM 1005/1006 会在运行时提供 base ECEF；显式标定的静态 base 始终优先。station ID、ITRF realization、NTRIP source 或坐标变化超过 1 cm 时，节点会先重置 GNSS aligner、ambiguity arc 和 shadow graph，再接受新因子。
+
+剩余的 ECEF/world 变换在分析机上使用带转弯的 RTK Fixed bag 生成。bag 必须包含 `/fix`、`/rtk/nmea_sentence` 与 `/fastlio2/lio_odom`，只有 GGA 质量 4 参与拟合。工具输出完整参数文件和 `.report.json`；轨迹过短、近似直线或残差超限会直接拒绝：
+
+```bash
+python3 scripts/calibrate_fgo_gil_ecef_world.py <bag目录> \
+  --out runtime-data/config/fgo_gil_calibrated.yaml
+
+export FYP_FGO_GIL_PARAMS_FILE="$PWD/runtime-data/config/fgo_gil_calibrated.yaml"
+make launch-fgo-gil-shadow
+```
+
+禁止在零占位值上手工设置 `calibrated: true`。master 在 IMU 中的默认杆臂为 `[0.0, -0.184, 0.134] m`，其中仍包含尚未精标的 2 cm IMU 高度假设。
 
 预期 fail-closed 状态包括 `WAITING_FOR_CALIBRATION`、`WAITING_FOR_LIDAR_KEYFRAME`、`WAITING_FOR_CONTINUOUS_IMU` 和 `LIO_ONLY_WAITING_BASE`。`FLOAT_ACTIVE` 只表示图正在优化；`FIXED_ACTIVE` 只表示当前候选通过配置门限，两者都不代表实车精度已验收。`/fgo_gil/float_odom_ecef` 始终保持浮点解，`/fgo_gil/fixed_odom_ecef` 只在 fixed 候选通过 ratio、success-rate、残差和回代验证时发布。
 
@@ -803,7 +816,7 @@ bash scripts/launch_with_logs.sh fgo-gil-shadow \
 bash scripts/replay_fgo_gil_bag.sh <bag目录>
 ```
 
-该脚本只播放 FGO 的传感器、FAST-LIO comparator、raw observation/ephemeris 和可选时间参考输入。禁止直接整包 `ros2 bag play`：`full` profile 同时包含旧 `/fgo_gil/*` 输出，整包播放会把旧诊断和约束混入当前节点，产生无效结果。其他 rosbag 播放参数放在 bag 路径之后，例如 `bash scripts/replay_fgo_gil_bag.sh <bag目录> --rate 0.5`。
+该脚本只播放 FGO 传感器、FAST-LIO comparator、raw observation/ephemeris、RTCM reference-station 坐标和可选时间参考输入。禁止直接整包 `ros2 bag play`：`full` profile 同时包含旧 `/fgo_gil/*` 输出，整包播放会把旧诊断和约束混入当前节点，产生无效结果。其他 rosbag 播放参数放在 bag 路径之后，例如 `bash scripts/replay_fgo_gil_bag.sh <bag目录> --rate 0.5`。
 
 观察统一解、轨迹和分层诊断：
 

@@ -2,13 +2,13 @@
 
 ## 1. 文档状态
 
-- 状态：设计冻结前草案，可用于开始编码
-- 日期：2026-07-15
+- 状态：代码实现与 shadow 验证阶段
+- 日期：2026-07-21
 - 目标论文：*FGO-GIL: Factor Graph Optimization-Based GNSS RTK/INS/LiDAR Tightly Coupled Integration for Precise and Continuous Navigation*，IEEE Sensors Journal，2023
 - 运行原则：只做 shadow 输出；完成回放和实车验收前，不发布生产 `map -> odom`，不向 Nav2 remap
 - 现有基线：`rtk_fgo_localizer` 继续作为 `/fix`、双天线 heading、FAST-LIO odom 级融合的对照组，不将其改名为论文复现
 
-当前代码进度：Phase 1、3、4、5、6 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化；Phase 6 已增加固定版本 RTKLIB MLAMBDA、partial ambiguity resolution、固定候选回代验证与独立 fixed shadow 输出。2026-07-15 已实现单 Type-C 的统一 `um982_rtk_driver`：同一有界流分离 ASCII 与 `AA 44 B5` binary，并保留同口 NTRIP/RTCM 写入；默认仍为 `nmea_only@115200`。真实 921600 mixed-stream fixture、硬件 PPS、compressed observation、RTCM fallback、CORS 基站 ECEF、`T_ecef_lidar_world` 以及真实 LiDAR/raw-GNSS bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
+当前代码进度：Phase 1、3、4、5、6 已完成代码实现；Phase 2 已包含非压缩 observation、broadcast ephemeris、week rollover/reset、UM982 官方 signal-frequency 映射和 satellite-state 传播。Phase 5 已增加 rover/base 有界对时、参考星滞回、DD 码/载波因子、逐信号 ambiguity arc、IMU/LiDAR/GNSS float 联合优化和 Schur complement fixed-lag 边缘化；Phase 6 已增加固定版本 RTKLIB MLAMBDA、partial ambiguity resolution、固定候选回代验证与独立 fixed shadow 输出。单 Type-C 的统一 `um982_rtk_driver` 已完成 115200 生产回归和临时 921600 mixed capture：同一有界流分离 ASCII 与 `AA 44 B5` binary，并保留同口 NTRIP/RTCM 写入。NTRIP 链路现在会解码 CRC 正确的 RTCM 1005/1006 基准站 ECEF，FGO 可以使用该坐标并在基站变化时受控重置图和 ambiguity。硬件 PPS、compressed observation、现场 1005/1006 确认、`T_ecef_lidar_world` 和完整 float/fixed bag 验收仍未完成，因此默认保持 shadow-only 并 fail closed。
 
 本文定义从 UM982 原始观测采集到论文级 GNSS RTK/INS/LiDAR 因子图的完整实施路径。它不是对现有 `/fix` 型 FGO 的增量包装；论文复现必须直接使用伪距、载波相位、原始 IMU 和 LiDAR 特征残差。
 
@@ -292,7 +292,7 @@ time_sync:
 - [x] 实现 ASCII/`AA 44 B5` 有界 mixed-stream framing、长度检查、CRC 和 resync。
 - [x] 支持任意分片、粘连、多帧、噪声前缀、截断、binary 内换行/ASCII marker 和未知 ID。
 - [x] 发布并录制 raw frame，增加 framing/CRC/丢帧诊断。
-- [ ] 先在 Jetson 用统一 driver 完成 115200 NMEA-only 回归，再将唯一 `/dev/rtk_um982` 临时迁移到 921600 mixed stream；验收前不执行持久化保存，不写入 CORS 凭证。
+- [x] 在 Jetson 用统一 driver 完成 115200 NMEA-only 回归，再将唯一 `/dev/rtk_um982` 临时迁移到 921600 mixed stream，且未持久化接收机状态、未把 CORS 凭证写入仓库。
 
 完成条件：合成/官方 fixture 全通过；fuzz 输入不崩溃、不越界；现有 NMEA 驱动测试不回归。
 
@@ -342,7 +342,7 @@ time_sync:
 
 实现说明：载波频率严格按 UM982 分星座 signal-ID 表解释，未知 ID 和非法 GLONASS 频点直接 fail closed。GPS/QZSS/Galileo/BDS Kepler、BDS GEO 旋转、GLONASS RK4、发射时刻和 Sagnac 修正均有单位测试。DD 载波模糊度统一存为米，key 同时包含 target/reference satellite 和 rover/base 四条 arc ID，因此参考星切换或单星周跳不会静默复用旧变量。Eigen smoother 把 Phase 3 ECEF IMU 重传播、Phase 4 原始线面因子和 DD 码/载波因子共同重线性化；窗口同时受时间和 state 数限制，旧 state 与失活 ambiguity 通过 Schur 补进入带锚点的稠密先验，禁止清图后补虚假强 prior。
 
-Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递真实点线/点面因子，而不是把 FAST-LIO pose 伪装成 LiDAR factor。`system_fgo_gil_float.launch.py` 保留 `/fgo_gil/float_odom_ecef`，Phase 6 仅增加独立 `/fgo_gil/fixed_odom_ecef`，始终不发布 TF 或控制命令。`calibration.ecef_from_lidar_world.calibrated` 与 `calibration.gnss.base_ecef_calibrated` 默认均为 `false`；现场值补齐前，节点只报告 waiting/LIO-only，不能声称 GNSS float/fixed 验收通过。master 杆臂占位值 `[0.0,-0.184,0.134] m` 由已测右天线在 `base_link` 中的 `[0.0,-0.184,0.154] m` 减去当前尚未精标的 IMU Z 占位 `0.02 m` 得到。
+Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递真实点线/点面因子，而不是把 FAST-LIO pose 伪装成 LiDAR factor。`system_fgo_gil_float.launch.py` 保留 `/fgo_gil/float_odom_ecef`，Phase 6 仅增加独立 `/fgo_gil/fixed_odom_ecef`，始终不发布 TF 或控制命令。`calibration.ecef_from_lidar_world.calibrated` 与静态 `calibration.gnss.base_ecef_calibrated` 覆盖默认均为 `false`；base gate 现在可由CRC正确的RTCM 1005/1006满足，ECEF/world仍必须通过现场拟合验收。master杆臂占位值 `[0.0,-0.184,0.134] m` 由已测右天线在 `base_link` 中的 `[0.0,-0.184,0.154] m` 减去当前尚未精标的IMU Z占位 `0.02 m` 得到。
 
 ### Phase 6：整数固定
 
@@ -379,15 +379,22 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 这仍只是 LiDAR/IMU 软件连续性回归，不是论文算法的定位精度验收。输入只有 4 条 Galileo 星历，`calibration.gnss.base_ecef_calibrated=false`，因此 287 个已对齐 GNSS 历元均未进入 GNSS 融合，稳定阶段状态为 `LIO_ONLY_WAITING_BASE`；没有形成 GNSS code/carrier factor，也不能计算有意义的 ECEF APE/RPE 或 fixing rate。FGO 继续保持 shadow-only，不发布生产 TF，不影响 FAST-LIO2/Nav2。
 
+2026-07-21户外动态bag是本分支第一份五系统raw数据。经SHA-256核对的338.17 s副本包含98,996条消息：67,604条IMU（199.91 Hz）、3,382帧原始LiDAR、3,364个FAST-LIO pose、458批LiDAR约束、master/secondary各3,378个历元、base 338个历元和284条星历。GPS/GLONASS/Galileo/BDS/QZSS星历分别覆盖11/8/10/14/3颗卫星；338个base历元按GNSS week/TOW全部与master精确重合。旧evaluator因错误使用波动的接收时间只匹配153对；现在按week/TOW配对，接收时间只用于ROS轨迹关联。
+
+bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master缺3个历元、secondary缺4个历元、LIO间隔约405.6 ms，并在48.35 s报告唯一一次UM982 mixed-stream CRC失败。之后全部流恢复，无overflow或后续decode failure；事件附近1 s粒度 `tegrastats` 未显示内存、swap、温度或持续CPU上限。该bag可用于标定几何和连续性排查，但不通过严格连续IMU验收门。
+
+统一driver现在用有界RTCM3 framer旁路观察其原样转发给UM982的NTRIP字节，CRC24Q正确的1005/1006发布 `/gnss/rtcm/reference_station`。显式标定的静态base参数优先，否则首个动态坐标打开base gate；station ID、ITRF realization、NTRIP source或ECEF变化超过1 cm时，epoch aligner、ambiguity arc、pending GNSS和shadow graph全部重置。`calibrate_fgo_gil_ecef_world.py` 在应用现有IMU-LiDAR外参与天线杆臂后，用GGA质量4的 `/fix` 和FAST-LIO pose拟合剩余无尺度SE(3)；缺少质量证据、轨迹过短/近似直线、样本不足或残差超限均拒绝输出。
+
 统一 `/fgo_gil/odom` 优先选用当前历元已验证 fixed candidate，否则使用 float，并同步发布有界 ECEF path。factor diagnostics 分层输出 IMU、LiDAR line/plane、GNSS code/carrier 数量、residual RMS、DD reject reason、arc reset 和 optimizer rollback；ambiguity/timing/performance 分别输出整数状态、时钟状态、窗口/延迟/实时因子、stale/non-finite 与 control ownership。raw observation 使用 2 s stale 阈值，低频 broadcast ephemeris 使用独立 300 s 阈值，避免把正常星历刷新周期误判为断流。
 
-`evaluate_fgo_gil_bag.py` 先按时间匹配 FGO 与 FAST-LIO comparator，再做无尺度 SE(3) 刚体对齐，避免直接相减 ECEF 与局部坐标；outage 只使用 50 ms 内一对一匹配的 master/base 历元，单边 raw 流标记为 `RAW_GNSS_INCOMPLETE`。结果包含 APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF 和 `tegrastats` CPU/RAM。metadata-only 模式不依赖 ROS 解码；raw topic 缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
+`evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收
 
+- [x] 实现有界 RTCM3 分帧、CRC24Q 校验和 1005/1006 基准站发布；写入 UM982 的 NTRIP 字节保持原样。
 - [ ] 采集 VERSION、raw master/secondary/base、星历、PPS、LiDAR、IMU、TF 和温度。
 - [ ] 测量两天线相位中心的 X/Z，并用实车 bag 复核当前 FAST-LIO2/FGO 共用的 LiDAR-IMU 六自由度外参。
-- [ ] 确认 CORS station 坐标、station ID、基线距离和 RTCM 内容。
+- [ ] 在新 bag 中通过 `/gnss/rtcm/reference_station` 确认现场 CORS station 坐标、station ID、基线距离和 RTCM 内容。
 - [ ] 完成静止、直线、转弯、开阔、树荫、短时遮挡和重捕获数据集。
 - [ ] 与 UM982 RTK、FAST-LIO2、现有 `rtk_fgo_localizer` 做同 bag 对照。
 

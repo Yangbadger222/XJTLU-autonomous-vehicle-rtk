@@ -660,7 +660,7 @@ Stop the driver, inspect the dry-run, and then switch to volatile 921600 mixed o
 ```bash
 make kill-runtime
 python3 scripts/configure_um982_transient.py mixed --dry-run
-python3 scripts/configure_um982_transient.py mixed
+python3 scripts/configure_um982_transient.py mixed --ephemeris-period 60
 make launch-rtk-raw
 ```
 
@@ -672,8 +672,9 @@ ros2 topic hz /heading
 ros2 topic hz /gnss/raw/frame
 ros2 topic hz /gnss/raw/observation_epoch
 ros2 topic hz /gnss/raw/ephemeris
+ros2 topic echo /gnss/rtcm/reference_station --once
 ros2 topic echo /gnss/raw/diagnostics --once
-ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/raw/diagnostics'
+ros2 bag info runtime-data/logs/latest/bag | grep -E '/fix|/heading|/rtk/status|/rtk/nmea_sentence|/gnss/raw/frame|/gnss/raw/observation_epoch|/gnss/raw/ephemeris|/gnss/rtcm/reference_station|/gnss/raw/diagnostics'
 ```
 
 Restore 115200 NMEA-only output:
@@ -684,7 +685,7 @@ python3 scripts/configure_um982_transient.py restore-nmea
 make launch-rtk-basic
 ```
 
-The profile uses the official periodic `OBSVMB/OBSVHB`, `OBSVBASEB ONCHANGED`, and five `*EPHB ONCHANGED` commands. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. Receiver persistence is allowed only as a separate manual action after `/fix`, `/heading`, raw observations, ephemerides, and same-port RTCM writes pass continuous acceptance. The current `/dev/pps0` is a virtual `ktimer` source, so timing remains `COARSE_NO_PPS` and must not be labeled GNSS PPS.
+The profile uses periodic `OBSVMB/OBSVHB`, `OBSVBASEB ONCHANGED`, and a fixed 60 s refresh for all five `*EPHB` outputs. `ONCHANGED` ephemerides did not republish reliably after a driver restart, while the 60 s volatile profile produced all five systems without `SAVECONFIG`. IDs 12/13/284 publish master/secondary/base epochs; IDs 106/107/108/109/110 publish GPS/GLONASS/BDS/Galileo/QZSS ephemerides. The NTRIP receive path also validates RTCM3 framing/CRC and publishes type 1005/1006 antenna-reference-point ECEF on `/gnss/rtcm/reference_station` without changing the correction bytes written to UM982. Receiver persistence is allowed only after continuous acceptance. The current `/dev/pps0` is a virtual `ktimer` source, so timing remains `COARSE_NO_PPS` and must not be labeled GNSS PPS.
 
 ## FGO-GIL Phase 3 Time Sync And IMU Frontend
 
@@ -763,14 +764,26 @@ ros2 topic echo /fgo_gil/float_odom_ecef --once
 ros2 topic echo /fgo_gil/fixed_odom_ecef --once
 ```
 
-The checked-in parameters intentionally set both of these to `false`:
+The checked-in parameters intentionally leave the ECEF/world transform and static-base override uncalibrated:
 
 ```yaml
 calibration.ecef_from_lidar_world.calibrated: false
 calibration.gnss.base_ecef_calibrated: false
 ```
 
-Before field replay, provide an uncommitted parameter override with the measured `T_ecef_lidar_world` and the CORS station ECEF coordinate. Do not set either flag to `true` with zero placeholders. The default master lever arm in IMU coordinates is `[0.0, -0.184, 0.134] m`; it still inherits the uncalibrated 2 cm IMU-height assumption.
+With `calibration.gnss.dynamic_base.enabled=true`, the static-base flag may remain false: a CRC-valid RTCM 1005/1006 message supplies the base ECEF at runtime. An explicit calibrated static base always takes priority. A station ID, ITRF realization, NTRIP source, or coordinate change over 1 cm resets the GNSS aligner, ambiguity arcs, and shadow graph before new factors are accepted.
+
+Generate the remaining ECEF/world transform on the analysis machine from a turning RTK Fixed bag. The bag must include `/fix`, `/rtk/nmea_sentence`, and `/fastlio2/lio_odom`; only GGA quality 4 fixes enter the fit. The tool writes a complete parameter file plus a `.report.json`, and rejects short/straight trajectories or excessive residuals:
+
+```bash
+python3 scripts/calibrate_fgo_gil_ecef_world.py <bag-directory> \
+  --out runtime-data/config/fgo_gil_calibrated.yaml
+
+export FYP_FGO_GIL_PARAMS_FILE="$PWD/runtime-data/config/fgo_gil_calibrated.yaml"
+make launch-fgo-gil-shadow
+```
+
+Do not manually set `calibrated: true` with zero placeholders. The default master lever arm in IMU coordinates is `[0.0, -0.184, 0.134] m`; it still inherits the uncalibrated 2 cm IMU-height assumption.
 
 Expected fail-closed states are `WAITING_FOR_CALIBRATION`, `WAITING_FOR_LIDAR_KEYFRAME`, `WAITING_FOR_CONTINUOUS_IMU`, and `LIO_ONLY_WAITING_BASE`. `FLOAT_ACTIVE` only means the graph is optimizing; `FIXED_ACTIVE` only means the current candidate passed configured gates. Neither is field acceptance. `/fgo_gil/float_odom_ecef` always remains the float solution, while `/fgo_gil/fixed_odom_ecef` is published only after the ratio, success-rate, residual, and back-substitution checks pass.
 
@@ -802,7 +815,7 @@ bash scripts/launch_with_logs.sh fgo-gil-shadow \
 bash scripts/replay_fgo_gil_bag.sh <bag-directory>
 ```
 
-The script replays only FGO sensor inputs, the FAST-LIO comparator, raw observations/ephemerides, and optional time references. Do not run an unfiltered `ros2 bag play` on a `full` profile: it also contains old `/fgo_gil/*` outputs, which would mix stale diagnostics and constraints into the current nodes and invalidate the result. Put additional rosbag options after the bag path, for example `bash scripts/replay_fgo_gil_bag.sh <bag-directory> --rate 0.5`.
+The script replays only FGO sensor inputs, the FAST-LIO comparator, raw observations/ephemerides, the RTCM reference-station coordinate, and optional time references. Do not run an unfiltered `ros2 bag play` on a `full` profile: it also contains old `/fgo_gil/*` outputs, which would mix stale diagnostics and constraints into the current nodes and invalidate the result. Put additional rosbag options after the bag path, for example `bash scripts/replay_fgo_gil_bag.sh <bag-directory> --rate 0.5`.
 
 Inspect the selected solution, path, and layered diagnostics:
 

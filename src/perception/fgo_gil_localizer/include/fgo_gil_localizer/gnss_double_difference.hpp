@@ -189,6 +189,7 @@ private:
     GnssTime time;
     double carrier_phase_cycles = 0.0;
     double doppler_hz = 0.0;
+    bool doppler_valid = false;
     double lock_time_s = 0.0;
     std::uint8_t channel_number = 0;
     std::uint64_t arc_id = 0;

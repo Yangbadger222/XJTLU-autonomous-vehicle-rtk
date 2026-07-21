@@ -137,7 +137,7 @@ bool finiteObservation(const GnssObservation & observation)
 {
   return std::isfinite(observation.pseudorange_m) &&
          std::isfinite(observation.carrier_phase_cycles) &&
-         std::isfinite(observation.doppler_hz) &&
+         (!observation.doppler_valid || std::isfinite(observation.doppler_hz)) &&
          std::isfinite(observation.pseudorange_std_m) &&
          std::isfinite(observation.carrier_phase_std_cycles) &&
          std::isfinite(observation.cn0_db_hz) && std::isfinite(observation.lock_time_s);
@@ -378,9 +378,9 @@ ArcUpdate AmbiguityArcManager::update(
       reset = ArcResetReason::LockTimeReset;
     } else if (observation.channel_number != state.channel_number) {
       reset = ArcResetReason::TrackingChannelChanged;
-    } else {
+    } else if (observation.doppler_valid && state.doppler_valid) {
       const double phase_prediction_error =
-        observation.carrier_phase_cycles - state.carrier_phase_cycles +
+        observation.carrier_phase_cycles - state.carrier_phase_cycles -
         0.5 * (observation.doppler_hz + state.doppler_hz) * delta_s;
       if (std::abs(phase_prediction_error) > config_.doppler_phase_threshold_cycles) {
         reset = ArcResetReason::DopplerPhaseInconsistent;
@@ -397,6 +397,7 @@ ArcUpdate AmbiguityArcManager::update(
   state.time = time;
   state.carrier_phase_cycles = observation.carrier_phase_cycles;
   state.doppler_hz = observation.doppler_hz;
+  state.doppler_valid = observation.doppler_valid;
   state.lock_time_s = observation.lock_time_s;
   state.channel_number = observation.channel_number;
   return result;

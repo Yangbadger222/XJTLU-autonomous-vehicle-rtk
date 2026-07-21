@@ -104,8 +104,8 @@ TEST(GnssReferenceSelector, UsesElevationHysteresisAndReportsSwitch)
 TEST(AmbiguityArcManager, ResetsOnlyAffectedSignalOnSlip)
 {
   AmbiguityArcManager manager;
-  GnssObservation first = observation(3, 2.1e7, 1000.0, -5.0, 10.0);
-  GnssObservation other = observation(7, 2.2e7, 2000.0, -4.0, 10.0);
+  GnssObservation first = observation(3, 2.1e7, 1000.0, 5.0, 10.0);
+  GnssObservation other = observation(7, 2.2e7, 2000.0, 4.0, 10.0);
   const auto first_arc = manager.update(GnssReceiver::Master, {2400, 100.0}, first);
   const auto other_arc = manager.update(GnssReceiver::Master, {2400, 100.0}, other);
   ASSERT_TRUE(first_arc.new_arc);
@@ -131,6 +131,40 @@ TEST(AmbiguityArcManager, ResetsOnlyAffectedSignalOnSlip)
   EXPECT_NE(slipped.arc_id, first_arc.arc_id);
   EXPECT_FALSE(unaffected.new_arc);
   EXPECT_EQ(unaffected.arc_id, other_arc.arc_id);
+}
+
+TEST(AmbiguityArcManager, UsesUm982DopplerSignForPhasePrediction)
+{
+  AmbiguityArcManager manager;
+  GnssObservation sample = observation(3, 2.1e7, 1000.0, -5.0, 10.0);
+  const auto first = manager.update(GnssReceiver::Master, {2400, 100.0}, sample);
+  ASSERT_TRUE(first.new_arc);
+
+  sample.carrier_phase_cycles = 995.0;
+  sample.lock_time_s = 11.0;
+  const auto continued = manager.update(GnssReceiver::Master, {2400, 101.0}, sample);
+  EXPECT_FALSE(continued.new_arc);
+
+  sample.carrier_phase_cycles = 1000.0;
+  sample.lock_time_s = 12.0;
+  const auto inconsistent = manager.update(GnssReceiver::Master, {2400, 102.0}, sample);
+  EXPECT_TRUE(inconsistent.new_arc);
+  EXPECT_EQ(inconsistent.reason, ArcResetReason::DopplerPhaseInconsistent);
+}
+
+TEST(AmbiguityArcManager, SkipsDopplerCheckWhenBaseDopplerIsUnavailable)
+{
+  AmbiguityArcManager manager;
+  GnssObservation sample = observation(3, 2.1e7, 1000.0, 0.0, 10.0);
+  sample.doppler_valid = false;
+  const auto first = manager.update(GnssReceiver::Base, {2400, 100.0}, sample);
+  ASSERT_TRUE(first.new_arc);
+
+  sample.carrier_phase_cycles = 1012.5;
+  sample.lock_time_s = 11.0;
+  const auto continued = manager.update(GnssReceiver::Base, {2400, 101.0}, sample);
+  EXPECT_FALSE(continued.new_arc);
+  EXPECT_EQ(continued.arc_id, first.arc_id);
 }
 
 TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)

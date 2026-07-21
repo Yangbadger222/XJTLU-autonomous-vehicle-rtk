@@ -393,8 +393,12 @@ def summarize_events(
         raw_status = "RAW_GNSS_UNALIGNED"
     else:
         raw_status = "RAW_GNSS_AVAILABLE"
+    reference_timestamps = [sample.timestamp_ns for sample in references]
     availability = availability_fraction(
-        output_timestamps, event_start, event_end, output_stale_timeout_s
+        output_timestamps,
+        min(reference_timestamps) if reference_timestamps else None,
+        max(reference_timestamps) if reference_timestamps else None,
+        output_stale_timeout_s,
     )
     return {
         "raw_gnss_status": raw_status,

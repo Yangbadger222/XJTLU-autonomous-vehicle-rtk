@@ -356,7 +356,7 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 整数解析先锁定全图最新 GNSS state，并要求每个 signal group 在该 state 只有唯一 reference satellite 与 reference rover/base arc 基底；不同星座/信号的当前变量在分别换算为 cycles 后使用完整交叉协方差联合进入 LAMBDA。参考星变化时，新变量通过 `N_i^q=N_i^r-N_q^r` 精确变换初始化；任一相关 arc 改变则无法匹配旧基底，自动回到新变量初始化。由于 GLONASS FDMA 的 target/reference wavelength 不同，本阶段明确排除 GLONASS 整数固定，避免把米制组合错误解释为单一整数周。
 
-默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解，fixed topic 只在全部门通过且最新 keyframe 有本历元有效 DD factor 时发布，GNSS outage 不会复用旧 ambiguity 发布 stale fixed。
+默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解。每批新 DD factor 在下一次成功图优化后只触发一次 fixed candidate，允许该 GNSS factor 挂在时间最近且仍处于窗口内的 LiDAR state；没有新 GNSS factor 时不会从旧 ambiguity 重发 stale fixed。
 
 ### Phase 7：ROS shadow 集成和回放
 

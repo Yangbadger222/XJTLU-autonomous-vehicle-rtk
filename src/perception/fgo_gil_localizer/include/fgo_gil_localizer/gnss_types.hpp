@@ -84,6 +84,7 @@ struct GnssObservation
   double pseudorange_m = 0.0;
   double carrier_phase_cycles = 0.0;
   double doppler_hz = 0.0;
+  bool doppler_valid = true;
   double pseudorange_std_m = 0.0;
   double carrier_phase_std_cycles = 0.0;
   double cn0_db_hz = 0.0;

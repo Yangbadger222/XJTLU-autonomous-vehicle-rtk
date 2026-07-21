@@ -113,6 +113,8 @@ GnssObservationEpoch observationEpoch(const gnss_raw_msgs::msg::ObservationEpoch
     observation.pseudorange_m = input.pseudorange_m;
     observation.carrier_phase_cycles = input.carrier_phase_cycles;
     observation.doppler_hz = input.doppler_hz;
+    // UM982 OBSVBASE uses the shared record slot but does not output base Doppler.
+    observation.doppler_valid = output.receiver != GnssReceiver::Base;
     observation.pseudorange_std_m = input.pseudorange_std_m;
     observation.carrier_phase_std_cycles = input.carrier_phase_std_cycles;
     observation.cn0_db_hz = input.cn0_db_hz;
@@ -521,6 +523,7 @@ private:
     state_gnss_seconds_.clear();
     gnss_factor_states_.clear();
     most_recent_gnss_factor_state_.reset();
+    integer_fix_pending_ = false;
     last_state_id_.reset();
     graph_imu_segment_id_.reset();
     fixed_state_.reset();
@@ -965,6 +968,7 @@ private:
       return true;
     }
     gnss_factor_states_.insert(closest_id);
+    integer_fix_pending_ = true;
     if (!most_recent_gnss_factor_state_.has_value() ||
       closest_id > *most_recent_gnss_factor_state_)
     {
@@ -1198,13 +1202,14 @@ private:
     solution_status_ = "FLOAT";
     last_back_substitution_ = {};
     if (!last_state_id_.has_value() || !most_recent_gnss_factor_state_.has_value() ||
-      *most_recent_gnss_factor_state_ != *last_state_id_)
+      !integer_fix_pending_ || smoother_->state(*most_recent_gnss_factor_state_) == nullptr)
     {
       last_integer_fix_ = {};
       last_integer_fix_.rejection_reason = IntegerFixRejectionReason::NoCurrentGnssEpoch;
       ++integer_fix_rejections_;
       return;
     }
+    integer_fix_pending_ = false;
     const auto estimate = smoother_->floatAmbiguityEstimate();
     if (!estimate.has_value()) {
       last_integer_fix_ = {};
@@ -1716,6 +1721,7 @@ private:
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
   std::optional<StateId> most_recent_gnss_factor_state_;
+  bool integer_fix_pending_ = false;
   std::optional<EcefState> fixed_state_;
   std::optional<std::uint64_t> active_frontend_epoch_;
   std::optional<std::uint64_t> graph_imu_segment_id_;

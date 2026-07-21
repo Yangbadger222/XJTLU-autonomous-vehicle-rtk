@@ -161,6 +161,42 @@ def test_summarize_reports_fixing_rate_rtf_and_raw_availability():
     assert metrics["raw_receiver_epochs"]["aligned"] == 4
 
 
+def test_summarize_availability_uses_pose_header_clock_domain():
+    wall_clock_start = 1_800_000_000_000_000_000
+    simulation_start = 100_000_000_000
+    events = [
+        (
+            "/fastlio2/lio_odom",
+            fake_odom(
+                simulation_start + index * 1_000_000_000,
+                (float(index), 0.0, 0.0),
+            ),
+            wall_clock_start + index * 2_000_000_000,
+        )
+        for index in range(5)
+    ]
+    events.extend(
+        (
+            "/fgo_gil/odom",
+            fake_odom(
+                simulation_start + index * 1_000_000_000,
+                (float(index), 0.0, 0.0),
+            ),
+            wall_clock_start + index * 2_000_000_000 + 500_000_000,
+        )
+        for index in range(5)
+    )
+
+    metrics = summarize_events(
+        events,
+        {"/fastlio2/lio_odom", "/fgo_gil/odom"},
+        wall_clock_start,
+        wall_clock_start + 10_000_000_000,
+    )
+
+    assert metrics["availability"]["fraction"] == pytest.approx(1.0)
+
+
 def test_raw_epoch_alignment_is_one_to_one_and_reports_incomplete_input():
     aligned = align_receiver_epochs(
         [

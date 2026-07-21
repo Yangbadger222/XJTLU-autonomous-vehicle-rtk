@@ -127,7 +127,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        free_cells = (data == 0)
+        free_cells = (data >= 0) & (data < 50)
         unknown_cells = (data == -1)
         
         up = np.roll(unknown_cells, 1, axis=0); up[0,:] = False

@@ -95,7 +95,7 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["batch_size"] = 200
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
-    follow_path["vx_max"] = 0.85
+    follow_path["vx_max"] = 2.0
     follow_path["wz_max"] = 0.70
     follow_path["ax_max"] = 0.85
     follow_path["ax_min"] = -1.2
@@ -128,7 +128,7 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     global_costmap_params["publish_frequency"] = 1.0
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
-    smoother_params["max_velocity"] = [0.85, 0.0, 0.70]
+    smoother_params["max_velocity"] = [2.0, 0.0, 0.70]
     smoother_params["min_velocity"] = [0.0, 0.0, -0.70]
     smoother_params["max_accel"] = [0.85, 0.0, 1.4]
     smoother_params["max_decel"] = [-1.2, 0.0, -1.8]
@@ -379,6 +379,7 @@ def generate_launch_description():
             params_file,
             {
                 "stop_override_topic": "/gps_nav/stop_override",
+                "straight_max_mps": 2.0,
             },
         ],
     )

@@ -70,8 +70,8 @@
       publish_cloud_max_z: 0.30
       # 是否额外发布 Nav2 专用障碍点云；该云不进入 PGO/LIO，仅供 costmap 感知活障碍。
       nav2_obstacle_cloud_enabled: true
-      # Nav2 专用障碍点云的最小相对高度；保留低矮障碍和路沿附近点。
-      nav2_obstacle_cloud_min_z: -0.20
+      # Nav2 专用障碍点云的最小相对高度；忽略低于 8cm 的减速带和地面点。
+      nav2_obstacle_cloud_min_z: 0.08
       # Nav2 专用障碍点云的最大相对高度；覆盖站立行人和常见户外路障。
       nav2_obstacle_cloud_max_z: 1.20
 

@@ -600,7 +600,7 @@ global_costmap:
           model_type: 1
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。 (Always send full costmap; determines if costmap publishes full or incremental updates.)
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。 (If true: downstream more stable but higher bandwidth; If false: saves bandwidth but higher requirement for subscriber.)
-      always_send_full_costmap: false
+      always_send_full_costmap: true
 # Map Server 节点参数块；负责加载静态地图。 (Map Server node parameter block; responsible for loading static maps.)
 # 改错节点名或层级：地图服务器会读不到参数或地图加载失败。 (Incorrect node name or hierarchy: map server will fail to read parameters or map loading will fail.)
 map_server:

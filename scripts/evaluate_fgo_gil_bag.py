@@ -21,12 +21,24 @@ AMBIGUITY_TOPIC = "/fgo_gil/ambiguity_status"
 PERFORMANCE_TOPIC = "/fgo_gil/performance"
 RECEIVER_MASTER = 1
 RECEIVER_BASE = 3
+GNSS_WEEK_MILLISECONDS = 604_800_000
 
 
 @dataclass(frozen=True)
 class PoseSample:
     timestamp_ns: int
     position: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class RawEpochSample:
+    reception_timestamp_ns: int
+    week: int
+    milliseconds_of_week: int
+
+    @property
+    def gnss_timestamp_ms(self) -> int:
+        return self.week * GNSS_WEEK_MILLISECONDS + self.milliseconds_of_week
 
 
 def percentile(values: Sequence[float], fraction: float) -> float:
@@ -244,23 +256,32 @@ def outage_drift_metrics(
 
 
 def align_receiver_epochs(
-    master_timestamps_ns: Sequence[int],
-    base_timestamps_ns: Sequence[int],
+    master_epochs: Sequence[RawEpochSample],
+    base_epochs: Sequence[RawEpochSample],
     tolerance_s: float = 0.05,
 ) -> list[int]:
-    master = sorted(master_timestamps_ns)
-    base = sorted(base_timestamps_ns)
-    tolerance_ns = int(tolerance_s * 1.0e9)
+    master = sorted(master_epochs, key=lambda sample: sample.gnss_timestamp_ms)
+    base = sorted(base_epochs, key=lambda sample: sample.gnss_timestamp_ms)
+    tolerance_ms = int(round(tolerance_s * 1.0e3))
     aligned: list[int] = []
     master_index = 0
     base_index = 0
     while master_index < len(master) and base_index < len(base):
-        delta_ns = master[master_index] - base[base_index]
-        if abs(delta_ns) <= tolerance_ns:
-            aligned.append((master[master_index] + base[base_index]) // 2)
+        delta_ms = (
+            master[master_index].gnss_timestamp_ms
+            - base[base_index].gnss_timestamp_ms
+        )
+        if abs(delta_ms) <= tolerance_ms:
+            aligned.append(
+                (
+                    master[master_index].reception_timestamp_ns
+                    + base[base_index].reception_timestamp_ns
+                )
+                // 2
+            )
             master_index += 1
             base_index += 1
-        elif delta_ns < 0:
+        elif delta_ms < 0:
             master_index += 1
         else:
             base_index += 1
@@ -305,7 +326,10 @@ def summarize_events(
     estimates: list[PoseSample] = []
     references: list[PoseSample] = []
     output_timestamps: list[int] = []
-    raw_timestamps: dict[int, list[int]] = {RECEIVER_MASTER: [], RECEIVER_BASE: []}
+    raw_epochs: dict[int, list[RawEpochSample]] = {
+        RECEIVER_MASTER: [],
+        RECEIVER_BASE: [],
+    }
     solution_counts = {"FLOAT": 0, "FIXED": 0}
     ratios: list[float] = []
     real_time_factors: list[float] = []
@@ -327,8 +351,16 @@ def summarize_events(
                 references.append(sample)
         elif topic == RAW_OBSERVATION_TOPIC:
             receiver = int(getattr(message, "receiver", 0))
-            if receiver in raw_timestamps:
-                raw_timestamps[receiver].append(timestamp_ns)
+            week = int(getattr(message, "week", 0))
+            milliseconds_of_week = int(getattr(message, "milliseconds_of_week", -1))
+            if (
+                receiver in raw_epochs
+                and week > 0
+                and 0 <= milliseconds_of_week < GNSS_WEEK_MILLISECONDS
+            ):
+                raw_epochs[receiver].append(
+                    RawEpochSample(timestamp_ns, week, milliseconds_of_week)
+                )
         elif topic == AMBIGUITY_TOPIC:
             values = diagnostic_values(message, "fgo_gil/ambiguity")
             solution = values.get("solution_status", "")
@@ -351,11 +383,11 @@ def summarize_events(
     )
     solution_samples = solution_counts["FLOAT"] + solution_counts["FIXED"]
     aligned_raw_timestamps = align_receiver_epochs(
-        raw_timestamps[RECEIVER_MASTER], raw_timestamps[RECEIVER_BASE]
+        raw_epochs[RECEIVER_MASTER], raw_epochs[RECEIVER_BASE]
     )
-    if RAW_OBSERVATION_TOPIC not in topic_names or not any(raw_timestamps.values()):
+    if RAW_OBSERVATION_TOPIC not in topic_names or not any(raw_epochs.values()):
         raw_status = "RAW_GNSS_UNAVAILABLE"
-    elif not raw_timestamps[RECEIVER_MASTER] or not raw_timestamps[RECEIVER_BASE]:
+    elif not raw_epochs[RECEIVER_MASTER] or not raw_epochs[RECEIVER_BASE]:
         raw_status = "RAW_GNSS_INCOMPLETE"
     elif not aligned_raw_timestamps:
         raw_status = "RAW_GNSS_UNALIGNED"
@@ -391,9 +423,10 @@ def summarize_events(
             aligned_raw_timestamps, timed_errors, outage_threshold_s
         ),
         "raw_receiver_epochs": {
-            "master": len(raw_timestamps[RECEIVER_MASTER]),
-            "base": len(raw_timestamps[RECEIVER_BASE]),
+            "master": len(raw_epochs[RECEIVER_MASTER]),
+            "base": len(raw_epochs[RECEIVER_BASE]),
             "aligned": len(aligned_raw_timestamps),
+            "alignment_clock": "GNSS_WEEK_TOW",
         },
         "performance": {
             "real_time_factor": summarize_numbers(real_time_factors),

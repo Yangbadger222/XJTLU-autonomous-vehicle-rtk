@@ -22,6 +22,7 @@ um982_rtk_driver:
       observation_topic: /gnss/raw/observation_epoch
       ephemeris_topic: /gnss/raw/ephemeris
       diagnostics_topic: /gnss/raw/diagnostics
+      reference_station_topic: /gnss/rtcm/reference_station
       epoch_dedup_capacity: 256
       stale_frame_timeout_s: 2.0
     ntrip:
@@ -34,3 +35,4 @@ um982_rtk_driver:
       password_env: NTRIP_PASSWORD
       send_gga_interval_s: 5.0
       connect_requires_valid_gga: true
+      rtcm_max_buffer_bytes: 8192

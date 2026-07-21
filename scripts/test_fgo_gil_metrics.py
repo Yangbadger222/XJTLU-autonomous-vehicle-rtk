@@ -4,6 +4,7 @@ import pytest
 
 from scripts.evaluate_fgo_gil_bag import (
     PoseSample,
+    RawEpochSample,
     align_receiver_epochs,
     availability_fraction,
     metadata_only_metrics,
@@ -29,6 +30,14 @@ def fake_odom(timestamp_ns, position):
     return SimpleNamespace(
         header=SimpleNamespace(stamp=stamp),
         pose=SimpleNamespace(pose=SimpleNamespace(position=point)),
+    )
+
+
+def fake_raw_epoch(receiver, milliseconds_of_week):
+    return SimpleNamespace(
+        receiver=receiver,
+        week=2428,
+        milliseconds_of_week=milliseconds_of_week,
     )
 
 
@@ -105,14 +114,14 @@ def test_summarize_reports_fixing_rate_rtf_and_raw_availability():
         events.append(
             (
                 "/gnss/raw/observation_epoch",
-                SimpleNamespace(receiver=1),
+                fake_raw_epoch(1, index * 1000),
                 stamp,
             )
         )
         events.append(
             (
                 "/gnss/raw/observation_epoch",
-                SimpleNamespace(receiver=3),
+                fake_raw_epoch(3, index * 1000),
                 stamp + 10_000_000,
             )
         )
@@ -154,8 +163,15 @@ def test_summarize_reports_fixing_rate_rtf_and_raw_availability():
 
 def test_raw_epoch_alignment_is_one_to_one_and_reports_incomplete_input():
     aligned = align_receiver_epochs(
-        [0, 1_000_000_000, 2_000_000_000],
-        [10_000_000, 1_020_000_000],
+        [
+            RawEpochSample(0, 2428, 1000),
+            RawEpochSample(1_000_000_000, 2428, 2000),
+            RawEpochSample(2_000_000_000, 2428, 3000),
+        ],
+        [
+            RawEpochSample(10_000_000, 2428, 1010),
+            RawEpochSample(1_020_000_000, 2428, 2020),
+        ],
     )
     assert aligned == [5_000_000, 1_010_000_000]
 
@@ -163,7 +179,7 @@ def test_raw_epoch_alignment_is_one_to_one_and_reports_incomplete_input():
         [
             (
                 "/gnss/raw/observation_epoch",
-                SimpleNamespace(receiver=1),
+                fake_raw_epoch(1, 1000),
                 0,
             )
         ],
@@ -173,6 +189,19 @@ def test_raw_epoch_alignment_is_one_to_one_and_reports_incomplete_input():
     )
     assert metrics["raw_gnss_status"] == "RAW_GNSS_INCOMPLETE"
     assert metrics["outage_drift"]["status"] == "DD_GNSS_UNAVAILABLE"
+
+
+def test_raw_epoch_alignment_uses_gnss_time_despite_reception_jitter():
+    master = [
+        RawEpochSample(100_000_000, 2428, 1000),
+        RawEpochSample(1_100_000_000, 2428, 2000),
+    ]
+    base = [
+        RawEpochSample(800_000_000, 2428, 1000),
+        RawEpochSample(1_800_000_000, 2428, 2000),
+    ]
+
+    assert align_receiver_epochs(master, base) == [450_000_000, 1_450_000_000]
 
 
 def test_outage_drift_uses_change_in_aligned_error_not_vehicle_motion():

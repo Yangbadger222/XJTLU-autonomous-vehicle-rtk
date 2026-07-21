@@ -23,11 +23,11 @@ def test_mixed_profile_keeps_ascii_and_adds_all_supported_binary_inputs():
         "OBSVMB COM1 0.1",
         "OBSVHB COM1 0.1",
         "OBSVBASEB COM1 ONCHANGED",
-        "GPSEPHB COM1 ONCHANGED",
-        "GLOEPHB COM1 ONCHANGED",
-        "BDSEPHB COM1 ONCHANGED",
-        "GALEPHB COM1 ONCHANGED",
-        "QZSSEPHB COM1 ONCHANGED",
+        "GPSEPHB COM1 60",
+        "GLOEPHB COM1 60",
+        "BDSEPHB COM1 60",
+        "GALEPHB COM1 60",
+        "QZSSEPHB COM1 60",
     ):
         assert command in profile.commands
     assert profile.final_baud == 921600
@@ -62,6 +62,7 @@ def test_mixed_dry_run_shows_baud_transition_and_never_opens_serial():
         com="COM1",
         period=0.1,
         source_baud=115200,
+        ephemeris_period=60.0,
         dry_run=True,
     )
     output = io.StringIO()

@@ -14,6 +14,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Observation.msg"
   "msg/ObservationEpoch.msg"
   "msg/RawFrame.msg"
+  "msg/ReferenceStation.msg"
   DEPENDENCIES std_msgs
 )
 

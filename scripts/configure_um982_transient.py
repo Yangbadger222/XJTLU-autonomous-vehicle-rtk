@@ -17,7 +17,7 @@ class Profile:
     final_baud: int
 
 
-def mixed_profile(com: str, period_s: float) -> Profile:
+def mixed_profile(com: str, period_s: float, ephemeris_period_s: float = 60.0) -> Profile:
     return Profile(
         commands=[
             f"UNLOG {com}",
@@ -28,11 +28,11 @@ def mixed_profile(com: str, period_s: float) -> Profile:
             f"OBSVMB {com} {period_s:g}",
             f"OBSVHB {com} {period_s:g}",
             f"OBSVBASEB {com} ONCHANGED",
-            f"GPSEPHB {com} ONCHANGED",
-            f"GLOEPHB {com} ONCHANGED",
-            f"BDSEPHB {com} ONCHANGED",
-            f"GALEPHB {com} ONCHANGED",
-            f"QZSSEPHB {com} ONCHANGED",
+            f"GPSEPHB {com} {ephemeris_period_s:g}",
+            f"GLOEPHB {com} {ephemeris_period_s:g}",
+            f"BDSEPHB {com} {ephemeris_period_s:g}",
+            f"GALEPHB {com} {ephemeris_period_s:g}",
+            f"QZSSEPHB {com} {ephemeris_period_s:g}",
         ],
         final_baud=921600,
     )
@@ -109,7 +109,7 @@ def print_profile(initial_baud: int, profile: Profile, transition_command: str =
 
 
 def enter_mixed(args: argparse.Namespace) -> int:
-    profile = mixed_profile(args.com, args.period)
+    profile = mixed_profile(args.com, args.period, args.ephemeris_period)
     validate_commands(profile.commands)
     if args.dry_run:
         print_profile(
@@ -193,6 +193,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     mixed = subparsers.add_parser("mixed", help="enter volatile 921600 mixed output")
     add_common_arguments(mixed)
     mixed.add_argument("--source-baud", type=baud, default=115200)
+    mixed.add_argument("--ephemeris-period", type=positive_float, default=60.0)
     mixed.add_argument("--preflight-seconds", type=positive_float, default=2.0)
     mixed.set_defaults(run=enter_mixed)
 

@@ -32,8 +32,13 @@ def _bag_topics(profile):
         "/fgo_gil/performance",
     ]
     minimal = [
+        "/fix",
+        "/heading",
+        "/rtk/nmea_sentence",
+        "/rtk/status",
         "/gnss/raw/observation_epoch",
         "/gnss/raw/ephemeris",
+        "/gnss/rtcm/reference_station",
         "/livox/imu",
         "/fastlio2/lio_odom",
         "/fgo_gil/lidar_constraints",
@@ -44,9 +49,14 @@ def _bag_topics(profile):
         raise RuntimeError("bag_profile must be 'minimal' or 'full'")
     return [
         "/clock",
+        "/fix",
+        "/heading",
+        "/rtk/nmea_sentence",
+        "/rtk/status",
         "/gnss/raw/frame",
         "/gnss/raw/observation_epoch",
         "/gnss/raw/ephemeris",
+        "/gnss/rtcm/reference_station",
         "/gnss/raw/diagnostics",
         "/gnss/pps/time_reference",
         "/livox/lidar",

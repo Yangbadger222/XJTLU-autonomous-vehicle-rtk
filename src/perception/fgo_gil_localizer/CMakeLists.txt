@@ -38,6 +38,7 @@ add_library(fgo_gil_core
   src/lidar_types.cpp
   src/livox_preprocessor.cpp
   src/math_types.cpp
+  src/reference_station_tracker.cpp
   src/rtklib_lambda.cpp
   src/satellite_propagator.cpp
   src/time_sync.cpp
@@ -157,6 +158,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_integer_ambiguity_resolver test/test_integer_ambiguity_resolver.cpp)
   target_include_directories(test_integer_ambiguity_resolver PRIVATE include)
   target_link_libraries(test_integer_ambiguity_resolver fgo_gil_core)
+
+  ament_add_gtest(test_reference_station_tracker test/test_reference_station_tracker.cpp)
+  target_include_directories(test_reference_station_tracker PRIVATE include)
+  target_link_libraries(test_reference_station_tracker fgo_gil_core)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

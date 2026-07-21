@@ -131,6 +131,7 @@ fgo_gil_float_fgo:
       lidar_constraints: /fgo_gil/lidar_constraints
       gnss_epoch: /gnss/raw/observation_epoch
       ephemeris: /gnss/raw/ephemeris
+      reference_station: /gnss/rtcm/reference_station
       time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
       odometry: /fgo_gil/float_odom_ecef
       fixed_odometry: /fgo_gil/fixed_odom_ecef
@@ -155,6 +156,9 @@ fgo_gil_float_fgo:
         # CORS station ECEF is still unknown. The DD path fails closed while false.
         base_ecef_calibrated: false
         base_ecef_m: [0.0, 0.0, 0.0]
+        dynamic_base:
+          enabled: true
+          change_threshold_m: 0.01
         # Master/right antenna in IMU coordinates: base_link [0,-0.184,0.154]
         # minus the current IMU-in-base translation [0,0,0.02].
         master_in_imu_m: [0.0, -0.184, 0.134]
@@ -173,6 +177,7 @@ fgo_gil_float_fgo:
       pending_lidar_timeout_s: 0.5
       pending_raw_epochs: 1024
       pending_ephemerides: 64
+      pending_reference_stations: 16
       pending_gnss_epochs: 128
       maximum_ephemerides: 256
 

@@ -51,8 +51,13 @@ def test_phase7_bag_profiles_capture_inputs_comparators_and_outputs():
     text = SHADOW_LAUNCH.read_text(encoding="utf-8")
 
     for topic in (
+        "/fix",
+        "/heading",
+        "/rtk/nmea_sentence",
+        "/rtk/status",
         "/gnss/raw/observation_epoch",
         "/gnss/raw/ephemeris",
+        "/gnss/rtcm/reference_station",
         "/livox/imu",
         "/fastlio2/lio_odom",
         "/fgo_gil/lidar_constraints",
@@ -85,12 +90,18 @@ def test_phase7_config_exposes_outputs_and_refuses_control_ownership():
     assert parameters["topics"]["performance"] == "/fgo_gil/performance"
     assert parameters["raw_input"]["observation_stale_timeout_s"] == 2.0
     assert parameters["raw_input"]["ephemeris_stale_timeout_s"] == 300.0
+    assert parameters["topics"]["reference_station"] == "/gnss/rtcm/reference_station"
+    assert parameters["calibration"]["gnss"]["dynamic_base"] == {
+        "enabled": True,
+        "change_threshold_m": 0.01,
+    }
     assert buffers["imu_qos_depth"] == 512
     assert buffers["raw_input_qos_depth"] == 512
     assert buffers["pending_lidar_batches"] == 16
     assert buffers["pending_lidar_timeout_s"] == 0.5
     assert buffers["pending_raw_epochs"] == 1024
     assert buffers["pending_ephemerides"] == 64
+    assert buffers["pending_reference_stations"] == 16
     assert optimizer["maximum_condition_estimate"] == 1.0e12
     assert optimizer["maximum_line_factors_per_keyframe"] == 48
     assert optimizer["maximum_plane_factors_per_keyframe"] == 96
@@ -163,6 +174,7 @@ def test_phase7_replay_uses_an_input_only_topic_allowlist():
         "/fastlio2/lio_odom",
         "/gnss/raw/observation_epoch",
         "/gnss/raw/ephemeris",
+        "/gnss/rtcm/reference_station",
         "/gnss/pps/time_reference",
     ):
         assert topic in text

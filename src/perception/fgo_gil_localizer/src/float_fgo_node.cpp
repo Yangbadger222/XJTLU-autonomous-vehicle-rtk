@@ -1,6 +1,7 @@
 #include "fgo_gil_localizer/float_fixed_lag_smoother.hpp"
 #include "fgo_gil_localizer/imu_buffer.hpp"
 #include "fgo_gil_localizer/integer_ambiguity_resolver.hpp"
+#include "fgo_gil_localizer/reference_station_tracker.hpp"
 #include "fgo_gil_localizer/satellite_propagator.hpp"
 
 #include <algorithm>
@@ -28,6 +29,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "gnss_raw_msgs/msg/ephemeris.hpp"
 #include "gnss_raw_msgs/msg/observation_epoch.hpp"
+#include "gnss_raw_msgs/msg/reference_station.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -187,6 +189,8 @@ private:
     declare_parameter<std::string>("topics.gnss_epoch", "/gnss/raw/observation_epoch");
     declare_parameter<std::string>("topics.ephemeris", "/gnss/raw/ephemeris");
     declare_parameter<std::string>(
+      "topics.reference_station", "/gnss/rtcm/reference_station");
+    declare_parameter<std::string>(
       "topics.time_sync_diagnostics", "/fgo_gil/time_sync_diagnostics");
     declare_parameter<std::string>("topics.odometry", "/fgo_gil/float_odom_ecef");
     declare_parameter<std::string>("topics.fixed_odometry", "/fgo_gil/fixed_odom_ecef");
@@ -208,6 +212,8 @@ private:
     declare_parameter<bool>("calibration.gnss.base_ecef_calibrated", false);
     declare_parameter<std::vector<double>>(
       "calibration.gnss.base_ecef_m", {0.0, 0.0, 0.0});
+    declare_parameter<bool>("calibration.gnss.dynamic_base.enabled", true);
+    declare_parameter<double>("calibration.gnss.dynamic_base.change_threshold_m", 0.01);
     declare_parameter<std::vector<double>>(
       "calibration.gnss.master_in_imu_m", {0.0, -0.184, 0.134});
     declare_parameter<std::vector<double>>(
@@ -223,6 +229,7 @@ private:
     declare_parameter<double>("buffers.pending_lidar_timeout_s", 0.5);
     declare_parameter<int>("buffers.pending_raw_epochs", 1024);
     declare_parameter<int>("buffers.pending_ephemerides", 64);
+    declare_parameter<int>("buffers.pending_reference_stations", 16);
     declare_parameter<int>("buffers.pending_gnss_epochs", 128);
     declare_parameter<int>("buffers.maximum_ephemerides", 256);
     declare_parameter<double>("imu.acceleration_scale", 9.80665);
@@ -340,6 +347,7 @@ private:
     lidar_constraints_topic_ = get_parameter("topics.lidar_constraints").as_string();
     gnss_epoch_topic_ = get_parameter("topics.gnss_epoch").as_string();
     ephemeris_topic_ = get_parameter("topics.ephemeris").as_string();
+    reference_station_topic_ = get_parameter("topics.reference_station").as_string();
     time_sync_topic_ = get_parameter("topics.time_sync_diagnostics").as_string();
     odometry_topic_ = get_parameter("topics.odometry").as_string();
     fixed_odometry_topic_ = get_parameter("topics.fixed_odometry").as_string();
@@ -356,8 +364,16 @@ private:
     ecef_world_ = {
       quaternionParameter("calibration.ecef_from_lidar_world.rotation_wxyz"),
       vec3Parameter("calibration.ecef_from_lidar_world.translation_m")};
-    base_ecef_calibrated_ = get_parameter("calibration.gnss.base_ecef_calibrated").as_bool();
+    static_base_ecef_calibrated_ =
+      get_parameter("calibration.gnss.base_ecef_calibrated").as_bool();
     base_ecef_m_ = vec3Parameter("calibration.gnss.base_ecef_m");
+    dynamic_base_enabled_ = get_parameter("calibration.gnss.dynamic_base.enabled").as_bool();
+    reference_station_tracker_ = std::make_unique<ReferenceStationTracker>(
+      ReferenceStationTrackerConfig{
+        get_parameter("calibration.gnss.dynamic_base.change_threshold_m").as_double(),
+        5.0e6,
+        7.0e6});
+    base_ecef_source_ = static_base_ecef_calibrated_ ? "STATIC_PARAMETER" : "WAITING";
     master_in_imu_m_ = vec3Parameter("calibration.gnss.master_in_imu_m");
     imu_lidar_ = {
       quaternionParameter("calibration.imu_lidar.rotation_wxyz"),
@@ -369,6 +385,8 @@ private:
     pending_lidar_timeout_s_ = get_parameter("buffers.pending_lidar_timeout_s").as_double();
     pending_raw_epoch_capacity_ = positiveSizeParameter("buffers.pending_raw_epochs");
     pending_ephemeris_capacity_ = positiveSizeParameter("buffers.pending_ephemerides");
+    pending_reference_station_capacity_ =
+      positiveSizeParameter("buffers.pending_reference_stations");
     maximum_ephemerides_ = positiveSizeParameter("buffers.maximum_ephemerides");
     acceleration_scale_ = get_parameter("imu.acceleration_scale").as_double();
     maximum_gnss_keyframe_offset_s_ =
@@ -433,29 +451,26 @@ private:
       get_parameter("buffers.maximum_imu_gap_s").as_double();
 
     const double degrees_to_radians = 3.14159265358979323846 / 180.0;
-    EpochAlignerConfig aligner_config;
-    aligner_config.maximum_time_offset_s = get_parameter("gnss.maximum_epoch_offset_s").as_double();
-    aligner_config.maximum_buffered_epochs = pending_gnss_capacity_;
-    epoch_aligner_ = std::make_unique<GnssEpochAligner>(aligner_config);
-    DoubleDifferenceBuilderConfig dd_config;
-    dd_config.minimum_elevation_rad =
+    epoch_aligner_config_.maximum_time_offset_s =
+      get_parameter("gnss.maximum_epoch_offset_s").as_double();
+    epoch_aligner_config_.maximum_buffered_epochs = pending_gnss_capacity_;
+    epoch_aligner_ = std::make_unique<GnssEpochAligner>(epoch_aligner_config_);
+    dd_builder_config_.minimum_elevation_rad =
       get_parameter("gnss.minimum_elevation_deg").as_double() * degrees_to_radians;
-    dd_config.minimum_cn0_db_hz = get_parameter("gnss.minimum_cn0_db_hz").as_double();
-    dd_config.maximum_baseline_m = get_parameter("gnss.maximum_baseline_m").as_double();
-    dd_config.maximum_code_innovation_m =
+    dd_builder_config_.minimum_cn0_db_hz = get_parameter("gnss.minimum_cn0_db_hz").as_double();
+    dd_builder_config_.maximum_baseline_m = get_parameter("gnss.maximum_baseline_m").as_double();
+    dd_builder_config_.maximum_code_innovation_m =
       get_parameter("gnss.maximum_code_innovation_m").as_double();
-    ReferenceSelectorConfig reference_config;
-    reference_config.minimum_elevation_rad = dd_config.minimum_elevation_rad;
-    reference_config.minimum_cn0_db_hz = dd_config.minimum_cn0_db_hz;
-    reference_config.switch_margin_rad =
+    reference_selector_config_.minimum_elevation_rad = dd_builder_config_.minimum_elevation_rad;
+    reference_selector_config_.minimum_cn0_db_hz = dd_builder_config_.minimum_cn0_db_hz;
+    reference_selector_config_.switch_margin_rad =
       get_parameter("gnss.reference_switch_margin_deg").as_double() * degrees_to_radians;
-    AmbiguityArcConfig arc_config;
-    arc_config.maximum_observation_gap_s =
+    ambiguity_arc_config_.maximum_observation_gap_s =
       get_parameter("gnss.arc_maximum_gap_s").as_double();
-    arc_config.doppler_phase_threshold_cycles =
+    ambiguity_arc_config_.doppler_phase_threshold_cycles =
       get_parameter("gnss.doppler_phase_threshold_cycles").as_double();
     dd_builder_ = std::make_unique<DoubleDifferenceBuilder>(
-      dd_config, reference_config, arc_config);
+      dd_builder_config_, reference_selector_config_, ambiguity_arc_config_);
     SatellitePropagationConfig propagation_config;
     propagation_config.maximum_kepler_age_s =
       get_parameter("gnss.maximum_kepler_age_s").as_double();
@@ -486,6 +501,17 @@ private:
       throw std::invalid_argument(
               "FGO-GIL Phase 7 is shadow-only: publish_tf and nav2_use_fgo must remain false");
     }
+    if (static_base_ecef_calibrated_ &&
+      (!finite(base_ecef_m_) || norm(base_ecef_m_) < 5.0e6 || norm(base_ecef_m_) > 7.0e6))
+    {
+      throw std::invalid_argument("calibrated static GNSS base ECEF is invalid");
+    }
+  }
+
+  bool baseEcefReady() const noexcept
+  {
+    return static_base_ecef_calibrated_ ||
+           (dynamic_base_enabled_ && dynamic_base_ecef_calibrated_);
   }
 
   void resetGraph()
@@ -551,6 +577,11 @@ private:
     ephemeris_sub_ = create_subscription<gnss_raw_msgs::msg::Ephemeris>(
       ephemeris_topic_, raw_input_qos_depth_,
       std::bind(&FloatFgoNode::onEphemeris, this, std::placeholders::_1), raw_input_options);
+    auto reference_station_qos = rclcpp::QoS(10).reliable().transient_local();
+    reference_station_sub_ = create_subscription<gnss_raw_msgs::msg::ReferenceStation>(
+      reference_station_topic_, reference_station_qos,
+      std::bind(&FloatFgoNode::onReferenceStation, this, std::placeholders::_1),
+      raw_input_options);
     time_sync_sub_ = create_subscription<diagnostic_msgs::msg::DiagnosticArray>(
       time_sync_topic_, 10,
       std::bind(&FloatFgoNode::onTimeSync, this, std::placeholders::_1), estimator_options);
@@ -759,6 +790,59 @@ private:
     raw_epoch_queue_.push_back(message);
   }
 
+  void onReferenceStation(const gnss_raw_msgs::msg::ReferenceStation::SharedPtr message)
+  {
+    std::lock_guard<std::mutex> lock(raw_input_mutex_);
+    if (raw_reference_station_queue_.size() >= pending_reference_station_capacity_) {
+      raw_reference_station_queue_.pop_front();
+      ++dropped_reference_station_queue_;
+    }
+    raw_reference_station_queue_.push_back(message);
+  }
+
+  bool processReferenceStation(const gnss_raw_msgs::msg::ReferenceStation & message)
+  {
+    ++reference_station_updates_;
+    if (static_base_ecef_calibrated_ || !dynamic_base_enabled_) {
+      ++ignored_reference_station_updates_;
+      return false;
+    }
+    const ReferenceStationSample sample{
+      message.station_id,
+      message.message_type,
+      message.itrf_realization,
+      message.source,
+      {message.position_ecef_m[0], message.position_ecef_m[1], message.position_ecef_m[2]}};
+    const auto update = reference_station_tracker_->accept(sample);
+    if (update == ReferenceStationUpdate::Rejected) {
+      ++invalid_reference_station_updates_;
+      return false;
+    }
+    dynamic_base_ecef_calibrated_ = true;
+    dynamic_base_station_id_ = sample.station_id;
+    dynamic_base_message_type_ = sample.message_type;
+    dynamic_base_itrf_realization_ = sample.itrf_realization;
+    dynamic_base_source_ = sample.source;
+    base_ecef_source_ = sample.message_type == 1006U ? "RTCM_1006" : "RTCM_1005";
+    if (update == ReferenceStationUpdate::Initial) {
+      base_ecef_m_ = reference_station_tracker_->current()->position_ecef_m;
+      return false;
+    }
+    if (update != ReferenceStationUpdate::Changed) {
+      return false;
+    }
+
+    base_ecef_m_ = reference_station_tracker_->current()->position_ecef_m;
+    epoch_aligner_ = std::make_unique<GnssEpochAligner>(epoch_aligner_config_);
+    dd_builder_ = std::make_unique<DoubleDifferenceBuilder>(
+      dd_builder_config_, reference_selector_config_, ambiguity_arc_config_);
+    pending_gnss_.clear();
+    resetGraph();
+    ++reference_station_changes_;
+    estimator_state_ = "REFERENCE_STATION_CHANGED";
+    return true;
+  }
+
   void processGnssEpoch(const gnss_raw_msgs::msg::ObservationEpoch::SharedPtr & message)
   {
     last_raw_observation_reception_steady_ = std::chrono::steady_clock::now();
@@ -792,12 +876,22 @@ private:
 
   void drainRawInputs()
   {
+    std::deque<gnss_raw_msgs::msg::ReferenceStation::SharedPtr> reference_stations;
     std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> ephemerides;
     std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> epochs;
     {
       std::lock_guard<std::mutex> lock(raw_input_mutex_);
+      reference_stations.swap(raw_reference_station_queue_);
       ephemerides.swap(raw_ephemeris_queue_);
       epochs.swap(raw_epoch_queue_);
+    }
+    bool reference_station_changed = false;
+    for (const auto & message : reference_stations) {
+      reference_station_changed = processReferenceStation(*message) || reference_station_changed;
+    }
+    if (reference_station_changed) {
+      dropped_epochs_on_reference_station_change_ += epochs.size();
+      epochs.clear();
     }
     for (const auto & message : ephemerides) {
       processEphemeris(message);
@@ -809,7 +903,7 @@ private:
 
   bool attachToClosestState(const AlignedGnssEpochs & epochs)
   {
-    if (!base_ecef_calibrated_ || !timeSyncReady() || state_gnss_seconds_.empty()) {
+    if (!baseEcefReady() || !timeSyncReady() || state_gnss_seconds_.empty()) {
       return false;
     }
     const double epoch_seconds = absoluteGnssSeconds(epochs.rover.time);
@@ -1085,7 +1179,7 @@ private:
       return LidarBatchResult::Consumed;
     }
     pruneStateBookkeeping();
-    if (base_ecef_calibrated_) {
+    if (baseEcefReady()) {
       updateIntegerSolution();
       estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
     } else {
@@ -1311,7 +1405,31 @@ private:
     status.values.push_back(
       keyValue("ecef_world_calibrated", ecef_world_calibrated_ ? "true" : "false"));
     status.values.push_back(
-      keyValue("base_ecef_calibrated", base_ecef_calibrated_ ? "true" : "false"));
+      keyValue("base_ecef_calibrated", baseEcefReady() ? "true" : "false"));
+    status.values.push_back(
+      keyValue("base_ecef_source", base_ecef_source_));
+    status.values.push_back(
+      numericKeyValue("dynamic_base_station_id", dynamic_base_station_id_));
+    status.values.push_back(
+      numericKeyValue("dynamic_base_message_type", dynamic_base_message_type_));
+    status.values.push_back(
+      numericKeyValue("dynamic_base_itrf_realization", dynamic_base_itrf_realization_));
+    status.values.push_back(
+      keyValue("dynamic_base_source", dynamic_base_source_));
+    status.values.push_back(
+      numericKeyValue("reference_station_updates", reference_station_updates_));
+    status.values.push_back(
+      numericKeyValue("reference_station_changes", reference_station_changes_));
+    status.values.push_back(
+      numericKeyValue("invalid_reference_station_updates", invalid_reference_station_updates_));
+    status.values.push_back(
+      numericKeyValue("ignored_reference_station_updates", ignored_reference_station_updates_));
+    status.values.push_back(
+      numericKeyValue("dropped_reference_station_queue", dropped_reference_station_queue_));
+    status.values.push_back(
+      numericKeyValue(
+        "dropped_epochs_on_reference_station_change",
+        dropped_epochs_on_reference_station_change_));
     status.values.push_back(keyValue("solution_status", solution_status_));
     status.values.push_back(
       keyValue("fix_rejection_reason", toString(last_integer_fix_.rejection_reason)));
@@ -1520,6 +1638,7 @@ private:
   std::string lidar_constraints_topic_;
   std::string gnss_epoch_topic_;
   std::string ephemeris_topic_;
+  std::string reference_station_topic_;
   std::string time_sync_topic_;
   std::string odometry_topic_;
   std::string fixed_odometry_topic_;
@@ -1532,7 +1651,14 @@ private:
   std::string ecef_frame_;
   std::string body_frame_;
   bool ecef_world_calibrated_ = false;
-  bool base_ecef_calibrated_ = false;
+  bool static_base_ecef_calibrated_ = false;
+  bool dynamic_base_enabled_ = true;
+  bool dynamic_base_ecef_calibrated_ = false;
+  std::string base_ecef_source_ = "WAITING";
+  std::uint16_t dynamic_base_station_id_ = 0U;
+  std::uint16_t dynamic_base_message_type_ = 0U;
+  std::uint8_t dynamic_base_itrf_realization_ = 0U;
+  std::string dynamic_base_source_;
   RigidPose ecef_world_;
   RigidPose imu_lidar_;
   Vec3 base_ecef_m_;
@@ -1543,6 +1669,7 @@ private:
   std::size_t pending_lidar_capacity_ = 16;
   std::size_t pending_raw_epoch_capacity_ = 1024;
   std::size_t pending_ephemeris_capacity_ = 64;
+  std::size_t pending_reference_station_capacity_ = 16;
   std::size_t maximum_ephemerides_ = 256;
   std::size_t maximum_path_poses_ = 2000;
   double acceleration_scale_ = 9.80665;
@@ -1564,10 +1691,15 @@ private:
   FixedBackSubstitutionConfig fixed_back_substitution_config_;
   StateFactorNoise prior_noise_;
   ImuGraphFactorConfig imu_factor_config_;
+  EpochAlignerConfig epoch_aligner_config_;
+  DoubleDifferenceBuilderConfig dd_builder_config_;
+  ReferenceSelectorConfig reference_selector_config_;
+  AmbiguityArcConfig ambiguity_arc_config_;
 
   std::unique_ptr<ImuSegmentBuffer> imu_buffer_;
   std::unique_ptr<GnssEpochAligner> epoch_aligner_;
   std::unique_ptr<DoubleDifferenceBuilder> dd_builder_;
+  std::unique_ptr<ReferenceStationTracker> reference_station_tracker_;
   std::unique_ptr<SatellitePropagator> satellite_propagator_;
   std::unique_ptr<IntegerAmbiguityResolver> integer_resolver_;
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
@@ -1579,6 +1711,7 @@ private:
   std::deque<PendingLidarBatch> pending_lidar_;
   std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> raw_epoch_queue_;
   std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> raw_ephemeris_queue_;
+  std::deque<gnss_raw_msgs::msg::ReferenceStation::SharedPtr> raw_reference_station_queue_;
   std::map<StateId, double> state_gnss_seconds_;
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
@@ -1627,6 +1760,12 @@ private:
   std::uint64_t dropped_lidar_history_unavailable_ = 0;
   std::uint64_t dropped_raw_epoch_queue_ = 0;
   std::uint64_t dropped_raw_ephemeris_queue_ = 0;
+  std::uint64_t dropped_reference_station_queue_ = 0;
+  std::uint64_t dropped_epochs_on_reference_station_change_ = 0;
+  std::uint64_t reference_station_updates_ = 0;
+  std::uint64_t reference_station_changes_ = 0;
+  std::uint64_t invalid_reference_station_updates_ = 0;
+  std::uint64_t ignored_reference_station_updates_ = 0;
   std::uint64_t invalid_lidar_batches_ = 0;
   std::uint64_t aligned_gnss_epochs_ = 0;
   std::uint64_t invalid_gnss_epochs_ = 0;
@@ -1657,6 +1796,7 @@ private:
   rclcpp::Subscription<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr lidar_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr gnss_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_sub_;
+  rclcpp::Subscription<gnss_raw_msgs::msg::ReferenceStation>::SharedPtr reference_station_sub_;
   rclcpp::Subscription<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr time_sync_sub_;
   rclcpp::TimerBase::SharedPtr diagnostics_timer_;
   rclcpp::TimerBase::SharedPtr pending_lidar_timer_;

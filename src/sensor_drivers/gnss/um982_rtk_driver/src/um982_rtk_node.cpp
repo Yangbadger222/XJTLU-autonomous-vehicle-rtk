@@ -1,5 +1,6 @@
 #include "um982_rtk_driver/nmea_parser.hpp"
 #include "um982_rtk_driver/ntrip_response.hpp"
+#include "um982_rtk_driver/rtcm3_reference_station.hpp"
 #include "um982_raw_driver/ephemeris_decoder.hpp"
 #include "um982_raw_driver/epoch_deduplicator.hpp"
 #include "um982_raw_driver/mixed_stream_framer.hpp"
@@ -37,6 +38,7 @@
 #include <gnss_raw_msgs/msg/observation.hpp>
 #include <gnss_raw_msgs/msg/observation_epoch.hpp>
 #include <gnss_raw_msgs/msg/raw_frame.hpp>
+#include <gnss_raw_msgs/msg/reference_station.hpp>
 #include <nmea_msgs/msg/sentence.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -152,7 +154,11 @@ public:
       declare_parameter<std::string>("raw.ephemeris_topic", "/gnss/raw/ephemeris");
     diagnostics_topic_ =
       declare_parameter<std::string>("raw.diagnostics_topic", "/gnss/raw/diagnostics");
+    reference_station_topic_ = declare_parameter<std::string>(
+      "raw.reference_station_topic", "/gnss/rtcm/reference_station");
     epoch_dedup_capacity_ = declare_parameter<int>("raw.epoch_dedup_capacity", 256);
+    ntrip_rtcm_max_buffer_bytes_ =
+      declare_parameter<int>("ntrip.rtcm_max_buffer_bytes", 8192);
     stale_ascii_timeout_s_ = declare_parameter<double>("stale_ascii_timeout_s", 2.0);
     stale_binary_timeout_s_ = declare_parameter<double>("raw.stale_frame_timeout_s", 2.0);
 
@@ -164,6 +170,8 @@ public:
       static_cast<std::size_t>(max_ascii_line_bytes_));
     epoch_deduplicator_ = std::make_unique<um982_raw_driver::EpochDeduplicator>(
       static_cast<std::size_t>(epoch_dedup_capacity_));
+    rtcm_framer_ = std::make_unique<Rtcm3Framer>(
+      static_cast<std::size_t>(ntrip_rtcm_max_buffer_bytes_));
 
     ntrip_enabled_ = declare_parameter<bool>("ntrip.enabled", false);
     ntrip_host_ = declare_parameter<std::string>("ntrip.host", "");
@@ -189,6 +197,9 @@ public:
       create_publisher<gnss_raw_msgs::msg::ObservationEpoch>(observation_topic_, 50);
     ephemeris_pub_ =
       create_publisher<gnss_raw_msgs::msg::Ephemeris>(ephemeris_topic_, 50);
+    auto reference_station_qos = rclcpp::QoS(10).reliable().transient_local();
+    reference_station_pub_ = create_publisher<gnss_raw_msgs::msg::ReferenceStation>(
+      reference_station_topic_, reference_station_qos);
     diagnostics_pub_ =
       create_publisher<diagnostic_msgs::msg::DiagnosticArray>(diagnostics_topic_, 10);
 
@@ -243,6 +254,7 @@ private:
       read_chunk_bytes_ > max_buffer_bytes_ || max_ascii_line_bytes_ > max_buffer_bytes_ ||
       max_read_batches_ > 1024 || epoch_dedup_capacity_ <= 0 ||
       epoch_dedup_capacity_ > 100000 || reconnect_period_s_ <= 0.0 ||
+      ntrip_rtcm_max_buffer_bytes_ < 1029 || ntrip_rtcm_max_buffer_bytes_ > 1048576 ||
       stale_ascii_timeout_s_ <= 0.0 ||
       stale_binary_timeout_s_ <= 0.0)
     {
@@ -766,6 +778,26 @@ private:
       buffered_bytes = mixed_framer_->bufferedBytes();
     }
 
+    Rtcm3FramerStats rtcm_stats;
+    std::size_t rtcm_buffered_bytes = 0U;
+    std::uint64_t reference_station_frames = 0U;
+    std::uint64_t reference_stations_published = 0U;
+    std::uint64_t reference_station_decode_failures = 0U;
+    std::string last_reference_station_error;
+    std::uint16_t last_reference_station_id = 0U;
+    std::uint16_t last_reference_station_message_type = 0U;
+    {
+      std::lock_guard<std::mutex> lock(rtcm_mutex_);
+      rtcm_stats = rtcm_framer_->stats();
+      rtcm_buffered_bytes = rtcm_framer_->bufferedBytes();
+      reference_station_frames = reference_station_frames_;
+      reference_stations_published = reference_stations_published_;
+      reference_station_decode_failures = reference_station_decode_failures_;
+      last_reference_station_error = last_reference_station_error_;
+      last_reference_station_id = last_reference_station_id_;
+      last_reference_station_message_type = last_reference_station_message_type_;
+    }
+
     bool have_ascii = false;
     double ascii_age_s = -1.0;
     {
@@ -799,7 +831,9 @@ private:
     {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
       status.message = "NO_RECENT_VALID_BINARY_FRAME";
-    } else if (observation_decode_failures_ != 0U || ephemeris_decode_failures_ != 0U) {
+    } else if (observation_decode_failures_ != 0U || ephemeris_decode_failures_ != 0U ||
+      reference_station_decode_failures != 0U)
+    {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
       status.message = "CANONICAL_DECODE_FAILURE";
     } else {
@@ -852,6 +886,29 @@ private:
       numericKeyValue("ephemeris_decode_failures", ephemeris_decode_failures_));
     status.values.push_back(
       keyValue("last_ephemeris_decode_error", last_ephemeris_decode_error_));
+    status.values.push_back(numericKeyValue("rtcm_bytes_received", rtcm_stats.bytes_received));
+    status.values.push_back(
+      numericKeyValue("rtcm_bytes_discarded", rtcm_stats.bytes_discarded));
+    status.values.push_back(numericKeyValue("rtcm_frames_emitted", rtcm_stats.frames_emitted));
+    status.values.push_back(numericKeyValue("rtcm_crc_failures", rtcm_stats.crc_failures));
+    status.values.push_back(
+      numericKeyValue("rtcm_header_failures", rtcm_stats.header_failures));
+    status.values.push_back(
+      numericKeyValue("rtcm_buffer_overflows", rtcm_stats.buffer_overflows));
+    status.values.push_back(numericKeyValue("rtcm_buffered_bytes", rtcm_buffered_bytes));
+    status.values.push_back(
+      numericKeyValue("reference_station_frames", reference_station_frames));
+    status.values.push_back(
+      numericKeyValue("reference_stations_published", reference_stations_published));
+    status.values.push_back(
+      numericKeyValue("reference_station_decode_failures", reference_station_decode_failures));
+    status.values.push_back(
+      keyValue("last_reference_station_error", last_reference_station_error));
+    status.values.push_back(
+      numericKeyValue("last_reference_station_id", last_reference_station_id));
+    status.values.push_back(
+      numericKeyValue(
+        "last_reference_station_message_type", last_reference_station_message_type));
     array.status.push_back(std::move(status));
     diagnostics_pub_->publish(std::move(array));
   }
@@ -1000,6 +1057,8 @@ private:
       return;
     }
 
+    inspectRtcm(buffer.data(), static_cast<std::size_t>(bytes));
+
     try {
       {
         std::lock_guard<std::mutex> lock(serial_mutex_);
@@ -1009,6 +1068,56 @@ private:
     } catch (const std::exception & exc) {
       RCLCPP_WARN(get_logger(), "Failed to write RTCM to UM982: %s", exc.what());
     }
+  }
+
+  void inspectRtcm(const std::uint8_t * data, const std::size_t size)
+  {
+    std::vector<std::pair<std::uint64_t, Rtcm3ReferenceStation>> stations;
+    {
+      std::lock_guard<std::mutex> lock(rtcm_mutex_);
+      for (const auto & frame : rtcm_framer_->consume(data, size)) {
+        const std::uint64_t frame_index = rtcm_frame_index_++;
+        const auto message_type = rtcm3MessageType(frame);
+        if (!message_type.has_value() || (*message_type != 1005U && *message_type != 1006U)) {
+          continue;
+        }
+        ++reference_station_frames_;
+        auto decoded = decodeRtcm3ReferenceStation(frame);
+        if (!decoded.ok()) {
+          ++reference_station_decode_failures_;
+          last_reference_station_error_ = decoded.reason;
+          continue;
+        }
+        last_reference_station_id_ = decoded.station->station_id;
+        last_reference_station_message_type_ = decoded.station->message_type;
+        ++reference_stations_published_;
+        stations.emplace_back(frame_index, *decoded.station);
+      }
+    }
+    for (const auto & station : stations) {
+      publishReferenceStation(station.first, station.second);
+    }
+  }
+
+  void publishReferenceStation(
+    const std::uint64_t frame_index, const Rtcm3ReferenceStation & source)
+  {
+    gnss_raw_msgs::msg::ReferenceStation message;
+    message.header.stamp = now();
+    message.header.frame_id = "ecef";
+    message.source = ntrip_host_ + ":" + std::to_string(ntrip_port_) + "/" + ntrip_mountpoint_;
+    message.frame_index = frame_index;
+    message.message_type = source.message_type;
+    message.station_id = source.station_id;
+    message.itrf_realization = source.itrf_realization;
+    message.gps_indicator = source.gps_indicator;
+    message.glonass_indicator = source.glonass_indicator;
+    message.galileo_indicator = source.galileo_indicator;
+    message.reference_station_indicator = source.reference_station_indicator;
+    message.position_ecef_m = source.position_ecef_m;
+    message.antenna_height_valid = source.antenna_height_valid;
+    message.antenna_height_m = source.antenna_height_m;
+    reference_station_pub_->publish(std::move(message));
   }
 
   void sendGgaToNtrip(const std::string & gga)
@@ -1030,6 +1139,8 @@ private:
       ntrip_socket_ = -1;
     }
     ntrip_connected_ = false;
+    std::lock_guard<std::mutex> lock(rtcm_mutex_);
+    rtcm_framer_->reset();
   }
 
   serial::Serial serial_port_;
@@ -1048,6 +1159,7 @@ private:
   rclcpp::Publisher<gnss_raw_msgs::msg::RawFrame>::SharedPtr raw_frame_pub_;
   rclcpp::Publisher<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr observation_pub_;
   rclcpp::Publisher<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_pub_;
+  rclcpp::Publisher<gnss_raw_msgs::msg::ReferenceStation>::SharedPtr reference_station_pub_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 
@@ -1078,6 +1190,7 @@ private:
   std::string observation_topic_ = "/gnss/raw/observation_epoch";
   std::string ephemeris_topic_ = "/gnss/raw/ephemeris";
   std::string diagnostics_topic_ = "/gnss/raw/diagnostics";
+  std::string reference_station_topic_ = "/gnss/rtcm/reference_station";
   int epoch_dedup_capacity_ = 256;
   double stale_ascii_timeout_s_ = 2.0;
   double stale_binary_timeout_s_ = 2.0;
@@ -1116,6 +1229,16 @@ private:
   std::atomic<bool> ntrip_connected_{false};
   std::chrono::steady_clock::time_point last_gga_sent_ = std::chrono::steady_clock::now();
   std::atomic<uint64_t> rtcm_bytes_{0};
+  int ntrip_rtcm_max_buffer_bytes_ = 8192;
+  std::unique_ptr<Rtcm3Framer> rtcm_framer_;
+  std::mutex rtcm_mutex_;
+  std::uint64_t rtcm_frame_index_ = 0;
+  std::uint64_t reference_station_frames_ = 0;
+  std::uint64_t reference_stations_published_ = 0;
+  std::uint64_t reference_station_decode_failures_ = 0;
+  std::string last_reference_station_error_;
+  std::uint16_t last_reference_station_id_ = 0;
+  std::uint16_t last_reference_station_message_type_ = 0;
 
   std::mutex gga_mutex_;
   std::string latest_gga_sentence_;

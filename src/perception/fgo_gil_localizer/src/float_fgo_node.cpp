@@ -263,6 +263,7 @@ private:
     declare_parameter<bool>("integer_fixing.partial_fixing", true);
     declare_parameter<int>("integer_fixing.minimum_ambiguities", 4);
     declare_parameter<int>("integer_fixing.minimum_observation_epochs", 5);
+    declare_parameter<int>("integer_fixing.minimum_consecutive_fixes", 3);
     declare_parameter<double>("integer_fixing.ratio_threshold", 3.0);
     declare_parameter<double>("integer_fixing.minimum_success_rate", 0.99);
     declare_parameter<double>("integer_fixing.maximum_squared_norm", 25.0);
@@ -439,6 +440,8 @@ private:
       positiveSizeParameter("integer_fixing.minimum_ambiguities");
     integer_resolver_config_.minimum_observation_epochs =
       positiveSizeParameter("integer_fixing.minimum_observation_epochs");
+    minimum_consecutive_fixes_ =
+      positiveSizeParameter("integer_fixing.minimum_consecutive_fixes");
     integer_resolver_config_.ratio_threshold =
       get_parameter("integer_fixing.ratio_threshold").as_double();
     integer_resolver_config_.minimum_success_rate =
@@ -492,6 +495,8 @@ private:
       get_parameter("gnss.maximum_glonass_age_s").as_double();
     satellite_propagator_ = std::make_unique<SatellitePropagator>(propagation_config);
     integer_resolver_ = std::make_unique<IntegerAmbiguityResolver>(integer_resolver_config_);
+    integer_confirmation_ = std::make_unique<IntegerCandidateConfirmation>(
+      minimum_consecutive_fixes_);
     imu_buffer_ = std::make_unique<ImuSegmentBuffer>(
       ImuBufferConfig{
         positiveSizeParameter("buffers.imu_capacity"),
@@ -547,6 +552,9 @@ private:
     solution_status_ = "FLOAT";
     last_integer_fix_ = {};
     last_back_substitution_ = {};
+    if (integer_confirmation_) {
+      integer_confirmation_->reset();
+    }
     estimator_state_ = "WAITING_FOR_LIDAR_KEYFRAME";
     ++graph_resets_;
   }
@@ -1234,6 +1242,7 @@ private:
     last_back_substitution_ = {};
     const auto estimate = smoother_->floatAmbiguityEstimate();
     if (!estimate.has_value()) {
+      integer_confirmation_->reset();
       last_integer_fix_ = {};
       last_integer_fix_.rejection_reason =
         IntegerFixRejectionReason::CovarianceNotPositiveDefinite;
@@ -1242,6 +1251,7 @@ private:
     }
     last_integer_fix_ = integer_resolver_->resolve(*estimate);
     if (!last_integer_fix_.fixed) {
+      integer_confirmation_->reset();
       ++integer_fix_rejections_;
       return;
     }
@@ -1249,10 +1259,16 @@ private:
       last_integer_fix_.keys, last_integer_fix_.fixed_values_m,
       fixed_back_substitution_config_);
     if (!last_back_substitution_.accepted) {
+      integer_confirmation_->reset();
       last_integer_fix_.fixed = false;
       last_integer_fix_.rejection_reason =
         IntegerFixRejectionReason::BackSubstitutionRejected;
       ++integer_fix_rejections_;
+      return;
+    }
+    if (!integer_confirmation_->update(last_integer_fix_)) {
+      last_integer_fix_.fixed = false;
+      last_integer_fix_.rejection_reason = IntegerFixRejectionReason::ConfirmationPending;
       return;
     }
     fixed_state_ = last_back_substitution_.latest_state;
@@ -1477,6 +1493,8 @@ private:
       numericKeyValue("integer_fixed_solutions", integer_fixed_solutions_));
     status.values.push_back(numericKeyValue("integer_fix_attempts", integer_fix_attempts_));
     status.values.push_back(
+      numericKeyValue("integer_confirmation_count", integer_confirmation_->count()));
+    status.values.push_back(
       numericKeyValue("integer_fix_rejections", integer_fix_rejections_));
     status.values.push_back(
       numericKeyValue(
@@ -1617,6 +1635,8 @@ private:
     ambiguity_status.values.push_back(
       numericKeyValue("fix_attempts", integer_fix_attempts_));
     ambiguity_status.values.push_back(
+      numericKeyValue("confirmation_count", integer_confirmation_->count()));
+    ambiguity_status.values.push_back(
       numericKeyValue("fixed_solutions", integer_fixed_solutions_));
     ambiguity_status.values.push_back(
       keyValue("fix_pending", integer_fix_pending_ ? "true" : "false"));
@@ -1706,6 +1726,7 @@ private:
   std::size_t pending_reference_station_capacity_ = 16;
   std::size_t maximum_ephemerides_ = 256;
   std::size_t maximum_path_poses_ = 2000;
+  std::size_t minimum_consecutive_fixes_ = 3;
   double acceleration_scale_ = 9.80665;
   double maximum_gnss_keyframe_offset_s_ = 0.10;
   double maximum_sync_age_s_ = 2.0;
@@ -1736,6 +1757,7 @@ private:
   std::unique_ptr<ReferenceStationTracker> reference_station_tracker_;
   std::unique_ptr<SatellitePropagator> satellite_propagator_;
   std::unique_ptr<IntegerAmbiguityResolver> integer_resolver_;
+  std::unique_ptr<IntegerCandidateConfirmation> integer_confirmation_;
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
   mutable std::mutex imu_mutex_;
   mutable std::mutex raw_input_mutex_;

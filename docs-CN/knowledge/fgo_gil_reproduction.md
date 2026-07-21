@@ -356,7 +356,7 @@ Phase 5 ROS 链使用 `fgo_gil_msgs/LidarConstraintBatch`，Phase 4 前端传递
 
 整数解析先锁定全图最新 GNSS state，并要求每个 signal group 在该 state 只有唯一 reference satellite 与 reference rover/base arc 基底；不同星座/信号的当前变量在分别换算为 cycles 后使用完整交叉协方差联合进入 LAMBDA。参考星变化时，新变量通过 `N_i^q=N_i^r-N_q^r` 变换均值初值，但不继承旧变量的信息矩阵，并重新累计连续观测；任一相关 arc 改变也会创建新变量。默认至少连续 5 个有效历元后才允许进入 LAMBDA。该策略优先避免未建模的 covariance basis transform 造成过度自信，代价是参考星切换后短暂只保留 FLOAT。基站观测允许 5 s 间隔，rover 仍为 2 s；锁时间连续时不会因正常 1 Hz CORS 抖动频繁重建基站 arc。由于 GLONASS FDMA 的 target/reference wavelength 不同，本阶段明确排除 GLONASS 整数固定，避免把米制组合错误解释为单一整数周。
 
-默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解。每批新 DD factor 在下一次成功图优化后只触发一次 fixed candidate，允许该 GNSS factor 挂在时间最近且仍处于窗口内的 LiDAR state；没有新 GNSS factor 时不会从旧 ambiguity 重发 stale fixed。
+默认门限为 `ratio>=3.0`、bootstrap success rate `>=0.99`、候选归一化平方残差 `<=25`，不足时按最大方差逐个剔除并尝试 partial fix，最少保留 4 个 ambiguity。候选通过后只计算条件回代预览 `delta_x=P_xa P_aa^-1(a_fixed-a_float)`；位置、姿态、速度修正或图代价增量超限即拒绝。通过数值门限和回代的候选还必须在连续 3 个新 GNSS 历元中保持相同 ambiguity key 集与整数周值；此前只报告 `CONFIRMATION_PENDING`，不发布 fixed。任一拒绝、候选变化或图重置都会清零确认计数。无论接受或拒绝，回代都不写入 float graph；float topic 始终发布原解。每批新 DD factor 在下一次成功图优化后只触发一次 fixed candidate，允许该 GNSS factor 挂在时间最近且仍处于窗口内的 LiDAR state；没有新 GNSS factor 时不会从旧 ambiguity 重发 stale fixed。
 
 ### Phase 7：ROS shadow 集成和回放
 

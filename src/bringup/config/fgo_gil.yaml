@@ -227,6 +227,7 @@ fgo_gil_float_fgo:
       partial_fixing: true
       minimum_ambiguities: 4
       minimum_observation_epochs: 5
+      minimum_consecutive_fixes: 3
       ratio_threshold: 3.0
       minimum_success_rate: 0.99
       maximum_squared_norm: 25.0

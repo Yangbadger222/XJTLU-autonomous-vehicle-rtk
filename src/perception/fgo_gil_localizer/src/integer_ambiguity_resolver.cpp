@@ -107,8 +107,47 @@ const char * toString(const IntegerFixRejectionReason reason) noexcept
     case IntegerFixRejectionReason::ResidualTest: return "RESIDUAL_TEST";
     case IntegerFixRejectionReason::BackSubstitutionRejected:
       return "BACK_SUBSTITUTION_REJECTED";
+    case IntegerFixRejectionReason::ConfirmationPending: return "CONFIRMATION_PENDING";
   }
   return "UNKNOWN";
+}
+
+IntegerCandidateConfirmation::IntegerCandidateConfirmation(
+  const std::size_t required_consecutive_epochs)
+: required_consecutive_epochs_(required_consecutive_epochs)
+{
+  if (required_consecutive_epochs_ == 0U) {
+    throw std::invalid_argument("integer candidate confirmation epochs must be positive");
+  }
+}
+
+bool IntegerCandidateConfirmation::update(const IntegerFixResult & candidate)
+{
+  if (!candidate.fixed || candidate.keys.empty() ||
+    candidate.integer_cycles.size() != static_cast<int>(candidate.keys.size()) ||
+    !candidate.integer_cycles.allFinite())
+  {
+    reset();
+    return false;
+  }
+  const bool same_candidate = keys_ == candidate.keys &&
+    integer_cycles_.size() == candidate.integer_cycles.size() &&
+    (integer_cycles_.array() == candidate.integer_cycles.array()).all();
+  if (same_candidate) {
+    ++count_;
+  } else {
+    keys_ = candidate.keys;
+    integer_cycles_ = candidate.integer_cycles;
+    count_ = 1U;
+  }
+  return count_ >= required_consecutive_epochs_;
+}
+
+void IntegerCandidateConfirmation::reset()
+{
+  keys_.clear();
+  integer_cycles_.resize(0);
+  count_ = 0U;
 }
 
 IntegerAmbiguityResolver::IntegerAmbiguityResolver(IntegerAmbiguityResolverConfig config)

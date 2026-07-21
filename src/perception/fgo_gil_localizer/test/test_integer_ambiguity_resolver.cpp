@@ -132,6 +132,31 @@ TEST(IntegerAmbiguityResolver, EqualIntegerCandidatesFailRatioTest)
   EXPECT_GT(result.success_rate, 0.0);
 }
 
+TEST(IntegerCandidateConfirmation, RequiresStableConsecutiveCandidates)
+{
+  IntegerCandidateConfirmation confirmation(3);
+  IntegerFixResult candidate;
+  candidate.fixed = true;
+  candidate.keys = {key(4), key(5), key(6), key(7)};
+  candidate.integer_cycles = Eigen::Vector4d(1.0, 2.0, 3.0, 4.0);
+  EXPECT_FALSE(confirmation.update(candidate));
+  EXPECT_EQ(confirmation.count(), 1U);
+  EXPECT_FALSE(confirmation.update(candidate));
+  EXPECT_EQ(confirmation.count(), 2U);
+
+  candidate.integer_cycles(3) = 5.0;
+  EXPECT_FALSE(confirmation.update(candidate));
+  EXPECT_EQ(confirmation.count(), 1U);
+  EXPECT_FALSE(confirmation.update(candidate));
+  EXPECT_TRUE(confirmation.update(candidate));
+  EXPECT_EQ(confirmation.count(), 3U);
+
+  candidate.fixed = false;
+  EXPECT_FALSE(confirmation.update(candidate));
+  EXPECT_EQ(confirmation.count(), 0U);
+  EXPECT_THROW(IntegerCandidateConfirmation(0), std::invalid_argument);
+}
+
 TEST(IntegerAmbiguityResolver, PartialFixDropsWorstVarianceAmbiguity)
 {
   std::vector<DdAmbiguityKey> keys{key(4), key(5), key(6), key(7), key(8)};

@@ -37,6 +37,7 @@ enum class IntegerFixRejectionReason : std::uint8_t
   SuccessRateTest,
   ResidualTest,
   BackSubstitutionRejected,
+  ConfirmationPending,
 };
 
 const char * toString(IntegerFixRejectionReason reason) noexcept;
@@ -64,6 +65,22 @@ struct IntegerFixResult
   double second_squared_norm = 0.0;
   double ratio = 0.0;
   double success_rate = 0.0;
+};
+
+class IntegerCandidateConfirmation
+{
+public:
+  explicit IntegerCandidateConfirmation(std::size_t required_consecutive_epochs = 3);
+
+  bool update(const IntegerFixResult & candidate);
+  void reset();
+  std::size_t count() const noexcept {return count_;}
+
+private:
+  std::size_t required_consecutive_epochs_ = 3;
+  std::vector<DdAmbiguityKey> keys_;
+  Eigen::VectorXd integer_cycles_;
+  std::size_t count_ = 0;
 };
 
 class IntegerAmbiguityResolver

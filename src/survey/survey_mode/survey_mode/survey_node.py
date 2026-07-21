@@ -41,13 +41,14 @@ class SurveyNode(Node):
         
         # Map subscriber
         from rclpy.qos import QoSProfile, DurabilityPolicy
-        qos = QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
-        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, qos)
+        costmap_qos = QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
+        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, costmap_qos)
         self.occupancy_grid = None
         
         # Foxglove Publishers
-        self.initial_guess_pub = self.create_publisher(Marker, '/survey/initial_guess', 10)
-        self.confirmed_match_pub = self.create_publisher(Marker, '/survey/confirmed_match', 10)
+        marker_qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.initial_guess_pub = self.create_publisher(Marker, '/survey/initial_guess', marker_qos)
+        self.confirmed_match_pub = self.create_publisher(Marker, '/survey/confirmed_match', marker_qos)
         
         # TF Setup
         self.tf_buffer = tf2_ros.Buffer()
@@ -203,6 +204,16 @@ class SurveyNode(Node):
                 if dist_to_robot >= 3.0:
                     points.append((wx, wy))
         
+        if not points:
+            for y, x in zip(y_idx, x_idx):
+                wx = info.origin.position.x + (x + 0.5) * info.resolution
+                wy = info.origin.position.y + (y + 0.5) * info.resolution
+                if math.hypot(wx, wy) <= self.max_radius:
+                    dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+                    # Relax distance constraint to 1 m
+                    if dist_to_robot >= 1:
+                        points.append((wx, wy))
+
         if not points:
             return None
             

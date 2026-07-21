@@ -1200,16 +1200,14 @@ private:
   {
     fixed_state_.reset();
     solution_status_ = "FLOAT";
-    last_back_substitution_ = {};
     if (!last_state_id_.has_value() || !most_recent_gnss_factor_state_.has_value() ||
       !integer_fix_pending_ || smoother_->state(*most_recent_gnss_factor_state_) == nullptr)
     {
-      last_integer_fix_ = {};
-      last_integer_fix_.rejection_reason = IntegerFixRejectionReason::NoCurrentGnssEpoch;
-      ++integer_fix_rejections_;
       return;
     }
     integer_fix_pending_ = false;
+    ++integer_fix_attempts_;
+    last_back_substitution_ = {};
     const auto estimate = smoother_->floatAmbiguityEstimate();
     if (!estimate.has_value()) {
       last_integer_fix_ = {};
@@ -1453,6 +1451,7 @@ private:
         "candidate_ambiguities", last_integer_fix_.keys.size()));
     status.values.push_back(
       numericKeyValue("integer_fixed_solutions", integer_fixed_solutions_));
+    status.values.push_back(numericKeyValue("integer_fix_attempts", integer_fix_attempts_));
     status.values.push_back(
       numericKeyValue("integer_fix_rejections", integer_fix_rejections_));
     status.values.push_back(
@@ -1591,6 +1590,12 @@ private:
       keyValue("rejection_reason", toString(last_integer_fix_.rejection_reason)));
     ambiguity_status.values.push_back(
       keyValue("back_substitution", toString(last_back_substitution_.rejection)));
+    ambiguity_status.values.push_back(
+      numericKeyValue("fix_attempts", integer_fix_attempts_));
+    ambiguity_status.values.push_back(
+      numericKeyValue("fixed_solutions", integer_fixed_solutions_));
+    ambiguity_status.values.push_back(
+      keyValue("fix_pending", integer_fix_pending_ ? "true" : "false"));
     ambiguity_status.values.push_back(
       numericKeyValue("fix_rejections", integer_fix_rejections_));
     ambiguity_status.values.push_back(
@@ -1783,6 +1788,7 @@ private:
   std::uint64_t satellite_propagation_failures_ = 0;
   std::uint64_t optimization_failures_ = 0;
   std::uint64_t numerical_condition_rejections_ = 0;
+  std::uint64_t integer_fix_attempts_ = 0;
   std::uint64_t integer_fixed_solutions_ = 0;
   std::uint64_t integer_fix_rejections_ = 0;
   std::uint64_t raw_observation_epochs_received_ = 0;

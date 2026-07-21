@@ -332,6 +332,9 @@ def summarize_events(
     }
     solution_counts = {"FLOAT": 0, "FIXED": 0}
     ratios: list[float] = []
+    integer_attempts: int | None = None
+    integer_fixed_solutions: int | None = None
+    last_ratio_attempt_count = 0
     real_time_factors: list[float] = []
     optimization_latency_ms: list[float] = []
     event_start = bag_start_ns
@@ -367,8 +370,20 @@ def summarize_events(
             if solution in solution_counts:
                 solution_counts[solution] += 1
             ratio = parse_float(values.get("ratio"))
-            if ratio is not None:
+            attempts = parse_float(values.get("fix_attempts"))
+            fixed_solutions = parse_float(values.get("fixed_solutions"))
+            if attempts is not None and attempts >= 0.0:
+                integer_attempts = max(integer_attempts or 0, int(attempts))
+            if fixed_solutions is not None and fixed_solutions >= 0.0:
+                integer_fixed_solutions = max(
+                    integer_fixed_solutions or 0, int(fixed_solutions)
+                )
+            if ratio is not None and (
+                attempts is None or int(attempts) > last_ratio_attempt_count
+            ):
                 ratios.append(ratio)
+                if attempts is not None:
+                    last_ratio_attempt_count = int(attempts)
         elif topic == PERFORMANCE_TOPIC:
             values = diagnostic_values(message, "fgo_gil/performance")
             real_time_factor = parse_float(values.get("real_time_factor"))
@@ -418,8 +433,16 @@ def summarize_events(
         },
         "ambiguity": {
             "solution_counts": solution_counts,
+            "attempts": integer_attempts,
+            "fixed_solutions": integer_fixed_solutions,
             "fixing_rate": (
-                solution_counts["FIXED"] / solution_samples if solution_samples else None
+                integer_fixed_solutions / integer_attempts
+                if integer_attempts
+                else (
+                    solution_counts["FIXED"] / solution_samples
+                    if solution_samples
+                    else None
+                )
             ),
             "ratio": summarize_numbers(ratios),
         },

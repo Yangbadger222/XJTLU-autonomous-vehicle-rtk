@@ -197,6 +197,34 @@ def test_summarize_availability_uses_pose_header_clock_domain():
     assert metrics["availability"]["fraction"] == pytest.approx(1.0)
 
 
+def test_summarize_uses_attempt_counters_and_deduplicates_persisted_ratio():
+    events = [
+        (
+            "/fgo_gil/ambiguity_status",
+            FakeDiagnosticArray(
+                "fgo_gil/ambiguity",
+                {
+                    "solution_status": "FLOAT",
+                    "ratio": ratio,
+                    "fix_attempts": attempts,
+                    "fixed_solutions": fixed,
+                },
+            ),
+            index,
+        )
+        for index, (ratio, attempts, fixed) in enumerate(
+            [(2.0, 1, 0), (2.0, 1, 0), (4.0, 2, 1), (4.0, 2, 1)]
+        )
+    ]
+
+    metrics = summarize_events(events, {"/fgo_gil/ambiguity_status"})
+
+    assert metrics["ambiguity"]["attempts"] == 2
+    assert metrics["ambiguity"]["fixed_solutions"] == 1
+    assert metrics["ambiguity"]["fixing_rate"] == pytest.approx(0.5)
+    assert metrics["ambiguity"]["ratio"]["count"] == 2
+
+
 def test_raw_epoch_alignment_is_one_to_one_and_reports_incomplete_input():
     aligned = align_receiver_epochs(
         [

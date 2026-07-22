@@ -843,6 +843,15 @@ PRN、四个 rover/base arc ID、float cycle、最近整数和 fractional cycle�
 `fgo_gil/ambiguity` 状态同时报告最佳/次佳平方残差。这些只是诊断证据，出现
 evaluated 条目不等于 fixed solution。
 
+`/fgo_gil/float_diagnostics` 通过 `map_alignment_estimated`、
+`map_alignment_translation_correction_m` 和
+`map_alignment_rotation_correction_rad` 报告在线 LiDAR 地图对齐。优化器从已标定
+的 `ecef_from_lidar_world` 开始，并始终把 line/plane anchor 保留在 FAST-LIO world。
+默认 `optimizer.map_alignment_translation_prior_sigma_m=0.05`、
+`optimizer.map_alignment_rotation_prior_sigma_rad=0.005` 允许厘米级/小角修正，同时
+阻止噪声较大的 DD code 把整张地图拉动数米。不得因单次回放放宽这些值或 LAMBDA
+门限；必须先重跑完整 A/B 指标并检查分组 code/carrier residual。
+
 完整解码评价需要 source ROS 2 和 workspace；已有旧 bag 仅检查 topic 证据时可在工作站使用 `--metadata-only`：
 
 ```bash

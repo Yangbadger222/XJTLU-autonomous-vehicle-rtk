@@ -844,6 +844,16 @@ fractional cycles. The main `fgo_gil/ambiguity` status reports the best and seco
 squared norms. These details are diagnostic evidence only; an evaluated entry is not
 a fixed solution.
 
+`/fgo_gil/float_diagnostics` reports the online LiDAR-map alignment through
+`map_alignment_estimated`, `map_alignment_translation_correction_m`, and
+`map_alignment_rotation_correction_rad`. The optimizer starts from the calibrated
+`ecef_from_lidar_world` transform and keeps line/plane anchors in FAST-LIO world.
+The default `optimizer.map_alignment_translation_prior_sigma_m=0.05` and
+`optimizer.map_alignment_rotation_prior_sigma_rad=0.005` permit centimetre/small-angle
+correction without allowing noisy DD code factors to move the map by metres. Do not
+loosen these values or the LAMBDA gates from one replay result; re-run the full A/B
+metrics and inspect grouped code/carrier residuals first.
+
 Full decoding requires the ROS 2 and workspace setup to be sourced. A workstation can audit topic evidence in an older bag with `--metadata-only`:
 
 ```bash

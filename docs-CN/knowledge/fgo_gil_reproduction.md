@@ -401,6 +401,10 @@ bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master�
 
 受控回放只把 line/plane sigma 从 `0.05 m` 提到 `5 m`，不改码、载波或整数门限。ratio/residual failure 消失并出现 3 次数值 fixed solution，但相对 FAST-LIO 的 APE/RPE 从 `0.235/0.102 m` 恶化为 `0.389/0.273 m`，且没有持续 FIXED 状态。该证据证明：由一次离线 `ecef_from_lidar_world` 变换得到的固定 FAST-LIO-world anchor 正在对抗 GNSS 全局校正。永久降低 LiDAR 权重不可接受；下一项架构修复必须把 local-map-to-ECEF 对齐作为 fixed-lag 内一致估计量，或用 FGO state 重建地图 anchor，使 LiDAR 保持局部形状、GNSS 可移动全局坐标系。
 
+本次修复在 fixed-lag 图中增加一个共享六自由度 `ECEF <- FAST-LIO world` 变量。LiDAR residual 及其对状态/对齐的解析 Jacobian 都在 FAST-LIO world 中计算；Schur 边缘先验保留该对齐变量，普通 optimizer/IMU 重建继承最近一次有效对齐，只有 FAST-LIO frontend epoch 真正变化时才回到离线标定。固定模糊度预览也会临时应用并回滚相关的对齐修正，因此 candidate cost 检查与 float 图保持一致且不会修改 float 状态。
+
+同一 1x bag 证明对齐先验不能随意设置。`10 m / 0.1 rad` 弱先验会让噪声较大的 DD code 把地图拉动 `2.535 m / 0.020 rad`，APE/RPE 变为 `0.673/0.115 m`，且没有 fixed。离线拟合使用 3964 个内点，单点 RMSE 为 `0.225 m`、最大残差 `0.461 m`，聚合变换的不确定度远小于单个 fix。采用已验证的 `0.05 m / 0.005 rad` 先验后，回放保留 567 个输出、availability 为 96.98%，APE/RPE 为 `0.299/0.106 m`，优化延迟 p95 为 `167 ms`，没有 optimization failure。连续 attempt 46--48 使用相同六维整数集合：前两次为 `CONFIRMATION_PENDING`，第三次产生 1 个 confirmed FIXED 输出。5 次 pending、1 次 confirmed 和随后 1 次 residual rejection 证明架构方向有效，但不等于持续 FIXED 或实车验收。
+
 `evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收

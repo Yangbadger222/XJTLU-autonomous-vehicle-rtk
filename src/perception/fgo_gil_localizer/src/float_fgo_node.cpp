@@ -984,7 +984,8 @@ private:
       current_state->orientation_ecef_body.rotate(master_in_imu_m_);
     SatelliteStateMap satellite_states;
     for (const auto & observation : epochs.rover.observations) {
-      if (satellite_states.find(observation.satellite) != satellite_states.end()) {
+      if (satellite_states.find(observation.satellite) != satellite_states.end())
+      {
         continue;
       }
       const auto broadcast = ephemerides_.find(observation.satellite);

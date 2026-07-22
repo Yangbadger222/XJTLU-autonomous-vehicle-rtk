@@ -208,7 +208,22 @@ class SurveyNode(Node):
         goal.header.stamp = self.get_clock().now().to_msg()
         goal.pose.position.x = float(target[0])
         goal.pose.position.y = float(target[1])
-        goal.pose.orientation.w = 1.0
+        
+        current_x, current_y = self.get_current_pose()
+        if current_x is not None and current_y is not None:
+            dx = goal.pose.position.x - current_x
+            dy = goal.pose.position.y - current_y
+            if dx == 0.0 and dy == 0.0:
+                goal.pose.orientation.w = 1.0
+                goal.pose.orientation.z = 0.0
+            else:
+                yaw = math.atan2(dy, dx)
+                goal.pose.orientation.w = math.cos(yaw / 2.0)
+                goal.pose.orientation.z = math.sin(yaw / 2.0)
+        else:
+            goal.pose.orientation.w = 1.0
+            goal.pose.orientation.z = 0.0
+            
         return goal
 
     def get_real_hypothesis_goal(self):
@@ -259,7 +274,17 @@ class SurveyNode(Node):
         goal.header.stamp = self.get_clock().now().to_msg()
         goal.pose.position.x = float(target[0])
         goal.pose.position.y = float(target[1])
-        goal.pose.orientation.w = 1.0
+        
+        dx = goal.pose.position.x - current_x
+        dy = goal.pose.position.y - current_y
+        if dx == 0.0 and dy == 0.0:
+            goal.pose.orientation.w = 1.0
+            goal.pose.orientation.z = 0.0
+        else:
+            yaw = math.atan2(dy, dx)
+            goal.pose.orientation.w = math.cos(yaw / 2.0)
+            goal.pose.orientation.z = math.sin(yaw / 2.0)
+            
         return goal
 
     def send_nav_goal(self, goal: PoseStamped):

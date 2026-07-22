@@ -304,9 +304,11 @@ controller_server:
       vx_min: 0.0
       vy_max: 0.0
       wz_max: 1.2
+      wz_min: -1.2
       ax_max: 1.2
       ax_min: -3.0
       az_max: 6.0
+      az_min: -6.0
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
@@ -838,7 +840,7 @@ velocity_smoother:
     max_velocity: [0.3, 0.0, 1.2] # Changed from [1.0, 0.0, 1.2]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
-    min_velocity: [0.0, 0.0, -1.0]
+    min_velocity: [0.0, 0.0, -1.2]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
     max_accel: [1.2, 0.0, 6.0]

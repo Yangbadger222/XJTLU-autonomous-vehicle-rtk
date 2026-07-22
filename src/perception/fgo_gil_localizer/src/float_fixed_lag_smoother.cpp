@@ -92,31 +92,19 @@ RigidPose perturbedMapAlignment(const RigidPose & pose, const Eigen::VectorXd & 
   return result;
 }
 
-double mapAlignmentPerturbationStep(const int column)
-{
-  return column < 3 ? 1.0e-3 : 1.0e-6;
-}
-
-PointToPlaneFactor alignedPlaneFactor(
-  const PointToPlaneFactor & source,
-  const RigidPose & body_lidar,
+Eigen::VectorXd mapAlignmentJacobian(
+  const Vec3 & direction_lidar_world,
+  const Vec3 & point_ecef,
   const RigidPose & ecef_lidar_world)
 {
-  return {
-    transformPoint(body_lidar, source.point_lidar),
-    transformPoint(ecef_lidar_world, source.plane_anchor_world),
-    ecef_lidar_world.rotation.rotate(source.plane_normal_world)};
-}
-
-PointToLineFactor alignedLineFactor(
-  const PointToLineFactor & source,
-  const RigidPose & body_lidar,
-  const RigidPose & ecef_lidar_world)
-{
-  return {
-    transformPoint(body_lidar, source.point_lidar),
-    transformPoint(ecef_lidar_world, source.line_anchor_world),
-    ecef_lidar_world.rotation.rotate(source.line_direction_world)};
+  const Vec3 direction_ecef = ecef_lidar_world.rotation.rotate(direction_lidar_world);
+  const Vec3 rotation = cross(direction_ecef, point_ecef - ecef_lidar_world.translation);
+  Eigen::VectorXd jacobian(kMapAlignmentDimension);
+  for (int axis = 0; axis < 3; ++axis) {
+    jacobian(axis) = -direction_ecef[static_cast<std::size_t>(axis)];
+    jacobian(3 + axis) = rotation[static_cast<std::size_t>(axis)];
+  }
+  return jacobian;
 }
 
 Eigen::VectorXd inverseNoise(const StateFactorNoise & noise)
@@ -301,16 +289,18 @@ FloatFixedLagSmoother::FloatFixedLagSmoother(
   }
 }
 
-bool FloatFixedLagSmoother::setLidarMapAlignment(const RigidPose & ecef_lidar_world)
+bool FloatFixedLagSmoother::setLidarMapAlignment(
+  const RigidPose & ecef_lidar_world,
+  const std::optional<RigidPose> prior_anchor)
 {
-  if (!finite(ecef_lidar_world) || !states_.empty() || !lidar_factors_.empty() ||
-    marginal_prior_.has_value())
+  if (!finite(ecef_lidar_world) || (prior_anchor.has_value() && !finite(*prior_anchor)) ||
+    !states_.empty() || !lidar_factors_.empty() || marginal_prior_.has_value())
   {
     ++diagnostics_.rejected_factors;
     return false;
   }
   lidar_map_alignment_ = ecef_lidar_world;
-  lidar_map_alignment_anchor_ = ecef_lidar_world;
+  lidar_map_alignment_anchor_ = prior_anchor.value_or(ecef_lidar_world);
   invalidateFixLinearization();
   refreshDiagnostics();
   return true;
@@ -742,85 +732,64 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
     if (state == states_.end() || offset == layout.state_offsets.end()) {
       continue;
     }
-    const RigidPose pose{state->second.orientation_ecef_body, state->second.position_ecef_m};
+    const RigidPose pose_ecef_body{
+      state->second.orientation_ecef_body, state->second.position_ecef_m};
+    const RigidPose pose_lidar_world_body = compose(
+      inverse(lidar_map_alignment_), pose_ecef_body);
     for (const auto & source : batch.planes) {
-      const PointToPlaneFactor factor = alignedPlaneFactor(
-        source, batch.body_lidar, lidar_map_alignment_);
-      const auto evaluation = evaluatePointToPlane(factor, pose);
+      PointToPlaneFactor factor = source;
+      factor.point_lidar = transformPoint(batch.body_lidar, source.point_lidar);
+      const auto evaluation = evaluatePointToPlane(factor, pose_lidar_world_body);
       if (!evaluation.has_value()) {
         continue;
       }
+      const Vec3 direction_lidar_world{
+        evaluation->jacobian[0], evaluation->jacobian[1], evaluation->jacobian[2]};
+      PoseJacobianRow ecef_direction_jacobian{};
+      const Vec3 direction_ecef = lidar_map_alignment_.rotation.rotate(direction_lidar_world);
+      for (int axis = 0; axis < 3; ++axis) {
+        ecef_direction_jacobian[static_cast<std::size_t>(axis)] =
+          direction_ecef[static_cast<std::size_t>(axis)];
+      }
       const PoseJacobianRow pose_jacobian = independentPoseJacobian(
-        evaluation->jacobian, pose.rotation, factor.point_lidar);
+        ecef_direction_jacobian, pose_ecef_body.rotation, factor.point_lidar);
       Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kStateDimension);
       for (int column = 0; column < 6; ++column) {
         jacobian(column) = pose_jacobian[static_cast<std::size_t>(column)];
       }
       std::vector<std::pair<int, Eigen::VectorXd>> blocks{{offset->second, jacobian}};
       if (layout.map_alignment_offset.has_value()) {
-        Eigen::VectorXd alignment_jacobian = Eigen::VectorXd::Zero(kMapAlignmentDimension);
-        for (int column = 0; column < kMapAlignmentDimension; ++column) {
-          const double epsilon = mapAlignmentPerturbationStep(column);
-          Eigen::VectorXd delta = Eigen::VectorXd::Zero(kMapAlignmentDimension);
-          delta(column) = epsilon;
-          const auto plus = evaluatePointToPlane(
-            alignedPlaneFactor(
-              source, batch.body_lidar,
-              perturbedMapAlignment(lidar_map_alignment_, delta)),
-            pose);
-          const auto minus = evaluatePointToPlane(
-            alignedPlaneFactor(
-              source, batch.body_lidar,
-              perturbedMapAlignment(lidar_map_alignment_, -delta)),
-            pose);
-          if (plus.has_value() && minus.has_value()) {
-            alignment_jacobian(column) =
-              (plus->residual - minus->residual) / (2.0 * epsilon);
-          }
-        }
-        blocks.emplace_back(*layout.map_alignment_offset, alignment_jacobian);
+        blocks.emplace_back(
+          *layout.map_alignment_offset,
+          mapAlignmentJacobian(
+            direction_lidar_world,
+            transformPoint(pose_ecef_body, factor.point_lidar),
+            lidar_map_alignment_));
       }
       add_dense_row(
         evaluation->residual, lidar_config_.plane_sigma_m,
         lidar_config_.huber_delta_sigma, blocks);
     }
     for (const auto & source : batch.lines) {
-      const PointToLineFactor factor = alignedLineFactor(
-        source, batch.body_lidar, lidar_map_alignment_);
-      const auto evaluation = evaluatePointToLine(factor, pose);
+      PointToLineFactor factor = source;
+      factor.point_lidar = transformPoint(batch.body_lidar, source.point_lidar);
+      const auto evaluation = evaluatePointToLine(factor, pose_lidar_world_body);
       if (!evaluation.has_value()) {
         continue;
       }
-      std::array<Eigen::VectorXd, 2> alignment_jacobians{
-        Eigen::VectorXd::Zero(kMapAlignmentDimension),
-        Eigen::VectorXd::Zero(kMapAlignmentDimension)};
-      if (layout.map_alignment_offset.has_value()) {
-        for (int column = 0; column < kMapAlignmentDimension; ++column) {
-          const double epsilon = mapAlignmentPerturbationStep(column);
-          Eigen::VectorXd delta = Eigen::VectorXd::Zero(kMapAlignmentDimension);
-          delta(column) = epsilon;
-          const auto plus = evaluatePointToLine(
-            alignedLineFactor(
-              source, batch.body_lidar,
-              perturbedMapAlignment(lidar_map_alignment_, delta)),
-            pose);
-          const auto minus = evaluatePointToLine(
-            alignedLineFactor(
-              source, batch.body_lidar,
-              perturbedMapAlignment(lidar_map_alignment_, -delta)),
-            pose);
-          if (plus.has_value() && minus.has_value()) {
-            for (int row = 0; row < 2; ++row) {
-              alignment_jacobians[static_cast<std::size_t>(row)](column) =
-                (plus->residual[static_cast<std::size_t>(row)] -
-                minus->residual[static_cast<std::size_t>(row)]) / (2.0 * epsilon);
-            }
-          }
-        }
-      }
       for (int row = 0; row < 2; ++row) {
+        const PoseJacobianRow & local_jacobian =
+          evaluation->jacobian[static_cast<std::size_t>(row)];
+        const Vec3 direction_lidar_world{
+          local_jacobian[0], local_jacobian[1], local_jacobian[2]};
+        PoseJacobianRow ecef_direction_jacobian{};
+        const Vec3 direction_ecef = lidar_map_alignment_.rotation.rotate(direction_lidar_world);
+        for (int axis = 0; axis < 3; ++axis) {
+          ecef_direction_jacobian[static_cast<std::size_t>(axis)] =
+            direction_ecef[static_cast<std::size_t>(axis)];
+        }
         const PoseJacobianRow pose_jacobian = independentPoseJacobian(
-          evaluation->jacobian[static_cast<std::size_t>(row)], pose.rotation,
+          ecef_direction_jacobian, pose_ecef_body.rotation,
           factor.point_lidar);
         Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kStateDimension);
         for (int column = 0; column < 6; ++column) {
@@ -830,7 +799,10 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
         if (layout.map_alignment_offset.has_value()) {
           blocks.emplace_back(
             *layout.map_alignment_offset,
-            alignment_jacobians[static_cast<std::size_t>(row)]);
+            mapAlignmentJacobian(
+              direction_lidar_world,
+              transformPoint(pose_ecef_body, factor.point_lidar),
+              lidar_map_alignment_));
         }
         add_dense_row(
           evaluation->residual[static_cast<std::size_t>(row)],

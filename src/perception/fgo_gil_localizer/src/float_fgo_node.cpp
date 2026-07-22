@@ -568,11 +568,13 @@ private:
            (dynamic_base_enabled_ && dynamic_base_ecef_calibrated_);
   }
 
-  void resetGraph()
+  void resetGraph(const bool reset_lidar_map_alignment = false)
   {
+    const RigidPose initial_map_alignment =
+      reset_lidar_map_alignment || !smoother_ ? ecef_world_ : smoother_->lidarMapAlignment();
     smoother_ = std::make_unique<FloatFixedLagSmoother>(
       smoother_config_, lidar_factor_config_, gnss_factor_config_);
-    if (!smoother_->setLidarMapAlignment(ecef_world_)) {
+    if (!smoother_->setLidarMapAlignment(initial_map_alignment, ecef_world_)) {
       throw std::runtime_error("failed to initialize LiDAR map-to-ECEF alignment");
     }
     state_gnss_seconds_.clear();
@@ -1115,7 +1117,7 @@ private:
       return LidarBatchResult::Consumed;
     }
     if (active_frontend_epoch_.has_value() && *active_frontend_epoch_ != message->frontend_epoch) {
-      resetGraph();
+      resetGraph(true);
       pending_gnss_.clear();
     }
     active_frontend_epoch_ = message->frontend_epoch;

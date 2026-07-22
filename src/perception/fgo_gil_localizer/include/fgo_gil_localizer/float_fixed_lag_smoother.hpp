@@ -162,7 +162,9 @@ public:
     GnssGraphFactorConfig gnss_config = {});
 
   bool addState(StateId id, const EcefState & initial_state);
-  bool setLidarMapAlignment(const RigidPose & ecef_lidar_world);
+  bool setLidarMapAlignment(
+    const RigidPose & ecef_lidar_world,
+    std::optional<RigidPose> prior_anchor = std::nullopt);
   bool addStatePrior(StateId id, const EcefState & mean, const StateFactorNoise & noise);
   bool addImuFactor(
     StateId from,

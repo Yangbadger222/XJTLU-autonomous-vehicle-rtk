@@ -42,8 +42,8 @@ struct LidarGraphFactorConfig
   std::size_t maximum_line_factors_per_keyframe = 48;
   std::size_t maximum_plane_factors_per_keyframe = 96;
   bool estimate_map_alignment = false;
-  double map_alignment_translation_prior_sigma_m = 10.0;
-  double map_alignment_rotation_prior_sigma_rad = 0.10;
+  double map_alignment_translation_prior_sigma_m = 0.05;
+  double map_alignment_rotation_prior_sigma_rad = 0.005;
 };
 
 struct GnssGraphFactorConfig

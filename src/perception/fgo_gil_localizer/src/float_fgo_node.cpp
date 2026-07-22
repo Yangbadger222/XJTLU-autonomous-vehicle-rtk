@@ -280,8 +280,8 @@ private:
     declare_parameter<int>("optimizer.maximum_line_factors_per_keyframe", 48);
     declare_parameter<int>("optimizer.maximum_plane_factors_per_keyframe", 96);
     declare_parameter<bool>("optimizer.estimate_lidar_map_alignment", true);
-    declare_parameter<double>("optimizer.map_alignment_translation_prior_sigma_m", 10.0);
-    declare_parameter<double>("optimizer.map_alignment_rotation_prior_sigma_rad", 0.10);
+    declare_parameter<double>("optimizer.map_alignment_translation_prior_sigma_m", 0.05);
+    declare_parameter<double>("optimizer.map_alignment_rotation_prior_sigma_rad", 0.005);
     declare_parameter<double>("optimizer.gnss_code_huber_delta_sigma", 2.5);
     declare_parameter<double>("optimizer.gnss_carrier_huber_delta_sigma", 2.5);
 

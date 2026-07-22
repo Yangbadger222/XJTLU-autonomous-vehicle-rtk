@@ -364,45 +364,33 @@ SatellitePropagationResult SatellitePropagator::propagate(
 SatellitePropagationResult SatellitePropagator::propagateToReceiveFrame(
   const BroadcastEphemeris & ephemeris,
   const GnssTime & receive_time,
-  const Vec3 & receiver_position_ecef_m) const
+  const double pseudorange_m) const
 {
-  if (!finite(receiver_position_ecef_m) || norm(receiver_position_ecef_m) < 1.0e6 ||
-    norm(receiver_position_ecef_m) > 1.0e8)
+  if (!std::isfinite(pseudorange_m) || pseudorange_m <= 0.0 ||
+    pseudorange_m > 1.0e8)
   {
     return failure(SatellitePropagationError::InvalidTime);
   }
-  double transit_s = 0.075;
-  SatellitePropagationResult result;
-  for (std::size_t iteration = 0; iteration < 6U; ++iteration) {
-    const GnssTime transmit_time = addGnssSeconds(receive_time, -transit_s);
-    result = propagate(ephemeris, transmit_time);
-    if (!result.ok()) {
-      return result;
-    }
-    const double angle = earthRotation(ephemeris.satellite.constellation) * transit_s;
-    const double cosine = std::cos(angle);
-    const double sine = std::sin(angle);
-    const Vec3 position = result.state->position_ecef_m;
-    const Vec3 velocity = result.state->velocity_ecef_m_s;
-    result.state->position_ecef_m = {
-      cosine * position.x + sine * position.y,
-      -sine * position.x + cosine * position.y,
-      position.z};
-    result.state->velocity_ecef_m_s = {
-      cosine * velocity.x + sine * velocity.y,
-      -sine * velocity.x + cosine * velocity.y,
-      velocity.z};
-    const double next_transit_s =
-      norm(result.state->position_ecef_m - receiver_position_ecef_m) / kSpeedOfLightMps;
-    if (!std::isfinite(next_transit_s) || next_transit_s <= 0.0 || next_transit_s > 1.0) {
-      return failure(SatellitePropagationError::NumericalFailure);
-    }
-    if (std::abs(next_transit_s - transit_s) < 1.0e-12) {
-      return result;
-    }
-    transit_s = next_transit_s;
+  const double transit_s = pseudorange_m / kSpeedOfLightMps;
+  const GnssTime transmit_time = addGnssSeconds(receive_time, -transit_s);
+  SatellitePropagationResult result = propagate(ephemeris, transmit_time);
+  if (!result.ok()) {
+    return result;
   }
-  return failure(SatellitePropagationError::NumericalFailure);
+  const double angle = earthRotation(ephemeris.satellite.constellation) * transit_s;
+  const double cosine = std::cos(angle);
+  const double sine = std::sin(angle);
+  const Vec3 position = result.state->position_ecef_m;
+  const Vec3 velocity = result.state->velocity_ecef_m_s;
+  result.state->position_ecef_m = {
+    cosine * position.x + sine * position.y,
+    -sine * position.x + cosine * position.y,
+    position.z};
+  result.state->velocity_ecef_m_s = {
+    cosine * velocity.x + sine * velocity.y,
+    -sine * velocity.x + cosine * velocity.y,
+    velocity.z};
+  return result;
 }
 
 SatellitePropagationResult SatellitePropagator::propagateKeplerian(

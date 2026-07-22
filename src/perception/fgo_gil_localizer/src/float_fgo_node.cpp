@@ -980,11 +980,10 @@ private:
     if (current_state == nullptr) {
       return false;
     }
-    const Vec3 rover_antenna_ecef_m = current_state->position_ecef_m +
-      current_state->orientation_ecef_body.rotate(master_in_imu_m_);
     SatelliteStateMap satellite_states;
     for (const auto & observation : epochs.rover.observations) {
-      if (satellite_states.find(observation.satellite) != satellite_states.end())
+      if (!observation.pseudorange_valid ||
+        satellite_states.find(observation.satellite) != satellite_states.end())
       {
         continue;
       }
@@ -996,15 +995,15 @@ private:
         epochs.base.observations.begin(), epochs.base.observations.end(),
         [&observation](const GnssObservation & candidate) {
           return candidate.satellite == observation.satellite &&
-          candidate.signal == observation.signal;
+          candidate.signal == observation.signal && candidate.pseudorange_valid;
         });
       if (base_observation == epochs.base.observations.end()) {
         continue;
       }
       const auto rover_propagated = satellite_propagator_->propagateToReceiveFrame(
-        broadcast->second, epochs.rover.time, rover_antenna_ecef_m);
+        broadcast->second, epochs.rover.time, observation.pseudorange_m);
       const auto base_propagated = satellite_propagator_->propagateToReceiveFrame(
-        broadcast->second, epochs.base.time, base_ecef_m_);
+        broadcast->second, epochs.base.time, base_observation->pseudorange_m);
       if (rover_propagated.ok() && base_propagated.ok()) {
         satellite_states[observation.satellite] =
         {*rover_propagated.state, *base_propagated.state};

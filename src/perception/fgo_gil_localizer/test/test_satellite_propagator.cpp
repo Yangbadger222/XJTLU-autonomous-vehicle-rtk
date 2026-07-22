@@ -65,34 +65,13 @@ TEST(SatellitePropagation, ReceiveFrameAppliesTransmitTimeAndSagnac)
   const BroadcastEphemeris ephemeris = circularGpsEphemeris();
   SatellitePropagator propagator;
   const GnssTime receive_time{ephemeris.week, ephemeris.toe_s};
-  const Vec3 receiver{6378137.0, 0.0, 0.0};
   const auto direct = propagator.propagate(ephemeris, receive_time);
   const auto corrected = propagator.propagateToReceiveFrame(
-    ephemeris, receive_time, receiver);
+    ephemeris, receive_time, 24000000.0);
   ASSERT_TRUE(direct.ok());
   ASSERT_TRUE(corrected.ok());
   EXPECT_LT(corrected.state->transmit_time.tow_s, receive_time.tow_s);
   EXPECT_GT(norm(corrected.state->position_ecef_m - direct.state->position_ecef_m), 100.0);
-  const double geometric_transit_s =
-    norm(corrected.state->position_ecef_m - receiver) / kSpeedOfLightMps;
-  EXPECT_NEAR(
-    receive_time.tow_s - corrected.state->transmit_time.tow_s,
-    geometric_transit_s, 1.0e-9);
-}
-
-TEST(SatellitePropagation, IterativeGeometricTransmitTimeIsDeterministic)
-{
-  const BroadcastEphemeris ephemeris = circularGpsEphemeris();
-  SatellitePropagator propagator;
-  const GnssTime receive_time{ephemeris.week, ephemeris.toe_s + 10.0};
-  const Vec3 receiver{6378137.0, 100.0, -50.0};
-  const auto first = propagator.propagateToReceiveFrame(ephemeris, receive_time, receiver);
-  const auto repeated = propagator.propagateToReceiveFrame(ephemeris, receive_time, receiver);
-  ASSERT_TRUE(first.ok());
-  ASSERT_TRUE(repeated.ok());
-  EXPECT_NEAR(
-    norm(first.state->position_ecef_m - repeated.state->position_ecef_m), 0.0, 1.0e-12);
-  EXPECT_DOUBLE_EQ(first.state->transmit_time.tow_s, repeated.state->transmit_time.tow_s);
 }
 
 TEST(SatellitePropagation, BdsGeoBranchRemainsFinite)

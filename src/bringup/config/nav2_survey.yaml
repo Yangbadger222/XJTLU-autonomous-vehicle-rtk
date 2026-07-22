@@ -301,8 +301,8 @@ controller_server:
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: false
       closed_loop: false
-      time_steps: 24
-      model_dt: 0.0666667
+      time_steps: 16
+      model_dt: 0.1
       batch_size: 128
       vx_std: 0.16
       vy_std: 0.0

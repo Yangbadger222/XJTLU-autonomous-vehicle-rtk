@@ -111,9 +111,9 @@ TEST(AmbiguityArcManager, ResetsOnlyAffectedSignalOnSlip)
   ASSERT_TRUE(first_arc.new_arc);
   ASSERT_TRUE(other_arc.new_arc);
 
-  first.carrier_phase_cycles = 1005.0;
+  first.carrier_phase_cycles = 995.0;
   first.lock_time_s = 11.0;
-  other.carrier_phase_cycles = 2004.0;
+  other.carrier_phase_cycles = 1996.0;
   other.lock_time_s = 11.0;
   const auto first_continued = manager.update(GnssReceiver::Master, {2400, 101.0}, first);
   const auto other_continued = manager.update(GnssReceiver::Master, {2400, 101.0}, other);
@@ -122,7 +122,7 @@ TEST(AmbiguityArcManager, ResetsOnlyAffectedSignalOnSlip)
 
   first.carrier_phase_cycles += 8.0;
   first.lock_time_s = 0.1;
-  other.carrier_phase_cycles += 4.0;
+  other.carrier_phase_cycles -= 4.0;
   other.lock_time_s = 12.0;
   const auto slipped = manager.update(GnssReceiver::Master, {2400, 102.0}, first);
   const auto unaffected = manager.update(GnssReceiver::Master, {2400, 102.0}, other);

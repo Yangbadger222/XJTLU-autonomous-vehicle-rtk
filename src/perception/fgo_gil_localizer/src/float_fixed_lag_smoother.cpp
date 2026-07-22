@@ -1098,6 +1098,55 @@ std::optional<double> FloatFixedLagSmoother::ambiguity(const DdAmbiguityKey & ke
   return iterator->second;
 }
 
+std::vector<CodeResidualDiagnostics> FloatFixedLagSmoother::codeResidualDiagnostics() const
+{
+  std::map<SignalGroup, CodeResidualDiagnostics> summaries;
+  if (gnss_factors_.empty()) {
+    return {};
+  }
+  const GnssFactorBatch & batch = gnss_factors_.back();
+  const auto state_iterator = states_.find(batch.state);
+  if (state_iterator == states_.end()) {
+    return {};
+  }
+  for (const DoubleDifferenceMeasurement & measurement : batch.measurements) {
+    if (!measurement.code_valid) {
+      continue;
+    }
+    const auto evaluation = evaluateDdPseudorange(measurement, state_iterator->second);
+    const double sigma = measurement.code_sigma_m;
+    if (!evaluation.has_value() || !std::isfinite(sigma) || sigma <= 0.0) {
+      continue;
+    }
+    const double raw = std::abs(evaluation->residual_m);
+    const double normalized = raw / sigma;
+    CodeResidualDiagnostics & summary = summaries[measurement.group];
+    if (summary.factors == 0U) {
+      summary.group = measurement.group;
+      summary.sigma_min_m = sigma;
+    }
+    ++summary.factors;
+    summary.raw_rms_m += raw * raw;
+    summary.raw_max_m = std::max(summary.raw_max_m, raw);
+    summary.normalized_rms += normalized * normalized;
+    summary.normalized_max = std::max(summary.normalized_max, normalized);
+    summary.sigma_mean_m += sigma;
+    summary.sigma_min_m = std::min(summary.sigma_min_m, sigma);
+    summary.sigma_max_m = std::max(summary.sigma_max_m, sigma);
+  }
+  std::vector<CodeResidualDiagnostics> output;
+  output.reserve(summaries.size());
+  for (auto & entry : summaries) {
+    CodeResidualDiagnostics & summary = entry.second;
+    const double count = static_cast<double>(summary.factors);
+    summary.raw_rms_m = std::sqrt(summary.raw_rms_m / count);
+    summary.normalized_rms = std::sqrt(summary.normalized_rms / count);
+    summary.sigma_mean_m /= count;
+    output.push_back(summary);
+  }
+  return output;
+}
+
 std::vector<CarrierResidualDiagnostics> FloatFixedLagSmoother::carrierResidualDiagnostics(
   const std::size_t minimum_observation_epochs) const
 {

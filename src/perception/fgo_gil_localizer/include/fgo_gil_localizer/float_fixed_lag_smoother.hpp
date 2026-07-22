@@ -99,6 +99,19 @@ struct CarrierResidualDiagnostics
   double sigma_max_m = 0.0;
 };
 
+struct CodeResidualDiagnostics
+{
+  SignalGroup group;
+  std::size_t factors = 0;
+  double raw_rms_m = 0.0;
+  double raw_max_m = 0.0;
+  double normalized_rms = 0.0;
+  double normalized_max = 0.0;
+  double sigma_mean_m = 0.0;
+  double sigma_min_m = 0.0;
+  double sigma_max_m = 0.0;
+};
+
 enum class FixedBackSubstitutionRejection : std::uint8_t
 {
   None,
@@ -163,6 +176,7 @@ public:
 
   const EcefState * state(StateId id) const noexcept;
   std::optional<double> ambiguity(const DdAmbiguityKey & key) const;
+  std::vector<CodeResidualDiagnostics> codeResidualDiagnostics() const;
   std::vector<CarrierResidualDiagnostics> carrierResidualDiagnostics(
     std::size_t minimum_observation_epochs) const;
   std::optional<FloatAmbiguityEstimate> floatAmbiguityEstimate();

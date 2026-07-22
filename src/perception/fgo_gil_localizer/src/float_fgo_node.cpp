@@ -1640,6 +1640,22 @@ private:
         numericKeyValue(std::string("dd_rejected_") + toString(reason), dd.rejected[index]));
     }
     factor_array.status.push_back(std::move(factor_status));
+    for (const CodeResidualDiagnostics & code : smoother_->codeResidualDiagnostics()) {
+      diagnostic_msgs::msg::DiagnosticStatus code_status;
+      code_status.name = "fgo_gil/code_residual/" + signalGroupLabel(code.group);
+      code_status.hardware_id = "um982_raw";
+      code_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
+      code_status.message = "CODE_RESIDUAL_OBSERVED";
+      code_status.values.push_back(numericKeyValue("factors", code.factors));
+      code_status.values.push_back(numericKeyValue("raw_rms_m", code.raw_rms_m));
+      code_status.values.push_back(numericKeyValue("raw_max_m", code.raw_max_m));
+      code_status.values.push_back(numericKeyValue("normalized_rms", code.normalized_rms));
+      code_status.values.push_back(numericKeyValue("normalized_max", code.normalized_max));
+      code_status.values.push_back(numericKeyValue("sigma_mean_m", code.sigma_mean_m));
+      code_status.values.push_back(numericKeyValue("sigma_min_m", code.sigma_min_m));
+      code_status.values.push_back(numericKeyValue("sigma_max_m", code.sigma_max_m));
+      factor_array.status.push_back(std::move(code_status));
+    }
     for (const CarrierResidualDiagnostics & carrier :
       smoother_->carrierResidualDiagnostics(integer_resolver_config_.minimum_observation_epochs))
     {

@@ -6,7 +6,8 @@ SHELL := /bin/bash
 
 # ROS 2 Environment and Build Flags
 ROS_SETUP    := source /opt/ros/humble/setup.bash
-COLCON_BUILD := $(ROS_SETUP) && colcon build --symlink-install --parallel-workers 1
+PY_WARN_HIDE := PYTHONWARNINGS="ignore:Unknown distribution option:UserWarning"
+COLCON_BUILD := $(ROS_SETUP) && $(PY_WARN_HIDE) colcon build --symlink-install --parallel-workers 1
 
 # Massive regex for killing processes
 POST_COLLISION_KILL_PATTERN := '[p]ost_collision_cmd_conditioner(\\.py)?'

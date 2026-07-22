@@ -65,6 +65,10 @@ struct IntegerFixResult
   double second_squared_norm = 0.0;
   double ratio = 0.0;
   double success_rate = 0.0;
+  std::size_t eligible_ambiguities = 0;
+  std::size_t evaluated_ambiguities = 0;
+  double fractional_cycle_rms = 0.0;
+  double fractional_cycle_max = 0.0;
 };
 
 class IntegerCandidateConfirmation

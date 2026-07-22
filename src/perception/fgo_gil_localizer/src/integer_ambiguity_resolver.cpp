@@ -224,6 +224,7 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
     active.insert(active.end(), indices.begin(), indices.end());
   }
   std::sort(active.begin(), active.end());
+  output.eligible_ambiguities = active.size();
   if (active.size() < config_.minimum_ambiguities) {
     output.rejection_reason = active.empty() && had_unsupported_signal ?
       IntegerFixRejectionReason::UnsupportedSignal :
@@ -254,6 +255,12 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
       last_rejection = IntegerFixRejectionReason::UnsupportedSignal;
       break;
     }
+    output.evaluated_ambiguities = active.size();
+    const Eigen::VectorXd fractional_cycles =
+      float_cycles.array() - float_cycles.array().round();
+    output.fractional_cycle_rms = std::sqrt(
+      fractional_cycles.squaredNorm() / static_cast<double>(dimension));
+    output.fractional_cycle_max = fractional_cycles.cwiseAbs().maxCoeff();
     for (int row = 0; row < dimension; ++row) {
       for (int column = 0; column < dimension; ++column) {
         covariance_cycles2(row, column) = estimate.covariance_m2(

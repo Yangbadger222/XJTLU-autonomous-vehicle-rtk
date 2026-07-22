@@ -1513,6 +1513,14 @@ private:
       numericKeyValue(
         "candidate_ambiguities", last_integer_fix_.keys.size()));
     status.values.push_back(
+      numericKeyValue("eligible_ambiguities", last_integer_fix_.eligible_ambiguities));
+    status.values.push_back(
+      numericKeyValue("evaluated_ambiguities", last_integer_fix_.evaluated_ambiguities));
+    status.values.push_back(
+      numericKeyValue("fractional_cycle_rms", last_integer_fix_.fractional_cycle_rms));
+    status.values.push_back(
+      numericKeyValue("fractional_cycle_max", last_integer_fix_.fractional_cycle_max));
+    status.values.push_back(
       numericKeyValue("integer_fixed_solutions", integer_fixed_solutions_));
     status.values.push_back(numericKeyValue("integer_fix_attempts", integer_fix_attempts_));
     status.values.push_back(
@@ -1679,6 +1687,14 @@ private:
       "FIXED" : toString(last_integer_fix_.rejection_reason);
     ambiguity_status.values.push_back(keyValue("solution_status", solution_status_));
     ambiguity_status.values.push_back(numericKeyValue("ambiguity_dimension", graph.ambiguities));
+    ambiguity_status.values.push_back(
+      numericKeyValue("eligible_dimension", last_integer_fix_.eligible_ambiguities));
+    ambiguity_status.values.push_back(
+      numericKeyValue("evaluated_dimension", last_integer_fix_.evaluated_ambiguities));
+    ambiguity_status.values.push_back(
+      numericKeyValue("fractional_cycle_rms", last_integer_fix_.fractional_cycle_rms));
+    ambiguity_status.values.push_back(
+      numericKeyValue("fractional_cycle_max", last_integer_fix_.fractional_cycle_max));
     ambiguity_status.values.push_back(numericKeyValue("ratio", last_integer_fix_.ratio));
     ambiguity_status.values.push_back(
       numericKeyValue("success_rate", last_integer_fix_.success_rate));

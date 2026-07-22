@@ -113,6 +113,10 @@ TEST(IntegerAmbiguityResolver, KnownIntegerFixtureFixesWithInputOrderingPreserve
   }
   EXPECT_GT(result.ratio, 3.0);
   EXPECT_GT(result.success_rate, 0.99);
+  EXPECT_EQ(result.eligible_ambiguities, 4U);
+  EXPECT_EQ(result.evaluated_ambiguities, 4U);
+  EXPECT_GT(result.fractional_cycle_rms, 0.0);
+  EXPECT_NEAR(result.fractional_cycle_max, 0.04, 1.0e-12);
 }
 
 TEST(IntegerAmbiguityResolver, EqualIntegerCandidatesFailRatioTest)
@@ -130,6 +134,10 @@ TEST(IntegerAmbiguityResolver, EqualIntegerCandidatesFailRatioTest)
   EXPECT_GT(result.best_squared_norm, 0.0);
   EXPECT_GT(result.second_squared_norm, 0.0);
   EXPECT_GT(result.success_rate, 0.0);
+  EXPECT_EQ(result.eligible_ambiguities, 4U);
+  EXPECT_EQ(result.evaluated_ambiguities, 4U);
+  EXPECT_NEAR(result.fractional_cycle_rms, 0.5, 1.0e-12);
+  EXPECT_NEAR(result.fractional_cycle_max, 0.5, 1.0e-12);
 }
 
 TEST(IntegerCandidateConfirmation, RequiresStableConsecutiveCandidates)

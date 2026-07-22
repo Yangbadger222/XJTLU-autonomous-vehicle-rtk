@@ -857,3 +857,10 @@ velocity_smoother:
     # 速度指令超时；超过该时间未收到新指令就会停下。 (Velocity timeout; stops if no new command is received beyond this time.)
     # 调大：更宽容但风险更高；调小：更安全但更容易因抖动停住。 (Increase: more tolerant but higher risk; Decrease: safer but easier to stop due to jitter.)
     velocity_timeout: 1.0
+
+survey_node:
+  ros__parameters:
+    global_frame_id: "map"
+    robot_base_frame_id: "base_link"
+    nav_to_pose_action: "navigate_to_pose"
+    global_costmap_topic: "/global_costmap/costmap"

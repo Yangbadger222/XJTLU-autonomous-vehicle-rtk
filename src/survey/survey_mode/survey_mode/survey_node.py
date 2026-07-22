@@ -28,6 +28,21 @@ class SurveyNode(Node):
         self.declare_parameter('min_confirm_distance', 5.0)
         self.declare_parameter('map_database_dir', '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor')
         
+        # New parameters
+        self.declare_parameter('global_frame_id', 'map')
+        self.declare_parameter('robot_base_frame_id', 'base_link')
+        self.declare_parameter('nav_to_pose_action', 'navigate_to_pose')
+        self.declare_parameter('global_costmap_topic', '/global_costmap/costmap')
+        self.declare_parameter('localizer_service', '/localizer/global_relocalize')
+        self.declare_parameter('initial_guess_topic', '/survey/initial_guess')
+        self.declare_parameter('confirmed_match_topic', '/survey/confirmed_match')
+        self.declare_parameter('frontier_min_dist', 1.5)
+        self.declare_parameter('frontier_fallback_min_dist', 0.5)
+        self.declare_parameter('hypothesis_min_dist', 3.0)
+        self.declare_parameter('hypothesis_fallback_min_dist', 0.5)
+        self.declare_parameter('max_candidates', 5)
+        self.declare_parameter('timer_period', 1.0)
+        
         self.max_radius = self.get_parameter('max_radius').value
         self.threshold_x = self.get_parameter('threshold_x').value
         self.confidence_guess = self.get_parameter('confidence_guess').value
@@ -35,20 +50,34 @@ class SurveyNode(Node):
         self.min_confirm_distance = self.get_parameter('min_confirm_distance').value
         self.map_database_dir = os.path.expanduser(self.get_parameter('map_database_dir').value)
         
+        self.global_frame_id = self.get_parameter('global_frame_id').value
+        self.robot_base_frame_id = self.get_parameter('robot_base_frame_id').value
+        self.nav_to_pose_action = self.get_parameter('nav_to_pose_action').value
+        self.global_costmap_topic = self.get_parameter('global_costmap_topic').value
+        self.localizer_service = self.get_parameter('localizer_service').value
+        self.initial_guess_topic = self.get_parameter('initial_guess_topic').value
+        self.confirmed_match_topic = self.get_parameter('confirmed_match_topic').value
+        self.frontier_min_dist = self.get_parameter('frontier_min_dist').value
+        self.frontier_fallback_min_dist = self.get_parameter('frontier_fallback_min_dist').value
+        self.hypothesis_min_dist = self.get_parameter('hypothesis_min_dist').value
+        self.hypothesis_fallback_min_dist = self.get_parameter('hypothesis_fallback_min_dist').value
+        self.max_candidates = self.get_parameter('max_candidates').value
+        self.timer_period = self.get_parameter('timer_period').value
+        
         self.state = 'Autonomous_Exploration'
-        self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
-        self.localizer_client = self.create_client(GlobalRelocalize, '/localizer/global_relocalize')
+        self.nav_to_pose_client = ActionClient(self, NavigateToPose, self.nav_to_pose_action)
+        self.localizer_client = self.create_client(GlobalRelocalize, self.localizer_service)
         
         # Map subscriber
         from rclpy.qos import QoSProfile, DurabilityPolicy
         costmap_qos = QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
-        self.map_sub = self.create_subscription(OccupancyGrid, '/global_costmap/costmap', self.map_callback, costmap_qos)
+        self.map_sub = self.create_subscription(OccupancyGrid, self.global_costmap_topic, self.map_callback, costmap_qos)
         self.occupancy_grid = None
         
         # Foxglove Publishers
         marker_qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL)
-        self.initial_guess_pub = self.create_publisher(Marker, '/survey/initial_guess', marker_qos)
-        self.confirmed_match_pub = self.create_publisher(Marker, '/survey/confirmed_match', marker_qos)
+        self.initial_guess_pub = self.create_publisher(Marker, self.initial_guess_topic, marker_qos)
+        self.confirmed_match_pub = self.create_publisher(Marker, self.confirmed_match_topic, marker_qos)
         
         # TF Setup
         self.tf_buffer = tf2_ros.Buffer()
@@ -71,7 +100,7 @@ class SurveyNode(Node):
         self.waiting_for_service = False
         
         # Timer for the state machine
-        self.timer = self.create_timer(1.0, self.state_machine_loop)
+        self.timer = self.create_timer(self.timer_period, self.state_machine_loop)
         
         self.get_logger().info(f"Survey node initialized in state: {self.state}")
         self.goal_active = False
@@ -94,7 +123,7 @@ class SurveyNode(Node):
 
     def get_current_pose(self):
         try:
-            trans = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
+            trans = self.tf_buffer.lookup_transform(self.global_frame_id, self.robot_base_frame_id, rclpy.time.Time())
             return trans.transform.translation.x, trans.transform.translation.y
         except Exception as e:
             self.get_logger().debug(f"TF Lookup failed: {e}")
@@ -102,7 +131,7 @@ class SurveyNode(Node):
 
     def publish_marker(self, publisher, type, r, g, b, x, y):
         marker = Marker()
-        marker.header.frame_id = 'map'
+        marker.header.frame_id = self.global_frame_id
         marker.header.stamp = self.get_clock().now().to_msg()
         marker.ns = 'survey'
         marker.id = 0
@@ -152,7 +181,7 @@ class SurveyNode(Node):
             # Check distance from the robot, NOT from the map origin
             dist_to_robot = math.hypot(wx - current_x, wy - current_y)
             
-            if dist_to_robot <= self.max_radius and dist_to_robot >= 1.5:
+            if dist_to_robot <= self.max_radius and dist_to_robot >= self.frontier_min_dist:
                 points.append((wx, wy))
         
         # Fallback: Find the furthest point we can if everything is close
@@ -162,8 +191,8 @@ class SurveyNode(Node):
                 wy = info.origin.position.y + (y + 0.5) * info.resolution
                 dist_to_robot = math.hypot(wx - current_x, wy - current_y)
                 
-                # Absolute minimum distance safety net of 0.5m
-                if dist_to_robot >= 0.5 and dist_to_robot <= self.max_radius:
+                # Absolute minimum distance safety net
+                if dist_to_robot >= self.frontier_fallback_min_dist and dist_to_robot <= self.max_radius:
                     points.append((wx, wy))
 
         return points
@@ -175,7 +204,7 @@ class SurveyNode(Node):
             
         target = random.choice(points)
         goal = PoseStamped()
-        goal.header.frame_id = 'map'
+        goal.header.frame_id = self.global_frame_id
         goal.header.stamp = self.get_clock().now().to_msg()
         goal.pose.position.x = float(target[0])
         goal.pose.position.y = float(target[1])
@@ -205,7 +234,7 @@ class SurveyNode(Node):
             dist_to_robot = math.hypot(wx - current_x, wy - current_y)
             
             if dist_to_robot <= self.max_radius:
-                if dist_to_robot >= 3.0:
+                if dist_to_robot >= self.hypothesis_min_dist:
                     points.append((wx, wy))
         
         # Fallback if no points are far enough
@@ -218,7 +247,7 @@ class SurveyNode(Node):
                 
                 if dist_to_robot <= self.max_radius:
                     # Relaxed distance constraint
-                    if dist_to_robot >= 0.5:
+                    if dist_to_robot >= self.hypothesis_fallback_min_dist:
                         points.append((wx, wy))
         
         if not points:
@@ -226,7 +255,7 @@ class SurveyNode(Node):
             
         target = random.choice(points)
         goal = PoseStamped()
-        goal.header.frame_id = 'map'
+        goal.header.frame_id = self.global_frame_id
         goal.header.stamp = self.get_clock().now().to_msg()
         goal.pose.position.x = float(target[0])
         goal.pose.position.y = float(target[1])
@@ -314,7 +343,7 @@ class SurveyNode(Node):
         req = GlobalRelocalize.Request()
         req.descriptor_index = descriptor_path
         req.region = ''
-        req.max_candidates = 5
+        req.max_candidates = self.max_candidates
         
         self.get_logger().info(f"Evaluating map: {self.currently_testing_map}")
         future = self.localizer_client.call_async(req)
@@ -427,7 +456,7 @@ class SurveyNode(Node):
         elif self.state == 'Return_To_Home':
             if not self.goal_active:
                 goal = PoseStamped()
-                goal.header.frame_id = 'map'
+                goal.header.frame_id = self.global_frame_id
                 goal.pose.position.x = 0.0
                 goal.pose.position.y = 0.0
                 goal.pose.orientation.w = 1.0

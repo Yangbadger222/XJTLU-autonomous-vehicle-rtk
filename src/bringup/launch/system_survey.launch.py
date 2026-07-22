@@ -21,7 +21,7 @@ def generate_launch_description():
     bringup_share = get_package_share_directory("bringup")
     default_master_params_file = os.path.join(bringup_share, "config", "master_params.yaml")
     default_nav2_survey_params_file = os.path.join(bringup_share, "config", "nav2_survey.yaml")
-    default_survey_params_file = os.path.join(bringup_share, "config", "survey_mode.yaml")
+    default_survey_params_file = os.path.join(get_package_share_directory("survey_mode"), "config", "survey_mode.yaml")
     
     corridor_bt_xml = os.path.join(
         bringup_share,
@@ -117,7 +117,7 @@ def generate_launch_description():
         executable="survey_node",
         name="survey_node",
         output="screen",
-        parameters=[default_survey_params_file],
+        parameters=[rewritten_nav2_params, default_survey_params_file],
         on_exit=launch.actions.EmitEvent(event=launch.events.Shutdown())
     )
 

@@ -1,0 +1,17 @@
+/**:
+  ros__parameters:
+    max_radius: 50.0
+    threshold_x: 200.0
+    confidence_guess: 0.6
+    confidence_confirm: 0.8
+    min_confirm_distance: 5.0
+    map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'
+    localizer_service: '/localizer/global_relocalize'
+    initial_guess_topic: '/survey/initial_guess'
+    confirmed_match_topic: '/survey/confirmed_match'
+    frontier_min_dist: 1.5
+    frontier_fallback_min_dist: 0.5
+    hypothesis_min_dist: 3.0
+    hypothesis_fallback_min_dist: 0.5
+    max_candidates: 5
+    timer_period: 1.0

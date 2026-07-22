@@ -1,8 +1,0 @@
-/**:
-  ros__parameters:
-    max_radius: 50.0
-    threshold_x: 200.0
-    confidence_guess: 0.6
-    confidence_confirm: 0.8
-    min_confirm_distance: 5.0
-    map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'

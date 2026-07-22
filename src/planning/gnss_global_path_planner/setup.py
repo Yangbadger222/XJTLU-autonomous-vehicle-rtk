@@ -1,4 +1,4 @@
-from setuptools import setup
+﻿from setuptools import setup
 import os
 from glob import glob
 
@@ -20,7 +20,6 @@ setup(
     maintainer_email='your_email@example.com',
     description='GNSS Global Path Planner for ROS2',
     license='Apache License 2.0',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'global_path_planner = gnss_global_path_planner.global_path_planner:main'

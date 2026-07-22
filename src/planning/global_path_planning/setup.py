@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'global_path_planning'
 
@@ -17,7 +17,6 @@ setup(
     maintainer_email='245276732@qq.com',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'start_node = global_path_planning.scripts.global_start_node:main',

@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'frc_bev'
 
@@ -17,5 +17,4 @@ setup(
     maintainer_email='Kevinlasnh@outlook.com',
     description='FRC BEV 特征构建共用库（train/runtime 唯一真源）',
     license='MIT',
-    tests_require=['pytest'],
 )

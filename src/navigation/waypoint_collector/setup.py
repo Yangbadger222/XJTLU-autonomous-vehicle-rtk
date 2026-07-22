@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'waypoint_collector'
 
@@ -18,7 +18,6 @@ setup(
     maintainer_email='Kevinlasnh@outlook.com',
     description='RViz 交互式航点收集器，支持多航点导航',
     license='MIT',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'waypoint_node = waypoint_collector.waypoint_node:main',

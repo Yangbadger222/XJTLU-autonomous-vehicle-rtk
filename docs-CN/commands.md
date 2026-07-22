@@ -837,6 +837,12 @@ ros2 topic echo /fgo_gil/performance
 `fix_eligible_ambiguities`、`evaluated_ambiguities` 和 `confirmation_count`。
 这些字段用于定位星座/频点模型问题；高归一化残差不能通过放宽整数门限掩盖。
 
+LAMBDA 实际评估集合时，`/fgo_gil/ambiguity_status` 还会包含
+`fgo_gil/ambiguity_evaluated/<index>`。每条记录 signal group、reference/target
+PRN、四个 rover/base arc ID、float cycle、最近整数和 fractional cycle；主
+`fgo_gil/ambiguity` 状态同时报告最佳/次佳平方残差。这些只是诊断证据，出现
+evaluated 条目不等于 fixed solution。
+
 完整解码评价需要 source ROS 2 和 workspace；已有旧 bag 仅检查 topic 证据时可在工作站使用 `--metadata-only`：
 
 ```bash

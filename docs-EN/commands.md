@@ -837,6 +837,13 @@ ros2 topic echo /fgo_gil/performance
 These fields isolate constellation/signal model faults; do not hide large normalized
 residuals by weakening integer gates.
 
+When LAMBDA evaluates a set, `/fgo_gil/ambiguity_status` also contains
+`fgo_gil/ambiguity_evaluated/<index>` entries. Each entry reports the signal group,
+reference/target PRN, four rover/base arc IDs, float cycles, nearest integer, and
+fractional cycles. The main `fgo_gil/ambiguity` status reports the best and second
+squared norms. These details are diagnostic evidence only; an evaluated entry is not
+a fixed solution.
+
 Full decoding requires the ROS 2 and workspace setup to be sourced. A workstation can audit topic evidence in an older bag with `--metadata-only`:
 
 ```bash

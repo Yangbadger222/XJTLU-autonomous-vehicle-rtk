@@ -397,6 +397,10 @@ bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master�
 
 默认 `0.01 m/km` 使载波有效 sigma 中位数从约 `14--16 mm` 增至 `20--28 mm`；APE/RPE 仍为 `0.235/0.102 m`，latency p95 约 `161 ms`，孤立 ratio failure 消失，但同一 8 个 partial set 仍未通过平方残差门。参数级 `0.02 m/km` 对照仍是同一 8 次失败且无 fixed 输出，因此不继续抬高默认值。剩余稳定 L5/E5 fractional bias 必须按具体 PRN/arc 和天线/接收机/VRS phase bias 证据排查；继续膨胀 covariance 只会掩盖问题。
 
+逐项失败集合诊断随后确认连续评估使用完全相同的 arc 与卫星对：GPS signal 14 使用 reference PRN 24、target 18/23；Galileo signal 12/17 均使用 reference PRN 34、target PRN 3。GPS18 fractional 从 `+0.122` 漂至 `+0.214 cycle`，Galileo E5a 从 `-0.102` 漂至 `-0.131`，E5b 从 `-0.053` 漂至 `-0.099`。这不是固定 quarter-cycle offset，而是 float ambiguity 持续吸收变化的状态/地图几何误差。
+
+受控回放只把 line/plane sigma 从 `0.05 m` 提到 `5 m`，不改码、载波或整数门限。ratio/residual failure 消失并出现 3 次数值 fixed solution，但相对 FAST-LIO 的 APE/RPE 从 `0.235/0.102 m` 恶化为 `0.389/0.273 m`，且没有持续 FIXED 状态。该证据证明：由一次离线 `ecef_from_lidar_world` 变换得到的固定 FAST-LIO-world anchor 正在对抗 GNSS 全局校正。永久降低 LiDAR 权重不可接受；下一项架构修复必须把 local-map-to-ECEF 对齐作为 fixed-lag 内一致估计量，或用 FGO state 重建地图 anchor，使 LiDAR 保持局部形状、GNSS 可移动全局坐标系。
+
 `evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收

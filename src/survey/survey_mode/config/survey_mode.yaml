@@ -1,10 +1,10 @@
 /**:
   ros__parameters:
     # Maximum allowed distance (in meters) from the robot to a valid frontier or hypothesis navigation goal.
-    max_radius: 5.0
+    max_radius: 2.0
     
     # The maximum mapped area threshold. If the active map area exceeds this, the node gives up on finding a matching map and transitions to Pure_Mapping.
-    threshold_x: 6.0
+    threshold_x: 4.0
     
     # The minimum confidence score (0.0 to 1.0) required to transition from Autonomous_Exploration to Hypothesis_Testing (an initial map match guess).
     confidence_guess: 0.6
@@ -13,7 +13,7 @@
     confidence_confirm: 0.8
     
     # The minimum distance (in meters) the robot must physically travel during Hypothesis_Testing before a match can be fully confirmed.
-    min_confirm_distance: 3.0
+    min_confirm_distance: 2.0
     
     # The directory path where the previously saved maps and their localization descriptors (scan_context.yaml) are discovered and evaluated.
     map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'
@@ -28,13 +28,13 @@
     confirmed_match_topic: '/survey/confirmed_match'
     
     # The preferred minimum distance (in meters) from the robot to select a frontier point during autonomous exploration.
-    frontier_min_dist: 1.0
+    frontier_min_dist: 0.8
     
     # The absolute fallback minimum distance (in meters) to select a frontier point if no points meet the preferred frontier_min_dist.
     frontier_fallback_min_dist: 0.5
     
     # The preferred minimum distance (in meters) the robot should try to move towards a goal to gather new data while in Hypothesis_Testing mode.
-    hypothesis_min_dist: 2.0
+    hypothesis_min_dist: 1.2
     
     # The fallback minimum distance (in meters) for a goal during Hypothesis_Testing if standard points are unavailable.
     hypothesis_fallback_min_dist: 0.8

@@ -70,7 +70,7 @@ class SurveyNode(Node):
         
         # Map subscriber
         from rclpy.qos import QoSProfile, DurabilityPolicy
-        costmap_qos = QoSProfile(depth=10, durability=DurabilityPolicy.VOLATILE)
+        costmap_qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
         self.map_sub = self.create_subscription(OccupancyGrid, self.global_costmap_topic, self.map_callback, costmap_qos)
         self.occupancy_grid = None
         
@@ -228,6 +228,7 @@ class SurveyNode(Node):
 
     def get_real_hypothesis_goal(self):
         if self.occupancy_grid is None:
+            self.get_logger().warn("Cannot generate hypothesis goal: Occupancy grid is missing.", throttle_duration_sec=2.0)
             return None
             
         info = self.occupancy_grid.info
@@ -238,6 +239,7 @@ class SurveyNode(Node):
         
         current_x, current_y = self.get_current_pose()
         if current_x is None:
+            self.get_logger().warn("Cannot generate hypothesis goal: TF lookup for current pose failed.", throttle_duration_sec=2.0)
             return None
             
         points = []
@@ -266,6 +268,7 @@ class SurveyNode(Node):
                         points.append((wx, wy))
         
         if not points:
+            self.get_logger().warn("Cannot generate hypothesis goal: No free space found beyond minimum distance.", throttle_duration_sec=2.0)
             return None
             
         target = random.choice(points)

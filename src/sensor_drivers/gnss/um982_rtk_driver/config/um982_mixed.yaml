@@ -1,0 +1,38 @@
+um982_rtk_driver:
+  ros__parameters:
+    # Temporary vehicle test profile. Receiver changes must not be persisted until acceptance passes.
+    port: /dev/rtk_um982
+    baud: 921600
+    stream_mode: mixed
+    frame_id: gps
+    heading_offset_deg: 88.5
+    publish_raw: true
+    status_period_s: 1.0
+    read_chunk_bytes: 4096
+    max_read_batches_per_cycle: 16
+    read_timeout_ms: 20
+    max_payload_bytes: 65535
+    max_buffer_bytes: 131072
+    max_ascii_line_bytes: 1024
+    reconnect_period_s: 1.0
+    stale_ascii_timeout_s: 2.0
+    raw:
+      frame_id: gnss_raw
+      output_topic: /gnss/raw/frame
+      observation_topic: /gnss/raw/observation_epoch
+      ephemeris_topic: /gnss/raw/ephemeris
+      diagnostics_topic: /gnss/raw/diagnostics
+      reference_station_topic: /gnss/rtcm/reference_station
+      epoch_dedup_capacity: 256
+      stale_frame_timeout_s: 2.0
+    ntrip:
+      enabled: false
+      host: ""
+      port: 2101
+      mountpoint: ""
+      username: ""
+      password: ""
+      password_env: NTRIP_PASSWORD
+      send_gga_interval_s: 5.0
+      connect_requires_valid_gga: true
+      rtcm_max_buffer_bytes: 8192

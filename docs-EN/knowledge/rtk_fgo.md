@@ -4,6 +4,8 @@
 
 This page is both a design note and an early implementation record. A minimal `ament_cmake` skeleton for `rtk_fgo_localizer` now exists, with RTK GGA quality parsing, gate-decision core logic, the indoor/outdoor RTK recovery state machine, the correction smoother, a minimal GTSAM graph core, a ROS shadow node, an experimental launch/Make target, and matching gtests. The Nav2 remap has not been implemented yet.
 
+This implementation is a solution-level shadow FGO: GNSS still enters as `/fix` and `/heading`, while LiDAR enters as FAST-LIO odometry. It is not the raw pseudorange/carrier-phase/IMU/LiDAR observation-level coupling described by FGO-GIL. See the [FGO-GIL reproduction design and implementation plan](fgo_gil_reproduction.md) for the separate architecture, calibration initial values, development phases, and acceptance gates. The two paths must use different package/topic namespaces, with this implementation retained as a comparator.
+
 The planned system must be introduced as a new experimental mode. It must not replace or silently alter the current `corridor`, `explore-gps`, or `nav-gps` chains.
 
 Target first implementation boundary:

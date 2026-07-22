@@ -1,0 +1,299 @@
+fgo_gil_time_sync:
+  ros__parameters:
+    # Shadow-only Phase 3 frontend. It does not publish TF, odometry, or commands.
+    topics:
+      imu: /livox/imu
+      lidar: /livox/lidar
+      gnss_epoch: /gnss/raw/observation_epoch
+      gnss_pps: /gnss/pps/time_reference
+      imu_time_reference: /livox/imu_time_reference
+      lidar_time_reference: /livox/lidar_time_reference
+      diagnostics: /fgo_gil/time_sync_diagnostics
+      status: /fgo_gil/timing_status
+
+    # The current Livox driver stamps production messages with ROS now(). Switch to
+    # device only after matching TimeReference topics are present and validated.
+    imu_stamp_domain: ros
+    lidar_stamp_domain: ros
+
+    time_sync:
+      window_size: 32
+      min_coarse_samples: 5
+      min_pps_samples: 2
+      max_offset_jump_s: 0.5
+      coarse_timeout_s: 5.0
+      pps_timeout_s: 2.0
+      coarse_uncertainty_floor_s: 0.02
+      pps_uncertainty_floor_s: 0.0001
+      gnss_reception_uncertainty_s: 0.02
+      device_reference_uncertainty_s: 0.001
+      device_reference_locked: true
+      gnss_max_forward_gap_s: 10.0
+
+    imu_buffer:
+      capacity: 4096
+      max_gap_s: 0.05
+
+    lidar_max_gap_s: 0.5
+    diagnostics_period_s: 1.0
+
+fgo_gil_lidar_frontend:
+  ros__parameters:
+    # Phase 4 remains shadow-only. FAST-LIO odometry supplies an initial state but
+    # is never converted into a LiDAR factor or republished as FGO odometry.
+    topics:
+      imu: /livox/imu
+      lidar: /livox/lidar
+      initial_odom: /fastlio2/lio_odom
+      time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
+      gnss_epoch: /gnss/raw/observation_epoch
+      diagnostics: /fgo_gil/lidar_diagnostics
+      constraints: /fgo_gil/lidar_constraints
+
+    frames:
+      lidar_world: odom
+
+    buffers:
+      imu_capacity: 8192
+      odom_capacity: 100
+      pending_scan_capacity: 4
+      pending_scan_timeout_s: 0.5
+
+    initialization:
+      maximum_odom_age_s: 0.5
+      # The current Livox Imu message reports acceleration in g; FAST-LIO applies
+      # an approximately 10x scale. Use standard gravity here and revalidate on bag.
+      acceleration_scale: 9.80665
+      require_time_sync: true
+      time_sync_timeout_s: 2.0
+      gnss_availability_timeout_s: 2.0
+
+    preprocessing:
+      point_stride: 1
+      minimum_range_m: 0.5
+      maximum_range_m: 25.0
+      maximum_line_exclusive: 4
+
+    deskew:
+      maximum_imu_gap_s: 0.05
+      maximum_trajectory_duration_s: 1.0
+      accelerometer_bias_m_s2: [0.0, 0.0, 0.0]
+      gyroscope_bias_rad_s: [0.0, 0.0, 0.0]
+      gravity_world_m_s2: [0.0, 0.0, -9.80665]
+      rotation_imu_lidar_wxyz: [1.0, 0.0, 0.0, 0.0]
+      # Same LiDAR -> IMU translation currently used by FAST-LIO.
+      translation_imu_lidar_m: [-0.011, -0.02329, 0.04412]
+
+    features:
+      neighbor_span: 2
+      minimum_points_per_line: 9
+      maximum_edge_per_line: 30
+      maximum_plane_per_line: 80
+      suppression_radius: 2
+      edge_curvature_threshold: 0.02
+      plane_curvature_threshold: 0.001
+      minimum_edge_per_frame: 8
+      minimum_plane_per_frame: 20
+
+    keyframes:
+      translation_threshold_m: 0.5
+      rotation_threshold_rad: 0.17453292519943295
+      elapsed_time_threshold_s: 1.0
+      maximum_keyframes: 20
+      maximum_edge_points: 300
+      maximum_plane_points: 800
+      submap_radius_m: 20.0
+      edge_voxel_size_m: 0.15
+      plane_voxel_size_m: 0.25
+
+    matcher:
+      nearest_neighbors: 5
+      maximum_neighbor_distance_m: 1.0
+      minimum_line_eigen_ratio: 3.0
+      minimum_line_eigenvalue: 0.0001
+      maximum_plane_eigen_ratio: 0.10
+      minimum_plane_second_eigenvalue: 0.0001
+      maximum_plane_fit_residual_m: 0.10
+      minimum_line_matches: 8
+      minimum_plane_matches: 20
+      huber_delta_m: 0.20
+      minimum_information_eigenvalue: 0.001
+      maximum_information_condition: 100000000.0
+
+    diagnostics_period_s: 1.0
+
+fgo_gil_float_fgo:
+  ros__parameters:
+    # Phase 6 stays shadow-only: this node publishes ECEF odometry topics but
+    # never publishes TF, map->odom, or commands.
+    topics:
+      imu: /livox/imu
+      lidar_constraints: /fgo_gil/lidar_constraints
+      fix: /fix
+      rtk_nmea: /rtk/nmea_sentence
+      gnss_epoch: /gnss/raw/observation_epoch
+      ephemeris: /gnss/raw/ephemeris
+      reference_station: /gnss/rtcm/reference_station
+      time_sync_diagnostics: /fgo_gil/time_sync_diagnostics
+      odometry: /fgo_gil/float_odom_ecef
+      fixed_odometry: /fgo_gil/fixed_odom_ecef
+      output_odometry: /fgo_gil/odom
+      path: /fgo_gil/path
+      diagnostics: /fgo_gil/float_diagnostics
+      factor_diagnostics: /fgo_gil/factor_diagnostics
+      ambiguity_status: /fgo_gil/ambiguity_status
+      performance: /fgo_gil/performance
+
+    frames:
+      ecef: ecef
+      body: imu_link
+
+    calibration:
+      ecef_from_lidar_world:
+        # Keep false until the ECEF/world orientation and translation are measured.
+        calibrated: false
+        translation_m: [0.0, 0.0, 0.0]
+        rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+      gnss:
+        # CORS station ECEF is still unknown. The DD path fails closed while false.
+        base_ecef_calibrated: false
+        base_ecef_m: [0.0, 0.0, 0.0]
+        dynamic_base:
+          enabled: true
+          change_threshold_m: 0.01
+        # Master/right antenna in IMU coordinates: base_link [0,-0.184,0.154]
+        # minus the current IMU-in-base translation [0,0,0.02].
+        master_in_imu_m: [0.0, -0.184, 0.134]
+      imu_lidar:
+        translation_m: [-0.011, -0.02329, 0.04412]
+        rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+
+    buffers:
+      imu_capacity: 8192
+      # Keep enough DDS history for scheduling jitter while the optimizer runs.
+      # IMU ingestion itself runs in a separate callback group.
+      imu_qos_depth: 512
+      raw_input_qos_depth: 512
+      maximum_imu_gap_s: 0.05
+      pending_lidar_batches: 16
+      pending_lidar_timeout_s: 0.5
+      pending_raw_epochs: 1024
+      pending_ephemerides: 64
+      pending_reference_stations: 16
+      pending_gnss_epochs: 128
+      maximum_ephemerides: 256
+
+    imu:
+      acceleration_scale: 9.80665
+
+    time:
+      maximum_gnss_keyframe_offset_s: 0.10
+      maximum_sync_age_s: 2.0
+      maximum_clock_uncertainty_s: 0.05
+
+    raw_input:
+      startup_grace_s: 5.0
+      observation_stale_timeout_s: 2.0
+      ephemeris_stale_timeout_s: 300.0
+
+    output:
+      maximum_path_poses: 2000
+
+    # Phase 7 is observation-only. The node refuses to start if either flag is true.
+    safety:
+      publish_tf: false
+      nav2_use_fgo: false
+
+    window:
+      duration_s: 10.0
+      maximum_states: 20
+
+    optimizer:
+      maximum_iterations: 6
+      initial_damping: 0.000001
+      convergence_delta_norm: 0.000001
+      maximum_condition_estimate: 1000000000000.0
+      lidar_line_sigma_m: 0.05
+      lidar_plane_sigma_m: 0.05
+      lidar_huber_delta_sigma: 2.5
+      maximum_line_factors_per_keyframe: 48
+      maximum_plane_factors_per_keyframe: 96
+      # Keep FAST-LIO geometry local while GNSS corrects its global ECEF placement.
+      estimate_lidar_map_alignment: true
+      map_alignment_translation_prior_sigma_m: 0.05
+      map_alignment_rotation_prior_sigma_rad: 0.005
+      gnss_code_huber_delta_sigma: 2.5
+      gnss_carrier_huber_delta_sigma: 2.5
+
+    # The production shadow graph uses the UM982's q=4 receiver solution. Raw
+    # DD/LAMBDA can be re-enabled only for isolated research replay; never enable
+    # both paths in the same graph because their measurements are correlated.
+    raw_dd:
+      enabled: false
+
+    receiver_solution:
+      enabled: true
+      maximum_keyframe_offset_s: 0.20
+      maximum_quality_offset_s: 0.25
+      fixed_quality_code: 4
+      minimum_satellites: 10
+      maximum_hdop: 2.0
+      maximum_position_innovation_m: 5.0
+      # UM982 publishes ENU covariance. Keep the q=4 factor realistic in the
+      # presence of residual multipath and a less precise vertical component.
+      minimum_horizontal_sigma_m: 0.03
+      maximum_horizontal_sigma_m: 0.25
+      minimum_vertical_sigma_m: 0.08
+      maximum_vertical_sigma_m: 0.50
+      position_huber_delta_sigma: 2.5
+
+    # LAMBDA remains available only when raw_dd.enabled is true. Accepted
+    # candidates are published on the fixed topic, never written into the
+    # float fixed-lag graph. GLONASS FDMA is excluded from fixing.
+    integer_fixing:
+      enabled: true
+      partial_fixing: true
+      minimum_ambiguities: 4
+      minimum_observation_epochs: 5
+      minimum_consecutive_fixes: 3
+      ratio_threshold: 3.0
+      minimum_success_rate: 0.99
+      maximum_squared_norm: 25.0
+      maximum_position_correction_m: 0.50
+      maximum_rotation_correction_rad: 0.10
+      maximum_velocity_correction_m_s: 1.0
+      maximum_cost_increase: 5.0
+
+    prior:
+      position_sigma_m: 1.0
+      rotation_sigma_rad: 0.2
+      velocity_sigma_m_s: 1.0
+      accelerometer_bias_sigma_m_s2: 0.1
+      gyroscope_bias_sigma_rad_s: 0.01
+
+    imu_factor:
+      position_sigma_m: 0.10
+      rotation_sigma_rad: 0.02
+      velocity_sigma_m_s: 0.10
+      accelerometer_bias_sigma_m_s2: 0.01
+      gyroscope_bias_sigma_rad_s: 0.001
+
+    gnss:
+      maximum_epoch_offset_s: 0.020
+      minimum_elevation_deg: 10.0
+      minimum_cn0_db_hz: 25.0
+      reference_switch_margin_deg: 5.0
+      maximum_baseline_m: 20000.0
+      maximum_code_innovation_m: 30.0
+      maximum_kepler_age_s: 14400.0
+      maximum_glonass_age_s: 1800.0
+      arc_maximum_gap_s: 2.0
+      base_arc_maximum_gap_s: 5.0
+      doppler_phase_threshold_cycles: 0.75
+      # OBSVBASE currently reports zero standard deviations; zero means unavailable.
+      unavailable_base_code_sigma_m: 0.30
+      unavailable_base_carrier_sigma_m: 0.01
+      # Residual short-baseline atmosphere/multipath model, mapped by 1/sin(elevation).
+      carrier_model_sigma_zenith_m_per_km: 0.01
+
+    diagnostics_period_s: 1.0

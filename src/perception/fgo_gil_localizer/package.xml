@@ -1,24 +1,25 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>um982_rtk_driver</name>
+  <name>fgo_gil_localizer</name>
   <version>0.1.0</version>
-  <description>C++ ROS 2 driver for the UM982 dual-antenna RTK receiver.</description>
+  <description>Shadow-only raw IMU, LiDAR, and GNSS double-difference fixed-lag estimator.</description>
   <maintainer email="Kevinlasnh@outlook.com">FYP Team</maintainer>
   <license>MIT</license>
+  <license>BSD-2-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>diagnostic_msgs</depend>
+  <depend>eigen</depend>
+  <depend>fgo_gil_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>gnss_raw_msgs</depend>
+  <depend>livox_ros_driver2</depend>
+  <depend>nav_msgs</depend>
   <depend>nmea_msgs</depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
-  <depend>serial</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2</depend>
-  <depend>um982_raw_driver</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>ament_lint_auto</test_depend>

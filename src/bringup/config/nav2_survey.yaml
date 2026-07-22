@@ -291,32 +291,38 @@ controller_server:
     # MPPI 控制器参数块；负责采样候选轨迹并结合 costmap 代价做局部避障。 (MPPI controller parameter block; responsible for sampling candidate trajectories and combining costmap costs for local obstacle avoidance.)
     # 改成其它结构或缺少子参数：局部跟踪行为会明显变化。 (Incorrect structure or missing sub-parameters: local tracking behavior will change significantly.)
     FollowPath:
-      # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。 (Plugin class name; determines which Nav2 implementation this parameter block ultimately loads.)
-      # 改成不存在或不兼容的插件：对应功能块会加载失败。 (Incorrect or incompatible plugin: corresponding functional block will fail to load.)
-      plugin: "nav2_mppi_controller::MPPIController"
-      time_steps: 12
-      model_dt: 0.1
+      plugin: "nav2_rotation_shim_controller::RotationShimController"
+      primary_controller: "nav2_mppi_controller::MPPIController"
+      angular_dist_threshold: 0.65
+      angular_disengage_threshold: 0.35
+      forward_sampling_distance: 0.65
+      rotate_to_heading_angular_vel: 0.24
+      max_angular_accel: 0.65
+      simulate_ahead_time: 1.0
+      rotate_to_goal_heading: false
+      closed_loop: false
+      time_steps: 24
+      model_dt: 0.0666667
       batch_size: 128
-      vx_std: 0.28
+      vx_std: 0.16
       vy_std: 0.0
-      wz_std: 0.22
-      vx_max: 0.3   # Changed from 1.0
+      wz_std: 0.10
+      vx_max: 0.30
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 1.2
-      wz_min: -1.2
-      ax_max: 1.2
-      ax_min: -3.0
-      az_max: 6.0
-      az_min: -6.0
+      wz_max: 0.65
+      wz_min: -0.65
+      ax_max: 0.40
+      ax_min: -0.8
+      az_max: 2.0
+      az_min: -2.0
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
       temperature: 0.3
       gamma: 0.015
       motion_model: "DiffDrive"
-      publish_critics_stats: true
-      open_loop: true
+      publish_critics_stats: false
       visualize: false
       reset_period: 1.0
       regenerate_noises: false
@@ -333,7 +339,7 @@ controller_server:
         - "PathAlignCritic"
         - "PathFollowCritic"
         - "PathAngleCritic"
-        - "PreferForwardCritic"
+        - "VelocityDeadbandCritic"
 
       ConstraintCritic:
         enabled: true
@@ -345,10 +351,9 @@ controller_server:
         cost_power: 1
         cost_weight: 4.5
         critical_cost: 300.0
-        consider_footprint: false
+        consider_footprint: true
         collision_cost: 1000000.0
         near_goal_distance: 1.0
-        trajectory_point_step: 2
 
       GoalCritic:
         enabled: true
@@ -362,18 +367,18 @@ controller_server:
         cost_weight: 3.0
         threshold_to_consider: 0.5
 
-      PreferForwardCritic:
+      VelocityDeadbandCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 5.0
-        threshold_to_consider: 0.5
+        cost_weight: 15.0
+        deadband_velocities: [0.12, 0.0, 0.08]
 
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 12.0
+        cost_weight: 6.0
         max_path_occupancy_ratio: 0.05
-        trajectory_point_step: 4
+        trajectory_point_step: 5
         threshold_to_consider: 0.5
         offset_from_furthest: 6
         use_path_orientations: false
@@ -381,7 +386,7 @@ controller_server:
       PathFollowCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 16.0
+        cost_weight: 12.0
         offset_from_furthest: 5
         threshold_to_consider: 1.4
 

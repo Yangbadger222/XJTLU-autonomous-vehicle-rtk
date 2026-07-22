@@ -527,6 +527,7 @@ ros2 action list | grep follow_path
 
 # 检查统一 authority 和受保护速度链
 ros2 topic echo /localization_authority/motion_allowed
+ros2 topic echo /localization_authority/max_linear_speed_mps
 ros2 topic echo /gps_nav/stop_override
 ros2 topic echo /cmd_vel_nav
 ros2 topic echo /cmd_vel
@@ -545,13 +546,13 @@ python3 scripts/nav_gps_menu.py
 - scene identity 模式在 RTK position/heading gate 首次稳定锁定后直接建立绝对 `map→odom`；因此可从路网任意位置启动，后续更新仍经过 corridor authority 的平滑、跳变和 fault gate。
 - 若 `current_scene/road_keepout.yaml` 存在，local/global costmap 会启用 KeepoutFilter，车辆可在道路面内避障但不能驶出道路面。
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
-- `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`；authority 失效时取消当前路径并停车，连续恢复后从当前位置重新 A*。
+- `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`。authority 已锁定后的短时 RTK 失效会进入 `LIO_BRIDGE`：冻结 GPS 推导的 `map->odom`，保留 FAST-LIO 的 `odom->base_footprint`，线速度限制为 `0.35m/s`，最多 `12s` 或 `5m`。原有 map 坐标系 A* 路线继续有效；LIO 过期/跳变、接力预算耗尽或 authority fault 仍会停车，并只在恢复后重规划。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
 - MPPI 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，实车采样量收敛为 `batch_size=200`、`time_steps=32`，A* 连续路径按 `0.35m` 加密；1.6 秒预测视野下相比旧 `500x48` 每周期轨迹仿真量降低约73%。只有全部轨迹碰撞时才额外执行最多 3 轮噪声重采样，正常控制周期不增加这部分计算。
 - 动态障碍使 `FollowPath` abort 时，goal manager 不再清空目的地：先进入 `BLOCKED_WAIT` 并保持零速，每 `2s` 从当前位置重新 A*。重试后 LIO 连续运动 `3s` 才发布 `BLOCKED_RECOVERED`；持续阻塞 `60s` 才最终失败，期间可用菜单 `s` 主动取消。
 - `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
 - 当前 RTK-authority/A* 链默认不启动旧 `gps_anchor_localizer`，因为规划与运动许可均不依赖 anchor 或 `/gnss`；兼容实验可设置 `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true`。
-- 默认 lean bag 记录 RTK、FAST-LIO2 odom、`/rtk_fgo/*`、TF、goal/authority 状态、三层速度和 `/plan`；200Hz Livox IMU、底盘 `/odom_CBoar`、local/global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。
+- 默认 lean bag 记录 RTK、FAST-LIO2 odom、`/rtk_fgo/*`、TF、authority mode/status/motion/speed-limit、goal 状态、三层速度和 `/plan`；200Hz Livox IMU、底盘 `/odom_CBoar`、local/global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。
 - 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 
 ## 14. Fixed-Launch GPS Corridor

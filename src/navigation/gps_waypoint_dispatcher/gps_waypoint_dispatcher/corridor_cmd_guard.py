@@ -21,6 +21,7 @@ class CorridorCommandGuard:
         min_turn_rate_radps: float = 0.05,
         command_timeout_s: float = 0.25,
         heartbeat_timeout_s: float = 0.50,
+        require_speed_limit: bool = False,
     ) -> None:
         values = (
             straight_max_mps,
@@ -36,12 +37,15 @@ class CorridorCommandGuard:
         self.min_turn_rate_radps = min_turn_rate_radps
         self.command_timeout_s = command_timeout_s
         self.heartbeat_timeout_s = heartbeat_timeout_s
+        self.require_speed_limit = bool(require_speed_limit)
         self._command: tuple[float, float] | None = None
         self._command_received_s: float | None = None
         self._authority_allowed: bool | None = None
         self._authority_received_s: float | None = None
         self._stop_override: bool | None = None
         self._stop_received_s: float | None = None
+        self._speed_limit_mps: float | None = None
+        self._speed_limit_received_s: float | None = None
 
     def update_command(
         self, linear_x: float, angular_z: float, *, received_s: float
@@ -56,6 +60,10 @@ class CorridorCommandGuard:
     def update_stop_override(self, stop: bool, *, received_s: float) -> None:
         self._stop_override = bool(stop)
         self._stop_received_s = received_s
+
+    def update_speed_limit(self, max_linear_speed_mps: float, *, received_s: float) -> None:
+        self._speed_limit_mps = float(max_linear_speed_mps)
+        self._speed_limit_received_s = received_s
 
     @staticmethod
     def _age(now_s: float, received_s: float | None) -> float:
@@ -86,6 +94,17 @@ class CorridorCommandGuard:
             return self._zero("MOTION_AUTHORITY_FALSE")
         if self._stop_override:
             return self._zero("STOP_OVERRIDE_TRUE")
+        if self.require_speed_limit and self._speed_limit_mps is None:
+            return self._zero("SPEED_LIMIT_UNAVAILABLE")
+        if self.require_speed_limit and (
+            self._age(now_s, self._speed_limit_received_s) > self.heartbeat_timeout_s
+        ):
+            return self._zero("SPEED_LIMIT_STALE")
+        if self._speed_limit_mps is not None:
+            if not math.isfinite(self._speed_limit_mps) or self._speed_limit_mps < 0.0:
+                return self._zero("SPEED_LIMIT_INVALID")
+            if self._speed_limit_mps == 0.0:
+                return self._zero("SPEED_LIMIT_ZERO")
 
         linear_x, angular_z = self._command
         if not all(math.isfinite(value) for value in (linear_x, angular_z)):
@@ -95,5 +114,7 @@ class CorridorCommandGuard:
             self.turn_product_limit
             / max(abs(angular_z), self.min_turn_rate_radps),
         )
+        if self._speed_limit_mps is not None:
+            v_limit = min(v_limit, self._speed_limit_mps)
         limited_x = math.copysign(min(abs(linear_x), v_limit), linear_x)
         return GuardedCommand(limited_x, angular_z, True, "ALLOWED")

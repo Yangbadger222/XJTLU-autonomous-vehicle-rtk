@@ -225,6 +225,7 @@
     status_topic: /localization_authority/status
     diagnostics_topic: /localization_authority/diagnostics
     motion_allowed_topic: /localization_authority/motion_allowed
+    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps
     # 与 corridor route / global aligner 使用同一固定 ENU 原点。
     enu_origin_lat: 31.274927
     enu_origin_lon: 120.737548
@@ -268,11 +269,22 @@
     recovery_translation_m: 0.15
     recovery_yaw_deg: 2.0
     recovery_confirmation_s: 1.0
+    # RTK 短时退化时冻结最后可信 map->odom，由 FAST-LIO (LiDAR+IMU) 在
+    # 有界时间/里程内接力；绝不把未受约束的 local odom 当作全局真值。
+    enable_local_odom_bridge: true
+    local_bridge_max_duration_s: 12.0
+    local_bridge_max_distance_m: 5.0
+    local_bridge_max_step_translation_m: 0.50
+    local_bridge_max_step_yaw_deg: 15.0
+    # normal 时由各模式 guard 的 straight_max_mps 再次限速；接力态必须低速。
+    rtk_authoritative_max_linear_speed_mps: 2.0
+    local_bridge_max_linear_speed_mps: 0.35
 
 /corridor_cmd_vel_guard:
   ros__parameters:
     input_topic: /cmd_vel
     motion_allowed_topic: /localization_authority/motion_allowed
+    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps
     stop_override_topic: /gps_corridor/stop_override
     output_topic: /cmd_vel_guarded
     straight_max_mps: 0.85
@@ -280,6 +292,7 @@
     min_turn_rate_radps: 0.05
     command_timeout_s: 0.25
     heartbeat_timeout_s: 0.50
+    require_speed_limit: true
 
 /gps_route_runner:
   ros__parameters:

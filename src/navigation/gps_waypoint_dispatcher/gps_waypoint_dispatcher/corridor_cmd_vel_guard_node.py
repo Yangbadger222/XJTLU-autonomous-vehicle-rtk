@@ -6,7 +6,7 @@ import time
 import rclpy
 from geometry_msgs.msg import Twist
 from rclpy.node import Node
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 from gps_waypoint_dispatcher.corridor_cmd_guard import CorridorCommandGuard
 
@@ -16,6 +16,10 @@ class CorridorCmdVelGuard(Node):
         super().__init__("corridor_cmd_vel_guard")
         self.declare_parameter("input_topic", "/cmd_vel")
         self.declare_parameter("motion_allowed_topic", "/localization_authority/motion_allowed")
+        self.declare_parameter(
+            "motion_speed_limit_topic",
+            "/localization_authority/max_linear_speed_mps",
+        )
         self.declare_parameter("stop_override_topic", "/gps_corridor/stop_override")
         self.declare_parameter("output_topic", "/cmd_vel_guarded")
         self.declare_parameter("straight_max_mps", 0.85)
@@ -23,6 +27,7 @@ class CorridorCmdVelGuard(Node):
         self.declare_parameter("min_turn_rate_radps", 0.05)
         self.declare_parameter("command_timeout_s", 0.25)
         self.declare_parameter("heartbeat_timeout_s", 0.50)
+        self.declare_parameter("require_speed_limit", True)
 
         self._guard = CorridorCommandGuard(
             straight_max_mps=float(self.get_parameter("straight_max_mps").value),
@@ -33,6 +38,9 @@ class CorridorCmdVelGuard(Node):
             command_timeout_s=float(self.get_parameter("command_timeout_s").value),
             heartbeat_timeout_s=float(
                 self.get_parameter("heartbeat_timeout_s").value
+            ),
+            require_speed_limit=bool(
+                self.get_parameter("require_speed_limit").value
             ),
         )
         self._output_pub = self.create_publisher(
@@ -48,6 +56,12 @@ class CorridorCmdVelGuard(Node):
             Bool,
             str(self.get_parameter("motion_allowed_topic").value),
             self._authority_callback,
+            10,
+        )
+        self._speed_limit_sub = self.create_subscription(
+            Float32,
+            str(self.get_parameter("motion_speed_limit_topic").value),
+            self._speed_limit_callback,
             10,
         )
         self._stop_sub = self.create_subscription(
@@ -67,6 +81,9 @@ class CorridorCmdVelGuard(Node):
 
     def _authority_callback(self, msg: Bool) -> None:
         self._guard.update_authority(msg.data, received_s=time.monotonic())
+
+    def _speed_limit_callback(self, msg: Float32) -> None:
+        self._guard.update_speed_limit(msg.data, received_s=time.monotonic())
 
     def _stop_callback(self, msg: Bool) -> None:
         self._guard.update_stop_override(msg.data, received_s=time.monotonic())

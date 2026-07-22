@@ -35,6 +35,30 @@ def test_guard_applies_same_magnitude_limit_in_reverse():
     assert result.angular_z == pytest.approx(-0.70)
 
 
+def test_guard_applies_authority_speed_limit_when_present():
+    guard = _ready_guard()
+    guard.update_speed_limit(0.35, received_s=10.0)
+    guard.update_command(0.85, 0.0, received_s=10.0)
+
+    result = guard.evaluate(now_s=10.1)
+
+    assert result.allowed is True
+    assert result.linear_x == pytest.approx(0.35)
+
+
+def test_guard_fails_closed_when_required_speed_limit_is_missing_or_stale():
+    guard = _ready_guard(require_speed_limit=True)
+    guard.update_command(0.40, 0.0, received_s=10.0)
+
+    assert guard.evaluate(now_s=10.1).reason == "SPEED_LIMIT_UNAVAILABLE"
+
+    guard.update_speed_limit(0.35, received_s=10.0)
+    guard.update_command(0.40, 0.0, received_s=10.4)
+    guard.update_authority(True, received_s=10.4)
+    guard.update_stop_override(False, received_s=10.4)
+    assert guard.evaluate(now_s=10.6).reason == "SPEED_LIMIT_STALE"
+
+
 @pytest.mark.parametrize(
     ("linear_x", "angular_z"),
     [(math.nan, 0.0), (0.2, math.inf), (-math.inf, 0.1)],
@@ -104,6 +128,7 @@ def test_guard_node_contract_and_setup_entrypoint():
 
     assert '"/cmd_vel"' in node_text
     assert '"/localization_authority/motion_allowed"' in node_text
+    assert '"/localization_authority/max_linear_speed_mps"' in node_text
     assert '"/gps_corridor/stop_override"' in node_text
     assert '"/cmd_vel_guarded"' in node_text
     assert "time.monotonic()" in node_text

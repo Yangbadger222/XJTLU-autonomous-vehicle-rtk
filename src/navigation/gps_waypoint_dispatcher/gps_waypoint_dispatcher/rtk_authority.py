@@ -36,6 +36,141 @@ class Pose2D:
     yaw: float
 
 
+class LocalOdomBridgeState(Enum):
+    IDLE = "IDLE"
+    ACTIVE = "ACTIVE"
+    EXHAUSTED = "EXHAUSTED"
+
+
+@dataclass(frozen=True)
+class LocalOdomBridgeResult:
+    allowed: bool
+    state: LocalOdomBridgeState
+    reason: str
+    elapsed_s: float
+    distance_m: float
+
+
+class LocalOdomBridge:
+    """Bounded dead-reckoning bridge after a trusted global localization loss.
+
+    The caller must reset this state only after global authority has recovered.
+    A bridge that has exhausted a safety budget is intentionally latched off so
+    an ongoing GNSS outage cannot repeatedly re-arm it.
+    """
+
+    def __init__(
+        self,
+        *,
+        max_duration_s: float,
+        max_distance_m: float,
+        max_step_translation_m: float,
+        max_step_yaw_rad: float,
+    ) -> None:
+        values = (
+            max_duration_s,
+            max_distance_m,
+            max_step_translation_m,
+            max_step_yaw_rad,
+        )
+        if not all(math.isfinite(value) and value > 0.0 for value in values):
+            raise ValueError("local odom bridge limits must be finite and positive")
+        self.max_duration_s = max_duration_s
+        self.max_distance_m = max_distance_m
+        self.max_step_translation_m = max_step_translation_m
+        self.max_step_yaw_rad = max_step_yaw_rad
+        self._state = LocalOdomBridgeState.IDLE
+        self._reason = "NOT_ARMED"
+        self._started_s: float | None = None
+        self._last_pose: Pose2D | None = None
+        self._distance_m = 0.0
+        self._last_now_s: float | None = None
+
+    @property
+    def state(self) -> LocalOdomBridgeState:
+        return self._state
+
+    def reset(self) -> None:
+        self._state = LocalOdomBridgeState.IDLE
+        self._reason = "NOT_ARMED"
+        self._started_s = None
+        self._last_pose = None
+        self._distance_m = 0.0
+        self._last_now_s = None
+
+    def evaluate(
+        self,
+        *,
+        now_s: float,
+        local_pose: Pose2D | None,
+        local_fresh: bool,
+    ) -> LocalOdomBridgeResult:
+        if self._state is LocalOdomBridgeState.EXHAUSTED:
+            return self._result(False)
+        if not math.isfinite(now_s):
+            return self._exhaust("INVALID_PROCESS_TIME")
+        self._last_now_s = now_s
+        if not local_fresh:
+            return self._exhaust("LOCAL_ODOM_STALE")
+        if local_pose is None or not all(
+            math.isfinite(value) for value in (local_pose.x, local_pose.y, local_pose.yaw)
+        ):
+            return self._exhaust("LOCAL_ODOM_INVALID")
+
+        if self._state is LocalOdomBridgeState.IDLE:
+            self._state = LocalOdomBridgeState.ACTIVE
+            self._reason = "ACTIVE"
+            self._started_s = now_s
+            self._last_pose = local_pose
+            self._distance_m = 0.0
+            return self._result(True)
+
+        if self._last_pose is None or self._started_s is None:
+            return self._exhaust("BRIDGE_STATE_INVALID")
+        if now_s < self._started_s:
+            return self._exhaust("REGRESSING_PROCESS_TIME")
+
+        step_translation_m = math.hypot(
+            local_pose.x - self._last_pose.x,
+            local_pose.y - self._last_pose.y,
+        )
+        step_yaw_rad = abs(normalize_angle(local_pose.yaw - self._last_pose.yaw))
+        if not math.isfinite(step_translation_m) or not math.isfinite(step_yaw_rad):
+            return self._exhaust("LOCAL_ODOM_INVALID")
+        if step_translation_m > self.max_step_translation_m:
+            return self._exhaust("LOCAL_ODOM_TRANSLATION_JUMP")
+        if step_yaw_rad > self.max_step_yaw_rad:
+            return self._exhaust("LOCAL_ODOM_YAW_JUMP")
+
+        self._last_pose = local_pose
+        self._distance_m += step_translation_m
+        elapsed_s = now_s - self._started_s
+        if elapsed_s > self.max_duration_s:
+            return self._exhaust("MAX_BRIDGE_DURATION")
+        if self._distance_m > self.max_distance_m:
+            return self._exhaust("MAX_BRIDGE_DISTANCE")
+        return self._result(True)
+
+    def _exhaust(self, reason: str) -> LocalOdomBridgeResult:
+        self._state = LocalOdomBridgeState.EXHAUSTED
+        self._reason = reason
+        return self._result(False)
+
+    def _result(self, allowed: bool) -> LocalOdomBridgeResult:
+        elapsed_s = (
+            0.0
+            if self._started_s is None or self._last_now_s is None
+            else max(0.0, self._last_now_s - self._started_s)
+        )
+        return LocalOdomBridgeResult(
+            allowed=allowed,
+            state=self._state,
+            reason=self._reason,
+            elapsed_s=elapsed_s,
+            distance_m=self._distance_m,
+        )
+
+
 @dataclass(frozen=True)
 class StampedPose:
     stamp_s: float

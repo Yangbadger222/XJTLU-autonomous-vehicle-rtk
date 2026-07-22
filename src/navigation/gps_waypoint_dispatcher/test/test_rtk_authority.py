@@ -9,6 +9,8 @@ from gps_waypoint_dispatcher.rtk_authority import (
     CorrectionReleaseMode,
     CorrectionReleaseReason,
     CorrectionReleaseState,
+    LocalOdomBridge,
+    LocalOdomBridgeState,
     Pose2D,
     StampedPoseHistory,
     blend_pose_target,
@@ -128,6 +130,76 @@ def test_stamped_pose_history_rejects_wrong_frames(frames, reason):
     assert result.accepted is False
     assert result.reason == reason
     assert len(history) == 0
+
+
+def test_local_odom_bridge_allows_a_bounded_continuation():
+    bridge = LocalOdomBridge(
+        max_duration_s=12.0,
+        max_distance_m=5.0,
+        max_step_translation_m=0.50,
+        max_step_yaw_rad=math.radians(15.0),
+    )
+
+    first = bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True)
+    moving = bridge.evaluate(
+        now_s=12.0, local_pose=_pose(x=0.40, yaw=math.radians(5.0)), local_fresh=True
+    )
+
+    assert first.allowed is True
+    assert moving.allowed is True
+    assert moving.state is LocalOdomBridgeState.ACTIVE
+    assert moving.elapsed_s == pytest.approx(2.0)
+    assert moving.distance_m == pytest.approx(0.40)
+
+
+@pytest.mark.parametrize(
+    ("now_s", "pose", "local_fresh", "reason", "max_step_translation_m"),
+    [
+        (22.1, _pose(), True, "MAX_BRIDGE_DURATION", 0.50),
+        (11.0, _pose(x=5.1), True, "MAX_BRIDGE_DISTANCE", 6.0),
+        (11.0, _pose(x=0.6), True, "LOCAL_ODOM_TRANSLATION_JUMP", 0.50),
+        (11.0, _pose(yaw=math.radians(16.0)), True, "LOCAL_ODOM_YAW_JUMP", 0.50),
+        (11.0, _pose(), False, "LOCAL_ODOM_STALE", 0.50),
+    ],
+)
+def test_local_odom_bridge_latches_off_when_its_safety_budget_breaks(
+    now_s, pose, local_fresh, reason, max_step_translation_m
+):
+    bridge = LocalOdomBridge(
+        max_duration_s=12.0,
+        max_distance_m=5.0,
+        max_step_translation_m=max_step_translation_m,
+        max_step_yaw_rad=math.radians(15.0),
+    )
+    assert bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True).allowed
+
+    rejected = bridge.evaluate(now_s=now_s, local_pose=pose, local_fresh=local_fresh)
+    still_rejected = bridge.evaluate(
+        now_s=11.1, local_pose=_pose(x=0.1), local_fresh=True
+    )
+
+    assert rejected.allowed is False
+    assert rejected.state is LocalOdomBridgeState.EXHAUSTED
+    assert rejected.reason == reason
+    assert still_rejected.allowed is False
+    assert still_rejected.reason == reason
+
+
+def test_local_odom_bridge_only_rearms_after_trusted_authority_resets_it():
+    bridge = LocalOdomBridge(
+        max_duration_s=1.0,
+        max_distance_m=5.0,
+        max_step_translation_m=0.50,
+        max_step_yaw_rad=math.radians(15.0),
+    )
+    assert bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True).allowed
+    assert not bridge.evaluate(now_s=11.1, local_pose=_pose(), local_fresh=True).allowed
+
+    bridge.reset()
+    rearmed = bridge.evaluate(now_s=12.0, local_pose=_pose(), local_fresh=True)
+
+    assert rearmed.allowed is True
+    assert rearmed.state is LocalOdomBridgeState.ACTIVE
 
 
 @pytest.mark.parametrize("stamp_s", [0.0, -1.0, math.inf, math.nan])
@@ -2490,15 +2562,15 @@ def test_rtk_map_odom_corrector_rebroadcasts_last_trusted_tf_when_degraded():
     ).read()
 
     assert "def _rebroadcast_last_output(self) -> bool:" in node_text
-    assert "self._publish_tf(self._last_output)" in node_text
+    assert "return self._publish_frozen_output()" in node_text
 
     no_alignment = node_text.index("if alignment is None:")
     process_heading = node_text.index("self._process_heading", no_alignment)
-    assert "_rebroadcast_last_output()" in node_text[no_alignment:process_heading]
+    assert "_publish_frozen_output()" in node_text[no_alignment:process_heading]
 
-    no_release = node_text.index("else:", node_text.index("if release is not None:"))
-    publish_status = node_text.index("self._publish_mode_status", no_release)
-    assert "_rebroadcast_last_output()" in node_text[no_release:publish_status]
+    degraded_publish = node_text.index("self._publish_frozen_output()", process_heading)
+    degraded_status = node_text.index("self._publish_mode_status", degraded_publish)
+    assert degraded_publish < degraded_status
 
 
 def test_rtk_map_odom_corrector_supports_scene_identity_alignment():

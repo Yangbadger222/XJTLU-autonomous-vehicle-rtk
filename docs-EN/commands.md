@@ -526,6 +526,7 @@ ros2 action list | grep follow_path
 
 # Inspect the common authority contract and guarded command path
 ros2 topic echo /localization_authority/motion_allowed
+ros2 topic echo /localization_authority/max_linear_speed_mps
 ros2 topic echo /gps_nav/stop_override
 ros2 topic echo /cmd_vel_nav
 ros2 topic echo /cmd_vel
@@ -544,13 +545,13 @@ Runtime notes:
 - After the RTK position and heading gates first lock, scene-identity mode seeds the absolute `map->odom` directly. This permits startup anywhere near the route network; subsequent updates still pass through corridor-authority smoothing, jump, and fault gates.
 - When `current_scene/road_keepout.yaml` exists, both costmaps enable KeepoutFilter so local avoidance remains inside the QGIS road polygon.
 - `nav-gps` now reuses the corridor RTK-authoritative chain: PGO disables `publish_tf` and GPS factors, while `rtk_map_odom_corrector` is the only `map->odom` owner.
-- `nav-gps` also uses `/cmd_vel_nav -> guard -> /cmd_vel`; authority loss cancels the active path and stops, and continuous recovery replans A* from the current pose.
+- `nav-gps` uses `/cmd_vel_nav -> guard -> /cmd_vel`. A short RTK loss after authority has locked enters `LIO_BRIDGE`: it freezes the GPS-derived `map->odom`, retains FAST-LIO `odom->base_footprint`, and caps linear speed at `0.35m/s` for at most `12s` or `5m`. The existing map-frame A* route remains active. A stale/jumping LIO stream, exhausted bridge budget, or authority fault still stops and replans only after recovery.
 - Nav2 uses the corridor RTK MPPI profile and the high-window `/fastlio2/body_cloud_nav2_obstacles` obstacle cloud; the older DWB-based `nav2_gps.yaml` profile is no longer the vehicle entry point for destination-by-name navigation.
 - MPPI keeps `controller_frequency=20Hz` aligned with `model_dt=0.05s`, while the vehicle profile uses `batch_size=200`, `time_steps=32`, and densifies the continuous A* path at `0.35m`. The 1.6-second horizon cuts trajectory simulation per cycle by about 73% from the previous `500x48` workload. Up to three extra noise resamples run only when every sampled trajectory collides, so normal control cycles do not pay that cost.
 - When a dynamic obstacle aborts `FollowPath`, the goal manager now preserves the destination, enters `BLOCKED_WAIT`, holds zero velocity, and replans A* from the current pose every `2s`. A retry must produce continuous measured LIO motion for `3s` before `BLOCKED_RECOVERED`; only `60s` of persistent blockage becomes a terminal failure, and menu command `s` remains available throughout.
 - The `nav-gps` vehicle entry point disables RTK FGO shadow by default so it does not compete with FAST-LIO2/Nav2 for Jetson CPU. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` only for shadow evidence; it still forces `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract.
 - The current RTK-authority/A* chain disables the legacy `gps_anchor_localizer` by default because planning and motion permission consume neither anchors nor `/gnss`; set `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true` for compatibility experiments.
-- The default lean bag records RTK, FAST-LIO2 odom, `/rtk_fgo/*`, TF, goal/authority status, all three velocity stages, and `/plan`. The 200Hz Livox IMU, chassis `/odom_CBoar`, local/global costmaps, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
+- The default lean bag records RTK, FAST-LIO2 odom, `/rtk_fgo/*`, TF, authority mode/status/motion/speed-limit, goal status, all three velocity stages, and `/plan`. The 200Hz Livox IMU, chassis `/odom_CBoar`, local/global costmaps, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
 - On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 
 ## 14. Fixed-Launch GPS Corridor

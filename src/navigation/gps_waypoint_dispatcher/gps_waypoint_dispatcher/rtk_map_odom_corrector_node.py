@@ -12,7 +12,7 @@ from nav_msgs.msg import Odometry
 from nmea_msgs.msg import Sentence
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix
-from std_msgs.msg import Bool, Float64MultiArray, String
+from std_msgs.msg import Bool, Float32, Float64MultiArray, String
 from tf2_ros import TransformBroadcaster
 
 from gps_waypoint_dispatcher.alignment_math import heading_quaternion_yaw_to_enu_yaw
@@ -22,6 +22,9 @@ from gps_waypoint_dispatcher.rtk_authority import (
     CorrectionGateState,
     CorrectionReleaseMode,
     CorrectionReleaseState,
+    LocalOdomBridge,
+    LocalOdomBridgeResult,
+    LocalOdomBridgeState,
     Pose2D,
     PrerequisiteFailureKind,
     StampedPoseHistory,
@@ -109,6 +112,10 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter(
             "motion_allowed_topic", "/localization_authority/motion_allowed"
         )
+        self.declare_parameter(
+            "motion_speed_limit_topic",
+            "/localization_authority/max_linear_speed_mps",
+        )
         self.declare_parameter("enu_origin_lat", 0.0)
         self.declare_parameter("enu_origin_lon", 0.0)
         self.declare_parameter("enu_origin_alt", 0.0)
@@ -148,6 +155,13 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("recovery_translation_m", 0.15)
         self.declare_parameter("recovery_yaw_deg", 2.0)
         self.declare_parameter("recovery_confirmation_s", 1.0)
+        self.declare_parameter("enable_local_odom_bridge", True)
+        self.declare_parameter("local_bridge_max_duration_s", 12.0)
+        self.declare_parameter("local_bridge_max_distance_m", 5.0)
+        self.declare_parameter("local_bridge_max_step_translation_m", 0.50)
+        self.declare_parameter("local_bridge_max_step_yaw_deg", 15.0)
+        self.declare_parameter("rtk_authoritative_max_linear_speed_mps", 2.0)
+        self.declare_parameter("local_bridge_max_linear_speed_mps", 0.35)
 
         self._map_frame = str(self.get_parameter("map_frame").value)
         self._odom_frame = str(self.get_parameter("odom_frame").value)
@@ -166,6 +180,9 @@ class RtkMapOdomCorrector(Node):
         self._diagnostics_topic = str(self.get_parameter("diagnostics_topic").value)
         self._motion_allowed_topic = str(
             self.get_parameter("motion_allowed_topic").value
+        )
+        self._motion_speed_limit_topic = str(
+            self.get_parameter("motion_speed_limit_topic").value
         )
         self._heading_quaternion_yaw_is_compass = bool(
             self.get_parameter("heading_quaternion_yaw_is_compass").value
@@ -203,6 +220,15 @@ class RtkMapOdomCorrector(Node):
         self._max_lio_age_s = float(self.get_parameter("max_lio_age_s").value)
         self._max_heading_for_fix_age_s = float(
             self.get_parameter("max_heading_for_fix_age_s").value
+        )
+        self._enable_local_odom_bridge = bool(
+            self.get_parameter("enable_local_odom_bridge").value
+        )
+        self._rtk_authoritative_max_linear_speed_mps = float(
+            self.get_parameter("rtk_authoritative_max_linear_speed_mps").value
+        )
+        self._local_bridge_max_linear_speed_mps = float(
+            self.get_parameter("local_bridge_max_linear_speed_mps").value
         )
 
         origin_lat = float(self.get_parameter("enu_origin_lat").value)
@@ -298,6 +324,20 @@ class RtkMapOdomCorrector(Node):
                 self.get_parameter("recovery_confirmation_s").value
             ),
         )
+        self._local_bridge = LocalOdomBridge(
+            max_duration_s=float(
+                self.get_parameter("local_bridge_max_duration_s").value
+            ),
+            max_distance_m=float(
+                self.get_parameter("local_bridge_max_distance_m").value
+            ),
+            max_step_translation_m=float(
+                self.get_parameter("local_bridge_max_step_translation_m").value
+            ),
+            max_step_yaw_rad=math.radians(
+                float(self.get_parameter("local_bridge_max_step_yaw_deg").value)
+            ),
+        )
         self.get_logger().info(
             "RTK authority gates: yaw=%.1fdeg position=%.2fm recovery=%d/%.2fs; "
             "release=%.2fm/s %.1fdeg/s"
@@ -338,6 +378,9 @@ class RtkMapOdomCorrector(Node):
         self._last_release = None
         self._last_heading_innovation_rad: float | None = None
         self._last_position_innovation_m: float | None = None
+        self._last_authoritative_mono_s: float | None = None
+        self._bridge_map_odom: Pose2D | None = None
+        self._last_bridge_result: LocalOdomBridgeResult | None = None
         self._last_mode = ""
         self._last_status = ""
 
@@ -348,6 +391,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._motion_allowed_pub = self.create_publisher(
             Bool, self._motion_allowed_topic, 10
+        )
+        self._motion_speed_limit_pub = self.create_publisher(
+            Float32, self._motion_speed_limit_topic, 10
         )
         self._fix_sub = self.create_subscription(
             NavSatFix, self._fix_topic, self._fix_callback, 10
@@ -744,6 +790,45 @@ class RtkMapOdomCorrector(Node):
             <= self._max_lio_age_s
         )
 
+    def _local_odom_fresh(self, now_mono_s: float) -> bool:
+        return (
+            self._latest_lio_pose is not None
+            and self._latest_lio_stamp_s is not None
+            and self._age_s(self._latest_lio_mono_s, now_mono_s)
+            <= self._max_lio_age_s
+        )
+
+    def _evaluate_local_odom_bridge(
+        self, now_mono_s: float
+    ) -> LocalOdomBridgeResult | None:
+        if not self._enable_local_odom_bridge:
+            return None
+        if self._last_authoritative_mono_s is None or self._last_output is None:
+            return None
+        if self._local_bridge.state is LocalOdomBridgeState.IDLE:
+            # Keep the exact transform that was trusted under RTK. During the
+            # bridge only FAST-LIO advances map->base through odom->base.
+            self._bridge_map_odom = self._last_output
+        result = self._local_bridge.evaluate(
+            now_s=now_mono_s,
+            local_pose=self._latest_lio_pose,
+            local_fresh=self._local_odom_fresh(now_mono_s),
+        )
+        self._last_bridge_result = result
+        return result
+
+    def _clear_local_odom_bridge(self) -> None:
+        self._local_bridge.reset()
+        self._bridge_map_odom = None
+        self._last_bridge_result = None
+
+    def _publish_frozen_output(self) -> bool:
+        output = self._bridge_map_odom or self._last_output
+        if output is None:
+            return False
+        self._publish_tf(output)
+        return True
+
     def _release(self, now_mono_s: float):
         if (
             self._heading_gate.state is not CorrectionGateState.LOCKED
@@ -783,10 +868,21 @@ class RtkMapOdomCorrector(Node):
         now_mono_s = time.monotonic()
         alignment = self._external_alignment(now_mono_s)
         if alignment is None:
-            self._try_bootstrap(now_mono_s)
-            self._rebroadcast_last_output()
-            self._publish_motion_allowed(False)
-            self._publish_diagnostics(False, None)
+            if self._try_bootstrap(now_mono_s):
+                return
+            bridge = self._evaluate_local_odom_bridge(now_mono_s)
+            bridge_allowed = bool(bridge and bridge.allowed)
+            self._publish_frozen_output()
+            if bridge_allowed:
+                self._publish_mode_status("LIO_BRIDGE", f"NO_ALIGNMENT;{bridge.reason}")
+                self._publish_motion_allowed(
+                    True, self._local_bridge_max_linear_speed_mps
+                )
+            else:
+                status = bridge.reason if bridge is not None else "NO_TRUSTED_AUTHORITY"
+                self._publish_mode_status("RTK_DEGRADED", f"NO_ALIGNMENT;{status}")
+                self._publish_motion_allowed(False)
+            self._publish_diagnostics(bridge_allowed, None, bridge)
             return
 
         self._process_heading(now_mono_s, alignment)
@@ -795,25 +891,49 @@ class RtkMapOdomCorrector(Node):
         self._position_gate.check_timeout(now_s=now_mono_s)
         release = self._release(now_mono_s)
         fresh = self._authority_fresh(now_mono_s)
-        motion_allowed = bool(release and release.motion_allowed and fresh)
-        if release is not None:
+        rtk_motion_allowed = bool(release and release.motion_allowed and fresh)
+        if rtk_motion_allowed:
+            self._last_authoritative_mono_s = now_mono_s
+            self._clear_local_odom_bridge()
             self._publish_tf(release.output_map_odom)
-            mode = (
-                "RTK_AUTHORITATIVE"
-                if release.mode is CorrectionReleaseMode.NORMAL and motion_allowed
-                else release.mode.value
+            self._publish_mode_status("RTK_AUTHORITATIVE", "LOCKED")
+            self._publish_motion_allowed(
+                True, self._rtk_authoritative_max_linear_speed_mps
             )
-            status = release.reason.value if release.reason is not None else "LOCKED"
-        else:
-            self._rebroadcast_last_output()
-            mode = "RTK_DEGRADED"
-            status = "GATES_NOT_LOCKED"
-        self._publish_mode_status(mode, status)
-        self._publish_motion_allowed(motion_allowed)
-        self._publish_diagnostics(motion_allowed, release)
+            self._publish_diagnostics(True, release, None)
+            return
 
-    def _publish_motion_allowed(self, motion_allowed: bool) -> None:
+        release_blocks_bridge = release is not None and release.mode in {
+            CorrectionReleaseMode.FAULT_HOLD,
+            CorrectionReleaseMode.LOCAL_ODOM_STALE,
+        }
+        bridge = None if release_blocks_bridge else self._evaluate_local_odom_bridge(now_mono_s)
+        bridge_allowed = bool(bridge and bridge.allowed)
+        self._publish_frozen_output()
+        if bridge_allowed:
+            reason = release.reason.value if release and release.reason else "GATES_NOT_LOCKED"
+            self._publish_mode_status("LIO_BRIDGE", f"{reason};{bridge.reason}")
+            self._publish_motion_allowed(True, self._local_bridge_max_linear_speed_mps)
+        else:
+            reason = (
+                release.reason.value
+                if release is not None and release.reason is not None
+                else "GATES_NOT_LOCKED"
+            )
+            if bridge is not None:
+                reason = f"{reason};{bridge.reason}"
+            self._publish_mode_status("RTK_DEGRADED", reason)
+            self._publish_motion_allowed(False)
+        self._publish_diagnostics(bridge_allowed, release, bridge)
+
+    def _publish_motion_allowed(
+        self, motion_allowed: bool, max_linear_speed_mps: float = 0.0
+    ) -> None:
         self._safe_publish(self._motion_allowed_pub, Bool(data=motion_allowed))
+        speed_limit = max_linear_speed_mps if motion_allowed else 0.0
+        self._safe_publish(
+            self._motion_speed_limit_pub, Float32(data=float(speed_limit))
+        )
 
     def _publish_mode_status(self, mode: str, status: str) -> None:
         if mode != self._last_mode:
@@ -825,7 +945,12 @@ class RtkMapOdomCorrector(Node):
         self._safe_publish(self._mode_pub, String(data=mode))
         self._safe_publish(self._status_pub, String(data=status))
 
-    def _publish_diagnostics(self, motion_allowed: bool, release) -> None:
+    def _publish_diagnostics(
+        self,
+        motion_allowed: bool,
+        release,
+        bridge: LocalOdomBridgeResult | None = None,
+    ) -> None:
         now_mono_s = time.monotonic()
         heading_innovation_deg = (
             math.degrees(self._last_heading_innovation_rad)
@@ -870,6 +995,12 @@ class RtkMapOdomCorrector(Node):
             if coherent_target is not None
             else math.nan,
             coherent_target_age_s,
+            1.0 if bridge is not None and bridge.allowed else 0.0,
+            bridge.elapsed_s if bridge is not None else math.nan,
+            bridge.distance_m if bridge is not None else math.nan,
+            self._local_bridge_max_linear_speed_mps
+            if bridge is not None and bridge.allowed
+            else 0.0,
         ]
         self._safe_publish(self._diagnostics_pub, Float64MultiArray(data=data))
 
@@ -888,10 +1019,7 @@ class RtkMapOdomCorrector(Node):
         self._safe_send_transform(msg)
 
     def _rebroadcast_last_output(self) -> bool:
-        if self._last_output is None:
-            return False
-        self._publish_tf(self._last_output)
-        return True
+        return self._publish_frozen_output()
 
     @staticmethod
     def _is_shutdown_publish_error(exc: Exception) -> bool:

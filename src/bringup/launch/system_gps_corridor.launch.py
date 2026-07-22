@@ -41,6 +41,7 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/localization_authority/status',
     '/localization_authority/diagnostics',
     '/localization_authority/motion_allowed',
+    '/localization_authority/max_linear_speed_mps',
     '/gps_corridor/stop_override',
     '/rtk_fgo/odom',
     '/rtk_fgo/path',

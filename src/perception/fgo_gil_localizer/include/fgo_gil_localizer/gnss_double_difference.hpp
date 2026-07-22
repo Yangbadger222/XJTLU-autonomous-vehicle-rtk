@@ -41,6 +41,7 @@ struct SignalGroup
 };
 
 SignalGroup signalGroup(const SignalKey & signal) noexcept;
+double um982AdrToCarrierPhaseCycles(double adr_cycles) noexcept;
 
 struct AlignedGnssEpochs
 {

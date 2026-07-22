@@ -133,23 +133,29 @@ TEST(AmbiguityArcManager, ResetsOnlyAffectedSignalOnSlip)
   EXPECT_EQ(unaffected.arc_id, other_arc.arc_id);
 }
 
-TEST(AmbiguityArcManager, UsesUm982DopplerSignForPhasePrediction)
+TEST(AmbiguityArcManager, UsesStandardCarrierAndDopplerSignsForPhasePrediction)
 {
   AmbiguityArcManager manager;
   GnssObservation sample = observation(3, 2.1e7, 1000.0, -5.0, 10.0);
   const auto first = manager.update(GnssReceiver::Master, {2400, 100.0}, sample);
   ASSERT_TRUE(first.new_arc);
 
-  sample.carrier_phase_cycles = 995.0;
+  sample.carrier_phase_cycles = 1005.0;
   sample.lock_time_s = 11.0;
   const auto continued = manager.update(GnssReceiver::Master, {2400, 101.0}, sample);
   EXPECT_FALSE(continued.new_arc);
 
-  sample.carrier_phase_cycles = 1000.0;
+  sample.carrier_phase_cycles = 1005.0;
   sample.lock_time_s = 12.0;
   const auto inconsistent = manager.update(GnssReceiver::Master, {2400, 102.0}, sample);
   EXPECT_TRUE(inconsistent.new_arc);
   EXPECT_EQ(inconsistent.reason, ArcResetReason::DopplerPhaseInconsistent);
+}
+
+TEST(DoubleDifferenceBuilder, ConvertsUm982AdrToStandardCarrierPhase)
+{
+  EXPECT_DOUBLE_EQ(um982AdrToCarrierPhaseCycles(-114139892.254585), 114139892.254585);
+  EXPECT_DOUBLE_EQ(um982AdrToCarrierPhaseCycles(42.0), -42.0);
 }
 
 TEST(AmbiguityArcManager, SkipsDopplerCheckWhenBaseDopplerIsUnavailable)

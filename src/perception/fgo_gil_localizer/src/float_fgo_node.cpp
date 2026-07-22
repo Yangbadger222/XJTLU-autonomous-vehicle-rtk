@@ -131,7 +131,10 @@ GnssObservationEpoch observationEpoch(const gnss_raw_msgs::msg::ObservationEpoch
       input.glonass_frequency_channel};
     observation.channel_number = input.channel_number;
     observation.pseudorange_m = input.pseudorange_m;
-    observation.carrier_phase_cycles = input.carrier_phase_cycles;
+    // UM982 OBSVM exposes OEM accumulated Doppler range, whose sign is opposite
+    // to the standard positive-range carrier phase used by the DD model.
+    observation.carrier_phase_cycles = um982AdrToCarrierPhaseCycles(
+      input.carrier_phase_cycles);
     observation.doppler_hz = input.doppler_hz;
     // UM982 OBSVBASE uses the shared record slot but does not output base Doppler.
     observation.doppler_valid = output.receiver != GnssReceiver::Base;

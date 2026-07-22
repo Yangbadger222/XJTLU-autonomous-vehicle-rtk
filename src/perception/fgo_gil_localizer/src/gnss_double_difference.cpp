@@ -158,6 +158,11 @@ SignalGroup signalGroup(const SignalKey & signal) noexcept
   return {signal.constellation, signal.signal_type, signal.l2c_signal};
 }
 
+double um982AdrToCarrierPhaseCycles(const double adr_cycles) noexcept
+{
+  return -adr_cycles;
+}
+
 bool GnssEpochAligner::EpochKey::operator<(const EpochKey & other) const noexcept
 {
   return std::tie(receiver, week, milliseconds) <
@@ -383,7 +388,7 @@ ArcUpdate AmbiguityArcManager::update(
       reset = ArcResetReason::TrackingChannelChanged;
     } else if (observation.doppler_valid && state.doppler_valid) {
       const double phase_prediction_error =
-        observation.carrier_phase_cycles - state.carrier_phase_cycles -
+        observation.carrier_phase_cycles - state.carrier_phase_cycles +
         0.5 * (observation.doppler_hz + state.doppler_hz) * delta_s;
       if (std::abs(phase_prediction_error) > config_.doppler_phase_threshold_cycles) {
         reset = ArcResetReason::DopplerPhaseInconsistent;

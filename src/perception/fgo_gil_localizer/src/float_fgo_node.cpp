@@ -1167,8 +1167,8 @@ private:
     }
 
     // UM982 heading is compass clockwise-from-north. Convert to REP-103 ENU yaw.
-    const double enu_yaw = normalizeAngle(0.5 * 3.14159265358979323846 -
-      heading->compass_yaw_rad);
+    const double enu_yaw = normalizeAngle(
+      0.5 * 3.14159265358979323846 - heading->compass_yaw_rad);
     const Quaternion enu_body{
       std::cos(0.5 * enu_yaw), 0.0, 0.0, std::sin(0.5 * enu_yaw)};
     const RigidPose world_imu = compose(world_lidar, inverse(imu_lidar_));

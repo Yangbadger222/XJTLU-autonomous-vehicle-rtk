@@ -72,6 +72,7 @@ make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-corridor-fgo
 make launch-travel
 make launch-explore-gps
 make launch-nav-gps
@@ -86,6 +87,7 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh corridor-fgo
 bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
@@ -603,6 +605,38 @@ Makefile shortcut launch:
 ```bash
 make launch-corridor
 ```
+
+### Experimental FGO-GIL Corridor Authority
+
+`corridor-fgo` keeps the normal corridor route runner, Nav2 profile, obstacle handling,
+and guarded `/cmd_vel` chain. It replaces only the global `map -> odom` owner with the
+FGO-GIL receiver-fixed/LiDAR/IMU estimate. The normal `corridor` command is unchanged.
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+make launch-corridor-fgo
+```
+
+The mode starts UM982 in transient `921600` mixed-stream mode, freezes the initial
+ENU-to-map alignment after a stable startup window, and initializes ECEF<-FAST-LIO world
+once from timestamp-consistent q=4 `/fix`, `/heading`, and the first LIO keyframe. Do not
+move the vehicle until `/localization_authority/mode` reports `FGO_AUTHORITATIVE`.
+
+```bash
+ros2 topic echo /localization_authority/mode
+ros2 topic echo /localization_authority/status
+ros2 topic echo /fgo_gil/ambiguity_status
+ros2 topic echo /fgo_gil/performance
+```
+
+`FGO_AUTHORITATIVE` permits at most `0.50 m/s`. A missing/non-fixed/stale FGO solution
+enters `LIO_BRIDGE` at `0.25 m/s` for at most `10 s` or `8 m`; any expired bridge, invalid
+timestamp, non-finite state, correction fault, or stale FAST-LIO input closes the existing
+command guard. Raw `/fix` disagreement is advisory only in this mode because it is the
+failure source being bridged; FGO diagnostics and the bounded authority contract remain
+mandatory. This is an experimental, supervised vehicle test mode, not the default route
+authority.
 
 Debug observation:
 

@@ -247,6 +247,18 @@ A_k = {DD ambiguity per constellation, reference satellite, signal}
 
 ## 8. 标定参数
 
+### 8.1 Corridor-FGO 在线初始化
+
+FAST-LIO 的局部 world 每次进程启动都会重置，因此从 rosbag 拟合得到的
+`T_ecef_lidar_world` 不能作为永久实车外参复用。显式 `corridor-fgo` profile 保持
+`calibrated: false`，在 q=4 receiver position、双天线 heading 和首个时间一致的 LIO
+keyframe 到达时，生成一次会话内 ECEF<-LiDAR-world 变换。只有 FGO receiver factor
+已被接受、corridor authority gate 恢复后，才允许运动。
+
+这个 bootstrap 是工程初始化，不是论文新增因子。必须随 `/fix`、`/heading`、
+`/rtk/nmea_sentence`、`/fastlio2/lio_odom` 与 `/fgo_gil/*` 一同录制；缺失或不一致输入
+继续 fail-closed。随后冻结本次会话的 route ENU-to-map alignment，避免 RTK outage 改写路线坐标系。
+
 首版参数建议：
 
 ```yaml

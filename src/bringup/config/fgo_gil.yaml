@@ -130,6 +130,7 @@ fgo_gil_float_fgo:
       imu: /livox/imu
       lidar_constraints: /fgo_gil/lidar_constraints
       fix: /fix
+      heading: /heading
       rtk_nmea: /rtk/nmea_sentence
       gnss_epoch: /gnss/raw/observation_epoch
       ephemeris: /gnss/raw/ephemeris
@@ -150,10 +151,15 @@ fgo_gil_float_fgo:
 
     calibration:
       ecef_from_lidar_world:
-        # Keep false until the ECEF/world orientation and translation are measured.
+        # A persisted bag calibration is valid only for that FAST-LIO session.
+        # In live corridor-fgo mode, bootstrap once from a q=4 /fix, dual-antenna
+        # heading, and the first LIO keyframe instead of reusing a stale transform.
         calibrated: false
         translation_m: [0.0, 0.0, 0.0]
         rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+        online_bootstrap:
+          enabled: true
+          maximum_heading_offset_s: 0.25
       gnss:
         # CORS station ECEF is still unknown. The DD path fails closed while false.
         base_ecef_calibrated: false

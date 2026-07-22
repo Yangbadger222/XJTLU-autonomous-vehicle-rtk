@@ -247,6 +247,20 @@ If the CORS baseline exceeds 20 km, estimate differential ionosphere/troposphere
 
 ## 8. Calibration Parameters
 
+### 8.1 Corridor-FGO online initialization
+
+FAST-LIO's local world resets on every process start. A fitted
+`T_ecef_lidar_world` from a rosbag therefore cannot be reused as a permanent vehicle
+extrinsic. The explicit `corridor-fgo` profile keeps `calibrated: false` and derives one
+session-local ECEF<-LiDAR-world transform from a q=4 receiver position, dual-antenna
+heading, and the first timestamp-coherent LIO keyframe. It does not release motion until
+the FGO receiver factor is accepted and the corridor authority gates have recovered.
+
+The bootstrap is an engineering initialization, not an additional paper factor. It must be
+recorded with `/fix`, `/heading`, `/rtk/nmea_sentence`, `/fastlio2/lio_odom`, and
+`/fgo_gil/*`; a missing or inconsistent input remains fail-closed. The route ENU-to-map
+alignment is then frozen for that session so an RTK outage cannot move the route frame.
+
 Initial configuration:
 
 ```yaml

@@ -73,6 +73,7 @@ make launch-slam
 make launch-explore
 make launch-indoor-nav
 make launch-corridor
+make launch-corridor-fgo
 make launch-travel
 make launch-explore-gps
 make launch-nav-gps
@@ -87,6 +88,7 @@ bash scripts/launch_with_logs.sh slam
 bash scripts/launch_with_logs.sh explore
 bash scripts/launch_with_logs.sh indoor-nav
 bash scripts/launch_with_logs.sh corridor
+bash scripts/launch_with_logs.sh corridor-fgo
 bash scripts/launch_with_logs.sh travel
 bash scripts/launch_with_logs.sh explore-gps
 bash scripts/launch_with_logs.sh nav-gps
@@ -604,6 +606,35 @@ Makefile 快捷启动：
 ```bash
 make launch-corridor
 ```
+
+### 实验性 FGO-GIL Corridor Authority
+
+`corridor-fgo` 保留原 corridor 的路线执行、Nav2 参数、避障和 guarded `/cmd_vel`
+链路，只把全局 `map -> odom` owner 替换为 FGO-GIL 的 receiver-fixed/LiDAR/IMU 融合结果；
+普通 `corridor` 命令完全不变。
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+make launch-corridor-fgo
+```
+
+该模式会临时以 `921600` mixed-stream 启动 UM982，在启动稳定窗口后冻结 ENU-to-map
+对齐，并在 q=4 `/fix`、`/heading` 与首个 LIO keyframe 时间一致时在线初始化
+ECEF<-FAST-LIO world。`/localization_authority/mode` 出现 `FGO_AUTHORITATIVE` 前不要移动车辆。
+
+```bash
+ros2 topic echo /localization_authority/mode
+ros2 topic echo /localization_authority/status
+ros2 topic echo /fgo_gil/ambiguity_status
+ros2 topic echo /fgo_gil/performance
+```
+
+`FGO_AUTHORITATIVE` 最高允许 `0.50 m/s`。FGO 非 fixed、丢失或过期时进入 `LIO_BRIDGE`，
+限速 `0.25 m/s`，最多 `10 s` 或 `8 m`；bridge 耗尽、时间戳非法、非有限状态、校正 fault
+或 FAST-LIO 过期都会关闭现有 command guard。此模式中 raw `/fix` 偏差只做告警，因为它正是
+需要跨越的失效来源；FGO 诊断和有界 authority 仍是硬性条件。这是实验性、有人监控的实车模式，
+不是默认路线 authority。
 
 调试观察：
 

@@ -28,6 +28,7 @@
 #include "diagnostic_msgs/msg/key_value.hpp"
 #include "fgo_gil_msgs/msg/lidar_constraint_batch.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
+#include "geometry_msgs/msg/quaternion_stamped.hpp"
 #include "gnss_raw_msgs/msg/ephemeris.hpp"
 #include "gnss_raw_msgs/msg/observation_epoch.hpp"
 #include "gnss_raw_msgs/msg/reference_station.hpp"
@@ -85,6 +86,87 @@ RigidPose pose(const geometry_msgs::msg::Pose & value)
 double absoluteGnssSeconds(const GnssTime & time)
 {
   return static_cast<double>(time.week) * kGnssWeekSeconds + time.tow_s;
+}
+
+double normalizeAngle(const double angle)
+{
+  return std::atan2(std::sin(angle), std::cos(angle));
+}
+
+std::optional<double> compassHeadingRadians(
+  const geometry_msgs::msg::QuaternionStamped & message)
+{
+  const auto & value = message.quaternion;
+  const double magnitude = std::sqrt(
+    value.w * value.w + value.x * value.x + value.y * value.y + value.z * value.z);
+  if (!std::isfinite(magnitude) || magnitude <= 1.0e-12) {
+    return std::nullopt;
+  }
+  const double x = value.x / magnitude;
+  const double y = value.y / magnitude;
+  const double z = value.z / magnitude;
+  const double w = value.w / magnitude;
+  const double yaw = std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+  return std::isfinite(yaw) ? std::optional<double>{normalizeAngle(yaw)} : std::nullopt;
+}
+
+Quaternion quaternionFromRotationMatrix(
+  const std::array<std::array<double, 3U>, 3U> & matrix)
+{
+  const double trace = matrix[0][0] + matrix[1][1] + matrix[2][2];
+  Quaternion output;
+  if (trace > 0.0) {
+    const double scale = std::sqrt(trace + 1.0) * 2.0;
+    output = {
+      0.25 * scale,
+      (matrix[2][1] - matrix[1][2]) / scale,
+      (matrix[0][2] - matrix[2][0]) / scale,
+      (matrix[1][0] - matrix[0][1]) / scale};
+  } else if (matrix[0][0] > matrix[1][1] && matrix[0][0] > matrix[2][2]) {
+    const double scale = std::sqrt(1.0 + matrix[0][0] - matrix[1][1] - matrix[2][2]) * 2.0;
+    output = {
+      (matrix[2][1] - matrix[1][2]) / scale,
+      0.25 * scale,
+      (matrix[0][1] + matrix[1][0]) / scale,
+      (matrix[0][2] + matrix[2][0]) / scale};
+  } else if (matrix[1][1] > matrix[2][2]) {
+    const double scale = std::sqrt(1.0 + matrix[1][1] - matrix[0][0] - matrix[2][2]) * 2.0;
+    output = {
+      (matrix[0][2] - matrix[2][0]) / scale,
+      (matrix[0][1] + matrix[1][0]) / scale,
+      0.25 * scale,
+      (matrix[1][2] + matrix[2][1]) / scale};
+  } else {
+    const double scale = std::sqrt(1.0 + matrix[2][2] - matrix[0][0] - matrix[1][1]) * 2.0;
+    output = {
+      (matrix[1][0] - matrix[0][1]) / scale,
+      (matrix[0][2] + matrix[2][0]) / scale,
+      (matrix[1][2] + matrix[2][1]) / scale,
+      0.25 * scale};
+  }
+  return output.normalized();
+}
+
+std::optional<Quaternion> ecefFromEnu(
+  const double latitude_deg, const double longitude_deg)
+{
+  if (!std::isfinite(latitude_deg) || !std::isfinite(longitude_deg) ||
+    std::abs(latitude_deg) > 90.0 || std::abs(longitude_deg) > 180.0)
+  {
+    return std::nullopt;
+  }
+  constexpr double kDegreesToRadians = 3.14159265358979323846 / 180.0;
+  const double latitude = latitude_deg * kDegreesToRadians;
+  const double longitude = longitude_deg * kDegreesToRadians;
+  // Columns are the ECEF coordinates of ENU east, north, and up axes.
+  const std::array<std::array<double, 3U>, 3U> matrix{{
+    {{-std::sin(longitude), -std::sin(latitude) * std::cos(longitude),
+      std::cos(latitude) * std::cos(longitude)}},
+    {{std::cos(longitude), -std::sin(latitude) * std::sin(longitude),
+      std::cos(latitude) * std::sin(longitude)}},
+    {{0.0, std::cos(latitude), std::sin(latitude)}}}};
+  const Quaternion output = quaternionFromRotationMatrix(matrix);
+  return finite(output) ? std::optional<Quaternion>{output} : std::nullopt;
 }
 
 bool validReceiverFix(const sensor_msgs::msg::NavSatFix & fix)
@@ -251,6 +333,7 @@ private:
     declare_parameter<std::string>("topics.imu", "/livox/imu");
     declare_parameter<std::string>("topics.lidar_constraints", "/fgo_gil/lidar_constraints");
     declare_parameter<std::string>("topics.fix", "/fix");
+    declare_parameter<std::string>("topics.heading", "/heading");
     declare_parameter<std::string>("topics.rtk_nmea", "/rtk/nmea_sentence");
     declare_parameter<std::string>("topics.gnss_epoch", "/gnss/raw/observation_epoch");
     declare_parameter<std::string>("topics.ephemeris", "/gnss/raw/ephemeris");
@@ -275,6 +358,9 @@ private:
       "calibration.ecef_from_lidar_world.translation_m", {0.0, 0.0, 0.0});
     declare_parameter<std::vector<double>>(
       "calibration.ecef_from_lidar_world.rotation_wxyz", {1.0, 0.0, 0.0, 0.0});
+    declare_parameter<bool>("calibration.ecef_from_lidar_world.online_bootstrap.enabled", true);
+    declare_parameter<double>(
+      "calibration.ecef_from_lidar_world.online_bootstrap.maximum_heading_offset_s", 0.25);
     declare_parameter<bool>("calibration.gnss.base_ecef_calibrated", false);
     declare_parameter<std::vector<double>>(
       "calibration.gnss.base_ecef_m", {0.0, 0.0, 0.0});
@@ -436,6 +522,7 @@ private:
     imu_topic_ = get_parameter("topics.imu").as_string();
     lidar_constraints_topic_ = get_parameter("topics.lidar_constraints").as_string();
     fix_topic_ = get_parameter("topics.fix").as_string();
+    heading_topic_ = get_parameter("topics.heading").as_string();
     rtk_nmea_topic_ = get_parameter("topics.rtk_nmea").as_string();
     gnss_epoch_topic_ = get_parameter("topics.gnss_epoch").as_string();
     ephemeris_topic_ = get_parameter("topics.ephemeris").as_string();
@@ -456,6 +543,10 @@ private:
     ecef_world_ = {
       quaternionParameter("calibration.ecef_from_lidar_world.rotation_wxyz"),
       vec3Parameter("calibration.ecef_from_lidar_world.translation_m")};
+    online_calibration_enabled_ =
+      get_parameter("calibration.ecef_from_lidar_world.online_bootstrap.enabled").as_bool();
+    online_calibration_maximum_heading_offset_s_ = get_parameter(
+      "calibration.ecef_from_lidar_world.online_bootstrap.maximum_heading_offset_s").as_double();
     static_base_ecef_calibrated_ =
       get_parameter("calibration.gnss.base_ecef_calibrated").as_bool();
     base_ecef_m_ = vec3Parameter("calibration.gnss.base_ecef_m");
@@ -654,6 +745,11 @@ private:
     {
       throw std::invalid_argument("FGO node timing parameters are outside valid bounds");
     }
+    if (!std::isfinite(online_calibration_maximum_heading_offset_s_) ||
+      online_calibration_maximum_heading_offset_s_ <= 0.0)
+    {
+      throw std::invalid_argument("online calibration heading offset must be positive");
+    }
     if (publish_tf_ || nav2_use_fgo_) {
       throw std::invalid_argument(
               "FGO-GIL Phase 7 is shadow-only: publish_tf and nav2_use_fgo must remain false");
@@ -727,6 +823,12 @@ private:
     ReceiverRtkQuality quality;
   };
 
+  struct HeadingSample
+  {
+    double stamp_s = 0.0;
+    double compass_yaw_rad = 0.0;
+  };
+
   enum class ReceiverAttachmentResult : std::uint8_t
   {
     Disabled,
@@ -773,6 +875,9 @@ private:
     receiver_fix_sub_ = create_subscription<sensor_msgs::msg::NavSatFix>(
       fix_topic_, 20,
       std::bind(&FloatFgoNode::onReceiverFix, this, std::placeholders::_1), raw_input_options);
+    heading_sub_ = create_subscription<geometry_msgs::msg::QuaternionStamped>(
+      heading_topic_, 20,
+      std::bind(&FloatFgoNode::onHeading, this, std::placeholders::_1), raw_input_options);
     receiver_nmea_sub_ = create_subscription<nmea_msgs::msg::Sentence>(
       rtk_nmea_topic_, 50,
       std::bind(&FloatFgoNode::onReceiverNmea, this, std::placeholders::_1), raw_input_options);
@@ -986,6 +1091,17 @@ private:
     receiver_qualities_.push_back({stamp_s, *quality});
   }
 
+  void onHeading(const geometry_msgs::msg::QuaternionStamped::SharedPtr message)
+  {
+    const double stamp_s = stampSeconds(message->header.stamp);
+    const auto compass_yaw = compassHeadingRadians(*message);
+    if (!compass_yaw.has_value() || !std::isfinite(stamp_s) || stamp_s <= 0.0) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(heading_mutex_);
+    latest_heading_ = {stamp_s, *compass_yaw};
+  }
+
   std::optional<ReceiverCandidate> receiverCandidate(const double state_stamp_s)
   {
     std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
@@ -1019,6 +1135,57 @@ private:
       nearest_offset_s = fix_offset_s;
     }
     return candidate;
+  }
+
+  bool tryOnlineCalibration(const double state_stamp_s, const RigidPose & world_lidar)
+  {
+    if (!online_calibration_enabled_ || !finite(world_lidar)) {
+      return false;
+    }
+    const auto receiver = receiverCandidate(state_stamp_s);
+    if (!receiver.has_value()) {
+      return false;
+    }
+    std::optional<HeadingSample> heading;
+    {
+      std::lock_guard<std::mutex> lock(heading_mutex_);
+      heading = latest_heading_;
+    }
+    if (!heading.has_value() ||
+      std::abs(heading->stamp_s - receiver->fix.stamp_s) >
+      online_calibration_maximum_heading_offset_s_)
+    {
+      return false;
+    }
+    const auto antenna_ecef = geodeticToEcef(
+      receiver->fix.message.latitude, receiver->fix.message.longitude,
+      receiver->fix.message.altitude);
+    const auto ecef_enu = ecefFromEnu(
+      receiver->fix.message.latitude, receiver->fix.message.longitude);
+    if (!antenna_ecef.has_value() || !ecef_enu.has_value()) {
+      return false;
+    }
+
+    // UM982 heading is compass clockwise-from-north. Convert to REP-103 ENU yaw.
+    const double enu_yaw = normalizeAngle(0.5 * 3.14159265358979323846 -
+      heading->compass_yaw_rad);
+    const Quaternion enu_body{
+      std::cos(0.5 * enu_yaw), 0.0, 0.0, std::sin(0.5 * enu_yaw)};
+    const RigidPose world_imu = compose(world_lidar, inverse(imu_lidar_));
+    const Quaternion ecef_world =
+      ((*ecef_enu) * enu_body * world_imu.rotation.conjugate()).normalized();
+    const Vec3 world_antenna = world_imu.translation +
+      world_imu.rotation.rotate(master_in_imu_m_);
+    const Vec3 ecef_translation = *antenna_ecef - ecef_world.rotate(world_antenna);
+    if (!finite(ecef_world) || !finite(ecef_translation)) {
+      return false;
+    }
+    ecef_world_ = {ecef_world, ecef_translation};
+    ecef_world_calibrated_ = true;
+    online_calibration_completed_ = true;
+    resetGraph(true);
+    estimator_state_ = "ONLINE_ECEF_WORLD_CALIBRATED";
+    return true;
   }
 
   void consumeReceiverFix(const std::uint64_t id, const double state_stamp_s)
@@ -1408,22 +1575,24 @@ private:
   LidarBatchResult processLidarConstraints(
     const fgo_gil_msgs::msg::LidarConstraintBatch::SharedPtr & message)
   {
-    if (!ecef_world_calibrated_) {
-      estimator_state_ = "WAITING_FOR_CALIBRATION";
-      return LidarBatchResult::Consumed;
-    }
-    if (active_frontend_epoch_.has_value() && *active_frontend_epoch_ != message->frontend_epoch) {
-      resetGraph(true);
-      pending_gnss_.clear();
-    }
-    active_frontend_epoch_ = message->frontend_epoch;
     const double stamp_s = stampSeconds(message->header.stamp);
     const RigidPose world_lidar = pose(message->initial_pose_world_lidar);
     if (!std::isfinite(stamp_s) || !finite(world_lidar)) {
       ++invalid_lidar_batches_;
       return LidarBatchResult::Consumed;
     }
-
+    if (!ecef_world_calibrated_) {
+      if (!tryOnlineCalibration(stamp_s, world_lidar)) {
+        estimator_state_ = online_calibration_enabled_ ?
+          "WAITING_FOR_ONLINE_CALIBRATION" : "WAITING_FOR_CALIBRATION";
+        return LidarBatchResult::Consumed;
+      }
+    }
+    if (active_frontend_epoch_.has_value() && *active_frontend_epoch_ != message->frontend_epoch) {
+      resetGraph(true);
+      pending_gnss_.clear();
+    }
+    active_frontend_epoch_ = message->frontend_epoch;
     std::optional<std::vector<ImuSample>> imu_samples;
     while (true) {
       if (!last_state_id_.has_value()) {
@@ -2204,6 +2373,7 @@ private:
   std::string imu_topic_;
   std::string lidar_constraints_topic_;
   std::string fix_topic_;
+  std::string heading_topic_;
   std::string rtk_nmea_topic_;
   std::string gnss_epoch_topic_;
   std::string ephemeris_topic_;
@@ -2220,6 +2390,8 @@ private:
   std::string ecef_frame_;
   std::string body_frame_;
   bool ecef_world_calibrated_ = false;
+  bool online_calibration_enabled_ = true;
+  bool online_calibration_completed_ = false;
   bool static_base_ecef_calibrated_ = false;
   bool dynamic_base_enabled_ = true;
   bool dynamic_base_ecef_calibrated_ = false;
@@ -2266,6 +2438,7 @@ private:
   double receiver_solution_maximum_horizontal_sigma_m_ = 0.25;
   double receiver_solution_minimum_vertical_sigma_m_ = 0.08;
   double receiver_solution_maximum_vertical_sigma_m_ = 0.50;
+  double online_calibration_maximum_heading_offset_s_ = 0.25;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
   FloatSmootherConfig smoother_config_;
@@ -2292,11 +2465,13 @@ private:
   mutable std::mutex imu_mutex_;
   mutable std::mutex raw_input_mutex_;
   mutable std::mutex receiver_solution_mutex_;
+  mutable std::mutex heading_mutex_;
   std::map<SatelliteId, BroadcastEphemeris> ephemerides_;
   std::deque<SatelliteId> ephemeris_order_;
   std::deque<AlignedGnssEpochs> pending_gnss_;
   std::deque<ReceiverFixSample> receiver_fixes_;
   std::deque<ReceiverQualitySample> receiver_qualities_;
+  std::optional<HeadingSample> latest_heading_;
   std::deque<PendingLidarBatch> pending_lidar_;
   std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> raw_epoch_queue_;
   std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> raw_ephemeris_queue_;
@@ -2400,6 +2575,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr lidar_sub_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr receiver_fix_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::QuaternionStamped>::SharedPtr heading_sub_;
   rclcpp::Subscription<nmea_msgs::msg::Sentence>::SharedPtr receiver_nmea_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr gnss_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_sub_;

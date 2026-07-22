@@ -132,6 +132,7 @@ class GPSRouteRunner(Node):
         self.declare_parameter("alignment_shift_cooldown_s", 3.0)
         self.declare_parameter("map_gps_divergence_warn_m", 2.0)
         self.declare_parameter("map_gps_divergence_abort_m", 5.0)
+        self.declare_parameter("map_gps_consistency_mode", "strict")
         self.declare_parameter(
             "nav2_lifecycle_nodes",
             list(DEFAULT_REQUIRED_NAV2_LIFECYCLE_NODES),
@@ -193,6 +194,11 @@ class GPSRouteRunner(Node):
         self._map_gps_divergence_abort_m = float(
             self.get_parameter("map_gps_divergence_abort_m").value
         )
+        self._map_gps_consistency_mode = str(
+            self.get_parameter("map_gps_consistency_mode").value
+        ).strip().lower()
+        if self._map_gps_consistency_mode not in {"strict", "advisory"}:
+            raise ValueError("map_gps_consistency_mode must be 'strict' or 'advisory'")
         raw_lifecycle_nodes = self.get_parameter("nav2_lifecycle_nodes").value
         self._nav2_lifecycle_nodes = normalize_lifecycle_node_names(raw_lifecycle_nodes)
         self._last_alignment_shift_mono = -math.inf
@@ -654,11 +660,18 @@ class GPSRouteRunner(Node):
                 gps_map_xy[1],
             )
         )
-        if not summary.ok:
+        if not summary.ok and self._map_gps_consistency_mode == "strict":
             self.get_logger().error("Map/GPS divergence abort: %s" % detail)
             self._publish_status("MAP_GPS_DIVERGENCE_ABORT|%s" % detail)
             self._publish_stop_override(True)
             return False
+
+        if not summary.ok:
+            self.get_logger().warn(
+                "FGO authority keeps the route active despite raw GPS divergence: %s" % detail
+            )
+            self._publish_status("MAP_GPS_DIVERGENCE_ADVISORY|%s" % detail)
+            return True
 
         self.get_logger().warn("Map/GPS divergence warning: %s" % detail)
         return True

@@ -18,9 +18,9 @@ export ROS_LOG_DIR="$SESSION_DIR/console"
 export FYP_LOG_SESSION_DIR="$SESSION_DIR/data"
 
 cleanup_runtime_nodes() {
-  pkill -INT -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[c]orridor_cmd_vel_guard|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -INT -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[f]go_gil_time_sync_node|[f]go_gil_lidar_frontend_node|[f]go_gil_float_fgo_node|[f]go_map_odom_corrector|[r]tk_map_odom_corrector|[c]orridor_cmd_vel_guard|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   sleep 1
-  pkill -KILL -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[c]orridor_cmd_vel_guard|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
+  pkill -KILL -f '[r]os2 launch|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[f]go_gil_time_sync_node|[f]go_gil_lidar_frontend_node|[f]go_gil_float_fgo_node|[f]go_map_odom_corrector|[r]tk_map_odom_corrector|[c]orridor_cmd_vel_guard|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[m]onitor_corridor_status|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner' 2>/dev/null || true
   ros2 daemon stop 2>/dev/null || true
   for dev in /dev/serial_twistctl /dev/wheeltec_gps /dev/rtk_um982; do
     if [ -e "$dev" ] && fuser "$dev" >/dev/null 2>&1; then
@@ -86,6 +86,7 @@ case "$MODE" in
   explore)      LAUNCH_FILE="system_explore.launch.py" ;;
   indoor-nav)   LAUNCH_FILE="system_explore.launch.py" ;;
   corridor)     LAUNCH_FILE="system_gps_corridor.launch.py" ;;
+  corridor-fgo) LAUNCH_FILE="system_gps_corridor.launch.py" ;;
   travel)       LAUNCH_FILE="system_travel.launch.py" ;;
   explore-gps)  LAUNCH_FILE="system_explore_gps.launch.py" ;;
   nav-gps)      LAUNCH_FILE="system_nav_gps.launch.py" ;;
@@ -107,12 +108,18 @@ if [[ -n "${FYP_RTK_PARAMS_FILE:-}" ]]; then
     rtk-basic)
       LAUNCH_ARGS+=("params_file:=${FYP_RTK_PARAMS_FILE}")
       ;;
-    explore-gps|nav-gps|corridor|tightly-coupled)
+    explore-gps|nav-gps|corridor|corridor-fgo|tightly-coupled)
       LAUNCH_ARGS+=("rtk_params_file:=${FYP_RTK_PARAMS_FILE}")
       ;;
   esac
 fi
-if [[ "$MODE" == "corridor" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
+if [[ "$MODE" == "corridor-fgo" ]]; then
+  LAUNCH_ARGS+=("fgo_authority:=true")
+  if [[ -n "${FYP_FGO_GIL_PARAMS_FILE:-}" ]]; then
+    LAUNCH_ARGS+=("fgo_params_file:=${FYP_FGO_GIL_PARAMS_FILE}")
+  fi
+fi
+if [[ "$MODE" == "corridor" || "$MODE" == "corridor-fgo" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" || "$MODE" == "tightly-coupled" || "$MODE" == "travel" ]]; then
   if [[ -n "${FYP_USE_RVIZ:-}" ]]; then
     LAUNCH_ARGS+=("use_rviz:=${FYP_USE_RVIZ}")
   elif [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
@@ -122,7 +129,7 @@ if [[ "$MODE" == "corridor" || "$MODE" == "nav-gps" || "$MODE" == "indoor-nav" |
   fi
 fi
 
-if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]; then
+if [[ ( "$MODE" == "corridor" || "$MODE" == "corridor-fgo" ) && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]; then
   ROUTE_FILE="$HOME/XJTLU-autonomous-vehicle/runtime-data/gnss/current_route.yaml"
   ROUTE_FIX_TIMEOUT_S=""
   if [[ -f "$ROUTE_FILE" ]]; then

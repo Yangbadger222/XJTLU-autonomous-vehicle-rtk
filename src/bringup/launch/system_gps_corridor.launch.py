@@ -13,9 +13,9 @@ from launch.actions import (
     Shutdown,
     TimerAction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import IfElseSubstitution, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -48,6 +48,17 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/rtk_fgo/rtk_gate',
     '/rtk_fgo/correction_status',
     '/rtk_fgo/factor_diagnostics',
+    '/fgo_gil/odom',
+    '/fgo_gil/map_base',
+    '/fgo_gil/enu_to_map',
+    '/fgo_gil/float_diagnostics',
+    '/fgo_gil/factor_diagnostics',
+    '/fgo_gil/ambiguity_status',
+    '/fgo_gil/performance',
+    '/fgo_gil/lidar_constraints',
+    '/gnss/raw/observation_epoch',
+    '/gnss/raw/ephemeris',
+    '/gnss/rtcm/reference_station',
     '/gps_corridor/goal_map',
     '/gps_corridor/path_map',
     '/cmd_vel',
@@ -132,6 +143,9 @@ def generate_launch_description():
     )
     nav2_corridor_params_file = os.path.join(bringup_share, 'config', 'nav2_corridor_rtk.yaml')
     rtk_fgo_params_file = os.path.join(bringup_share, 'config', 'rtk_fgo.yaml')
+    fgo_gil_params_file = os.path.join(bringup_share, 'config', 'fgo_gil.yaml')
+    um982_share = get_package_share_directory('um982_rtk_driver')
+    um982_mixed_params_file = os.path.join(um982_share, 'config', 'um982_mixed.yaml')
     corridor_nav2_params = _make_corridor_nav2_params(nav2_corridor_params_file)
     corridor_no_recovery_bt_xml = os.path.join(
         bringup_share,
@@ -169,6 +183,16 @@ def generate_launch_description():
         default_value=os.environ.get('FYP_CORRIDOR_ENABLE_FGO_SHADOW', 'false'),
         description='Optionally start RTK FGO in shadow mode for corridor rosbag evidence',
     )
+    fgo_authority_arg = DeclareLaunchArgument(
+        'fgo_authority',
+        default_value='false',
+        description='Use FGO-GIL map->odom authority for the explicit corridor-fgo mode',
+    )
+    fgo_params_file_arg = DeclareLaunchArgument(
+        'fgo_params_file',
+        default_value=fgo_gil_params_file,
+        description='Calibrated FGO-GIL parameter file used only by corridor-fgo',
+    )
 
     explore_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -194,7 +218,13 @@ def generate_launch_description():
                 )
             ]
         ),
-        launch_arguments={'params_file': LaunchConfiguration('rtk_params_file')}.items(),
+        launch_arguments={
+            'params_file': IfElseSubstitution(
+                LaunchConfiguration('fgo_authority'),
+                um982_mixed_params_file,
+                LaunchConfiguration('rtk_params_file'),
+            )
+        }.items(),
     )
 
     global_aligner = Node(
@@ -232,8 +262,15 @@ def generate_launch_description():
                 'route_frame': 'map',
                 'base_frame': 'base_link',
                 'fix_topic': '/fix',
-                'alignment_topic': '/gps_corridor/enu_to_map',
+                'alignment_topic': IfElseSubstitution(
+                    LaunchConfiguration('fgo_authority'),
+                    '/fgo_gil/enu_to_map',
+                    '/gps_corridor/enu_to_map',
+                ),
                 'lio_odom_topic': '/fastlio2/lio_odom',
+                'map_gps_consistency_mode': IfElseSubstitution(
+                    LaunchConfiguration('fgo_authority'), 'advisory', 'strict'
+                ),
                 'motion_allowed_topic': '/localization_authority/motion_allowed',
                 'authority_status_topic': '/localization_authority/status',
                 'stop_override_topic': '/gps_corridor/stop_override',
@@ -248,6 +285,7 @@ def generate_launch_description():
         executable='rtk_map_odom_corrector_node',
         name='rtk_map_odom_corrector',
         output='screen',
+        condition=UnlessCondition(LaunchConfiguration('fgo_authority')),
         on_exit=Shutdown(reason='rtk_map_odom_corrector exited'),
         parameters=[
             master_params_file,
@@ -260,6 +298,29 @@ def generate_launch_description():
                 'alignment_topic': '/gps_corridor/enu_to_map',
             },
         ],
+    )
+
+    fgo_authority = Node(
+        package='gps_waypoint_dispatcher',
+        executable='fgo_map_odom_corrector_node',
+        name='fgo_map_odom_corrector',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('fgo_authority')),
+        on_exit=Shutdown(reason='fgo_map_odom_corrector exited'),
+        parameters=[master_params_file],
+    )
+
+    fgo_gil = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(bringup_share, 'launch', 'system_fgo_gil_float.launch.py')
+        ),
+        condition=IfCondition(LaunchConfiguration('fgo_authority')),
+        launch_arguments={
+            'params_file': LaunchConfiguration('fgo_params_file'),
+            'use_sim_time': 'false',
+            'publish_tf': 'false',
+            'nav2_use_fgo': 'false',
+        }.items(),
     )
 
     corridor_cmd_guard = Node(
@@ -310,6 +371,8 @@ def generate_launch_description():
 
     delayed_aligner = TimerAction(period=2.0, actions=[global_aligner])
     delayed_rtk_authority = TimerAction(period=3.0, actions=[rtk_authority])
+    delayed_fgo_gil = TimerAction(period=3.0, actions=[fgo_gil])
+    delayed_fgo_authority = TimerAction(period=6.0, actions=[fgo_authority])
     delayed_fgo_shadow = TimerAction(period=6.0, actions=[fgo_shadow])
     delayed_runner = TimerAction(period=8.0, actions=[corridor_runner])
 
@@ -319,12 +382,16 @@ def generate_launch_description():
         startup_wait_timeout_arg,
         use_rviz_arg,
         enable_fgo_shadow_arg,
+        fgo_authority_arg,
+        fgo_params_file_arg,
         explore_launch,
         rtk_launch,
         LogInfo(msg=f'Corridor bag profile: {bag_profile}'),
         bag_record,
         delayed_aligner,
         delayed_rtk_authority,
+        delayed_fgo_gil,
+        delayed_fgo_authority,
         corridor_cmd_guard,
         delayed_fgo_shadow,
         delayed_runner,

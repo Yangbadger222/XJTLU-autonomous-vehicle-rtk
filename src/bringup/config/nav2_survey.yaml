@@ -436,7 +436,8 @@ local_costmap:
       resolution: 0.10
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。 (Robot radius; used for collision checking and inflation boundary calculation.)
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。 (Increase: more conservative, less likely to stick to edges; Decrease: more aggressive, easier to navigate narrow paths.)
-      robot_radius: 0.38625
+      # robot_radius: 0.38625
+      footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。 (Costmap layer list; determines which map layers current costmap will overlay.)
       # 增删地图层：会直接改变障碍信息来源和代价图行为。 (Adding/removing map layers: directly changes obstacle info source and costmap behavior.)
       plugins: ["stvl_layer", "denoise_layer", "inflation_layer"]
@@ -530,7 +531,8 @@ global_costmap:
       use_sim_time: false
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。 (Robot radius; used for collision checking and inflation boundary calculation.)
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。 (Increase: more conservative, less likely to stick to edges; Decrease: more aggressive, easier to navigate narrow paths.)
-      robot_radius: 0.38625
+      # robot_radius: 0.38625
+      footprint: "[[0.35, 0.275], [0.35, -0.275], [-0.35, -0.275], [-0.35, 0.275]]"
       # 地图分辨率；决定每个栅格代表的物理尺寸。 (Map resolution; determines physical size each grid cell represents.)
       # 调大：地图更粗、更省内存；调小：地图更细、更精确但更耗资源。 (Increase: coarser map, saves memory; Decrease: finer map, more precise but consumes more resources.)
       resolution: 0.10

@@ -263,6 +263,8 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
     }
     const Eigen::VectorXd fractional_cycles =
       float_cycles.array() - float_cycles.array().round();
+    output.evaluated_float_cycles = float_cycles;
+    output.evaluated_fractional_cycles = fractional_cycles;
     output.fractional_cycle_rms = std::sqrt(
       fractional_cycles.squaredNorm() / static_cast<double>(dimension));
     output.fractional_cycle_max = fractional_cycles.cwiseAbs().maxCoeff();

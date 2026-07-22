@@ -60,6 +60,8 @@ struct IntegerFixResult
   std::vector<std::size_t> estimate_indices;
   std::vector<DdAmbiguityKey> keys;
   std::vector<DdAmbiguityKey> evaluated_keys;
+  Eigen::VectorXd evaluated_float_cycles;
+  Eigen::VectorXd evaluated_fractional_cycles;
   Eigen::VectorXd integer_cycles;
   Eigen::VectorXd fixed_values_m;
   double best_squared_norm = 0.0;

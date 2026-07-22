@@ -107,6 +107,8 @@ TEST(IntegerAmbiguityResolver, KnownIntegerFixtureFixesWithInputOrderingPreserve
   ASSERT_TRUE(result.fixed) << toString(result.rejection_reason);
   ASSERT_EQ(result.keys.size(), keys.size());
   ASSERT_EQ(result.evaluated_keys.size(), keys.size());
+  ASSERT_EQ(result.evaluated_float_cycles.size(), static_cast<int>(keys.size()));
+  ASSERT_EQ(result.evaluated_fractional_cycles.size(), static_cast<int>(keys.size()));
   const std::vector<double> expected{12.0, -5.0, 7.0, 31.0};
   for (std::size_t index = 0; index < keys.size(); ++index) {
     EXPECT_TRUE(result.keys[index] == keys[index]);
@@ -133,6 +135,9 @@ TEST(IntegerAmbiguityResolver, EqualIntegerCandidatesFailRatioTest)
   EXPECT_FALSE(result.fixed);
   EXPECT_EQ(result.rejection_reason, IntegerFixRejectionReason::RatioTest);
   EXPECT_EQ(result.evaluated_keys.size(), result.evaluated_ambiguities);
+  EXPECT_EQ(result.evaluated_float_cycles.size(), static_cast<int>(result.evaluated_ambiguities));
+  EXPECT_EQ(
+    result.evaluated_fractional_cycles.size(), static_cast<int>(result.evaluated_ambiguities));
   EXPECT_TRUE(result.keys.empty());
   EXPECT_NEAR(result.ratio, 1.0, 1.0e-12);
   EXPECT_GT(result.best_squared_norm, 0.0);

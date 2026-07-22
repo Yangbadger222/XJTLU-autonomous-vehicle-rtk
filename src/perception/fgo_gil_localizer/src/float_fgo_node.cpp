@@ -1714,6 +1714,10 @@ private:
       numericKeyValue("fractional_cycle_rms", last_integer_fix_.fractional_cycle_rms));
     ambiguity_status.values.push_back(
       numericKeyValue("fractional_cycle_max", last_integer_fix_.fractional_cycle_max));
+    ambiguity_status.values.push_back(
+      numericKeyValue("best_squared_norm", last_integer_fix_.best_squared_norm));
+    ambiguity_status.values.push_back(
+      numericKeyValue("second_squared_norm", last_integer_fix_.second_squared_norm));
     ambiguity_status.values.push_back(numericKeyValue("ratio", last_integer_fix_.ratio));
     ambiguity_status.values.push_back(
       numericKeyValue("success_rate", last_integer_fix_.success_rate));
@@ -1737,6 +1741,41 @@ private:
     ambiguity_status.values.push_back(
       numericKeyValue("optimization_rollbacks", graph.optimization_rollbacks));
     ambiguity_array.status.push_back(std::move(ambiguity_status));
+    if (last_integer_fix_.evaluated_float_cycles.size() ==
+      static_cast<int>(last_integer_fix_.evaluated_keys.size()) &&
+      last_integer_fix_.evaluated_fractional_cycles.size() ==
+      static_cast<int>(last_integer_fix_.evaluated_keys.size()))
+    {
+      for (std::size_t index = 0; index < last_integer_fix_.evaluated_keys.size(); ++index) {
+        const DdAmbiguityKey & key = last_integer_fix_.evaluated_keys[index];
+        diagnostic_msgs::msg::DiagnosticStatus evaluated_status;
+        evaluated_status.name = "fgo_gil/ambiguity_evaluated/" + std::to_string(index);
+        evaluated_status.hardware_id = "um982_raw";
+        evaluated_status.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
+        evaluated_status.message = last_integer_fix_.fixed ?
+          "FIXED_CANDIDATE" : "EVALUATED_NOT_FIXED";
+        evaluated_status.values.push_back(keyValue("signal_group", signalGroupLabel(key.group)));
+        evaluated_status.values.push_back(numericKeyValue("reference_prn", key.reference.prn));
+        evaluated_status.values.push_back(numericKeyValue("target_prn", key.target.prn));
+        evaluated_status.values.push_back(numericKeyValue(
+          "float_cycles", last_integer_fix_.evaluated_float_cycles(static_cast<int>(index))));
+        evaluated_status.values.push_back(numericKeyValue(
+          "nearest_integer_cycles",
+          std::round(last_integer_fix_.evaluated_float_cycles(static_cast<int>(index)))));
+        evaluated_status.values.push_back(numericKeyValue(
+          "fractional_cycles",
+          last_integer_fix_.evaluated_fractional_cycles(static_cast<int>(index))));
+        evaluated_status.values.push_back(numericKeyValue(
+          "target_rover_arc", key.receiver_arc_ids[0]));
+        evaluated_status.values.push_back(numericKeyValue(
+          "target_base_arc", key.receiver_arc_ids[1]));
+        evaluated_status.values.push_back(numericKeyValue(
+          "reference_rover_arc", key.receiver_arc_ids[2]));
+        evaluated_status.values.push_back(numericKeyValue(
+          "reference_base_arc", key.receiver_arc_ids[3]));
+        ambiguity_array.status.push_back(std::move(evaluated_status));
+      }
+    }
     ambiguity_status_pub_->publish(std::move(ambiguity_array));
 
     diagnostic_msgs::msg::DiagnosticArray performance_array;

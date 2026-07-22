@@ -1664,9 +1664,9 @@ private:
       carrier_status.hardware_id = "um982_raw";
       carrier_status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
       carrier_status.message = "CARRIER_RESIDUAL_OBSERVED";
-      std::size_t candidate_ambiguities = 0U;
-      for (const DdAmbiguityKey & key : last_integer_fix_.keys) {
-        candidate_ambiguities += static_cast<std::size_t>(key.group == carrier.group);
+      std::size_t evaluated_ambiguities = 0U;
+      for (const DdAmbiguityKey & key : last_integer_fix_.evaluated_keys) {
+        evaluated_ambiguities += static_cast<std::size_t>(key.group == carrier.group);
       }
       carrier_status.values.push_back(numericKeyValue("factors", carrier.factors));
       carrier_status.values.push_back(numericKeyValue("raw_rms_m", carrier.raw_rms_m));
@@ -1685,7 +1685,7 @@ private:
       carrier_status.values.push_back(
         numericKeyValue("fix_eligible_ambiguities", carrier.fix_eligible_ambiguities));
       carrier_status.values.push_back(
-        numericKeyValue("candidate_ambiguities", candidate_ambiguities));
+        numericKeyValue("evaluated_ambiguities", evaluated_ambiguities));
       carrier_status.values.push_back(
         numericKeyValue("confirmation_count", integer_confirmation_->count()));
       factor_array.status.push_back(std::move(carrier_status));

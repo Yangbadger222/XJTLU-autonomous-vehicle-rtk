@@ -256,6 +256,11 @@ IntegerFixResult IntegerAmbiguityResolver::resolve(const FloatAmbiguityEstimate 
       break;
     }
     output.evaluated_ambiguities = active.size();
+    output.evaluated_keys.clear();
+    output.evaluated_keys.reserve(active.size());
+    for (const std::size_t index : active) {
+      output.evaluated_keys.push_back(estimate.keys[index]);
+    }
     const Eigen::VectorXd fractional_cycles =
       float_cycles.array() - float_cycles.array().round();
     output.fractional_cycle_rms = std::sqrt(

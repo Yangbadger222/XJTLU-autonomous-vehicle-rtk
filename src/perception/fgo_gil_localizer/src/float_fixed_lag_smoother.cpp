@@ -263,8 +263,10 @@ std::vector<Factor> boundedUniformSample(
 FloatFixedLagSmoother::FloatFixedLagSmoother(
   FloatSmootherConfig config,
   LidarGraphFactorConfig lidar_config,
-  GnssGraphFactorConfig gnss_config)
-: config_(config), lidar_config_(lidar_config), gnss_config_(gnss_config)
+  GnssGraphFactorConfig gnss_config,
+  ReceiverSolutionGraphFactorConfig receiver_solution_config)
+: config_(config), lidar_config_(lidar_config), gnss_config_(gnss_config),
+  receiver_solution_config_(receiver_solution_config)
 {
   if (!std::isfinite(config_.duration_s) || config_.duration_s <= 0.0 ||
     config_.maximum_states == 0U || config_.maximum_iterations == 0U ||
@@ -283,7 +285,9 @@ FloatFixedLagSmoother::FloatFixedLagSmoother(
     !std::isfinite(gnss_config_.code_huber_delta_sigma) ||
     gnss_config_.code_huber_delta_sigma <= 0.0 ||
     !std::isfinite(gnss_config_.carrier_huber_delta_sigma) ||
-    gnss_config_.carrier_huber_delta_sigma <= 0.0)
+    gnss_config_.carrier_huber_delta_sigma <= 0.0 ||
+    !std::isfinite(receiver_solution_config_.position_huber_delta_sigma) ||
+    receiver_solution_config_.position_huber_delta_sigma <= 0.0)
   {
     throw std::invalid_argument("float fixed-lag smoother configuration is outside valid bounds");
   }
@@ -427,6 +431,31 @@ bool FloatFixedLagSmoother::addGnssFactors(
     return true;
   }
   gnss_factors_.push_back({state, measurements});
+  invalidateFixLinearization();
+  refreshDiagnostics();
+  return true;
+}
+
+bool FloatFixedLagSmoother::addReceiverPositionFactor(
+  const StateId state,
+  const ReceiverPositionMeasurement & measurement)
+{
+  if (states_.find(state) == states_.end() || !finite(measurement.antenna_position_ecef_m) ||
+    !finite(measurement.antenna_in_body_m) || !measurement.covariance_ecef_m2.allFinite())
+  {
+    ++diagnostics_.rejected_factors;
+    return false;
+  }
+  const Eigen::Matrix3d covariance = 0.5 * (
+    measurement.covariance_ecef_m2 + measurement.covariance_ecef_m2.transpose());
+  Eigen::LLT<Eigen::Matrix3d> covariance_solver(covariance);
+  if (covariance_solver.info() != Eigen::Success) {
+    ++diagnostics_.rejected_factors;
+    return false;
+  }
+  ReceiverPositionMeasurement accepted = measurement;
+  accepted.covariance_ecef_m2 = covariance;
+  receiver_position_factors_.push_back({state, accepted});
   invalidateFixLinearization();
   refreshDiagnostics();
   return true;
@@ -912,6 +941,41 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       add_group(group.second, true);
     }
   }
+
+  for (const auto & factor : receiver_position_factors_) {
+    if (marginalize_state.has_value() && factor.state != *marginalize_state) {
+      continue;
+    }
+    const auto state = states_.find(factor.state);
+    const auto state_offset = layout.state_offsets.find(factor.state);
+    if (state == states_.end() || state_offset == layout.state_offsets.end()) {
+      continue;
+    }
+    const Vec3 antenna_offset_ecef = state->second.orientation_ecef_body.rotate(
+      factor.measurement.antenna_in_body_m);
+    const Vec3 residual_vector = state->second.position_ecef_m + antenna_offset_ecef -
+      factor.measurement.antenna_position_ecef_m;
+    Eigen::VectorXd residuals(3);
+    Eigen::MatrixXd jacobian = Eigen::MatrixXd::Zero(3, kStateDimension);
+    std::vector<int> scalar_offsets;
+    scalar_offsets.reserve(kStateDimension);
+    for (int column = 0; column < kStateDimension; ++column) {
+      scalar_offsets.push_back(state_offset->second + column);
+    }
+    for (int axis = 0; axis < 3; ++axis) {
+      Vec3 direction{};
+      direction[static_cast<std::size_t>(axis)] = 1.0;
+      residuals(axis) = residual_vector[static_cast<std::size_t>(axis)];
+      jacobian(axis, axis) = 1.0;
+      const Vec3 rotation = cross(antenna_offset_ecef, direction);
+      for (int column = 0; column < 3; ++column) {
+        jacobian(axis, 3 + column) = rotation[static_cast<std::size_t>(column)];
+      }
+    }
+    add_correlated_rows(
+      residuals, factor.measurement.covariance_ecef_m2, jacobian, scalar_offsets,
+      receiver_solution_config_.position_huber_delta_sigma);
+  }
   system.hessian = 0.5 * (system.hessian + system.hessian.transpose());
   return system;
 }
@@ -1212,6 +1276,11 @@ bool FloatFixedLagSmoother::marginalizeOldest()
       gnss_factors_.begin(), gnss_factors_.end(),
       [oldest](const GnssFactorBatch & factor) {return factor.state == oldest;}),
     gnss_factors_.end());
+  receiver_position_factors_.erase(
+    std::remove_if(
+      receiver_position_factors_.begin(), receiver_position_factors_.end(),
+      [oldest](const ReceiverPositionFactor & factor) {return factor.state == oldest;}),
+    receiver_position_factors_.end());
   for (auto iterator = ambiguities_.begin(); iterator != ambiguities_.end(); ) {
     if (retained_ambiguities.find(iterator->first) == retained_ambiguities.end()) {
       ambiguity_last_state_.erase(iterator->first);
@@ -1570,6 +1639,7 @@ std::size_t FloatFixedLagSmoother::factorCount() const noexcept
         static_cast<std::size_t>(measurement.carrier_valid);
     }
   }
+  count += receiver_position_factors_.size();
   return count;
 }
 
@@ -1584,6 +1654,7 @@ void FloatFixedLagSmoother::refreshDiagnostics()
   diagnostics_.lidar_plane_factors = 0U;
   diagnostics_.gnss_code_factors = 0U;
   diagnostics_.gnss_carrier_factors = 0U;
+  diagnostics_.receiver_position_factors = receiver_position_factors_.size();
   diagnostics_.map_alignment_estimated = lidar_config_.estimate_map_alignment;
   diagnostics_.map_alignment_translation_correction_m = norm(
     lidar_map_alignment_.translation - lidar_map_alignment_anchor_.translation);

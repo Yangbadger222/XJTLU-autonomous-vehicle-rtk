@@ -129,6 +129,8 @@ fgo_gil_float_fgo:
     topics:
       imu: /livox/imu
       lidar_constraints: /fgo_gil/lidar_constraints
+      fix: /fix
+      rtk_nmea: /rtk/nmea_sentence
       gnss_epoch: /gnss/raw/observation_epoch
       ephemeris: /gnss/raw/ephemeris
       reference_station: /gnss/rtcm/reference_station
@@ -223,9 +225,31 @@ fgo_gil_float_fgo:
       gnss_code_huber_delta_sigma: 2.5
       gnss_carrier_huber_delta_sigma: 2.5
 
-    # LAMBDA is post-processing only. Accepted candidates are published on the
-    # fixed topic; neither accepted nor rejected candidates are written into the
-    # float fixed-lag graph. GLONASS FDMA is excluded from fixing in Phase 6.
+    # The production shadow graph uses the UM982's q=4 receiver solution. Raw
+    # DD/LAMBDA can be re-enabled only for isolated research replay; never enable
+    # both paths in the same graph because their measurements are correlated.
+    raw_dd:
+      enabled: false
+
+    receiver_solution:
+      enabled: true
+      maximum_keyframe_offset_s: 0.20
+      maximum_quality_offset_s: 0.25
+      fixed_quality_code: 4
+      minimum_satellites: 10
+      maximum_hdop: 2.0
+      maximum_position_innovation_m: 5.0
+      # UM982 publishes ENU covariance. Keep the q=4 factor realistic in the
+      # presence of residual multipath and a less precise vertical component.
+      minimum_horizontal_sigma_m: 0.03
+      maximum_horizontal_sigma_m: 0.25
+      minimum_vertical_sigma_m: 0.08
+      maximum_vertical_sigma_m: 0.50
+      position_huber_delta_sigma: 2.5
+
+    # LAMBDA remains available only when raw_dd.enabled is true. Accepted
+    # candidates are published on the fixed topic, never written into the
+    # float fixed-lag graph. GLONASS FDMA is excluded from fixing.
     integer_fixing:
       enabled: true
       partial_fixing: true

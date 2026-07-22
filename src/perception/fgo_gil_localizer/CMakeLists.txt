@@ -20,6 +20,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(gnss_raw_msgs REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nmea_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
@@ -38,6 +39,7 @@ add_library(fgo_gil_core
   src/lidar_types.cpp
   src/livox_preprocessor.cpp
   src/math_types.cpp
+  src/receiver_solution.cpp
   src/reference_station_tracker.cpp
   src/rtklib_lambda.cpp
   src/satellite_propagator.cpp
@@ -69,6 +71,7 @@ ament_target_dependencies(fgo_gil_lidar_frontend_node
   gnss_raw_msgs
   livox_ros_driver2
   nav_msgs
+  nmea_msgs
   rclcpp
   sensor_msgs
 )
@@ -82,6 +85,7 @@ ament_target_dependencies(fgo_gil_float_fgo_node
   geometry_msgs
   gnss_raw_msgs
   nav_msgs
+  nmea_msgs
   rclcpp
   sensor_msgs
 )
@@ -154,6 +158,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_float_fixed_lag_smoother test/test_float_fixed_lag_smoother.cpp)
   target_include_directories(test_float_fixed_lag_smoother PRIVATE include)
   target_link_libraries(test_float_fixed_lag_smoother fgo_gil_core)
+
+  ament_add_gtest(test_receiver_solution test/test_receiver_solution.cpp)
+  target_include_directories(test_receiver_solution PRIVATE include)
+  target_link_libraries(test_receiver_solution fgo_gil_core)
 
   ament_add_gtest(test_integer_ambiguity_resolver test/test_integer_ambiguity_resolver.cpp)
   target_include_directories(test_integer_ambiguity_resolver PRIVATE include)

@@ -85,6 +85,8 @@ def test_phase7_config_exposes_outputs_and_refuses_control_ownership():
     assert time_parameters["topics"]["status"] == "/fgo_gil/timing_status"
     assert parameters["topics"]["output_odometry"] == "/fgo_gil/odom"
     assert parameters["topics"]["path"] == "/fgo_gil/path"
+    assert parameters["topics"]["fix"] == "/fix"
+    assert parameters["topics"]["rtk_nmea"] == "/rtk/nmea_sentence"
     assert parameters["topics"]["factor_diagnostics"] == "/fgo_gil/factor_diagnostics"
     assert parameters["topics"]["ambiguity_status"] == "/fgo_gil/ambiguity_status"
     assert parameters["topics"]["performance"] == "/fgo_gil/performance"
@@ -107,6 +109,9 @@ def test_phase7_config_exposes_outputs_and_refuses_control_ownership():
     assert optimizer["maximum_plane_factors_per_keyframe"] == 96
     assert parameters["output"]["maximum_path_poses"] == 2000
     assert parameters["safety"] == {"publish_tf": False, "nav2_use_fgo": False}
+    assert parameters["raw_dd"]["enabled"] is False
+    assert parameters["receiver_solution"]["enabled"] is True
+    assert parameters["receiver_solution"]["fixed_quality_code"] == 4
 
 
 def test_phase7_localizer_defaults_to_an_optimized_build():
@@ -172,6 +177,8 @@ def test_phase7_replay_uses_an_input_only_topic_allowlist():
         "/livox/lidar",
         "/livox/imu",
         "/fastlio2/lio_odom",
+        "/fix",
+        "/rtk/nmea_sentence",
         "/gnss/raw/observation_epoch",
         "/gnss/raw/ephemeris",
         "/gnss/rtcm/reference_station",

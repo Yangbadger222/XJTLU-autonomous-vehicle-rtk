@@ -113,6 +113,11 @@ def test_phase5_config_fails_closed_and_bounds_the_float_window():
     assert parameters["gnss"]["maximum_baseline_m"] == 20000.0
     assert parameters["topics"]["odometry"] == "/fgo_gil/float_odom_ecef"
     assert parameters["topics"]["fixed_odometry"] == "/fgo_gil/fixed_odom_ecef"
+    assert parameters["topics"]["fix"] == "/fix"
+    assert parameters["topics"]["rtk_nmea"] == "/rtk/nmea_sentence"
+    assert parameters["raw_dd"]["enabled"] is False
+    assert parameters["receiver_solution"]["enabled"] is True
+    assert parameters["receiver_solution"]["fixed_quality_code"] == 4
     assert parameters["integer_fixing"]["enabled"] is True
     assert parameters["integer_fixing"]["partial_fixing"] is True
     assert parameters["integer_fixing"]["minimum_ambiguities"] == 4

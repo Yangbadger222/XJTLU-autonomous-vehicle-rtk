@@ -97,6 +97,25 @@ TEST(FloatFixedLagSmoother, GnssFloatStateAndAmbiguitiesConverge)
   }
 }
 
+TEST(FloatFixedLagSmoother, ReceiverPositionFactorUsesAntennaLeverArm)
+{
+  const Vec3 imu_truth{6378137.0, 10.0, -4.0};
+  const Vec3 antenna_in_body{1.0, 0.0, 0.0};
+  EcefState initial = stateAt(10.0, imu_truth + Vec3{0.5, -0.6, 0.4});
+  FloatFixedLagSmoother smoother;
+  ASSERT_TRUE(smoother.addState(1, initial));
+  ASSERT_TRUE(smoother.addStatePrior(1, initial, loosePositionPrior()));
+  ReceiverPositionMeasurement measurement;
+  measurement.antenna_position_ecef_m = imu_truth + antenna_in_body;
+  measurement.antenna_in_body_m = antenna_in_body;
+  measurement.covariance_ecef_m2 = 0.01 * Eigen::Matrix3d::Identity();
+  ASSERT_TRUE(smoother.addReceiverPositionFactor(1, measurement));
+  ASSERT_TRUE(smoother.optimize());
+  ASSERT_NE(smoother.state(1), nullptr);
+  EXPECT_LT(norm(smoother.state(1)->position_ecef_m - imu_truth), 0.02);
+  EXPECT_EQ(smoother.diagnostics().receiver_position_factors, 1U);
+}
+
 TEST(FloatFixedLagSmoother, PreservesSharedReferenceCovarianceBetweenAmbiguities)
 {
   const Vec3 truth{6378137.0, 20.0, -10.0};

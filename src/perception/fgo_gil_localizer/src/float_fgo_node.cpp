@@ -2,6 +2,7 @@
 #include "fgo_gil_localizer/imu_buffer.hpp"
 #include "fgo_gil_localizer/integer_ambiguity_resolver.hpp"
 #include "fgo_gil_localizer/reference_station_tracker.hpp"
+#include "fgo_gil_localizer/receiver_solution.hpp"
 #include "fgo_gil_localizer/satellite_propagator.hpp"
 
 #include <algorithm>
@@ -32,9 +33,11 @@
 #include "gnss_raw_msgs/msg/reference_station.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
+#include "nmea_msgs/msg/sentence.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/executors/multi_threaded_executor.hpp"
 #include "sensor_msgs/msg/imu.hpp"
+#include "sensor_msgs/msg/nav_sat_fix.hpp"
 
 namespace fgo_gil_localizer
 {
@@ -82,6 +85,42 @@ RigidPose pose(const geometry_msgs::msg::Pose & value)
 double absoluteGnssSeconds(const GnssTime & time)
 {
   return static_cast<double>(time.week) * kGnssWeekSeconds + time.tow_s;
+}
+
+bool validReceiverFix(const sensor_msgs::msg::NavSatFix & fix)
+{
+  return std::isfinite(stampSeconds(fix.header.stamp)) &&
+         std::isfinite(fix.latitude) && std::isfinite(fix.longitude) &&
+         std::isfinite(fix.altitude) && std::abs(fix.latitude) <= 90.0 &&
+         std::abs(fix.longitude) <= 180.0;
+}
+
+std::optional<Eigen::Matrix3d> boundedReceiverCovarianceEnu(
+  const sensor_msgs::msg::NavSatFix & fix,
+  const double minimum_horizontal_sigma_m,
+  const double maximum_horizontal_sigma_m,
+  const double minimum_vertical_sigma_m,
+  const double maximum_vertical_sigma_m)
+{
+  if (fix.position_covariance_type == sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN) {
+    return std::nullopt;
+  }
+  const std::array<double, 3U> minimum{
+    minimum_horizontal_sigma_m, minimum_horizontal_sigma_m, minimum_vertical_sigma_m};
+  const std::array<double, 3U> maximum{
+    maximum_horizontal_sigma_m, maximum_horizontal_sigma_m, maximum_vertical_sigma_m};
+  Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
+  for (int axis = 0; axis < 3; ++axis) {
+    const double variance = fix.position_covariance[static_cast<std::size_t>(axis * 3 + axis)];
+    if (!std::isfinite(variance) || variance <= 0.0) {
+      return std::nullopt;
+    }
+    const double sigma = std::clamp(
+      std::sqrt(variance), minimum[static_cast<std::size_t>(axis)],
+      maximum[static_cast<std::size_t>(axis)]);
+    covariance(axis, axis) = sigma * sigma;
+  }
+  return covariance;
 }
 
 const char * constellationLabel(const GnssConstellation constellation)
@@ -211,6 +250,8 @@ private:
   {
     declare_parameter<std::string>("topics.imu", "/livox/imu");
     declare_parameter<std::string>("topics.lidar_constraints", "/fgo_gil/lidar_constraints");
+    declare_parameter<std::string>("topics.fix", "/fix");
+    declare_parameter<std::string>("topics.rtk_nmea", "/rtk/nmea_sentence");
     declare_parameter<std::string>("topics.gnss_epoch", "/gnss/raw/observation_epoch");
     declare_parameter<std::string>("topics.ephemeris", "/gnss/raw/ephemeris");
     declare_parameter<std::string>(
@@ -256,6 +297,8 @@ private:
     declare_parameter<int>("buffers.pending_ephemerides", 64);
     declare_parameter<int>("buffers.pending_reference_stations", 16);
     declare_parameter<int>("buffers.pending_gnss_epochs", 128);
+    declare_parameter<int>("buffers.pending_receiver_fixes", 256);
+    declare_parameter<int>("buffers.pending_receiver_qualities", 256);
     declare_parameter<int>("buffers.maximum_ephemerides", 256);
     declare_parameter<double>("imu.acceleration_scale", 9.80665);
     declare_parameter<double>("time.maximum_gnss_keyframe_offset_s", 0.10);
@@ -323,6 +366,19 @@ private:
     declare_parameter<double>("gnss.unavailable_base_code_sigma_m", 0.30);
     declare_parameter<double>("gnss.unavailable_base_carrier_sigma_m", 0.01);
     declare_parameter<double>("gnss.carrier_model_sigma_zenith_m_per_km", 0.01);
+    declare_parameter<bool>("raw_dd.enabled", false);
+    declare_parameter<bool>("receiver_solution.enabled", true);
+    declare_parameter<double>("receiver_solution.maximum_keyframe_offset_s", 0.20);
+    declare_parameter<double>("receiver_solution.maximum_quality_offset_s", 0.25);
+    declare_parameter<int>("receiver_solution.fixed_quality_code", 4);
+    declare_parameter<int>("receiver_solution.minimum_satellites", 10);
+    declare_parameter<double>("receiver_solution.maximum_hdop", 2.0);
+    declare_parameter<double>("receiver_solution.maximum_position_innovation_m", 5.0);
+    declare_parameter<double>("receiver_solution.minimum_horizontal_sigma_m", 0.03);
+    declare_parameter<double>("receiver_solution.maximum_horizontal_sigma_m", 0.25);
+    declare_parameter<double>("receiver_solution.minimum_vertical_sigma_m", 0.08);
+    declare_parameter<double>("receiver_solution.maximum_vertical_sigma_m", 0.50);
+    declare_parameter<double>("receiver_solution.position_huber_delta_sigma", 2.5);
     declare_parameter<double>("diagnostics_period_s", 1.0);
   }
 
@@ -379,6 +435,8 @@ private:
   {
     imu_topic_ = get_parameter("topics.imu").as_string();
     lidar_constraints_topic_ = get_parameter("topics.lidar_constraints").as_string();
+    fix_topic_ = get_parameter("topics.fix").as_string();
+    rtk_nmea_topic_ = get_parameter("topics.rtk_nmea").as_string();
     gnss_epoch_topic_ = get_parameter("topics.gnss_epoch").as_string();
     ephemeris_topic_ = get_parameter("topics.ephemeris").as_string();
     reference_station_topic_ = get_parameter("topics.reference_station").as_string();
@@ -413,6 +471,10 @@ private:
       quaternionParameter("calibration.imu_lidar.rotation_wxyz"),
       vec3Parameter("calibration.imu_lidar.translation_m")};
     pending_gnss_capacity_ = positiveSizeParameter("buffers.pending_gnss_epochs");
+    pending_receiver_fix_capacity_ =
+      positiveSizeParameter("buffers.pending_receiver_fixes");
+    pending_receiver_quality_capacity_ =
+      positiveSizeParameter("buffers.pending_receiver_qualities");
     imu_qos_depth_ = positiveSizeParameter("buffers.imu_qos_depth");
     raw_input_qos_depth_ = positiveSizeParameter("buffers.raw_input_qos_depth");
     pending_lidar_capacity_ = positiveSizeParameter("buffers.pending_lidar_batches");
@@ -466,6 +528,30 @@ private:
       get_parameter("optimizer.gnss_code_huber_delta_sigma").as_double();
     gnss_factor_config_.carrier_huber_delta_sigma =
       get_parameter("optimizer.gnss_carrier_huber_delta_sigma").as_double();
+    raw_dd_enabled_ = get_parameter("raw_dd.enabled").as_bool();
+    receiver_solution_enabled_ = get_parameter("receiver_solution.enabled").as_bool();
+    receiver_solution_maximum_keyframe_offset_s_ =
+      get_parameter("receiver_solution.maximum_keyframe_offset_s").as_double();
+    receiver_solution_maximum_quality_offset_s_ =
+      get_parameter("receiver_solution.maximum_quality_offset_s").as_double();
+    receiver_solution_fixed_quality_code_ =
+      static_cast<int>(get_parameter("receiver_solution.fixed_quality_code").as_int());
+    receiver_solution_minimum_satellites_ =
+      static_cast<int>(get_parameter("receiver_solution.minimum_satellites").as_int());
+    receiver_solution_maximum_hdop_ =
+      get_parameter("receiver_solution.maximum_hdop").as_double();
+    receiver_solution_maximum_position_innovation_m_ =
+      get_parameter("receiver_solution.maximum_position_innovation_m").as_double();
+    receiver_solution_minimum_horizontal_sigma_m_ =
+      get_parameter("receiver_solution.minimum_horizontal_sigma_m").as_double();
+    receiver_solution_maximum_horizontal_sigma_m_ =
+      get_parameter("receiver_solution.maximum_horizontal_sigma_m").as_double();
+    receiver_solution_minimum_vertical_sigma_m_ =
+      get_parameter("receiver_solution.minimum_vertical_sigma_m").as_double();
+    receiver_solution_maximum_vertical_sigma_m_ =
+      get_parameter("receiver_solution.maximum_vertical_sigma_m").as_double();
+    receiver_solution_factor_config_.position_huber_delta_sigma =
+      get_parameter("receiver_solution.position_huber_delta_sigma").as_double();
     integer_resolver_config_.enabled = get_parameter("integer_fixing.enabled").as_bool();
     integer_resolver_config_.partial_fixing =
       get_parameter("integer_fixing.partial_fixing").as_bool();
@@ -547,7 +633,24 @@ private:
       observation_stale_timeout_s_ <= 0.0 ||
       !std::isfinite(ephemeris_stale_timeout_s_) || ephemeris_stale_timeout_s_ <= 0.0 ||
       !std::isfinite(pending_lidar_timeout_s_) || pending_lidar_timeout_s_ <= 0.0 ||
-      !std::isfinite(maximum_condition_estimate_) || maximum_condition_estimate_ <= 1.0)
+      !std::isfinite(maximum_condition_estimate_) || maximum_condition_estimate_ <= 1.0 ||
+      !std::isfinite(receiver_solution_maximum_keyframe_offset_s_) ||
+      receiver_solution_maximum_keyframe_offset_s_ <= 0.0 ||
+      !std::isfinite(receiver_solution_maximum_quality_offset_s_) ||
+      receiver_solution_maximum_quality_offset_s_ <= 0.0 ||
+      receiver_solution_fixed_quality_code_ < 0 || receiver_solution_minimum_satellites_ <= 0 ||
+      !std::isfinite(receiver_solution_maximum_hdop_) || receiver_solution_maximum_hdop_ <= 0.0 ||
+      !std::isfinite(receiver_solution_maximum_position_innovation_m_) ||
+      receiver_solution_maximum_position_innovation_m_ <= 0.0 ||
+      !std::isfinite(receiver_solution_minimum_horizontal_sigma_m_) ||
+      !std::isfinite(receiver_solution_maximum_horizontal_sigma_m_) ||
+      receiver_solution_minimum_horizontal_sigma_m_ <= 0.0 ||
+      receiver_solution_minimum_horizontal_sigma_m_ >
+      receiver_solution_maximum_horizontal_sigma_m_ ||
+      !std::isfinite(receiver_solution_minimum_vertical_sigma_m_) ||
+      !std::isfinite(receiver_solution_maximum_vertical_sigma_m_) ||
+      receiver_solution_minimum_vertical_sigma_m_ <= 0.0 ||
+      receiver_solution_minimum_vertical_sigma_m_ > receiver_solution_maximum_vertical_sigma_m_)
     {
       throw std::invalid_argument("FGO node timing parameters are outside valid bounds");
     }
@@ -559,6 +662,10 @@ private:
       (!finite(base_ecef_m_) || norm(base_ecef_m_) < 5.0e6 || norm(base_ecef_m_) > 7.0e6))
     {
       throw std::invalid_argument("calibrated static GNSS base ECEF is invalid");
+    }
+    if (raw_dd_enabled_ && receiver_solution_enabled_) {
+      throw std::invalid_argument(
+              "raw DD and receiver solution factors cannot both enter the FGO graph");
     }
   }
 
@@ -573,12 +680,14 @@ private:
     const RigidPose initial_map_alignment =
       reset_lidar_map_alignment || !smoother_ ? ecef_world_ : smoother_->lidarMapAlignment();
     smoother_ = std::make_unique<FloatFixedLagSmoother>(
-      smoother_config_, lidar_factor_config_, gnss_factor_config_);
+      smoother_config_, lidar_factor_config_, gnss_factor_config_,
+      receiver_solution_factor_config_);
     if (!smoother_->setLidarMapAlignment(initial_map_alignment, ecef_world_)) {
       throw std::runtime_error("failed to initialize LiDAR map-to-ECEF alignment");
     }
     state_gnss_seconds_.clear();
     gnss_factor_states_.clear();
+    last_receiver_solution_state_.reset();
     most_recent_gnss_factor_state_.reset();
     integer_fix_pending_ = false;
     last_state_id_.reset();
@@ -598,6 +707,33 @@ private:
     estimator_state_ = "WAITING_FOR_LIDAR_KEYFRAME";
     ++graph_resets_;
   }
+
+  struct ReceiverFixSample
+  {
+    std::uint64_t id = 0;
+    double stamp_s = 0.0;
+    sensor_msgs::msg::NavSatFix message;
+  };
+
+  struct ReceiverQualitySample
+  {
+    double stamp_s = 0.0;
+    ReceiverRtkQuality quality;
+  };
+
+  struct ReceiverCandidate
+  {
+    ReceiverFixSample fix;
+    ReceiverRtkQuality quality;
+  };
+
+  enum class ReceiverAttachmentResult : std::uint8_t
+  {
+    Disabled,
+    Waiting,
+    Rejected,
+    Added,
+  };
 
   void createInterfaces()
   {
@@ -634,6 +770,12 @@ private:
       lidar_constraints_topic_, 10,
       std::bind(&FloatFgoNode::onLidarConstraints, this, std::placeholders::_1),
       estimator_options);
+    receiver_fix_sub_ = create_subscription<sensor_msgs::msg::NavSatFix>(
+      fix_topic_, 20,
+      std::bind(&FloatFgoNode::onReceiverFix, this, std::placeholders::_1), raw_input_options);
+    receiver_nmea_sub_ = create_subscription<nmea_msgs::msg::Sentence>(
+      rtk_nmea_topic_, 50,
+      std::bind(&FloatFgoNode::onReceiverNmea, this, std::placeholders::_1), raw_input_options);
     gnss_sub_ = create_subscription<gnss_raw_msgs::msg::ObservationEpoch>(
       gnss_epoch_topic_, raw_input_qos_depth_,
       std::bind(&FloatFgoNode::onGnssEpoch, this, std::placeholders::_1), raw_input_options);
@@ -811,6 +953,151 @@ private:
     }
   }
 
+  void onReceiverFix(const sensor_msgs::msg::NavSatFix::SharedPtr message)
+  {
+    const double stamp_s = stampSeconds(message->header.stamp);
+    std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
+    ++receiver_fixes_received_;
+    if (!validReceiverFix(*message) || stamp_s <= 0.0) {
+      ++receiver_invalid_fixes_;
+      return;
+    }
+    if (receiver_fixes_.size() >= pending_receiver_fix_capacity_) {
+      receiver_fixes_.pop_front();
+      ++receiver_dropped_fixes_;
+    }
+    receiver_fixes_.push_back({next_receiver_fix_id_++, stamp_s, *message});
+  }
+
+  void onReceiverNmea(const nmea_msgs::msg::Sentence::SharedPtr message)
+  {
+    const auto quality = parseGgaRtkQuality(message->sentence);
+    const double stamp_s = stampSeconds(message->header.stamp);
+    std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
+    if (!quality.has_value() || stamp_s <= 0.0) {
+      ++receiver_invalid_quality_samples_;
+      return;
+    }
+    ++receiver_quality_samples_received_;
+    if (receiver_qualities_.size() >= pending_receiver_quality_capacity_) {
+      receiver_qualities_.pop_front();
+      ++receiver_dropped_quality_samples_;
+    }
+    receiver_qualities_.push_back({stamp_s, *quality});
+  }
+
+  std::optional<ReceiverCandidate> receiverCandidate(const double state_stamp_s)
+  {
+    std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
+    std::optional<ReceiverCandidate> candidate;
+    double nearest_offset_s = std::numeric_limits<double>::infinity();
+    for (const ReceiverFixSample & fix : receiver_fixes_) {
+      const double fix_offset_s = std::abs(fix.stamp_s - state_stamp_s);
+      if (fix_offset_s > receiver_solution_maximum_keyframe_offset_s_ ||
+        fix_offset_s >= nearest_offset_s)
+      {
+        continue;
+      }
+      const ReceiverQualitySample * nearest_quality = nullptr;
+      double quality_offset_s = std::numeric_limits<double>::infinity();
+      for (const ReceiverQualitySample & quality : receiver_qualities_) {
+        const double offset_s = std::abs(quality.stamp_s - fix.stamp_s);
+        if (offset_s < quality_offset_s) {
+          quality_offset_s = offset_s;
+          nearest_quality = &quality;
+        }
+      }
+      if (nearest_quality == nullptr ||
+        quality_offset_s > receiver_solution_maximum_quality_offset_s_ ||
+        !isAcceptedFixedRtk(
+          nearest_quality->quality, receiver_solution_fixed_quality_code_,
+          receiver_solution_minimum_satellites_, receiver_solution_maximum_hdop_))
+      {
+        continue;
+      }
+      candidate = {{fix.id, fix.stamp_s, fix.message}, nearest_quality->quality};
+      nearest_offset_s = fix_offset_s;
+    }
+    return candidate;
+  }
+
+  void consumeReceiverFix(const std::uint64_t id, const double state_stamp_s)
+  {
+    std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
+    receiver_fixes_.erase(
+      std::remove_if(
+        receiver_fixes_.begin(), receiver_fixes_.end(),
+        [id, state_stamp_s, this](const ReceiverFixSample & sample) {
+          return sample.id == id || sample.stamp_s <
+          state_stamp_s - receiver_solution_maximum_keyframe_offset_s_;
+        }),
+      receiver_fixes_.end());
+    receiver_qualities_.erase(
+      std::remove_if(
+        receiver_qualities_.begin(), receiver_qualities_.end(),
+        [state_stamp_s, this](const ReceiverQualitySample & sample) {
+          return sample.stamp_s < state_stamp_s - receiver_solution_maximum_quality_offset_s_;
+        }),
+      receiver_qualities_.end());
+  }
+
+  ReceiverAttachmentResult attachReceiverSolution(const StateId state_id)
+  {
+    if (!receiver_solution_enabled_) {
+      return ReceiverAttachmentResult::Disabled;
+    }
+    const EcefState * state = smoother_->state(state_id);
+    if (state == nullptr) {
+      ++receiver_rejected_factors_;
+      return ReceiverAttachmentResult::Rejected;
+    }
+    const auto candidate = receiverCandidate(state->stamp_s);
+    if (!candidate.has_value()) {
+      return ReceiverAttachmentResult::Waiting;
+    }
+    const auto antenna_ecef = geodeticToEcef(
+      candidate->fix.message.latitude, candidate->fix.message.longitude,
+      candidate->fix.message.altitude);
+    const auto covariance_enu = boundedReceiverCovarianceEnu(
+      candidate->fix.message, receiver_solution_minimum_horizontal_sigma_m_,
+      receiver_solution_maximum_horizontal_sigma_m_, receiver_solution_minimum_vertical_sigma_m_,
+      receiver_solution_maximum_vertical_sigma_m_);
+    const auto covariance_ecef = covariance_enu.has_value() ? enuCovarianceToEcef(
+      candidate->fix.message.latitude, candidate->fix.message.longitude, *covariance_enu) :
+      std::nullopt;
+    if (!antenna_ecef.has_value() || !covariance_ecef.has_value()) {
+      ++receiver_rejected_factors_;
+      consumeReceiverFix(candidate->fix.id, state->stamp_s);
+      return ReceiverAttachmentResult::Rejected;
+    }
+    const Vec3 predicted_antenna = state->position_ecef_m +
+      state->orientation_ecef_body.rotate(master_in_imu_m_);
+    const double innovation_m = norm(*antenna_ecef - predicted_antenna);
+    last_receiver_position_innovation_m_ = innovation_m;
+    if (!std::isfinite(innovation_m) ||
+      innovation_m > receiver_solution_maximum_position_innovation_m_)
+    {
+      ++receiver_rejected_factors_;
+      consumeReceiverFix(candidate->fix.id, state->stamp_s);
+      return ReceiverAttachmentResult::Rejected;
+    }
+    ReceiverPositionMeasurement measurement;
+    measurement.antenna_position_ecef_m = *antenna_ecef;
+    measurement.covariance_ecef_m2 = *covariance_ecef;
+    measurement.antenna_in_body_m = master_in_imu_m_;
+    consumeReceiverFix(candidate->fix.id, state->stamp_s);
+    if (!smoother_->addReceiverPositionFactor(state_id, measurement)) {
+      ++receiver_rejected_factors_;
+      return ReceiverAttachmentResult::Rejected;
+    }
+    last_receiver_solution_state_ = state_id;
+    last_receiver_solution_stamp_s_ = candidate->fix.stamp_s;
+    last_receiver_quality_ = candidate->quality;
+    last_receiver_quality_stamp_s_ = candidate->fix.stamp_s;
+    ++receiver_position_factors_added_;
+    return ReceiverAttachmentResult::Added;
+  }
+
   void onEphemeris(const gnss_raw_msgs::msg::Ephemeris::SharedPtr message)
   {
     std::lock_guard<std::mutex> lock(raw_input_mutex_);
@@ -866,6 +1153,10 @@ private:
   bool processReferenceStation(const gnss_raw_msgs::msg::ReferenceStation & message)
   {
     ++reference_station_updates_;
+    if (!raw_dd_enabled_) {
+      ++ignored_reference_station_updates_;
+      return false;
+    }
     if (static_base_ecef_calibrated_ || !dynamic_base_enabled_) {
       ++ignored_reference_station_updates_;
       return false;
@@ -920,6 +1211,9 @@ private:
       last_raw_week_ = message->week;
       last_raw_milliseconds_of_week_ = message->milliseconds_of_week;
       last_raw_time_status_ = message->time_status;
+      if (!raw_dd_enabled_) {
+        return;
+      }
       const auto aligned = epoch_aligner_->push(observation);
       if (!aligned.has_value()) {
         return;
@@ -966,7 +1260,9 @@ private:
 
   bool attachToClosestState(const AlignedGnssEpochs & epochs)
   {
-    if (!baseEcefReady() || !timeSyncReady() || state_gnss_seconds_.empty()) {
+    if (!raw_dd_enabled_ || !baseEcefReady() || !timeSyncReady() ||
+      state_gnss_seconds_.empty())
+    {
       return false;
     }
     const double epoch_seconds = absoluteGnssSeconds(epochs.rover.time);
@@ -1239,10 +1535,11 @@ private:
       }
     }
     last_state_id_ = state_id;
-    if (timeSyncReady()) {
+    const ReceiverAttachmentResult receiver_attachment = attachReceiverSolution(state_id);
+    if (raw_dd_enabled_ && timeSyncReady()) {
       state_gnss_seconds_[state_id] = stamp_s + *ros_to_gnss_offset_s_;
       attachPendingGnss(state_id);
-    } else {
+    } else if (raw_dd_enabled_) {
       smoother_->recordGnssOutage();
     }
     if (!optimizeGraph()) {
@@ -1255,7 +1552,13 @@ private:
       return LidarBatchResult::Consumed;
     }
     pruneStateBookkeeping();
-    if (baseEcefReady()) {
+    if (receiver_solution_enabled_) {
+      fixed_state_.reset();
+      solution_status_ = receiver_attachment == ReceiverAttachmentResult::Added ?
+        "RECEIVER_FIXED" : "RECEIVER_WAITING";
+      estimator_state_ = receiver_attachment == ReceiverAttachmentResult::Added ?
+        "RECEIVER_RTK_FIXED_ACTIVE" : "LIO_ONLY_WAITING_RECEIVER_RTK";
+    } else if (raw_dd_enabled_ && baseEcefReady()) {
       updateIntegerSolution();
       estimator_state_ = solution_status_ == "FIXED" ? "FIXED_ACTIVE" : "FLOAT_ACTIVE";
     } else {
@@ -1433,13 +1736,16 @@ private:
     status.hardware_id = "jetson_orin_nx";
     const std::string raw_status = rawGnssStatus();
     status.message = estimator_state_;
-    if (raw_status == "RAW_GNSS_UNAVAILABLE" || raw_status == "RAW_GNSS_INVALID" ||
+    const bool raw_failure = raw_dd_enabled_ &&
+      (raw_status == "RAW_GNSS_UNAVAILABLE" || raw_status == "RAW_GNSS_INVALID" ||
       raw_status == "RAW_GNSS_STALE" || raw_status == "RAW_EPHEMERIS_UNAVAILABLE" ||
-      raw_status == "RAW_EPHEMERIS_INVALID" || raw_status == "RAW_EPHEMERIS_STALE")
-    {
+      raw_status == "RAW_EPHEMERIS_INVALID" || raw_status == "RAW_EPHEMERIS_STALE");
+    if (raw_failure) {
       status.message = raw_status;
       status.level = diagnostic_msgs::msg::DiagnosticStatus::ERROR;
-    } else if (estimator_state_ == "FLOAT_ACTIVE" || estimator_state_ == "FIXED_ACTIVE") {
+    } else if (estimator_state_ == "FLOAT_ACTIVE" || estimator_state_ == "FIXED_ACTIVE" ||
+      estimator_state_ == "RECEIVER_RTK_FIXED_ACTIVE")
+    {
       status.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
     } else if (estimator_state_ == "OPTIMIZATION_FAILED" ||
       estimator_state_ == "IMU_FACTOR_REJECTED")
@@ -1460,6 +1766,9 @@ private:
       std::sqrt(2.0 * graph.last_cost / static_cast<double>(graph.last_residual_rows));
     status.values.push_back(keyValue("time_sync_state", time_sync_state_));
     status.values.push_back(keyValue("raw_gnss_status", raw_status));
+    status.values.push_back(keyValue("raw_dd_enabled", raw_dd_enabled_ ? "true" : "false"));
+    status.values.push_back(
+      keyValue("receiver_solution_enabled", receiver_solution_enabled_ ? "true" : "false"));
     status.values.push_back(
       numericKeyValue(
         "raw_observation_age_s", steadyAgeSeconds(last_raw_observation_reception_steady_)));
@@ -1489,6 +1798,29 @@ private:
       keyValue("ecef_world_calibrated", ecef_world_calibrated_ ? "true" : "false"));
     status.values.push_back(
       keyValue("base_ecef_calibrated", baseEcefReady() ? "true" : "false"));
+    status.values.push_back(keyValue("solution_status", solution_status_));
+    status.values.push_back(
+      numericKeyValue("receiver_position_factors_added", receiver_position_factors_added_));
+    status.values.push_back(
+      numericKeyValue("receiver_rejected_factors", receiver_rejected_factors_));
+    status.values.push_back(
+      numericKeyValue("receiver_position_innovation_m", last_receiver_position_innovation_m_));
+    status.values.push_back(
+      numericKeyValue(
+        "receiver_solution_stamp_s",
+        last_receiver_solution_stamp_s_.value_or(std::numeric_limits<double>::quiet_NaN())));
+    status.values.push_back(
+      numericKeyValue(
+        "receiver_quality_stamp_s",
+        last_receiver_quality_stamp_s_.value_or(std::numeric_limits<double>::quiet_NaN())));
+    if (last_receiver_quality_.has_value()) {
+      status.values.push_back(
+        numericKeyValue("receiver_gga_quality", last_receiver_quality_->quality));
+      status.values.push_back(
+        numericKeyValue("receiver_gga_satellites", last_receiver_quality_->satellites));
+      status.values.push_back(
+        numericKeyValue("receiver_gga_hdop", last_receiver_quality_->hdop));
+    }
     status.values.push_back(
       keyValue("base_ecef_source", base_ecef_source_));
     status.values.push_back(
@@ -1618,6 +1950,22 @@ private:
       status.values.push_back(
         numericKeyValue("dropped_raw_ephemeris_queue", dropped_raw_ephemeris_queue_));
     }
+    {
+      std::lock_guard<std::mutex> lock(receiver_solution_mutex_);
+      status.values.push_back(numericKeyValue("pending_receiver_fixes", receiver_fixes_.size()));
+      status.values.push_back(
+        numericKeyValue("pending_receiver_qualities", receiver_qualities_.size()));
+      status.values.push_back(numericKeyValue("receiver_fixes_received", receiver_fixes_received_));
+      status.values.push_back(
+        numericKeyValue("receiver_quality_samples_received", receiver_quality_samples_received_));
+      status.values.push_back(numericKeyValue("receiver_invalid_fixes", receiver_invalid_fixes_));
+      status.values.push_back(
+        numericKeyValue("receiver_invalid_quality_samples", receiver_invalid_quality_samples_));
+      status.values.push_back(numericKeyValue("receiver_dropped_fixes", receiver_dropped_fixes_));
+      status.values.push_back(
+        numericKeyValue(
+          "receiver_dropped_quality_samples", receiver_dropped_quality_samples_));
+    }
     status.values.push_back(numericKeyValue("output_age_s", output_age_s));
     status.values.push_back(numericKeyValue("output_stamp_age_s", output_stamp_age_s));
     status.values.push_back(
@@ -1649,6 +1997,8 @@ private:
     factor_status.values.push_back(numericKeyValue("gnss_code_factors", graph.gnss_code_factors));
     factor_status.values.push_back(
       numericKeyValue("gnss_carrier_factors", graph.gnss_carrier_factors));
+    factor_status.values.push_back(
+      numericKeyValue("receiver_position_factors", graph.receiver_position_factors));
     factor_status.values.push_back(numericKeyValue("residual_rows", graph.last_residual_rows));
     factor_status.values.push_back(numericKeyValue("residual_rms", residual_rms));
     factor_status.values.push_back(numericKeyValue("rejected_factors", graph.rejected_factors));
@@ -1723,11 +2073,12 @@ private:
     ambiguity_array.header.stamp = now();
     diagnostic_msgs::msg::DiagnosticStatus ambiguity_status;
     ambiguity_status.name = "fgo_gil/ambiguity";
-    ambiguity_status.hardware_id = "um982_raw";
-    ambiguity_status.level = solution_status_ == "FIXED" ?
+    ambiguity_status.hardware_id = receiver_solution_enabled_ ? "um982_receiver" : "um982_raw";
+    ambiguity_status.level = solution_status_ == "FIXED" || solution_status_ == "RECEIVER_FIXED" ?
       diagnostic_msgs::msg::DiagnosticStatus::OK : diagnostic_msgs::msg::DiagnosticStatus::WARN;
-    ambiguity_status.message = solution_status_ == "FIXED" ?
-      "FIXED" : toString(last_integer_fix_.rejection_reason);
+    ambiguity_status.message = solution_status_ == "RECEIVER_FIXED" ?
+      "RECEIVER_RTK_FIXED" : (solution_status_ == "FIXED" ?
+      "FIXED" : toString(last_integer_fix_.rejection_reason));
     ambiguity_status.values.push_back(keyValue("solution_status", solution_status_));
     ambiguity_status.values.push_back(numericKeyValue("ambiguity_dimension", graph.ambiguities));
     ambiguity_status.values.push_back(
@@ -1852,6 +2203,8 @@ private:
 
   std::string imu_topic_;
   std::string lidar_constraints_topic_;
+  std::string fix_topic_;
+  std::string rtk_nmea_topic_;
   std::string gnss_epoch_topic_;
   std::string ephemeris_topic_;
   std::string reference_station_topic_;
@@ -1880,6 +2233,8 @@ private:
   Vec3 base_ecef_m_;
   Vec3 master_in_imu_m_;
   std::size_t pending_gnss_capacity_ = 128;
+  std::size_t pending_receiver_fix_capacity_ = 256;
+  std::size_t pending_receiver_quality_capacity_ = 256;
   std::size_t imu_qos_depth_ = 512;
   std::size_t raw_input_qos_depth_ = 512;
   std::size_t pending_lidar_capacity_ = 16;
@@ -1899,11 +2254,24 @@ private:
   double ephemeris_stale_timeout_s_ = 300.0;
   double pending_lidar_timeout_s_ = 0.5;
   double maximum_condition_estimate_ = 1.0e12;
+  bool raw_dd_enabled_ = false;
+  bool receiver_solution_enabled_ = true;
+  double receiver_solution_maximum_keyframe_offset_s_ = 0.20;
+  double receiver_solution_maximum_quality_offset_s_ = 0.25;
+  int receiver_solution_fixed_quality_code_ = 4;
+  int receiver_solution_minimum_satellites_ = 10;
+  double receiver_solution_maximum_hdop_ = 2.0;
+  double receiver_solution_maximum_position_innovation_m_ = 5.0;
+  double receiver_solution_minimum_horizontal_sigma_m_ = 0.03;
+  double receiver_solution_maximum_horizontal_sigma_m_ = 0.25;
+  double receiver_solution_minimum_vertical_sigma_m_ = 0.08;
+  double receiver_solution_maximum_vertical_sigma_m_ = 0.50;
   bool publish_tf_ = false;
   bool nav2_use_fgo_ = false;
   FloatSmootherConfig smoother_config_;
   LidarGraphFactorConfig lidar_factor_config_;
   GnssGraphFactorConfig gnss_factor_config_;
+  ReceiverSolutionGraphFactorConfig receiver_solution_factor_config_;
   IntegerAmbiguityResolverConfig integer_resolver_config_;
   FixedBackSubstitutionConfig fixed_back_substitution_config_;
   StateFactorNoise prior_noise_;
@@ -1923,9 +2291,12 @@ private:
   std::unique_ptr<FloatFixedLagSmoother> smoother_;
   mutable std::mutex imu_mutex_;
   mutable std::mutex raw_input_mutex_;
+  mutable std::mutex receiver_solution_mutex_;
   std::map<SatelliteId, BroadcastEphemeris> ephemerides_;
   std::deque<SatelliteId> ephemeris_order_;
   std::deque<AlignedGnssEpochs> pending_gnss_;
+  std::deque<ReceiverFixSample> receiver_fixes_;
+  std::deque<ReceiverQualitySample> receiver_qualities_;
   std::deque<PendingLidarBatch> pending_lidar_;
   std::deque<gnss_raw_msgs::msg::ObservationEpoch::SharedPtr> raw_epoch_queue_;
   std::deque<gnss_raw_msgs::msg::Ephemeris::SharedPtr> raw_ephemeris_queue_;
@@ -1934,6 +2305,7 @@ private:
   std::set<StateId> gnss_factor_states_;
   std::optional<StateId> last_state_id_;
   std::optional<StateId> most_recent_gnss_factor_state_;
+  std::optional<StateId> last_receiver_solution_state_;
   bool integer_fix_pending_ = false;
   std::optional<EcefState> fixed_state_;
   std::optional<std::uint64_t> active_frontend_epoch_;
@@ -1946,6 +2318,9 @@ private:
   std::string time_sync_state_ = "UNSYNCED";
   std::optional<double> ros_to_gnss_offset_s_;
   std::optional<double> last_time_sync_reception_s_;
+  std::optional<double> last_receiver_solution_stamp_s_;
+  std::optional<double> last_receiver_quality_stamp_s_;
+  std::optional<ReceiverRtkQuality> last_receiver_quality_;
   double clock_uncertainty_s_ = std::numeric_limits<double>::infinity();
   nav_msgs::msg::Path path_msg_;
   const std::chrono::steady_clock::time_point startup_steady_ =
@@ -2001,8 +2376,18 @@ private:
   std::uint64_t integer_fix_rejections_ = 0;
   std::uint64_t raw_observation_epochs_received_ = 0;
   std::uint64_t raw_valid_observation_epochs_ = 0;
+  std::uint64_t next_receiver_fix_id_ = 1;
+  std::uint64_t receiver_fixes_received_ = 0;
+  std::uint64_t receiver_quality_samples_received_ = 0;
+  std::uint64_t receiver_invalid_fixes_ = 0;
+  std::uint64_t receiver_invalid_quality_samples_ = 0;
+  std::uint64_t receiver_dropped_fixes_ = 0;
+  std::uint64_t receiver_dropped_quality_samples_ = 0;
+  std::uint64_t receiver_position_factors_added_ = 0;
+  std::uint64_t receiver_rejected_factors_ = 0;
   std::uint64_t measured_optimization_calls_ = 0;
   std::uint64_t nonfinite_output_rejections_ = 0;
+  double last_receiver_position_innovation_m_ = std::numeric_limits<double>::infinity();
 
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr fixed_odometry_pub_;
@@ -2014,6 +2399,8 @@ private:
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr performance_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<fgo_gil_msgs::msg::LidarConstraintBatch>::SharedPtr lidar_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr receiver_fix_sub_;
+  rclcpp::Subscription<nmea_msgs::msg::Sentence>::SharedPtr receiver_nmea_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ObservationEpoch>::SharedPtr gnss_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::Ephemeris>::SharedPtr ephemeris_sub_;
   rclcpp::Subscription<gnss_raw_msgs::msg::ReferenceStation>::SharedPtr reference_station_sub_;

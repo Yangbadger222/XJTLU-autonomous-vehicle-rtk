@@ -52,6 +52,18 @@ struct GnssGraphFactorConfig
   double carrier_huber_delta_sigma = 2.5;
 };
 
+struct ReceiverSolutionGraphFactorConfig
+{
+  double position_huber_delta_sigma = 2.5;
+};
+
+struct ReceiverPositionMeasurement
+{
+  Vec3 antenna_position_ecef_m;
+  Eigen::Matrix3d covariance_ecef_m2 = Eigen::Matrix3d::Identity();
+  Vec3 antenna_in_body_m;
+};
+
 struct FloatSmootherConfig
 {
   double duration_s = 10.0;
@@ -72,6 +84,7 @@ struct FloatSmootherDiagnostics
   std::size_t lidar_plane_factors = 0;
   std::size_t gnss_code_factors = 0;
   std::size_t gnss_carrier_factors = 0;
+  std::size_t receiver_position_factors = 0;
   std::uint64_t optimization_calls = 0;
   std::uint64_t optimization_rollbacks = 0;
   std::uint64_t marginalizations = 0;
@@ -159,7 +172,8 @@ public:
   FloatFixedLagSmoother(
     FloatSmootherConfig config = {},
     LidarGraphFactorConfig lidar_config = {},
-    GnssGraphFactorConfig gnss_config = {});
+    GnssGraphFactorConfig gnss_config = {},
+    ReceiverSolutionGraphFactorConfig receiver_solution_config = {});
 
   bool addState(StateId id, const EcefState & initial_state);
   bool setLidarMapAlignment(
@@ -179,6 +193,9 @@ public:
   bool addGnssFactors(
     StateId state,
     const std::vector<DoubleDifferenceMeasurement> & measurements);
+  bool addReceiverPositionFactor(
+    StateId state,
+    const ReceiverPositionMeasurement & measurement);
 
   bool optimize();
   void recordGnssOutage() noexcept {++diagnostics_.gnss_outages;}
@@ -227,6 +244,12 @@ private:
   {
     StateId state = 0;
     std::vector<DoubleDifferenceMeasurement> measurements;
+  };
+
+  struct ReceiverPositionFactor
+  {
+    StateId state = 0;
+    ReceiverPositionMeasurement measurement;
   };
 
   struct MarginalVariable
@@ -293,6 +316,7 @@ private:
   FloatSmootherConfig config_;
   LidarGraphFactorConfig lidar_config_;
   GnssGraphFactorConfig gnss_config_;
+  ReceiverSolutionGraphFactorConfig receiver_solution_config_;
   std::map<StateId, EcefState> states_;
   std::vector<StateId> state_order_;
   std::map<DdAmbiguityKey, double> ambiguities_;
@@ -302,6 +326,7 @@ private:
   std::vector<ImuFactor> imu_factors_;
   std::vector<LidarFactorBatch> lidar_factors_;
   std::vector<GnssFactorBatch> gnss_factors_;
+  std::vector<ReceiverPositionFactor> receiver_position_factors_;
   RigidPose lidar_map_alignment_;
   RigidPose lidar_map_alignment_anchor_;
   std::optional<DenseMarginalPrior> marginal_prior_;

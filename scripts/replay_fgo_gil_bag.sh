@@ -18,6 +18,8 @@ exec ros2 bag play "$BAG_PATH" "$@" --clock --topics \
   /livox/lidar \
   /livox/imu \
   /fastlio2/lio_odom \
+  /fix \
+  /rtk/nmea_sentence \
   /gnss/raw/observation_epoch \
   /gnss/raw/ephemeris \
   /gnss/rtcm/reference_station \

@@ -1779,22 +1779,29 @@ private:
         evaluated_status.values.push_back(keyValue("signal_group", signalGroupLabel(key.group)));
         evaluated_status.values.push_back(numericKeyValue("reference_prn", key.reference.prn));
         evaluated_status.values.push_back(numericKeyValue("target_prn", key.target.prn));
-        evaluated_status.values.push_back(numericKeyValue(
-          "float_cycles", last_integer_fix_.evaluated_float_cycles(static_cast<int>(index))));
-        evaluated_status.values.push_back(numericKeyValue(
-          "nearest_integer_cycles",
-          std::round(last_integer_fix_.evaluated_float_cycles(static_cast<int>(index)))));
-        evaluated_status.values.push_back(numericKeyValue(
-          "fractional_cycles",
-          last_integer_fix_.evaluated_fractional_cycles(static_cast<int>(index))));
-        evaluated_status.values.push_back(numericKeyValue(
-          "target_rover_arc", key.receiver_arc_ids[0]));
-        evaluated_status.values.push_back(numericKeyValue(
-          "target_base_arc", key.receiver_arc_ids[1]));
-        evaluated_status.values.push_back(numericKeyValue(
-          "reference_rover_arc", key.receiver_arc_ids[2]));
-        evaluated_status.values.push_back(numericKeyValue(
-          "reference_base_arc", key.receiver_arc_ids[3]));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "float_cycles", last_integer_fix_.evaluated_float_cycles(static_cast<int>(index))));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "nearest_integer_cycles",
+            std::round(last_integer_fix_.evaluated_float_cycles(static_cast<int>(index)))));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "fractional_cycles",
+            last_integer_fix_.evaluated_fractional_cycles(static_cast<int>(index))));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "target_rover_arc", key.receiver_arc_ids[0]));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "target_base_arc", key.receiver_arc_ids[1]));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "reference_rover_arc", key.receiver_arc_ids[2]));
+        evaluated_status.values.push_back(
+          numericKeyValue(
+            "reference_base_arc", key.receiver_arc_ids[3]));
         ambiguity_array.status.push_back(std::move(evaluated_status));
       }
     }

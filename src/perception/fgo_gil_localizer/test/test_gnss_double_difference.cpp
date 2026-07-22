@@ -79,7 +79,7 @@ TEST(DoubleDifferenceBuilder, RejectsNegativeCarrierModelSigma)
 {
   DoubleDifferenceBuilderConfig config;
   config.carrier_model_sigma_zenith_m_per_km = -0.01;
-  EXPECT_THROW(DoubleDifferenceBuilder(config), std::invalid_argument);
+  EXPECT_THROW((void)DoubleDifferenceBuilder{config}, std::invalid_argument);
 }
 
 TEST(GnssReferenceSelector, UsesElevationHysteresisAndReportsSwitch)

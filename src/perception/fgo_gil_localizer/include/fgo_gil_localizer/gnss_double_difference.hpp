@@ -279,6 +279,7 @@ struct DoubleDifferenceBuilderConfig
   double minimum_carrier_sigma_m = 0.001;
   double unavailable_base_code_sigma_m = 0.30;
   double unavailable_base_carrier_sigma_m = 0.01;
+  double carrier_model_sigma_zenith_m_per_km = 0.01;
 };
 
 struct SatelliteLinkStates

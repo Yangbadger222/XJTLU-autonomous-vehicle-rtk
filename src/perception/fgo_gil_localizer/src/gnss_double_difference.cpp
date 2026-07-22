@@ -151,6 +151,15 @@ double usableSigma(const double reported, const double minimum, const double una
          std::max(reported, minimum) : std::max(unavailable, minimum);
 }
 
+double mappedCarrierModelSigma(
+  const double zenith_sigma_m_per_km,
+  const double baseline_m,
+  const double elevation_rad)
+{
+  const double mapping = 1.0 / std::max(std::sin(elevation_rad), 0.1);
+  return zenith_sigma_m_per_km * (baseline_m / 1000.0) * mapping;
+}
+
 }  // namespace
 
 SignalGroup signalGroup(const SignalKey & signal) noexcept
@@ -454,10 +463,12 @@ DoubleDifferenceBuilder::DoubleDifferenceBuilder(
     !std::isfinite(config_.minimum_carrier_sigma_m) ||
     !std::isfinite(config_.unavailable_base_code_sigma_m) ||
     !std::isfinite(config_.unavailable_base_carrier_sigma_m) ||
+    !std::isfinite(config_.carrier_model_sigma_zenith_m_per_km) ||
     config_.maximum_baseline_m <= 0.0 || config_.maximum_code_innovation_m <= 0.0 ||
     config_.minimum_code_sigma_m <= 0.0 || config_.minimum_carrier_sigma_m <= 0.0 ||
     config_.unavailable_base_code_sigma_m <= 0.0 ||
-    config_.unavailable_base_carrier_sigma_m <= 0.0)
+    config_.unavailable_base_carrier_sigma_m <= 0.0 ||
+    config_.carrier_model_sigma_zenith_m_per_km < 0.0)
   {
     throw std::invalid_argument("double-difference builder configuration is outside valid bounds");
   }
@@ -487,7 +498,8 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
   }
   const Vec3 rover_antenna = rover_state.position_ecef_m +
     rover_state.orientation_ecef_body.rotate(lever_arm_body_m);
-  if (norm(rover_antenna - base_position_ecef_m) > config_.maximum_baseline_m) {
+  const double baseline_m = norm(rover_antenna - base_position_ecef_m);
+  if (baseline_m > config_.maximum_baseline_m) {
     reject(DdRejectReason::BaselineTooLong);
     return result;
   }
@@ -667,11 +679,16 @@ std::vector<DoubleDifferenceMeasurement> DoubleDifferenceBuilder::build(
       const double reference_base_sigma = usableSigma(
         reference.wavelength_m * reference.base->carrier_phase_std_cycles,
         config_.minimum_carrier_sigma_m, config_.unavailable_base_carrier_sigma_m);
+      const double target_model_sigma = mappedCarrierModelSigma(
+        config_.carrier_model_sigma_zenith_m_per_km, baseline_m, target.elevation_rad);
+      const double reference_model_sigma = mappedCarrierModelSigma(
+        config_.carrier_model_sigma_zenith_m_per_km, baseline_m, reference.elevation_rad);
       measurement.carrier_target_variance_m2 = target_rover_sigma * target_rover_sigma +
-        target_base_sigma * target_base_sigma;
+        target_base_sigma * target_base_sigma + target_model_sigma * target_model_sigma;
       measurement.carrier_reference_variance_m2 =
         reference_rover_sigma * reference_rover_sigma +
-        reference_base_sigma * reference_base_sigma;
+        reference_base_sigma * reference_base_sigma +
+        reference_model_sigma * reference_model_sigma;
       measurement.carrier_sigma_m = std::sqrt(
         measurement.carrier_target_variance_m2 +
         measurement.carrier_reference_variance_m2);

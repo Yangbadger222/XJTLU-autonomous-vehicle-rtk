@@ -829,10 +829,11 @@ ros2 topic echo /fgo_gil/performance
 ```
 
 `/fgo_gil/factor_diagnostics` also publishes one status for the newest GNSS factor per
-`fgo_gil/carrier_residual/<CONSTELLATION>_signal_<ID>[_l2c]` group. Inspect
+`fgo_gil/code_residual/<CONSTELLATION>_signal_<ID>[_l2c]` and
+`fgo_gil/carrier_residual/<CONSTELLATION>_signal_<ID>[_l2c]` groups. Inspect
 `raw_rms_m`/`raw_max_m`, `normalized_rms`/`normalized_max`, the effective
 `sigma_*_m`, `minimum_arc_observations`/`maximum_arc_observations`,
-`fix_eligible_ambiguities`, `candidate_ambiguities`, and `confirmation_count`.
+`fix_eligible_ambiguities`, `evaluated_ambiguities`, and `confirmation_count`.
 These fields isolate constellation/signal model faults; do not hide large normalized
 residuals by weakening integer gates.
 

@@ -75,6 +75,13 @@ TEST(DoubleDifferenceDiagnostics, RejectReasonsHaveStableNames)
   EXPECT_STREQ(toString(DdRejectReason::CodeInnovation), "CODE_INNOVATION");
 }
 
+TEST(DoubleDifferenceBuilder, RejectsNegativeCarrierModelSigma)
+{
+  DoubleDifferenceBuilderConfig config;
+  config.carrier_model_sigma_zenith_m_per_km = -0.01;
+  EXPECT_THROW(DoubleDifferenceBuilder(config), std::invalid_argument);
+}
+
 TEST(GnssReferenceSelector, UsesElevationHysteresisAndReportsSwitch)
 {
   GnssReferenceSelector selector({0.0, 20.0, 5.0 * 3.14159265358979323846 / 180.0});
@@ -258,6 +265,18 @@ TEST(DoubleDifferenceBuilder, RecoversGeometryLeverArmAndFloatAmbiguity)
   EXPECT_EQ(measurement.reference.prn, 3U);
   EXPECT_GT(measurement.carrier_sigma_m, 0.014);
   EXPECT_GT(measurement.code_sigma_m, 0.47);
+  const double modeled_variance = measurement.carrier_target_variance_m2 +
+    measurement.carrier_reference_variance_m2;
+  DoubleDifferenceBuilderConfig no_model_config;
+  no_model_config.carrier_model_sigma_zenith_m_per_km = 0.0;
+  DoubleDifferenceBuilder no_model_builder(no_model_config);
+  const auto no_model_measurements = no_model_builder.build(
+    epochs, states, rover_state, base, lever_arm);
+  ASSERT_EQ(no_model_measurements.size(), 1U);
+  EXPECT_GT(
+    modeled_variance,
+    no_model_measurements.front().carrier_target_variance_m2 +
+    no_model_measurements.front().carrier_reference_variance_m2);
   const auto code = evaluateDdPseudorange(measurement, rover_state);
   ASSERT_TRUE(code.has_value());
   EXPECT_NEAR(code->residual_m, 0.0, 1.0e-6);

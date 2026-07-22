@@ -391,6 +391,10 @@ bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master�
 
 同一回放新增逐 `(constellation, signal_type, l2c)` 的最新载波 raw/normalized residual、有效 sigma、arc 观测数、fix-eligible/candidate 维数和 confirmation count。结果显示 sigma 主要为 `14--22 mm`，但 GPS signal 0 的 residual RMS 中位数为 `0.555 m`（`38.9 sigma`），Galileo signal 12 为 `0.760 m`（`50.5 sigma`），多个频点 p95 达数米。整数确认最多只有 1 次且没有 fixed 输出。这证明当前主要阻塞是载波观测模型、跨接收机时间/大气项或 arc 一致性，而不是 LAMBDA 门限太严；实车只能继续 shadow 诊断，禁止接管 `map->odom`。
 
+上述米级载波异常最终定位为 UM982 约定不一致：binary 字段是 accumulated Doppler range（ADR），其符号与 DD 模型使用的正向距离载波相位相反。FGO 输入适配层现在对 ADR 取反，raw driver 仍保留接收机原始值。同一 418 s bag 上，主要频点 post-fit carrier RMS 中位数降至 `2.9--7.9 mm`，归一化中位数均低于 `0.54 sigma`；APE/RPE 保持 `0.235/0.102 m`。归一化前 raw code/carrier DD 变化也呈强负相关，独立确认了该约定。
+
+整数固定仍保持 fail closed。DD code residual 中位数为 `0.44--11.06 m`，GGA-to-LIO ECEF 拟合 RMSE 为 `0.225 m`；最终 4 维 partial set 持续由 2 个 GPS signal 14、1 个 Galileo signal 12 和 1 个 Galileo signal 17 ambiguity 组成。即使 ratio 为 `4.19--13.06`，其 fractional distance 仍为 `0.096--0.162 cycle`（约 `2.5--4 cm`）。旧 covariance 只有接收机相位噪声和 base 不可用 fallback，没有按基线/仰角变化的残余大气或多路径项。新增 `gnss.carrier_model_sigma_zenith_m_per_km`，按 `baseline_km/sin(elevation)` 分别加入 target/reference 单差方差，并保留共享参考星 covariance；该修复补齐缺失不确定度，而不是放宽 LAMBDA residual 门限。
+
 `evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收

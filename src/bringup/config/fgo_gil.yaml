@@ -265,5 +265,7 @@ fgo_gil_float_fgo:
       # OBSVBASE currently reports zero standard deviations; zero means unavailable.
       unavailable_base_code_sigma_m: 0.30
       unavailable_base_carrier_sigma_m: 0.01
+      # Residual short-baseline atmosphere/multipath model, mapped by 1/sin(elevation).
+      carrier_model_sigma_zenith_m_per_km: 0.01
 
     diagnostics_period_s: 1.0

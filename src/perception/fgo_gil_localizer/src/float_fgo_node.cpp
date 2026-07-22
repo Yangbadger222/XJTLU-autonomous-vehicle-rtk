@@ -319,6 +319,7 @@ private:
     declare_parameter<double>("gnss.doppler_phase_threshold_cycles", 0.75);
     declare_parameter<double>("gnss.unavailable_base_code_sigma_m", 0.30);
     declare_parameter<double>("gnss.unavailable_base_carrier_sigma_m", 0.01);
+    declare_parameter<double>("gnss.carrier_model_sigma_zenith_m_per_km", 0.01);
     declare_parameter<double>("diagnostics_period_s", 1.0);
   }
 
@@ -499,6 +500,8 @@ private:
       get_parameter("gnss.unavailable_base_code_sigma_m").as_double();
     dd_builder_config_.unavailable_base_carrier_sigma_m =
       get_parameter("gnss.unavailable_base_carrier_sigma_m").as_double();
+    dd_builder_config_.carrier_model_sigma_zenith_m_per_km =
+      get_parameter("gnss.carrier_model_sigma_zenith_m_per_km").as_double();
     reference_selector_config_.minimum_elevation_rad = dd_builder_config_.minimum_elevation_rad;
     reference_selector_config_.minimum_cn0_db_hz = dd_builder_config_.minimum_cn0_db_hz;
     reference_selector_config_.switch_margin_rad =

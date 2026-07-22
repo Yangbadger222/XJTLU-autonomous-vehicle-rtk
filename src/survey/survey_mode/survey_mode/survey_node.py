@@ -15,6 +15,7 @@ from datetime import datetime
 from action_msgs.msg import GoalStatus
 import tf2_ros
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 class SurveyNode(Node):
     def __init__(self):
@@ -69,7 +70,6 @@ class SurveyNode(Node):
         self.localizer_client = self.create_client(GlobalRelocalize, self.localizer_service)
         
         # Map subscriber
-        from rclpy.qos import QoSProfile, DurabilityPolicy
         costmap_qos = QoSProfile(depth=10, durability=DurabilityPolicy.TRANSIENT_LOCAL, reliability=ReliabilityPolicy.RELIABLE)
         self.map_sub = self.create_subscription(OccupancyGrid, self.global_costmap_topic, self.map_callback, costmap_qos)
         self.occupancy_grid = None

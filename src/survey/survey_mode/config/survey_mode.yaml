@@ -1,17 +1,46 @@
 /**:
   ros__parameters:
+    # Maximum allowed distance (in meters) from the robot to a valid frontier or hypothesis navigation goal.
     max_radius: 50.0
+    
+    # The maximum mapped area threshold. If the active map area exceeds this, the node gives up on finding a matching map and transitions to Pure_Mapping.
     threshold_x: 200.0
+    
+    # The minimum confidence score (0.0 to 1.0) required to transition from Autonomous_Exploration to Hypothesis_Testing (an initial map match guess).
     confidence_guess: 0.6
+    
+    # The minimum confidence score required during Hypothesis_Testing to definitively confirm the match and transition to Return_To_Home.
     confidence_confirm: 0.8
+    
+    # The minimum distance (in meters) the robot must physically travel during Hypothesis_Testing before a match can be fully confirmed.
     min_confirm_distance: 5.0
+    
+    # The directory path where the previously saved maps and their localization descriptors (scan_context.yaml) are discovered and evaluated.
     map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'
+    
+    # The ROS 2 service name used to request a global relocalization score against the map database.
     localizer_service: '/localizer/global_relocalize'
+    
+    # The ROS 2 topic name where the node publishes a visual spherical marker to indicate where the initial map match guess occurred.
     initial_guess_topic: '/survey/initial_guess'
+    
+    # The ROS 2 topic name where the node publishes a visual spherical marker to indicate where a map match was successfully confirmed.
     confirmed_match_topic: '/survey/confirmed_match'
+    
+    # The preferred minimum distance (in meters) from the robot to select a frontier point during autonomous exploration.
     frontier_min_dist: 1.5
+    
+    # The absolute fallback minimum distance (in meters) to select a frontier point if no points meet the preferred frontier_min_dist.
     frontier_fallback_min_dist: 0.5
+    
+    # The preferred minimum distance (in meters) the robot should try to move towards a goal to gather new data while in Hypothesis_Testing mode.
     hypothesis_min_dist: 3.0
+    
+    # The fallback minimum distance (in meters) for a goal during Hypothesis_Testing if standard points are unavailable.
     hypothesis_fallback_min_dist: 0.5
+    
+    # The maximum number of candidates requested from the global relocalization service in a single call.
     max_candidates: 5
+    
+    # The execution period (in seconds) for the main state machine loop timer.
     timer_period: 1.0

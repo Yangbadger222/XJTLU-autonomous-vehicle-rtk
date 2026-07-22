@@ -395,6 +395,8 @@ bag开始后47.78 s出现一次孤立系统事件：IMU间断313.7 ms、master�
 
 整数固定仍保持 fail closed。DD code residual 中位数为 `0.44--11.06 m`，GGA-to-LIO ECEF 拟合 RMSE 为 `0.225 m`；最终 4 维 partial set 持续由 2 个 GPS signal 14、1 个 Galileo signal 12 和 1 个 Galileo signal 17 ambiguity 组成。即使 ratio 为 `4.19--13.06`，其 fractional distance 仍为 `0.096--0.162 cycle`（约 `2.5--4 cm`）。旧 covariance 只有接收机相位噪声和 base 不可用 fallback，没有按基线/仰角变化的残余大气或多路径项。新增 `gnss.carrier_model_sigma_zenith_m_per_km`，按 `baseline_km/sin(elevation)` 分别加入 target/reference 单差方差，并保留共享参考星 covariance；该修复补齐缺失不确定度，而不是放宽 LAMBDA residual 门限。
 
+默认 `0.01 m/km` 使载波有效 sigma 中位数从约 `14--16 mm` 增至 `20--28 mm`；APE/RPE 仍为 `0.235/0.102 m`，latency p95 约 `161 ms`，孤立 ratio failure 消失，但同一 8 个 partial set 仍未通过平方残差门。参数级 `0.02 m/km` 对照仍是同一 8 次失败且无 fixed 输出，因此不继续抬高默认值。剩余稳定 L5/E5 fractional bias 必须按具体 PRN/arc 和天线/接收机/VRS phase bias 证据排查；继续膨胀 covariance 只会掩盖问题。
+
 `evaluate_fgo_gil_bag.py` 先按时间匹配FGO与FAST-LIO comparator，再做无尺度SE(3)刚体对齐，避免直接相减ECEF与局部坐标；outage按GNSS week/TOW在50 ms内一对一匹配master/base，接收时间只作诊断，单边raw流标记为 `RAW_GNSS_INCOMPLETE`。结果包含APE/RPE、availability、fixing rate、outage drift、optimization latency/RTF和 `tegrastats` CPU/RAM。metadata-only模式不依赖ROS解码；raw topic缺失或消息数为零时明确输出 `RAW_GNSS_UNAVAILABLE`。
 
 ### Phase 8：天气允许后的采集与验收

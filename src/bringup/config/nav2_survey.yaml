@@ -454,10 +454,10 @@ local_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 3.0
+        cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        inflation_radius: 0.43
+        inflation_radius: 0.40
       # STVL 参数块；负责把 3D 点云写入体素层，并通过时间衰减清除陈旧障碍。 (STVL parameter block; responsible for writing 3D point cloud into voxel layer and clearing stale obstacles via time decay.)
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
@@ -559,10 +559,10 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 4.0
+        cost_scaling_factor: 2.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        inflation_radius: 0.63
+        inflation_radius: 0.30
       # STVL 参数块；负责让全局图中的近场动态障碍自动衰减，避免人走开后仍残留。 (STVL parameter block; responsible for auto-decaying near-field dynamic obstacles in global map, avoiding remnants after people walk away.)
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"

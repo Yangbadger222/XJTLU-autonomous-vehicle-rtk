@@ -300,7 +300,7 @@ controller_server:
       vx_std: 0.28
       vy_std: 0.0
       wz_std: 0.22
-      vx_max: 1.0
+      vx_max: 0.3   # Changed from 1.0
       vx_min: 0.0
       vy_max: 0.0
       wz_max: 1.2
@@ -835,7 +835,7 @@ velocity_smoother:
     feedback: "OPEN_LOOP"
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
-    max_velocity: [1.0, 0.0, 1.2]
+    max_velocity: [0.3, 0.0, 1.2] # Changed from [1.0, 0.0, 1.2]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
     min_velocity: [0.0, 0.0, -1.0]

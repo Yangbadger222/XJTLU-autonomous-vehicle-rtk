@@ -145,11 +145,11 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 旧 `nav2_gps.yaml` 仍保留在仓库中，但当前实车 `nav-gps` 入口不再使用它作为主 profile。`system_nav_gps.launch.py` 会复用 corridor RTK profile：
 
 - 从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件。
-- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=200`、`time_steps=32`，保留1.6秒预测视野并比旧 `500x48` 降低约73%轨迹仿真量。默认关闭 critics stats 发布，保持 `failure_tolerance=1.5s`、`vx_max=2.0`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`；`retry_attempt_limit=3` 只在全部轨迹无效时增加重采样。
+- 使用 MPPI，保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配；`batch_size=200`、`time_steps=32`，保留1.6秒预测视野并比旧 `500x48` 降低约73%轨迹仿真量。默认关闭 critics stats 发布，保持 `failure_tolerance=1.5s`、`vx_max=1.5`、`wz_max=0.70`、`temperature=0.45`、`regenerate_noises=true`；`retry_attempt_limit=3` 只在全部轨迹无效时增加重采样。
 - MPPI 外层使用 Rotation Shim。新路径方向误差超过 `0.52rad` 时，先以 `0.35rad/s` 原地对正，降到 `0.26rad` 后再交回 MPPI；`PoseProgressChecker.required_movement_angle=0.15rad` 让有效转头计入进展，不再因 15 秒内没有平移误报失败。
 - Rotation Shim 使用 `closed_loop=false` 仅指角速度斜坡基于上一帧 shim 命令，因为 FAST-LIO2 odom 当前不发布 `twist.angular.z`；MPPI 自身继续保持 `open_loop=false`，仍从实测 odometry 初始化预测。
 - local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，保留 `[0.08, 1.20]m` 高度窗障碍点云。相对 `base_footprint` 低于 8cm 的点（包括减速带）不再标记为动态障碍。
-- nav-gps local costmap 保持 `8Hz` 障碍更新、降到 `2Hz` 对外发布；global costmap 为 `2Hz/1Hz`。在 `2.0m/s` 满速下，8Hz 约每 0.25m 更新一次障碍，同时减少 costmap 序列化和 DDS 开销。
+- nav-gps local costmap 保持 `8Hz` 障碍更新、降到 `2Hz` 对外发布；global costmap 为 `2Hz/1Hz`。在 `1.5m/s` 满速下，8Hz 约每 0.19m 更新一次障碍，同时减少 costmap 序列化和 DDS 开销。
 - global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
 - goal manager 将当前位置和终点投影到最近 graph edge，插入虚拟端点后执行欧氏启发式 A*；不再调用 route server 的 Dijkstra，也不依赖少数 anchor。
@@ -168,7 +168,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 1. RViz 的 fixed frame 必须设为 `map`。
 2. 如果 `map -> odom` 没建立，即使 Livox 和 FAST-LIO2 在跑，RViz 也可能表现为空白或 costmap 不显示。
 3. Explore 使用 MPPI 主线 baseline；Corridor 启动时从 `nav2_corridor_rtk.yaml` 生成临时 Nav2 参数文件来使用 RTK 小步提速、中等原地转头、近场 local costmap、全局/局部代价地图分离与横摆抑制 profile。
-4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.85`；Corridor 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
+4. `velocity_smoother.max_velocity[0]` 在 Explore 中为 `1.0`，在 Corridor 中为 `0.85`，在 nav-gps 中为 `1.5`；Corridor/nav-gps 角速度上限为 `0.70rad/s`，但仍只使用 `vcx,wc` 控制链路，不发布横向 `vcy`。
 5. Corridor 生成 Nav2 参数时强制 `general_goal_checker.stateful=false`；这样前一个 goal 的“已到点”状态不会残留到后续相距很远的 RTK subgoal。
 6. `nav2_gps.yaml` 保留为旧 GPS MVP profile；当前 RTK `nav-gps` 实车入口复用 corridor RTK MPPI profile，`nav2_travel.yaml` 仍独立于 Explore/Corridor/nav-gps。
 7. FAST-LIO2 发布点云已在 C++ 端按高度窗口 `[-0.33, 0.30]` 过滤（commit `f619fa6`），下游 STVL 收到的是干净数据。
@@ -184,6 +184,6 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。
 
-命令链现为 `controller_server -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel -> corridor_cmd_vel_guard -> /cmd_vel_guarded -> serial_twistctl`。nav-gps 中 guard 保留最高 `2.0 m/s` 直线速度，但按 `min(2.0, 0.25/max(|w|, 0.05))` 限制转弯线速度；命令、authority 或 stop override 心跳过期时发布零速度。guarded 模式下串口只订阅 `/cmd_vel_guarded`，未经保护的 Nav2 输出不能绕过 guard；Explore 未显式传入 `guarded_cmd_vel=true` 时仍直接订阅 `/cmd_vel`。
+命令链现为 `controller_server -> /cmd_vel_nav -> velocity_smoother -> /cmd_vel -> corridor_cmd_vel_guard -> /cmd_vel_guarded -> serial_twistctl`。nav-gps 中 guard 保留最高 `1.5 m/s` 直线速度，但按 `min(1.5, 0.25/max(|w|, 0.05))` 限制转弯线速度；命令、authority 或 stop override 心跳过期时发布零速度。guarded 模式下串口只订阅 `/cmd_vel_guarded`，未经保护的 Nav2 输出不能绕过 guard；Explore 未显式传入 `guarded_cmd_vel=true` 时仍直接订阅 `/cmd_vel`。
 
 原因：2026-07-10 bags 分别暴露了 51.75 度 heading outlier、旧 authority 的 8-13 m target gap，以及 20 秒底盘/LIO no-progress。把三者都当成 `map→base` odom divergence 会导致全局坐标快速移动，或把错误归因到 local LIO。

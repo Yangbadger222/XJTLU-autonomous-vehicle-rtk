@@ -10,6 +10,7 @@ RTK_CORRECTOR = Path(
     "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
     "rtk_map_odom_corrector_node.py"
 )
+MASTER_PARAMS = Path("src/bringup/config/master_params.yaml")
 
 
 def _launch_topic_list(text: str, variable_name: str) -> list[str]:
@@ -103,10 +104,13 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert 'follow_path["publish_critics_stats"] = False' in text
     assert 'follow_path["retry_attempt_limit"] = 3' in text
     assert 'follow_path["open_loop"] = False' in text
-    assert 'follow_path["vx_max"] = 2.0' in text
-    assert 'smoother_params["max_velocity"] = [2.0, 0.0, 0.70]' in text
-    assert '"straight_max_mps": 2.0' in text
+    assert 'follow_path["vx_max"] = 1.5' in text
+    assert 'smoother_params["max_velocity"] = [1.5, 0.0, 0.70]' in text
+    assert '"straight_max_mps": 1.5' in text
     assert '"path_density_m": 0.35' in text
+
+    master_params = MASTER_PARAMS.read_text(encoding="utf-8")
+    assert "rtk_authoritative_max_linear_speed_mps: 1.5" in master_params
 
 
 def test_nav_gps_waits_and_replans_when_dynamic_obstacles_block_mppi():

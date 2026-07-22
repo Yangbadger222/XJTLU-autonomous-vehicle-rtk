@@ -52,7 +52,7 @@ public:
   SatellitePropagationResult propagateToReceiveFrame(
     const BroadcastEphemeris & ephemeris,
     const GnssTime & receive_time,
-    double pseudorange_m) const;
+    const Vec3 & receiver_position_ecef_m) const;
 
 private:
   SatellitePropagationResult propagateKeplerian(

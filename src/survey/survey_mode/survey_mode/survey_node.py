@@ -158,7 +158,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        free_cells = (data >= 0) & (data < 200)
+        free_cells = (data >= 0) & (data < 50)
         unknown_cells = (data == -1)
         
         up = np.roll(unknown_cells, 1, axis=0); up[0,:] = False
@@ -234,7 +234,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        y_idx, x_idx = np.where((data >= 0) & (data < 200))
+        y_idx, x_idx = np.where((data >= 0) & (data < 50))
         
         current_x, current_y = self.get_current_pose()
         if current_x is None:

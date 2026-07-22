@@ -1,4 +1,4 @@
-from glob import glob
+﻿from glob import glob
 import os
 from setuptools import setup
 

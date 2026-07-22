@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'gps_waypoint_dispatcher'
 
@@ -17,7 +17,6 @@ setup(
     maintainer_email='Kevinlasnh@outlook.com',
     description='GPS waypoint dispatcher for direct goals and road-network navigation',
     license='MIT',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'dispatcher_node = gps_waypoint_dispatcher.goal_manager_node:main',

@@ -1,4 +1,4 @@
-from setuptools import setup
+﻿from setuptools import setup
 import os
 from glob import glob
 
@@ -19,7 +19,6 @@ setup(
     maintainer_email='your_email@example.com',
     description='A package to compute and save IMU trajectory.',
     license='Apache License 2.0',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'imu_trajectory_node = wit_imu_traj.imu_trajectory_node:main',

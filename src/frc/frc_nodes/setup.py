@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'frc_nodes'
 
@@ -17,7 +17,6 @@ setup(
     maintainer_email='Kevinlasnh@outlook.com',
     description='FRC 双锚风险记忆在线节点',
     license='MIT',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'frc_health_aggregator = frc_nodes.health_aggregator_node:main',

@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'waypoint_nav_tool'
 
@@ -17,7 +17,6 @@ setup(
     maintainer_email='Kevinlasnh@outlook.com',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
         ],

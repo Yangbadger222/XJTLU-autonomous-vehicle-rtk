@@ -1,4 +1,4 @@
-from setuptools import setup
+﻿from setuptools import setup
 import os
 from glob import glob
 
@@ -20,7 +20,6 @@ setup(
     maintainer_email='pi@todo.todo',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'wit_ros2_imu = wit_ros2_imu.wit_ros2_imu:main'

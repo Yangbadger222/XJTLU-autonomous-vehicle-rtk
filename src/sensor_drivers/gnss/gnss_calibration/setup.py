@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 package_name = 'gnss_calibration'
 
@@ -18,7 +18,6 @@ setup(
     maintainer_email='mup10@todo.todo',
     description='GNSS Calibration Package',
     license='TODO: License declaration',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'gnss_calibration_node = gnss_calibration.gnss_calibration_node:main',

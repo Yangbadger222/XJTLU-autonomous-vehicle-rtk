@@ -1,4 +1,4 @@
-from setuptools import find_packages, setup
+﻿from setuptools import find_packages, setup
 
 
 package_name = "indoor_navigation_manager"
@@ -17,7 +17,6 @@ setup(
     maintainer_email="Kevinlasnh@outlook.com",
     description="Named-destination action manager for indoor Nav2 navigation",
     license="MIT",
-    tests_require=["pytest"],
     entry_points={
         "console_scripts": [
             "indoor_navigation_manager_node = indoor_navigation_manager.manager_node:main",

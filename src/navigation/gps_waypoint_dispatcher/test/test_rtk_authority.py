@@ -132,31 +132,29 @@ def test_stamped_pose_history_rejects_wrong_frames(frames, reason):
     assert len(history) == 0
 
 
-def test_local_odom_bridge_allows_a_bounded_continuation():
+def test_local_odom_bridge_continues_while_local_estimator_stays_healthy():
     bridge = LocalOdomBridge(
-        max_duration_s=12.0,
-        max_distance_m=5.0,
         max_step_translation_m=0.50,
         max_step_yaw_rad=math.radians(15.0),
     )
 
-    first = bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True)
-    moving = bridge.evaluate(
-        now_s=12.0, local_pose=_pose(x=0.40, yaw=math.radians(5.0)), local_fresh=True
-    )
+    result = bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True)
+    for index in range(1, 81):
+        result = bridge.evaluate(
+            now_s=10.0 + index,
+            local_pose=_pose(x=index * 0.25, yaw=math.radians(index * 0.5)),
+            local_fresh=True,
+        )
 
-    assert first.allowed is True
-    assert moving.allowed is True
-    assert moving.state is LocalOdomBridgeState.ACTIVE
-    assert moving.elapsed_s == pytest.approx(2.0)
-    assert moving.distance_m == pytest.approx(0.40)
+    assert result.allowed is True
+    assert result.state is LocalOdomBridgeState.ACTIVE
+    assert result.elapsed_s == pytest.approx(80.0)
+    assert result.distance_m == pytest.approx(20.0)
 
 
 @pytest.mark.parametrize(
     ("now_s", "pose", "local_fresh", "reason", "max_step_translation_m"),
     [
-        (22.1, _pose(), True, "MAX_BRIDGE_DURATION", 0.50),
-        (11.0, _pose(x=5.1), True, "MAX_BRIDGE_DISTANCE", 6.0),
         (11.0, _pose(x=0.6), True, "LOCAL_ODOM_TRANSLATION_JUMP", 0.50),
         (11.0, _pose(yaw=math.radians(16.0)), True, "LOCAL_ODOM_YAW_JUMP", 0.50),
         (11.0, _pose(), False, "LOCAL_ODOM_STALE", 0.50),
@@ -166,8 +164,6 @@ def test_local_odom_bridge_latches_off_when_its_safety_budget_breaks(
     now_s, pose, local_fresh, reason, max_step_translation_m
 ):
     bridge = LocalOdomBridge(
-        max_duration_s=12.0,
-        max_distance_m=5.0,
         max_step_translation_m=max_step_translation_m,
         max_step_yaw_rad=math.radians(15.0),
     )
@@ -179,7 +175,7 @@ def test_local_odom_bridge_latches_off_when_its_safety_budget_breaks(
     )
 
     assert rejected.allowed is False
-    assert rejected.state is LocalOdomBridgeState.EXHAUSTED
+    assert rejected.state is LocalOdomBridgeState.FAULTED
     assert rejected.reason == reason
     assert still_rejected.allowed is False
     assert still_rejected.reason == reason
@@ -187,13 +183,11 @@ def test_local_odom_bridge_latches_off_when_its_safety_budget_breaks(
 
 def test_local_odom_bridge_only_rearms_after_trusted_authority_resets_it():
     bridge = LocalOdomBridge(
-        max_duration_s=1.0,
-        max_distance_m=5.0,
         max_step_translation_m=0.50,
         max_step_yaw_rad=math.radians(15.0),
     )
     assert bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True).allowed
-    assert not bridge.evaluate(now_s=11.1, local_pose=_pose(), local_fresh=True).allowed
+    assert not bridge.fail("LIO_DEGENERATE_MIN_EIG").allowed
 
     bridge.reset()
     rearmed = bridge.evaluate(now_s=12.0, local_pose=_pose(), local_fresh=True)
@@ -881,6 +875,7 @@ def test_correction_release_exposes_explicit_modes_and_reasons():
     assert [mode.value for mode in CorrectionReleaseMode] == [
         "NORMAL",
         "CORRECTION_BACKLOG",
+        "RTK_REACQUIRING",
         "FAULT_HOLD",
         "LOCAL_ODOM_STALE",
     ]
@@ -1468,6 +1463,32 @@ def test_correction_release_moderate_gap_boundaries_freeze_while_moving(target):
     assert result.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
     assert result.reason is CorrectionReleaseReason.MOVING_BACKLOG_HOLD
     assert result.motion_allowed is False
+
+
+def test_correction_release_can_reacquire_a_safe_rtk_target_while_moving():
+    state = CorrectionReleaseState(
+        allow_moving_backlog_release=True,
+        moving_reacquire_translation_rate_mps=0.05,
+        moving_reacquire_yaw_rate_radps=math.radians(0.5),
+    )
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.50, yaw=math.radians(5.0)),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.25,
+        local_yaw_rate_radps=0.10,
+    )
+
+    assert result.mode is CorrectionReleaseMode.RTK_REACQUIRING
+    assert result.reason is CorrectionReleaseReason.MOVING_REACQUIRE
+    assert result.motion_allowed is True
+    assert result.translation_step_m == pytest.approx(0.005)
+    assert math.degrees(result.yaw_step_rad) == pytest.approx(0.05)
 
 
 @pytest.mark.parametrize(
@@ -2484,11 +2505,14 @@ def test_rtk_map_odom_corrector_node_owns_authority_outputs():
     assert '"/localization_authority/diagnostics"' in node_text
     assert '"/localization_authority/motion_allowed"' in node_text
     assert '"/fastlio2/lio_odom"' in node_text
+    assert '"/fastlio2/degeneracy"' in node_text
     assert '"/rtk/nmea_sentence"' in node_text
     assert "StampedPoseHistory" in node_text
     assert "CorrectionGate.yaw" in node_text
     assert "CorrectionGate.translation" in node_text
     assert "CorrectionReleaseState" in node_text
+    assert "RTK_REACQUIRING" in node_text
+    assert "_local_odom_health_reason" in node_text
     assert "lookup_transform(" not in node_text
     assert "max_pending_observation_s" in node_text
     assert "fix_quality_wait_s" in node_text

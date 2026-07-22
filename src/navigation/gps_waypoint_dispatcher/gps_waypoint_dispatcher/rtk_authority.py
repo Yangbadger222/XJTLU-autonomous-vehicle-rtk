@@ -39,7 +39,7 @@ class Pose2D:
 class LocalOdomBridgeState(Enum):
     IDLE = "IDLE"
     ACTIVE = "ACTIVE"
-    EXHAUSTED = "EXHAUSTED"
+    FAULTED = "FAULTED"
 
 
 @dataclass(frozen=True)
@@ -52,31 +52,23 @@ class LocalOdomBridgeResult:
 
 
 class LocalOdomBridge:
-    """Bounded dead-reckoning bridge after a trusted global localization loss.
+    """Continuous local propagation after a trusted global localization loss.
 
-    The caller must reset this state only after global authority has recovered.
-    A bridge that has exhausted a safety budget is intentionally latched off so
-    an ongoing GNSS outage cannot repeatedly re-arm it.
+    This class deliberately does not impose a time or distance cut-off. The
+    caller must provide an independent FAST-LIO health decision and reset only
+    after global RTK authority has recovered. A local-estimator fault latches
+    the bridge off so a continuing RTK outage cannot repeatedly re-arm it.
     """
 
     def __init__(
         self,
         *,
-        max_duration_s: float,
-        max_distance_m: float,
         max_step_translation_m: float,
         max_step_yaw_rad: float,
     ) -> None:
-        values = (
-            max_duration_s,
-            max_distance_m,
-            max_step_translation_m,
-            max_step_yaw_rad,
-        )
+        values = (max_step_translation_m, max_step_yaw_rad)
         if not all(math.isfinite(value) and value > 0.0 for value in values):
             raise ValueError("local odom bridge limits must be finite and positive")
-        self.max_duration_s = max_duration_s
-        self.max_distance_m = max_distance_m
         self.max_step_translation_m = max_step_translation_m
         self.max_step_yaw_rad = max_step_yaw_rad
         self._state = LocalOdomBridgeState.IDLE
@@ -105,7 +97,7 @@ class LocalOdomBridge:
         local_pose: Pose2D | None,
         local_fresh: bool,
     ) -> LocalOdomBridgeResult:
-        if self._state is LocalOdomBridgeState.EXHAUSTED:
+        if self._state is LocalOdomBridgeState.FAULTED:
             return self._result(False)
         if not math.isfinite(now_s):
             return self._exhaust("INVALID_PROCESS_TIME")
@@ -144,17 +136,17 @@ class LocalOdomBridge:
 
         self._last_pose = local_pose
         self._distance_m += step_translation_m
-        elapsed_s = now_s - self._started_s
-        if elapsed_s > self.max_duration_s:
-            return self._exhaust("MAX_BRIDGE_DURATION")
-        if self._distance_m > self.max_distance_m:
-            return self._exhaust("MAX_BRIDGE_DISTANCE")
         return self._result(True)
 
-    def _exhaust(self, reason: str) -> LocalOdomBridgeResult:
-        self._state = LocalOdomBridgeState.EXHAUSTED
+    def fail(self, reason: str) -> LocalOdomBridgeResult:
+        if not reason:
+            raise ValueError("local odom bridge fault reason must not be empty")
+        self._state = LocalOdomBridgeState.FAULTED
         self._reason = reason
         return self._result(False)
+
+    def _exhaust(self, reason: str) -> LocalOdomBridgeResult:
+        return self.fail(reason)
 
     def _result(self, allowed: bool) -> LocalOdomBridgeResult:
         elapsed_s = (
@@ -363,6 +355,7 @@ class PrerequisiteFailureKind(Enum):
 class CorrectionReleaseMode(Enum):
     NORMAL = "NORMAL"
     CORRECTION_BACKLOG = "CORRECTION_BACKLOG"
+    RTK_REACQUIRING = "RTK_REACQUIRING"
     FAULT_HOLD = "FAULT_HOLD"
     LOCAL_ODOM_STALE = "LOCAL_ODOM_STALE"
 
@@ -374,6 +367,7 @@ class CorrectionReleaseReason(Enum):
     LOCAL_ODOM_STALE = "LOCAL_ODOM_STALE"
     INVALID_PROCESS_TIME = "INVALID_PROCESS_TIME"
     MOVING_BACKLOG_HOLD = "MOVING_BACKLOG_HOLD"
+    MOVING_REACQUIRE = "MOVING_REACQUIRE"
     STOP_CONFIRMATION_PENDING = "STOP_CONFIRMATION_PENDING"
     RELEASING_BACKLOG = "RELEASING_BACKLOG"
     FAULT_LATCHED = "FAULT_LATCHED"
@@ -871,6 +865,9 @@ class CorrectionReleaseState:
         recovery_translation_m: float = 0.15,
         recovery_yaw_rad: float = math.radians(2.0),
         recovery_confirmation_s: float = 1.0,
+        allow_moving_backlog_release: bool = False,
+        moving_reacquire_translation_rate_mps: float = 0.05,
+        moving_reacquire_yaw_rate_radps: float = math.radians(0.5),
     ) -> None:
         self.max_translation_rate_mps = max_translation_rate_mps
         self.max_yaw_rate_radps = max_yaw_rate_radps
@@ -886,6 +883,11 @@ class CorrectionReleaseState:
         self.recovery_translation_m = recovery_translation_m
         self.recovery_yaw_rad = recovery_yaw_rad
         self.recovery_confirmation_s = recovery_confirmation_s
+        self.allow_moving_backlog_release = bool(allow_moving_backlog_release)
+        self.moving_reacquire_translation_rate_mps = (
+            moving_reacquire_translation_rate_mps
+        )
+        self.moving_reacquire_yaw_rate_radps = moving_reacquire_yaw_rate_radps
         self._validate_configuration()
         self._last_now_s: float | None = None
         self._last_lio_stamp_s: float | None = None
@@ -1089,56 +1091,73 @@ class CorrectionReleaseState:
 
         self._last_now_s = now_s
         dt_s = min(elapsed_s, self.max_dt_s)
+        moving_reacquire = False
         if self._backlog_active:
             stopped = (
                 abs(local_linear_rate_mps) < self.stopped_linear_rate_mps
                 and abs(local_yaw_rate_radps) < self.stopped_yaw_rate_radps
             )
             if not stopped:
+                if not self.allow_moving_backlog_release:
+                    self._stopped_since_s = None
+                    self._recovery_since_s = None
+                    return self._frozen_result(
+                        previous_output_map_odom,
+                        previous_map_base,
+                        target_map_base,
+                        CorrectionReleaseReason.MOVING_BACKLOG_HOLD,
+                        gap_m,
+                        gap_yaw_rad,
+                        mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                    )
+                moving_reacquire = True
                 self._stopped_since_s = None
-                self._recovery_since_s = None
-                return self._frozen_result(
-                    previous_output_map_odom,
-                    previous_map_base,
-                    target_map_base,
-                    CorrectionReleaseReason.MOVING_BACKLOG_HOLD,
-                    gap_m,
-                    gap_yaw_rad,
-                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
-                )
 
-            if self._stopped_since_s is None:
-                self._stopped_since_s = now_s
-            stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
-            stopped_epsilon_s = _time_comparison_epsilon_s(
-                self._stopped_since_s,
-                now_s,
-                self._stopped_since_s + self.stopped_confirmation_s,
-            )
-            if (
-                stopped_duration_s + stopped_epsilon_s
-                < self.stopped_confirmation_s
-            ):
-                self._recovery_since_s = None
-                return self._frozen_result(
-                    previous_output_map_odom,
-                    previous_map_base,
-                    target_map_base,
-                    CorrectionReleaseReason.STOP_CONFIRMATION_PENDING,
-                    gap_m,
-                    gap_yaw_rad,
-                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
-                    stopped_duration_s=stopped_duration_s,
+            if not moving_reacquire:
+                if self._stopped_since_s is None:
+                    self._stopped_since_s = now_s
+                stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
+                stopped_epsilon_s = _time_comparison_epsilon_s(
+                    self._stopped_since_s,
+                    now_s,
+                    self._stopped_since_s + self.stopped_confirmation_s,
                 )
+                if (
+                    stopped_duration_s + stopped_epsilon_s
+                    < self.stopped_confirmation_s
+                ):
+                    self._recovery_since_s = None
+                    return self._frozen_result(
+                        previous_output_map_odom,
+                        previous_map_base,
+                        target_map_base,
+                        CorrectionReleaseReason.STOP_CONFIRMATION_PENDING,
+                        gap_m,
+                        gap_yaw_rad,
+                        mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                        stopped_duration_s=stopped_duration_s,
+                    )
+            else:
+                stopped_duration_s = 0.0
         else:
             stopped_duration_s = 0.0
 
         try:
+            translation_rate_mps = (
+                self.moving_reacquire_translation_rate_mps
+                if moving_reacquire
+                else self.max_translation_rate_mps
+            )
+            yaw_rate_radps = (
+                self.moving_reacquire_yaw_rate_radps
+                if moving_reacquire
+                else self.max_yaw_rate_radps
+            )
             limited = limit_pose_step(
                 previous_map_base,
                 target_map_base,
-                max_translation_step_m=self.max_translation_rate_mps * dt_s,
-                max_yaw_step_rad=self.max_yaw_rate_radps * dt_s,
+                max_translation_step_m=translation_rate_mps * dt_s,
+                max_yaw_step_rad=yaw_rate_radps * dt_s,
             )
             output_map_odom = compute_map_to_odom(limited.pose, local_pose)
         except (OverflowError, ValueError):
@@ -1204,16 +1223,26 @@ class CorrectionReleaseState:
             output_map_base=limited.pose,
             target_map_base=target_map_base,
             mode=(
-                CorrectionReleaseMode.CORRECTION_BACKLOG
-                if self._backlog_active
-                else CorrectionReleaseMode.NORMAL
+                CorrectionReleaseMode.RTK_REACQUIRING
+                if self._backlog_active and moving_reacquire
+                else (
+                    CorrectionReleaseMode.CORRECTION_BACKLOG
+                    if self._backlog_active
+                    else CorrectionReleaseMode.NORMAL
+                )
             ),
             reason=(
-                CorrectionReleaseReason.RELEASING_BACKLOG
-                if self._backlog_active
-                else None
+                CorrectionReleaseReason.MOVING_REACQUIRE
+                if self._backlog_active and moving_reacquire
+                else (
+                    CorrectionReleaseReason.RELEASING_BACKLOG
+                    if self._backlog_active
+                    else None
+                )
             ),
-            motion_allowed=gates_locked and not self._backlog_active,
+            motion_allowed=gates_locked and (
+                not self._backlog_active or moving_reacquire
+            ),
             dt_s=dt_s,
             translation_gap_m=output_gap_m,
             yaw_gap_rad=output_gap_yaw_rad,
@@ -1353,6 +1382,14 @@ class CorrectionReleaseState:
             ("recovery_translation_m", self.recovery_translation_m),
             ("recovery_yaw_rad", self.recovery_yaw_rad),
             ("recovery_confirmation_s", self.recovery_confirmation_s),
+            (
+                "moving_reacquire_translation_rate_mps",
+                self.moving_reacquire_translation_rate_mps,
+            ),
+            (
+                "moving_reacquire_yaw_rate_radps",
+                self.moving_reacquire_yaw_rate_radps,
+            ),
         )
         for name, value in positive_values:
             if not math.isfinite(value) or value <= 0.0:

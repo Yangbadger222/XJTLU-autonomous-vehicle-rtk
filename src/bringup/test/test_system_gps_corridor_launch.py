@@ -196,6 +196,7 @@ def test_corridor_bag_keeps_fgo_shadow_topics_without_raw_lidar():
     assert "FYP_CORRIDOR_BAG_PROFILE" in text
     assert "def _corridor_bag_topics" in text
     assert "'/fastlio2/lio_odom'," in base_topics
+    assert "'/fastlio2/degeneracy'," in base_topics
     assert "'/odom_CBoar'," in base_topics
     assert "'/livox/imu'," in base_topics
     assert "'/rtk_fgo/odom'," in base_topics

@@ -148,6 +148,7 @@ def test_nav_gps_lean_bag_and_default_nodes_respect_vehicle_cpu_budget():
     assert "/odom_CBoar" not in base_topics
     assert "/odom_CBoar" in debug_topics
     assert "/fastlio2/lio_odom" in base_topics
+    assert "/fastlio2/degeneracy" in base_topics
     assert "/cmd_vel" in base_topics
     assert "/plan" in base_topics
     assert "FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER" in text

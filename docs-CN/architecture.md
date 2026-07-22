@@ -126,7 +126,7 @@ goto_name / /goal_pose / /gps_goal
 - Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
 - goal manager 自己执行图 A*，起终点投影到最近 graph edge，不再依赖 `route_server` 的 Dijkstra 或少数 anchor
 - QGIS 道路面编译成 KeepoutFilter mask；MPPI 可在道路内部避障，但道路外部保持禁止通行
-- RTK 短时失效会进入有界的 `LIO_BRIDGE`：冻结最后可信的 `map -> odom`，FAST-LIO 继续更新 `odom -> base_footprint`，因此原有 map 坐标系下的 A* 路线仍有效，但必须限速。超过 12 秒/5 米预算、本地里程计不新鲜或检测到 LIO 跳变时 guard 才停车；LIO 不会成为全局地图 owner。
+- RTK 门控会进入连续的 `LIO_BRIDGE`：冻结最后可信的 `map -> odom`，FAST-LIO 继续更新 `odom -> base_footprint`，因此原有 map 坐标系下的 A* 路线仍有效，但必须限速。只要 `/fastlio2/degeneracy` 表明 LiDAR 几何健康即可持续传播；LIO 过期、正则化、最小特征值过低或位姿跳变会锁存停车。稳定 RTK 恢复后进入 `RTK_REACQUIRING`，以更低修正率在线把 `map -> odom` 拉回 RTK。
 - 实车 profile 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，但将 MPPI 工作量收敛到 `350x40` samples 和2秒预测视野
 - 默认 lean bag 保留较小的 local costmap 用于避障复盘，但不录占本次 bag `77.5%` 的 global costmap；debug profile 才追加 global costmap、原始点云和 legacy anchor 状态
 - `scene_gps_bundle.yaml` 是唯一 source of truth

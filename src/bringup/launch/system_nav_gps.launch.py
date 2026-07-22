@@ -27,6 +27,7 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/rtk/status",
     "/rtk/nmea_sentence",
     "/fastlio2/lio_odom",
+    "/fastlio2/degeneracy",
     "/tf",
     "/tf_static",
     "/gps_goal_manager/status",

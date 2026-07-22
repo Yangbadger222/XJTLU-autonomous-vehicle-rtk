@@ -12,7 +12,7 @@ from nav_msgs.msg import Odometry
 from nmea_msgs.msg import Sentence
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix
-from std_msgs.msg import Bool, Float32, Float64MultiArray, String
+from std_msgs.msg import Bool, Float32, Float32MultiArray, Float64MultiArray, String
 from tf2_ros import TransformBroadcaster
 
 from gps_waypoint_dispatcher.alignment_math import heading_quaternion_yaw_to_enu_yaw
@@ -63,6 +63,14 @@ class GgaQuality:
     received_mono_s: float
 
 
+@dataclass(frozen=True)
+class LioDegeneracy:
+    min_eig: float
+    condition_number: float
+    regularized: bool
+    received_mono_s: float
+
+
 def _stamp_s(stamp) -> float:
     return float(stamp.sec) + float(stamp.nanosec) * 1e-9
 
@@ -101,6 +109,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("heading_topic", "/heading")
         self.declare_parameter("nmea_topic", "/rtk/nmea_sentence")
         self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
+        self.declare_parameter("lio_degeneracy_topic", "/fastlio2/degeneracy")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
         self.declare_parameter("scene_points_file", "")
         self.declare_parameter("use_scene_identity_alignment", False)
@@ -156,12 +165,17 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("recovery_yaw_deg", 2.0)
         self.declare_parameter("recovery_confirmation_s", 1.0)
         self.declare_parameter("enable_local_odom_bridge", True)
-        self.declare_parameter("local_bridge_max_duration_s", 12.0)
-        self.declare_parameter("local_bridge_max_distance_m", 5.0)
         self.declare_parameter("local_bridge_max_step_translation_m", 0.50)
         self.declare_parameter("local_bridge_max_step_yaw_deg", 15.0)
+        self.declare_parameter("max_lio_degeneracy_age_s", 0.50)
+        self.declare_parameter("lio_min_eig_healthy", 75.0)
+        self.declare_parameter("lio_reject_regularized", True)
         self.declare_parameter("rtk_authoritative_max_linear_speed_mps", 2.0)
         self.declare_parameter("local_bridge_max_linear_speed_mps", 0.35)
+        self.declare_parameter("rtk_reacquire_max_linear_speed_mps", 0.35)
+        self.declare_parameter("allow_moving_backlog_release", True)
+        self.declare_parameter("moving_reacquire_translation_rate_mps", 0.05)
+        self.declare_parameter("moving_reacquire_yaw_rate_degps", 0.5)
 
         self._map_frame = str(self.get_parameter("map_frame").value)
         self._odom_frame = str(self.get_parameter("odom_frame").value)
@@ -170,6 +184,9 @@ class RtkMapOdomCorrector(Node):
         self._heading_topic = str(self.get_parameter("heading_topic").value)
         self._nmea_topic = str(self.get_parameter("nmea_topic").value)
         self._lio_odom_topic = str(self.get_parameter("lio_odom_topic").value)
+        self._lio_degeneracy_topic = str(
+            self.get_parameter("lio_degeneracy_topic").value
+        )
         self._alignment_topic = str(self.get_parameter("alignment_topic").value)
         self._scene_points_file = str(self.get_parameter("scene_points_file").value).strip()
         self._use_scene_identity_alignment = bool(
@@ -224,11 +241,23 @@ class RtkMapOdomCorrector(Node):
         self._enable_local_odom_bridge = bool(
             self.get_parameter("enable_local_odom_bridge").value
         )
+        self._max_lio_degeneracy_age_s = float(
+            self.get_parameter("max_lio_degeneracy_age_s").value
+        )
+        self._lio_min_eig_healthy = float(
+            self.get_parameter("lio_min_eig_healthy").value
+        )
+        self._lio_reject_regularized = bool(
+            self.get_parameter("lio_reject_regularized").value
+        )
         self._rtk_authoritative_max_linear_speed_mps = float(
             self.get_parameter("rtk_authoritative_max_linear_speed_mps").value
         )
         self._local_bridge_max_linear_speed_mps = float(
             self.get_parameter("local_bridge_max_linear_speed_mps").value
+        )
+        self._rtk_reacquire_max_linear_speed_mps = float(
+            self.get_parameter("rtk_reacquire_max_linear_speed_mps").value
         )
 
         origin_lat = float(self.get_parameter("enu_origin_lat").value)
@@ -323,14 +352,17 @@ class RtkMapOdomCorrector(Node):
             recovery_confirmation_s=float(
                 self.get_parameter("recovery_confirmation_s").value
             ),
+            allow_moving_backlog_release=bool(
+                self.get_parameter("allow_moving_backlog_release").value
+            ),
+            moving_reacquire_translation_rate_mps=float(
+                self.get_parameter("moving_reacquire_translation_rate_mps").value
+            ),
+            moving_reacquire_yaw_rate_radps=math.radians(
+                float(self.get_parameter("moving_reacquire_yaw_rate_degps").value)
+            ),
         )
         self._local_bridge = LocalOdomBridge(
-            max_duration_s=float(
-                self.get_parameter("local_bridge_max_duration_s").value
-            ),
-            max_distance_m=float(
-                self.get_parameter("local_bridge_max_distance_m").value
-            ),
             max_step_translation_m=float(
                 self.get_parameter("local_bridge_max_step_translation_m").value
             ),
@@ -366,6 +398,7 @@ class RtkMapOdomCorrector(Node):
         self._local_linear_rate_mps = math.inf
         self._local_yaw_rate_radps = math.inf
         self._latest_lio_mono_s: float | None = None
+        self._latest_lio_degeneracy: LioDegeneracy | None = None
         self._latest_fix_mono_s: float | None = None
         self._latest_heading_mono_s: float | None = None
         self._latest_gga_mono_s: float | None = None
@@ -406,6 +439,12 @@ class RtkMapOdomCorrector(Node):
         )
         self._lio_sub = self.create_subscription(
             Odometry, self._lio_odom_topic, self._lio_callback, 50
+        )
+        self._lio_degeneracy_sub = self.create_subscription(
+            Float32MultiArray,
+            self._lio_degeneracy_topic,
+            self._lio_degeneracy_callback,
+            10,
         )
         self._alignment_sub = self.create_subscription(
             Float64MultiArray, self._alignment_topic, self._alignment_callback, 10
@@ -541,6 +580,21 @@ class RtkMapOdomCorrector(Node):
         self._local_yaw_rate_radps = abs(
             normalize_angle(pose.yaw - self._previous_lio_pose.yaw)
         ) / dt_s
+
+    def _lio_degeneracy_callback(self, msg: Float32MultiArray) -> None:
+        if len(msg.data) < 3:
+            return
+        min_eig, condition_number, regularized = (
+            float(value) for value in msg.data[:3]
+        )
+        if not all(math.isfinite(value) for value in (min_eig, condition_number)):
+            return
+        self._latest_lio_degeneracy = LioDegeneracy(
+            min_eig=min_eig,
+            condition_number=condition_number,
+            regularized=regularized >= 0.5,
+            received_mono_s=time.monotonic(),
+        )
 
     def _alignment_callback(self, msg: Float64MultiArray) -> None:
         received = time.monotonic()
@@ -798,6 +852,21 @@ class RtkMapOdomCorrector(Node):
             <= self._max_lio_age_s
         )
 
+    def _local_odom_health_reason(self, now_mono_s: float) -> str | None:
+        if not self._local_odom_fresh(now_mono_s):
+            return "LOCAL_ODOM_STALE"
+        degeneracy = self._latest_lio_degeneracy
+        if degeneracy is None or (
+            self._age_s(degeneracy.received_mono_s, now_mono_s)
+            > self._max_lio_degeneracy_age_s
+        ):
+            return "LIO_HEALTH_UNAVAILABLE"
+        if degeneracy.min_eig < self._lio_min_eig_healthy:
+            return "LIO_DEGENERATE_MIN_EIG"
+        if self._lio_reject_regularized and degeneracy.regularized:
+            return "LIO_DEGENERATE_REGULARIZED"
+        return None
+
     def _evaluate_local_odom_bridge(
         self, now_mono_s: float
     ) -> LocalOdomBridgeResult | None:
@@ -809,10 +878,23 @@ class RtkMapOdomCorrector(Node):
             # Keep the exact transform that was trusted under RTK. During the
             # bridge only FAST-LIO advances map->base through odom->base.
             self._bridge_map_odom = self._last_output
+        health_reason = self._local_odom_health_reason(now_mono_s)
+        if health_reason is not None:
+            result = (
+                self._local_bridge.evaluate(
+                    now_s=now_mono_s,
+                    local_pose=self._latest_lio_pose,
+                    local_fresh=True,
+                )
+                if self._local_bridge.state is LocalOdomBridgeState.FAULTED
+                else self._local_bridge.fail(health_reason)
+            )
+            self._last_bridge_result = result
+            return result
         result = self._local_bridge.evaluate(
             now_s=now_mono_s,
             local_pose=self._latest_lio_pose,
-            local_fresh=self._local_odom_fresh(now_mono_s),
+            local_fresh=True,
         )
         self._last_bridge_result = result
         return result
@@ -896,9 +978,18 @@ class RtkMapOdomCorrector(Node):
             self._last_authoritative_mono_s = now_mono_s
             self._clear_local_odom_bridge()
             self._publish_tf(release.output_map_odom)
-            self._publish_mode_status("RTK_AUTHORITATIVE", "LOCKED")
+            reacquiring = release.mode is CorrectionReleaseMode.RTK_REACQUIRING
+            self._publish_mode_status(
+                "RTK_REACQUIRING" if reacquiring else "RTK_AUTHORITATIVE",
+                release.reason.value if reacquiring and release.reason else "LOCKED",
+            )
             self._publish_motion_allowed(
-                True, self._rtk_authoritative_max_linear_speed_mps
+                True,
+                (
+                    self._rtk_reacquire_max_linear_speed_mps
+                    if reacquiring
+                    else self._rtk_authoritative_max_linear_speed_mps
+                ),
             )
             self._publish_diagnostics(True, release, None)
             return
@@ -969,6 +1060,12 @@ class RtkMapOdomCorrector(Node):
             if self._coherent_target_stamp_s is not None
             else math.nan
         )
+        degeneracy = self._latest_lio_degeneracy
+        degeneracy_age_s = (
+            self._age_s(degeneracy.received_mono_s, now_mono_s)
+            if degeneracy is not None
+            else math.nan
+        )
         data = [
             1.0 if motion_allowed else 0.0,
             self._age_s(self._latest_fix_mono_s, now_mono_s),
@@ -1001,6 +1098,10 @@ class RtkMapOdomCorrector(Node):
             self._local_bridge_max_linear_speed_mps
             if bridge is not None and bridge.allowed
             else 0.0,
+            degeneracy.min_eig if degeneracy is not None else math.nan,
+            degeneracy.condition_number if degeneracy is not None else math.nan,
+            1.0 if degeneracy is not None and degeneracy.regularized else 0.0,
+            degeneracy_age_s,
         ]
         self._safe_publish(self._diagnostics_pub, Float64MultiArray(data=data))
 

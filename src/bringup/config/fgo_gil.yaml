@@ -216,6 +216,10 @@ fgo_gil_float_fgo:
       lidar_huber_delta_sigma: 2.5
       maximum_line_factors_per_keyframe: 48
       maximum_plane_factors_per_keyframe: 96
+      # Keep FAST-LIO geometry local while GNSS corrects its global ECEF placement.
+      estimate_lidar_map_alignment: true
+      map_alignment_translation_prior_sigma_m: 10.0
+      map_alignment_rotation_prior_sigma_rad: 0.10
       gnss_code_huber_delta_sigma: 2.5
       gnss_carrier_huber_delta_sigma: 2.5
 

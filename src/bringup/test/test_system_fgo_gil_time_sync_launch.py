@@ -107,6 +107,9 @@ def test_phase5_config_fails_closed_and_bounds_the_float_window():
     assert calibration["gnss"]["master_in_imu_m"] == [0.0, -0.184, 0.134]
     assert parameters["window"]["duration_s"] == 10.0
     assert parameters["window"]["maximum_states"] == 20
+    assert parameters["optimizer"]["estimate_lidar_map_alignment"] is True
+    assert parameters["optimizer"]["map_alignment_translation_prior_sigma_m"] == 10.0
+    assert parameters["optimizer"]["map_alignment_rotation_prior_sigma_rad"] == 0.10
     assert parameters["gnss"]["maximum_baseline_m"] == 20000.0
     assert parameters["topics"]["odometry"] == "/fgo_gil/float_odom_ecef"
     assert parameters["topics"]["fixed_odometry"] == "/fgo_gil/fixed_odom_ecef"

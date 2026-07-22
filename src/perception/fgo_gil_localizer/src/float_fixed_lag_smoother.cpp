@@ -16,6 +16,7 @@ namespace
 {
 
 constexpr int kStateDimension = 15;
+constexpr int kMapAlignmentDimension = 6;
 
 bool validNoise(const StateFactorNoise & noise)
 {
@@ -68,6 +69,54 @@ EcefState perturbedState(const EcefState & state, const Eigen::VectorXd & delta)
   result.gyroscope_bias_rad_s =
     result.gyroscope_bias_rad_s + Vec3{delta(12), delta(13), delta(14)};
   return result;
+}
+
+Eigen::VectorXd poseLocalCoordinates(const RigidPose & anchor, const RigidPose & value)
+{
+  Eigen::VectorXd delta(kMapAlignmentDimension);
+  const Vec3 translation = value.translation - anchor.translation;
+  const Vec3 rotation = quaternionLog(value.rotation * anchor.rotation.conjugate());
+  for (int axis = 0; axis < 3; ++axis) {
+    delta(axis) = translation[static_cast<std::size_t>(axis)];
+    delta(3 + axis) = rotation[static_cast<std::size_t>(axis)];
+  }
+  return delta;
+}
+
+RigidPose perturbedMapAlignment(const RigidPose & pose, const Eigen::VectorXd & delta)
+{
+  RigidPose result = pose;
+  result.translation = result.translation + Vec3{delta(0), delta(1), delta(2)};
+  result.rotation =
+    (quaternionFromRotationVector({delta(3), delta(4), delta(5)}) * result.rotation).normalized();
+  return result;
+}
+
+double mapAlignmentPerturbationStep(const int column)
+{
+  return column < 3 ? 1.0e-3 : 1.0e-6;
+}
+
+PointToPlaneFactor alignedPlaneFactor(
+  const PointToPlaneFactor & source,
+  const RigidPose & body_lidar,
+  const RigidPose & ecef_lidar_world)
+{
+  return {
+    transformPoint(body_lidar, source.point_lidar),
+    transformPoint(ecef_lidar_world, source.plane_anchor_world),
+    ecef_lidar_world.rotation.rotate(source.plane_normal_world)};
+}
+
+PointToLineFactor alignedLineFactor(
+  const PointToLineFactor & source,
+  const RigidPose & body_lidar,
+  const RigidPose & ecef_lidar_world)
+{
+  return {
+    transformPoint(body_lidar, source.point_lidar),
+    transformPoint(ecef_lidar_world, source.line_anchor_world),
+    ecef_lidar_world.rotation.rotate(source.line_direction_world)};
 }
 
 Eigen::VectorXd inverseNoise(const StateFactorNoise & noise)
@@ -239,6 +288,10 @@ FloatFixedLagSmoother::FloatFixedLagSmoother(
     lidar_config_.huber_delta_sigma <= 0.0 ||
     lidar_config_.maximum_line_factors_per_keyframe == 0U ||
     lidar_config_.maximum_plane_factors_per_keyframe == 0U ||
+    !std::isfinite(lidar_config_.map_alignment_translation_prior_sigma_m) ||
+    lidar_config_.map_alignment_translation_prior_sigma_m <= 0.0 ||
+    !std::isfinite(lidar_config_.map_alignment_rotation_prior_sigma_rad) ||
+    lidar_config_.map_alignment_rotation_prior_sigma_rad <= 0.0 ||
     !std::isfinite(gnss_config_.code_huber_delta_sigma) ||
     gnss_config_.code_huber_delta_sigma <= 0.0 ||
     !std::isfinite(gnss_config_.carrier_huber_delta_sigma) ||
@@ -246,6 +299,21 @@ FloatFixedLagSmoother::FloatFixedLagSmoother(
   {
     throw std::invalid_argument("float fixed-lag smoother configuration is outside valid bounds");
   }
+}
+
+bool FloatFixedLagSmoother::setLidarMapAlignment(const RigidPose & ecef_lidar_world)
+{
+  if (!finite(ecef_lidar_world) || !states_.empty() || !lidar_factors_.empty() ||
+    marginal_prior_.has_value())
+  {
+    ++diagnostics_.rejected_factors;
+    return false;
+  }
+  lidar_map_alignment_ = ecef_lidar_world;
+  lidar_map_alignment_anchor_ = ecef_lidar_world;
+  invalidateFixLinearization();
+  refreshDiagnostics();
+  return true;
 }
 
 bool FloatFixedLagSmoother::addState(const StateId id, const EcefState & initial_state)
@@ -416,6 +484,12 @@ FloatFixedLagSmoother::VariableLayout FloatFixedLagSmoother::createLayout() cons
     layout.variables.push_back({MarginalVariable::Kind::State, id, {}, kStateDimension});
     layout.dimension += kStateDimension;
   }
+  if (lidar_config_.estimate_map_alignment) {
+    layout.map_alignment_offset = layout.dimension;
+    layout.variables.push_back(
+      {MarginalVariable::Kind::MapAlignment, 0, {}, kMapAlignmentDimension});
+    layout.dimension += kMapAlignmentDimension;
+  }
   for (const auto & ambiguity : ambiguities_) {
     layout.ambiguity_offsets[ambiguity.first] = layout.dimension;
     layout.variables.push_back({MarginalVariable::Kind::Ambiguity, 0, ambiguity.first, 1});
@@ -519,6 +593,14 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
         current_offset = layout_offset->second;
         local.segment(prior_offset, variable.dimension) =
           stateLocalCoordinates(anchor->second, current->second);
+      } else if (variable.kind == MarginalVariable::Kind::MapAlignment) {
+        if (!layout.map_alignment_offset.has_value() || !prior.map_alignment_anchor.has_value()) {
+          complete = false;
+          break;
+        }
+        current_offset = *layout.map_alignment_offset;
+        local.segment(prior_offset, variable.dimension) =
+          poseLocalCoordinates(*prior.map_alignment_anchor, lidar_map_alignment_);
       } else {
         const auto layout_offset = layout.ambiguity_offsets.find(variable.ambiguity);
         const auto anchor = prior.ambiguity_anchors.find(variable.ambiguity);
@@ -549,6 +631,22 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       }
       system.cost += 0.5 * local.dot(prior.hessian * local) + prior.gradient.dot(local);
       system.rows += static_cast<std::size_t>(prior.hessian.rows());
+    }
+  }
+
+  if (lidar_config_.estimate_map_alignment && !marginalize_state.has_value() &&
+    layout.map_alignment_offset.has_value())
+  {
+    const Eigen::VectorXd residual = poseLocalCoordinates(
+      lidar_map_alignment_anchor_, lidar_map_alignment_);
+    for (int row = 0; row < kMapAlignmentDimension; ++row) {
+      Eigen::VectorXd jacobian = Eigen::VectorXd::Zero(kMapAlignmentDimension);
+      jacobian(row) = 1.0;
+      const double sigma = row < 3 ?
+        lidar_config_.map_alignment_translation_prior_sigma_m :
+        lidar_config_.map_alignment_rotation_prior_sigma_rad;
+      add_dense_row(
+        residual(row), sigma, 0.0, {{*layout.map_alignment_offset, jacobian}});
     }
   }
 
@@ -646,8 +744,8 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
     }
     const RigidPose pose{state->second.orientation_ecef_body, state->second.position_ecef_m};
     for (const auto & source : batch.planes) {
-      PointToPlaneFactor factor = source;
-      factor.point_lidar = transformPoint(batch.body_lidar, source.point_lidar);
+      const PointToPlaneFactor factor = alignedPlaneFactor(
+        source, batch.body_lidar, lidar_map_alignment_);
       const auto evaluation = evaluatePointToPlane(factor, pose);
       if (!evaluation.has_value()) {
         continue;
@@ -658,16 +756,67 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
       for (int column = 0; column < 6; ++column) {
         jacobian(column) = pose_jacobian[static_cast<std::size_t>(column)];
       }
+      std::vector<std::pair<int, Eigen::VectorXd>> blocks{{offset->second, jacobian}};
+      if (layout.map_alignment_offset.has_value()) {
+        Eigen::VectorXd alignment_jacobian = Eigen::VectorXd::Zero(kMapAlignmentDimension);
+        for (int column = 0; column < kMapAlignmentDimension; ++column) {
+          const double epsilon = mapAlignmentPerturbationStep(column);
+          Eigen::VectorXd delta = Eigen::VectorXd::Zero(kMapAlignmentDimension);
+          delta(column) = epsilon;
+          const auto plus = evaluatePointToPlane(
+            alignedPlaneFactor(
+              source, batch.body_lidar,
+              perturbedMapAlignment(lidar_map_alignment_, delta)),
+            pose);
+          const auto minus = evaluatePointToPlane(
+            alignedPlaneFactor(
+              source, batch.body_lidar,
+              perturbedMapAlignment(lidar_map_alignment_, -delta)),
+            pose);
+          if (plus.has_value() && minus.has_value()) {
+            alignment_jacobian(column) =
+              (plus->residual - minus->residual) / (2.0 * epsilon);
+          }
+        }
+        blocks.emplace_back(*layout.map_alignment_offset, alignment_jacobian);
+      }
       add_dense_row(
         evaluation->residual, lidar_config_.plane_sigma_m,
-        lidar_config_.huber_delta_sigma, {{offset->second, jacobian}});
+        lidar_config_.huber_delta_sigma, blocks);
     }
     for (const auto & source : batch.lines) {
-      PointToLineFactor factor = source;
-      factor.point_lidar = transformPoint(batch.body_lidar, source.point_lidar);
+      const PointToLineFactor factor = alignedLineFactor(
+        source, batch.body_lidar, lidar_map_alignment_);
       const auto evaluation = evaluatePointToLine(factor, pose);
       if (!evaluation.has_value()) {
         continue;
+      }
+      std::array<Eigen::VectorXd, 2> alignment_jacobians{
+        Eigen::VectorXd::Zero(kMapAlignmentDimension),
+        Eigen::VectorXd::Zero(kMapAlignmentDimension)};
+      if (layout.map_alignment_offset.has_value()) {
+        for (int column = 0; column < kMapAlignmentDimension; ++column) {
+          const double epsilon = mapAlignmentPerturbationStep(column);
+          Eigen::VectorXd delta = Eigen::VectorXd::Zero(kMapAlignmentDimension);
+          delta(column) = epsilon;
+          const auto plus = evaluatePointToLine(
+            alignedLineFactor(
+              source, batch.body_lidar,
+              perturbedMapAlignment(lidar_map_alignment_, delta)),
+            pose);
+          const auto minus = evaluatePointToLine(
+            alignedLineFactor(
+              source, batch.body_lidar,
+              perturbedMapAlignment(lidar_map_alignment_, -delta)),
+            pose);
+          if (plus.has_value() && minus.has_value()) {
+            for (int row = 0; row < 2; ++row) {
+              alignment_jacobians[static_cast<std::size_t>(row)](column) =
+                (plus->residual[static_cast<std::size_t>(row)] -
+                minus->residual[static_cast<std::size_t>(row)]) / (2.0 * epsilon);
+            }
+          }
+        }
       }
       for (int row = 0; row < 2; ++row) {
         const PoseJacobianRow pose_jacobian = independentPoseJacobian(
@@ -677,10 +826,16 @@ FloatFixedLagSmoother::LinearSystem FloatFixedLagSmoother::buildLinearSystem(
         for (int column = 0; column < 6; ++column) {
           jacobian(column) = pose_jacobian[static_cast<std::size_t>(column)];
         }
+        std::vector<std::pair<int, Eigen::VectorXd>> blocks{{offset->second, jacobian}};
+        if (layout.map_alignment_offset.has_value()) {
+          blocks.emplace_back(
+            *layout.map_alignment_offset,
+            alignment_jacobians[static_cast<std::size_t>(row)]);
+        }
         add_dense_row(
           evaluation->residual[static_cast<std::size_t>(row)],
           lidar_config_.line_sigma_m, lidar_config_.huber_delta_sigma,
-          {{offset->second, jacobian}});
+          blocks);
       }
     }
   }
@@ -798,6 +953,7 @@ bool FloatFixedLagSmoother::applyDelta(
   }
   auto candidate_states = states_;
   auto candidate_ambiguities = ambiguities_;
+  RigidPose candidate_map_alignment = lidar_map_alignment_;
   for (const auto & state_offset : layout.state_offsets) {
     EcefState candidate = perturbedState(
       candidate_states.at(state_offset.first),
@@ -806,6 +962,14 @@ bool FloatFixedLagSmoother::applyDelta(
       return false;
     }
     candidate_states[state_offset.first] = candidate;
+  }
+  if (layout.map_alignment_offset.has_value()) {
+    candidate_map_alignment = perturbedMapAlignment(
+      candidate_map_alignment,
+      delta.segment(*layout.map_alignment_offset, kMapAlignmentDimension));
+    if (!finite(candidate_map_alignment)) {
+      return false;
+    }
   }
   for (const auto & ambiguity_offset : layout.ambiguity_offsets) {
     const double candidate = candidate_ambiguities.at(ambiguity_offset.first) +
@@ -817,6 +981,7 @@ bool FloatFixedLagSmoother::applyDelta(
   }
   states_ = std::move(candidate_states);
   ambiguities_ = std::move(candidate_ambiguities);
+  lidar_map_alignment_ = candidate_map_alignment;
   return true;
 }
 
@@ -849,6 +1014,7 @@ bool FloatFixedLagSmoother::optimize()
     }
     const auto previous_states = states_;
     const auto previous_ambiguities = ambiguities_;
+    const RigidPose previous_map_alignment = lidar_map_alignment_;
     if (!applyDelta(layout, delta)) {
       return false;
     }
@@ -859,6 +1025,7 @@ bool FloatFixedLagSmoother::optimize()
     {
       states_ = previous_states;
       ambiguities_ = previous_ambiguities;
+      lidar_map_alignment_ = previous_map_alignment;
       ++diagnostics_.optimization_rollbacks;
       damping *= 10.0;
       continue;
@@ -1040,6 +1207,9 @@ bool FloatFixedLagSmoother::marginalizeOldest()
         prior.variables.push_back(variable);
         prior.state_anchors[variable.state] = states_.at(variable.state);
       }
+    } else if (variable.kind == MarginalVariable::Kind::MapAlignment) {
+      prior.variables.push_back(variable);
+      prior.map_alignment_anchor = lidar_map_alignment_;
     } else if (retained_ambiguities.find(variable.ambiguity) != retained_ambiguities.end()) {
       prior.variables.push_back(variable);
       prior.ambiguity_anchors[variable.ambiguity] = ambiguities_.at(variable.ambiguity);
@@ -1339,6 +1509,7 @@ FixedBackSubstitutionResult FloatFixedLagSmoother::previewFixedAmbiguities(
 
   auto candidate_states = states_;
   auto candidate_ambiguities = ambiguities_;
+  RigidPose candidate_map_alignment = lidar_map_alignment_;
   for (const auto & state_offset : layout.state_offsets) {
     const Eigen::VectorXd state_correction = correction.segment(
       state_offset.second, kStateDimension);
@@ -1356,6 +1527,20 @@ FixedBackSubstitutionResult FloatFixedLagSmoother::previewFixedAmbiguities(
     }
     candidate_states[state_offset.first] = candidate;
   }
+  if (layout.map_alignment_offset.has_value()) {
+    const Eigen::VectorXd alignment_correction = correction.segment(
+      *layout.map_alignment_offset, kMapAlignmentDimension);
+    output.maximum_position_correction_m = std::max(
+      output.maximum_position_correction_m, alignment_correction.segment(0, 3).norm());
+    output.maximum_rotation_correction_rad = std::max(
+      output.maximum_rotation_correction_rad, alignment_correction.segment(3, 3).norm());
+    candidate_map_alignment = perturbedMapAlignment(
+      candidate_map_alignment, alignment_correction);
+    if (!finite(candidate_map_alignment)) {
+      output.rejection = FixedBackSubstitutionRejection::InvalidInput;
+      return output;
+    }
+  }
   for (const auto & ambiguity_offset : layout.ambiguity_offsets) {
     candidate_ambiguities[ambiguity_offset.first] += correction(ambiguity_offset.second);
   }
@@ -1366,12 +1551,15 @@ FixedBackSubstitutionResult FloatFixedLagSmoother::previewFixedAmbiguities(
   output.cost_before = current_system.cost;
   const auto saved_states = states_;
   const auto saved_ambiguities = ambiguities_;
+  const RigidPose saved_map_alignment = lidar_map_alignment_;
   const auto saved_diagnostics = diagnostics_;
   states_ = candidate_states;
   ambiguities_ = candidate_ambiguities;
+  lidar_map_alignment_ = candidate_map_alignment;
   const LinearSystem candidate_system = buildLinearSystem(layout);
   states_ = saved_states;
   ambiguities_ = saved_ambiguities;
+  lidar_map_alignment_ = saved_map_alignment;
   diagnostics_ = saved_diagnostics;
   output.cost_after = candidate_system.cost;
 
@@ -1399,7 +1587,8 @@ FixedBackSubstitutionResult FloatFixedLagSmoother::previewFixedAmbiguities(
 
 std::size_t FloatFixedLagSmoother::factorCount() const noexcept
 {
-  std::size_t count = state_priors_.size() + imu_factors_.size();
+  std::size_t count = state_priors_.size() + imu_factors_.size() +
+    static_cast<std::size_t>(lidar_config_.estimate_map_alignment);
   for (const auto & batch : lidar_factors_) {
     count += batch.planes.size() + 2U * batch.lines.size();
   }
@@ -1423,6 +1612,11 @@ void FloatFixedLagSmoother::refreshDiagnostics()
   diagnostics_.lidar_plane_factors = 0U;
   diagnostics_.gnss_code_factors = 0U;
   diagnostics_.gnss_carrier_factors = 0U;
+  diagnostics_.map_alignment_estimated = lidar_config_.estimate_map_alignment;
+  diagnostics_.map_alignment_translation_correction_m = norm(
+    lidar_map_alignment_.translation - lidar_map_alignment_anchor_.translation);
+  diagnostics_.map_alignment_rotation_correction_rad = rotationDistanceRad(
+    lidar_map_alignment_anchor_.rotation, lidar_map_alignment_.rotation);
   for (const auto & batch : lidar_factors_) {
     diagnostics_.lidar_line_factors += batch.lines.size();
     diagnostics_.lidar_plane_factors += batch.planes.size();

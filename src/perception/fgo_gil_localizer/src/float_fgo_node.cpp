@@ -279,6 +279,9 @@ private:
     declare_parameter<double>("optimizer.lidar_huber_delta_sigma", 2.5);
     declare_parameter<int>("optimizer.maximum_line_factors_per_keyframe", 48);
     declare_parameter<int>("optimizer.maximum_plane_factors_per_keyframe", 96);
+    declare_parameter<bool>("optimizer.estimate_lidar_map_alignment", true);
+    declare_parameter<double>("optimizer.map_alignment_translation_prior_sigma_m", 10.0);
+    declare_parameter<double>("optimizer.map_alignment_rotation_prior_sigma_rad", 0.10);
     declare_parameter<double>("optimizer.gnss_code_huber_delta_sigma", 2.5);
     declare_parameter<double>("optimizer.gnss_carrier_huber_delta_sigma", 2.5);
 
@@ -453,6 +456,12 @@ private:
       positiveSizeParameter("optimizer.maximum_line_factors_per_keyframe");
     lidar_factor_config_.maximum_plane_factors_per_keyframe =
       positiveSizeParameter("optimizer.maximum_plane_factors_per_keyframe");
+    lidar_factor_config_.estimate_map_alignment =
+      get_parameter("optimizer.estimate_lidar_map_alignment").as_bool();
+    lidar_factor_config_.map_alignment_translation_prior_sigma_m =
+      get_parameter("optimizer.map_alignment_translation_prior_sigma_m").as_double();
+    lidar_factor_config_.map_alignment_rotation_prior_sigma_rad =
+      get_parameter("optimizer.map_alignment_rotation_prior_sigma_rad").as_double();
     gnss_factor_config_.code_huber_delta_sigma =
       get_parameter("optimizer.gnss_code_huber_delta_sigma").as_double();
     gnss_factor_config_.carrier_huber_delta_sigma =
@@ -563,6 +572,9 @@ private:
   {
     smoother_ = std::make_unique<FloatFixedLagSmoother>(
       smoother_config_, lidar_factor_config_, gnss_factor_config_);
+    if (!smoother_->setLidarMapAlignment(ecef_world_)) {
+      throw std::runtime_error("failed to initialize LiDAR map-to-ECEF alignment");
+    }
     state_gnss_seconds_.clear();
     gnss_factor_states_.clear();
     most_recent_gnss_factor_state_.reset();
@@ -1170,7 +1182,7 @@ private:
       break;
     }
 
-    const RigidPose ecef_lidar = compose(ecef_world_, world_lidar);
+    const RigidPose ecef_lidar = compose(smoother_->lidarMapAlignment(), world_lidar);
     const RigidPose ecef_imu = compose(ecef_lidar, inverse(imu_lidar_));
     EcefState initial;
     initial.stamp_s = stamp_s;
@@ -1207,16 +1219,16 @@ private:
     for (const auto & source : message->line_factors) {
       lines.push_back(
         {
-          point(source.point_lidar), transformPoint(ecef_world_, point(source.line_anchor_world)),
-          ecef_world_.rotation.rotate(vector(source.line_direction_world))});
+          point(source.point_lidar), point(source.line_anchor_world),
+          vector(source.line_direction_world)});
     }
     std::vector<PointToPlaneFactor> planes;
     planes.reserve(message->plane_factors.size());
     for (const auto & source : message->plane_factors) {
       planes.push_back(
         {
-          point(source.point_lidar), transformPoint(ecef_world_, point(source.plane_anchor_world)),
-          ecef_world_.rotation.rotate(vector(source.plane_normal_world))});
+          point(source.point_lidar), point(source.plane_anchor_world),
+          vector(source.plane_normal_world)});
     }
     if (!message->initialization_keyframe && !lines.empty() && !planes.empty()) {
       if (!smoother_->addLidarFactors(state_id, lines, planes, imu_lidar_)) {
@@ -1545,6 +1557,16 @@ private:
     status.values.push_back(numericKeyValue("ambiguities", graph.ambiguities));
     status.values.push_back(numericKeyValue("factors", graph.factors));
     status.values.push_back(numericKeyValue("window_span_s", graph.window_span_s));
+    status.values.push_back(
+      keyValue("map_alignment_estimated", graph.map_alignment_estimated ? "true" : "false"));
+    status.values.push_back(
+      numericKeyValue(
+        "map_alignment_translation_correction_m",
+        graph.map_alignment_translation_correction_m));
+    status.values.push_back(
+      numericKeyValue(
+        "map_alignment_rotation_correction_rad",
+        graph.map_alignment_rotation_correction_rad));
     status.values.push_back(
       numericKeyValue("optimization_rollbacks", graph.optimization_rollbacks));
     status.values.push_back(numericKeyValue("marginalizations", graph.marginalizations));

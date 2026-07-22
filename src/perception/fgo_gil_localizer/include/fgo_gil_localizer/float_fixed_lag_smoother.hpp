@@ -41,6 +41,9 @@ struct LidarGraphFactorConfig
   double huber_delta_sigma = 2.5;
   std::size_t maximum_line_factors_per_keyframe = 48;
   std::size_t maximum_plane_factors_per_keyframe = 96;
+  bool estimate_map_alignment = false;
+  double map_alignment_translation_prior_sigma_m = 10.0;
+  double map_alignment_rotation_prior_sigma_rad = 0.10;
 };
 
 struct GnssGraphFactorConfig
@@ -80,6 +83,9 @@ struct FloatSmootherDiagnostics
   double last_delta_norm = 0.0;
   double last_condition_estimate = 0.0;
   double window_span_s = 0.0;
+  double map_alignment_translation_correction_m = 0.0;
+  double map_alignment_rotation_correction_rad = 0.0;
+  bool map_alignment_estimated = false;
   bool last_solve_succeeded = false;
 };
 
@@ -156,6 +162,7 @@ public:
     GnssGraphFactorConfig gnss_config = {});
 
   bool addState(StateId id, const EcefState & initial_state);
+  bool setLidarMapAlignment(const RigidPose & ecef_lidar_world);
   bool addStatePrior(StateId id, const EcefState & mean, const StateFactorNoise & noise);
   bool addImuFactor(
     StateId from,
@@ -175,6 +182,7 @@ public:
   void recordGnssOutage() noexcept {++diagnostics_.gnss_outages;}
 
   const EcefState * state(StateId id) const noexcept;
+  const RigidPose & lidarMapAlignment() const noexcept {return lidar_map_alignment_;}
   std::optional<double> ambiguity(const DdAmbiguityKey & key) const;
   std::vector<CodeResidualDiagnostics> codeResidualDiagnostics() const;
   std::vector<CarrierResidualDiagnostics> carrierResidualDiagnostics(
@@ -221,7 +229,7 @@ private:
 
   struct MarginalVariable
   {
-    enum class Kind : std::uint8_t {State, Ambiguity};
+    enum class Kind : std::uint8_t {State, MapAlignment, Ambiguity};
     Kind kind = Kind::State;
     StateId state = 0;
     DdAmbiguityKey ambiguity;
@@ -232,13 +240,17 @@ private:
       if (kind != other.kind) {
         return false;
       }
-      return kind == Kind::State ? state == other.state : ambiguity == other.ambiguity;
+      if (kind == Kind::State) {
+        return state == other.state;
+      }
+      return kind == Kind::MapAlignment || ambiguity == other.ambiguity;
     }
   };
 
   struct VariableLayout
   {
     std::map<StateId, int> state_offsets;
+    std::optional<int> map_alignment_offset;
     std::map<DdAmbiguityKey, int> ambiguity_offsets;
     std::vector<MarginalVariable> variables;
     int dimension = 0;
@@ -256,6 +268,7 @@ private:
   {
     std::vector<MarginalVariable> variables;
     std::map<StateId, EcefState> state_anchors;
+    std::optional<RigidPose> map_alignment_anchor;
     std::map<DdAmbiguityKey, double> ambiguity_anchors;
     Eigen::MatrixXd hessian;
     Eigen::VectorXd gradient;
@@ -287,6 +300,8 @@ private:
   std::vector<ImuFactor> imu_factors_;
   std::vector<LidarFactorBatch> lidar_factors_;
   std::vector<GnssFactorBatch> gnss_factors_;
+  RigidPose lidar_map_alignment_;
+  RigidPose lidar_map_alignment_anchor_;
   std::optional<DenseMarginalPrior> marginal_prior_;
   std::optional<VariableLayout> fix_layout_cache_;
   std::optional<LinearSystem> fix_system_cache_;

@@ -279,6 +279,75 @@ TEST(FloatFixedLagSmoother, LidarJacobianRemainsConditionedAtEcefScale)
   EXPECT_TRUE(smoother.diagnostics().last_solve_succeeded);
 }
 
+TEST(FloatFixedLagSmoother, EstimatedMapAlignmentLetsGnssMoveTheGlobalFrame)
+{
+  FloatSmootherConfig smoother_config;
+  smoother_config.duration_s = 100.0;
+  smoother_config.maximum_states = 2;
+  smoother_config.maximum_iterations = 12;
+  LidarGraphFactorConfig lidar_config;
+  lidar_config.estimate_map_alignment = true;
+  lidar_config.map_alignment_translation_prior_sigma_m = 10.0;
+  lidar_config.map_alignment_rotation_prior_sigma_rad = 0.10;
+  FloatFixedLagSmoother smoother(smoother_config, lidar_config);
+
+  const Vec3 map_origin_truth{6378137.0, 20.0, -10.0};
+  const Vec3 initial_error{0.8, -0.6, 0.4};
+  const Vec3 base{6378137.0, 0.0, 0.0};
+  ASSERT_TRUE(smoother.setLidarMapAlignment({{}, map_origin_truth + initial_error}));
+
+  ImuGraphFactorConfig imu_config;
+  imu_config.integration.maximum_step_s = 2.0;
+  imu_config.integration.earth_rotation_rad_s = 0.0;
+  imu_config.integration.gravitational_parameter_m3_s2 = 0.0;
+  imu_config.noise.position_m = 0.10;
+  imu_config.noise.velocity_m_s = 0.10;
+  for (StateId id = 1; id <= 3; ++id) {
+    const double stamp = static_cast<double>(id - 1U);
+    const Vec3 local_position{0.0, stamp, 0.0};
+    const Vec3 truth = map_origin_truth + local_position;
+    ASSERT_TRUE(
+      smoother.addState(
+        id, stateAt(stamp, truth + initial_error, {0.0, 1.0, 0.0})));
+    if (id == 1U) {
+      ASSERT_TRUE(
+        smoother.addStatePrior(
+          id, stateAt(stamp, truth + initial_error, {0.0, 1.0, 0.0}),
+          loosePositionPrior()));
+    } else {
+      ASSERT_TRUE(
+        smoother.addImuFactor(
+          id - 1U, id, {{stamp - 1.0, {}, {}}, {stamp, {}, {}}}, imu_config));
+    }
+    std::vector<PointToPlaneFactor> planes{
+      {{}, local_position, {1.0, 0.0, 0.0}},
+      {{}, local_position, {0.0, 1.0, 0.0}},
+      {{}, local_position, {0.0, 0.0, 1.0}}};
+    ASSERT_TRUE(smoother.addLidarFactors(id, {}, planes));
+    auto measurements = syntheticGnss(truth, base);
+    for (auto & measurement : measurements) {
+      measurement.carrier_valid = false;
+    }
+    ASSERT_TRUE(smoother.addGnssFactors(id, measurements));
+  }
+
+  ASSERT_TRUE(smoother.optimize());
+  ASSERT_EQ(smoother.state(1), nullptr);
+  ASSERT_NE(smoother.state(3), nullptr);
+  EXPECT_LT(
+    norm(smoother.state(3)->position_ecef_m - (map_origin_truth + Vec3{0.0, 2.0, 0.0})),
+    0.10);
+  EXPECT_LT(norm(smoother.lidarMapAlignment().translation - map_origin_truth), 0.10);
+  EXPECT_GT(smoother.diagnostics().map_alignment_translation_correction_m, 0.80);
+  EXPECT_TRUE(smoother.diagnostics().map_alignment_estimated);
+
+  const Vec3 alignment_before_second_solve = smoother.lidarMapAlignment().translation;
+  ASSERT_TRUE(smoother.optimize());
+  EXPECT_LT(
+    norm(smoother.lidarMapAlignment().translation - alignment_before_second_solve), 0.02);
+  EXPECT_EQ(smoother.diagnostics().marginalizations, 1U);
+}
+
 TEST(FloatFixedLagSmoother, BoundsLidarResidualsPerKeyframe)
 {
   LidarGraphFactorConfig lidar_config;

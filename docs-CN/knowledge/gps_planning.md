@@ -449,4 +449,4 @@ Position gate 同样不能比较 `map->odom.x/y` 分量。它现在把上一可�
 
 安全边界没有放宽：真实的当前 base correction 达到 `0.50m/5deg` 仍进入 backlog，达到 `2.0m/20deg` 仍锁存 fault；非 Fixed、数据过期或 gate 未锁定仍立即撤销运动权限。此次修改只消除跨时间拼接产生的假 correction。
 
-2026-07-23 的 `cb_gate` bag 显示 FAST-LIO header 间隔 P95 为 `0.157s`、最大 `0.253s`，而 corrector heartbeat 为 `10Hz`。因此 `max_lio_age_s` 使用 `0.30s`，覆盖已观测的 Jetson 调度抖动；新鲜重复 stamp 只保持上次 TF。若 correction 正在 moving reacquire，重复帧保持低速 `RTK_REACQUIRING` authority，等待下一帧新 LIO，而不把 q=4 RTK 错误降级为停车。超过该窗口或出现非 Fixed/故障时仍 fail-closed。
+2026-07-23 的 `cb_gate` bag 显示 FAST-LIO header 间隔 P95 为 `0.157s`、最大 `0.253s`，而 corrector heartbeat 为 `10Hz`。因此 `max_lio_age_s` 和 GNSS-to-LIO `max_odom_bracket_s` 都使用 `0.30s`，覆盖已观测的 Jetson 调度抖动；新鲜重复 stamp 只保持上次 TF。若 correction 正在 moving reacquire，重复帧保持低速 `RTK_REACQUIRING` authority，等待下一帧新 LIO，而不把 q=4 RTK 错误降级为停车。超过该窗口或出现非 Fixed/故障时仍 fail-closed。

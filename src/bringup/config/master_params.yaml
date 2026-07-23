@@ -240,7 +240,10 @@
     fix_quality_wait_s: 0.25
     heading_quality_wait_s: 0.30
     max_future_stamp_s: 0.10
-    max_odom_bracket_s: 0.20
+    # GNSS observations are interpolated between FAST-LIO poses. Match the
+    # 0.30 s freshness allowance so a measured short LIO scheduling gap does
+    # not turn an otherwise q=4 observation into a false gate failure.
+    max_odom_bracket_s: 0.30
     max_gga_heading_age_s: 1.50
     max_fix_age_s: 1.0
     max_heading_age_s: 1.0

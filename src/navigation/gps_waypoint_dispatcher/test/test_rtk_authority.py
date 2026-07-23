@@ -319,6 +319,16 @@ def test_stamped_pose_history_enforces_inclusive_bracket_limit():
     assert too_wide.reason == "ODOM_BRACKET_TOO_WIDE"
 
 
+def test_stamped_pose_history_accepts_observed_short_lio_gap_with_tuned_limit():
+    history = StampedPoseHistory()
+    _append_history(history, 1.0)
+    _append_history(history, 1.210, _pose(x=1.0))
+
+    result = history.interpolate(1.105, max_bracket_s=0.30)
+
+    assert result.ok is True
+
+
 def test_stamped_pose_history_accepts_logical_bracket_limit_float_roundoff():
     history = StampedPoseHistory()
     _append_history(history, 1.0)

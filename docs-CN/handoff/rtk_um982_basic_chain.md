@@ -7,7 +7,7 @@
 - 驱动包：`um982_rtk_driver`
 - 语言：C++17 / `ament_cmake`
 - 默认设备：`/dev/rtk_um982`
-- 默认波特率：`921600`（2026-07-21 在实车 `/dev/rtk_um982` 上通过原始 NMEA 采样确认）
+- 默认波特率：`115200`（2026-07-23 在实车 `/dev/rtk_um982` 上通过原始 NMEA 采样确认）
 - 基础启动：`make launch-rtk-basic`
 - GPS 模式入口已切到 C++ 驱动：`explore-gps`、`nav-gps`、`corridor`
 - 旧 `nmea_navsat_driver` 仍保留在仓库中，只作为兼容/回退路径

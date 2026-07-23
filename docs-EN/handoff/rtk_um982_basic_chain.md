@@ -7,7 +7,7 @@ This note covers only first-stage RTK bring-up: UM982 serial access, NMEA parsin
 - Driver package: `um982_rtk_driver`
 - Language: C++17 / `ament_cmake`
 - Default device: `/dev/rtk_um982`
-- Default baud: `921600` (verified from raw NMEA samples on vehicle `/dev/rtk_um982` on 2026-07-21)
+- Default baud: `115200` (verified from raw NMEA samples on vehicle `/dev/rtk_um982` on 2026-07-23)
 - Basic launch: `make launch-rtk-basic`
 - GPS mode entry points now use the C++ driver: `explore-gps`, `nav-gps`, `corridor`
 - The old `nmea_navsat_driver` remains in-tree only for compatibility/fallback

@@ -369,10 +369,10 @@ def test_um982_and_chassis_serial_links_keep_their_verified_baud_rates():
     standalone_rtk = yaml.safe_load(UM982_RTK_PARAMS.read_text(encoding="utf-8"))
     legacy_nmea = yaml.safe_load(NMEA_SERIAL_PARAMS.read_text(encoding="utf-8"))
 
-    assert master_params["/um982_rtk_driver"]["ros__parameters"]["baud"] == 921600
-    assert master_params["/nmea_navsat_driver"]["ros__parameters"]["baud"] == 921600
-    assert standalone_rtk["um982_rtk_driver"]["ros__parameters"]["baud"] == 921600
-    assert legacy_nmea["nmea_navsat_driver"]["ros__parameters"]["baud"] == 921600
+    assert master_params["/um982_rtk_driver"]["ros__parameters"]["baud"] == 115200
+    assert master_params["/nmea_navsat_driver"]["ros__parameters"]["baud"] == 115200
+    assert standalone_rtk["um982_rtk_driver"]["ros__parameters"]["baud"] == 115200
+    assert legacy_nmea["nmea_navsat_driver"]["ros__parameters"]["baud"] == 115200
     assert master_params["/serial_twistctl_node"]["ros__parameters"]["baudrate"] == 115200
     assert master_params["/serial_reader_node"]["ros__parameters"]["baud"] == 115200
 

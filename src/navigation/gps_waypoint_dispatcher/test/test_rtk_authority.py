@@ -1067,8 +1067,34 @@ def test_correction_release_duplicate_fresh_lio_keeps_normal_motion_authority():
     assert result.motion_allowed is True
 
 
-def test_correction_release_duplicate_preserves_backlog_mode():
-    state = CorrectionReleaseState()
+def test_correction_release_duplicate_keeps_moving_reacquire_authority():
+    state = CorrectionReleaseState(allow_moving_backlog_release=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.1,
+    )
+
+    duplicate = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.2,
+        lio_stamp_s=1.1,
+    )
+
+    assert duplicate.mode is CorrectionReleaseMode.RTK_REACQUIRING
+    assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert duplicate.motion_allowed is True
+
+
+def test_correction_release_duplicate_backlog_stops_without_moving_reacquire():
+    state = CorrectionReleaseState(allow_moving_backlog_release=False)
     previous = _pose()
     _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
     _release_update(

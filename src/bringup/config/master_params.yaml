@@ -246,7 +246,9 @@
     max_heading_age_s: 1.0
     max_alignment_age_s: 1.0
     max_gga_age_s: 1.5
-    max_lio_age_s: 0.20
+    # FAST-LIO nominally runs at 10 Hz; allow measured Jetson scheduling jitter
+    # below 0.30 s without treating a fresh repeated sample as an authority loss.
+    max_lio_age_s: 0.30
     max_heading_for_fix_age_s: 0.30
     # map->base 空间按实测 dt 慢释放，避免远离 odom 原点后 yaw 放大为平移跳变。
     max_translation_rate_mps: 0.20

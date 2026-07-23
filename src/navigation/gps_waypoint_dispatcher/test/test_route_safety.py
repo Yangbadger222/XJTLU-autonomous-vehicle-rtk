@@ -267,6 +267,54 @@ def test_global_correction_rate_causes_hold_not_local_abort():
     assert result.reason == "GLOBAL_CORRECTION_RATE"
 
 
+def test_global_correction_vehicle_space_step_ignores_far_origin_yaw_lever_arm():
+    watchdog = GlobalCorrectionWatchdog()
+    watchdog.update_step(
+        1.0,
+        0.0,
+        0.0,
+        authority_allowed=True,
+        authority_age_s=0.0,
+    )
+
+    # A 2 deg/s yaw correction at a 240 m odom lever arm looks like about
+    # 8.4 m/s in raw map->odom translation. The actual base-space correction
+    # remains 0.02 m and 0.2 deg in this 100 ms release step.
+    result = watchdog.update_step(
+        1.1,
+        0.02,
+        math.radians(0.2),
+        authority_allowed=True,
+        authority_age_s=0.0,
+    )
+
+    assert result.decision is WatchdogDecision.OK
+    assert result.linear_rate_mps == pytest.approx(0.2)
+    assert math.degrees(result.yaw_rate_radps) == pytest.approx(2.0)
+
+
+def test_global_correction_vehicle_space_step_holds_real_jump():
+    watchdog = GlobalCorrectionWatchdog()
+    watchdog.update_step(
+        1.0,
+        0.0,
+        0.0,
+        authority_allowed=True,
+        authority_age_s=0.0,
+    )
+
+    result = watchdog.update_step(
+        1.1,
+        0.06,
+        0.0,
+        authority_allowed=True,
+        authority_age_s=0.0,
+    )
+
+    assert result.decision is WatchdogDecision.GLOBAL_HOLD
+    assert result.reason == "GLOBAL_CORRECTION_RATE"
+
+
 @pytest.mark.parametrize(
     ("allowed", "age_s", "reason"),
     [
@@ -297,6 +345,9 @@ def test_route_runner_owns_stop_override_not_cmd_vel():
     assert '"GLOBAL_CORRECTION_HOLD"' in text
     assert 'self.declare_parameter("global_hold_timeout_s", 15.0)' in text
     assert 'self.declare_parameter("authority_ready_confirmation_s", 1.0)' in text
+    assert 'self._tf_buffer.lookup_transform(' in text
+    assert '"odom",\n                self._base_frame' in text
+    assert "update_step(" in text
 
 
 def test_authority_readiness_must_be_continuous_for_one_second():

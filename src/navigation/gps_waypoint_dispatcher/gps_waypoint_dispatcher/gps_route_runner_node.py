@@ -92,6 +92,20 @@ class SegmentPlan:
     dir_y: float
 
 
+def compose_pose(
+    parent: tuple[float, float, float], child: tuple[float, float, float]
+) -> tuple[float, float, float]:
+    parent_x, parent_y, parent_yaw = parent
+    child_x, child_y, child_yaw = child
+    cos_yaw = math.cos(parent_yaw)
+    sin_yaw = math.sin(parent_yaw)
+    return (
+        parent_x + cos_yaw * child_x - sin_yaw * child_y,
+        parent_y + sin_yaw * child_x + cos_yaw * child_y,
+        normalize_angle(parent_yaw + child_yaw),
+    )
+
+
 class GPSRouteRunner(Node):
     def __init__(self) -> None:
         super().__init__("gps_route_runner")
@@ -258,6 +272,7 @@ class GPSRouteRunner(Node):
             ),
             max_authority_age_s=self._motion_authority_max_age_s,
         )
+        self._last_global_map_to_odom: tuple[float, float, float, float] | None = None
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
         self._nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
@@ -857,14 +872,20 @@ class GPSRouteRunner(Node):
     def _global_correction_result(self):
         authority_age_s = self._authority_age_s()
         try:
-            transform = self._tf_buffer.lookup_transform(
+            map_to_odom = self._tf_buffer.lookup_transform(
                 self._route_frame,
                 "odom",
                 Time(),
                 timeout=Duration(seconds=0.02),
             )
+            odom_to_base = self._tf_buffer.lookup_transform(
+                "odom",
+                self._base_frame,
+                Time(),
+                timeout=Duration(seconds=0.02),
+            )
         except TransformException:
-            return self._global_watchdog.update(
+            return self._global_watchdog.update_step(
                 1.0,
                 0.0,
                 0.0,
@@ -872,17 +893,57 @@ class GPSRouteRunner(Node):
                 authority_allowed=False,
                 authority_age_s=authority_age_s,
             )
-        stamp_s = float(transform.header.stamp.sec) + float(
-            transform.header.stamp.nanosec
+        stamp_s = float(map_to_odom.header.stamp.sec) + float(
+            map_to_odom.header.stamp.nanosec
         ) * 1e-9
-        translation = transform.transform.translation
-        rotation = transform.transform.rotation
-        yaw = quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w)
-        return self._global_watchdog.update(
-            stamp_s,
+        translation = map_to_odom.transform.translation
+        rotation = map_to_odom.transform.rotation
+        current_map_to_odom = (
             float(translation.x),
             float(translation.y),
-            yaw,
+            quaternion_to_yaw(rotation.x, rotation.y, rotation.z, rotation.w),
+        )
+        local_translation = odom_to_base.transform.translation
+        local_rotation = odom_to_base.transform.rotation
+        current_odom_to_base = (
+            float(local_translation.x),
+            float(local_translation.y),
+            quaternion_to_yaw(
+                local_rotation.x,
+                local_rotation.y,
+                local_rotation.z,
+                local_rotation.w,
+            ),
+        )
+        previous = self._last_global_map_to_odom
+        if previous is None:
+            translation_step_m = 0.0
+            yaw_step_rad = 0.0
+        else:
+            previous_stamp_s, *previous_map_to_odom = previous
+            if stamp_s > previous_stamp_s:
+                previous_map_base = compose_pose(
+                    tuple(previous_map_to_odom), current_odom_to_base
+                )
+                current_map_base = compose_pose(
+                    current_map_to_odom, current_odom_to_base
+                )
+                translation_step_m = math.hypot(
+                    current_map_base[0] - previous_map_base[0],
+                    current_map_base[1] - previous_map_base[1],
+                )
+                yaw_step_rad = abs(
+                    normalize_angle(current_map_base[2] - previous_map_base[2])
+                )
+            else:
+                translation_step_m = 0.0
+                yaw_step_rad = 0.0
+        if previous is None or stamp_s > previous[0]:
+            self._last_global_map_to_odom = (stamp_s, *current_map_to_odom)
+        return self._global_watchdog.update_step(
+            stamp_s,
+            translation_step_m,
+            yaw_step_rad,
             authority_allowed=self._motion_allowed,
             authority_age_s=authority_age_s,
         )

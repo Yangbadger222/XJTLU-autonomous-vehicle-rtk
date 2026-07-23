@@ -194,6 +194,76 @@ class GlobalCorrectionWatchdog:
             yaw_rate_radps,
         )
 
+    def update_step(
+        self,
+        stamp_s: float,
+        translation_step_m: float,
+        yaw_step_rad: float,
+        *,
+        authority_allowed: bool,
+        authority_age_s: float,
+    ) -> WatchdogResult:
+        """Evaluate one vehicle-space global-correction step.
+
+        ``map -> odom`` translation is origin-dependent: a small yaw release
+        far from the odom origin can create a large raw TF translation. The
+        caller supplies the correction after both transforms are applied to
+        the same current odom->base pose, so the rate is meaningful to Nav2.
+        """
+        if not authority_allowed:
+            return WatchdogResult(
+                WatchdogDecision.GLOBAL_HOLD, "MOTION_AUTHORITY_FALSE"
+            )
+        if (
+            not math.isfinite(authority_age_s)
+            or authority_age_s > self.max_authority_age_s
+        ):
+            return WatchdogResult(
+                WatchdogDecision.GLOBAL_HOLD, "MOTION_AUTHORITY_STALE"
+            )
+        if not all(
+            math.isfinite(value)
+            for value in (stamp_s, translation_step_m, yaw_step_rad)
+        ):
+            return WatchdogResult(
+                WatchdogDecision.GLOBAL_HOLD, "NONFINITE_GLOBAL_CORRECTION"
+            )
+        if stamp_s <= 0.0:
+            return WatchdogResult(WatchdogDecision.GLOBAL_HOLD, "INVALID_STAMP")
+        if translation_step_m < 0.0 or yaw_step_rad < 0.0:
+            return WatchdogResult(
+                WatchdogDecision.GLOBAL_HOLD, "INVALID_GLOBAL_CORRECTION_STEP"
+            )
+        if self._last_stamp_s is not None:
+            if stamp_s == self._last_stamp_s:
+                return WatchdogResult(WatchdogDecision.IGNORE, "DUPLICATE_STAMP")
+            if stamp_s < self._last_stamp_s:
+                return WatchdogResult(
+                    WatchdogDecision.GLOBAL_HOLD, "REGRESSING_GLOBAL_STAMP"
+                )
+        if self._last_stamp_s is None:
+            self._last_stamp_s = stamp_s
+            return WatchdogResult(WatchdogDecision.OK, None)
+
+        dt_s = stamp_s - self._last_stamp_s
+        self._last_stamp_s = stamp_s
+        linear_rate_mps = translation_step_m / dt_s
+        yaw_rate_radps = yaw_step_rad / dt_s
+        decision = (
+            WatchdogDecision.GLOBAL_HOLD
+            if linear_rate_mps > self.max_translation_rate_mps
+            or yaw_rate_radps > self.max_yaw_rate_radps
+            else WatchdogDecision.OK
+        )
+        return WatchdogResult(
+            decision,
+            "GLOBAL_CORRECTION_RATE"
+            if decision is WatchdogDecision.GLOBAL_HOLD
+            else None,
+            linear_rate_mps,
+            yaw_rate_radps,
+        )
+
 
 class ContinuousReadiness:
     def __init__(self, confirmation_s: float = 1.0) -> None:

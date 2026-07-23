@@ -1046,6 +1046,14 @@ class CorrectionReleaseState:
 
         if self._last_lio_stamp_s is not None and lio_stamp_s == self._last_lio_stamp_s:
             active_mode = self._active_mode()
+            # The authority heartbeat can run slightly faster than FAST-LIO.
+            # A fresh duplicate is therefore a scheduling gap, not evidence that
+            # RTK or local odometry became unsafe. Keep a moving RTK reacquire
+            # alive at its reduced speed until the next distinct LIO sample.
+            duplicate_reacquire = (
+                active_mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+                and self.allow_moving_backlog_release
+            )
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1053,9 +1061,17 @@ class CorrectionReleaseState:
                 CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM,
                 gap_m,
                 gap_yaw_rad,
-                mode=active_mode,
+                mode=(
+                    CorrectionReleaseMode.RTK_REACQUIRING
+                    if duplicate_reacquire
+                    else active_mode
+                ),
                 motion_allowed=(
-                    gates_locked and active_mode is CorrectionReleaseMode.NORMAL
+                    gates_locked
+                    and (
+                        active_mode is CorrectionReleaseMode.NORMAL
+                        or duplicate_reacquire
+                    )
                 ),
             )
 

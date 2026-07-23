@@ -435,7 +435,7 @@ Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_correc
 现场判断规则：如果 `/rtk/status` 全程 `q=4`、`/fastlio2/lio_odom` 没有大步跳变，但 `/tf` 里的 `map -> odom` 在 30ms 内出现 0.15m 以上的互相冲突跳变，优先检查是否有重复 TF owner，或 Jetson 的 `install/` 是否还是旧 launch/config。
 ## 13. Global Correction Hold 与同一子目标重试（2026-07-10）
 
-`gps_route_runner` 现在分别消费带时间戳的 LIO 与 `map→odom`。local odom 非有限、时间回退或速率超过 `10 m/s`/`10 rad/s` 时单帧立即 abort；超过 `3 m/s`/`3 rad/s` 连续 3 帧才 abort。`map→odom` 超过 `0.50 m/s` 或 `5 deg/s`，以及 motion authority false/过期，统一归类为 `GLOBAL_CORRECTION_HOLD`，不能报成 `ODOM_DIVERGENCE_ABORT`。
+`gps_route_runner` 现在分别消费带时间戳的 LIO 与 `map→odom`。local odom 非有限、时间回退或速率超过 `10 m/s`/`10 rad/s` 时单帧立即 abort；超过 `3 m/s`/`3 rad/s` 连续 3 帧才 abort。全局 correction rate 不再直接比较 raw `map→odom`：车离 odom 原点较远时，小 yaw release 会让 raw TF 平移出现数米每秒的杠杆臂表象。runner 现在将前后 `map→odom` 都作用到同一个当前 `odom→base`，以实际 base-space correction step 的 `0.50 m/s` / `5 deg/s` 判断 `GLOBAL_CORRECTION_HOLD`；motion authority false/过期仍进入同一 hold，且不会报成 `ODOM_DIVERGENCE_ABORT`。
 
 进入 hold 后，runner 先置位 `/gps_corridor/stop_override`，再请求 action cancel；2 秒内必须收到非空 acknowledgement。随后最多等待 15 秒，并要求 authority 连续 ready 1 秒，再按当前 alignment 重算并发送同一个已保存 ENU 子目标。cancel 拒绝/超时或出现 `FAULT_HOLD` 时终止路线。runner 不再直接发布 Twist。
 
@@ -448,3 +448,5 @@ Corridor 运行时只能有一个 `map -> odom` 发布者：`rtk_map_odom_correc
 Position gate 同样不能比较 `map->odom.x/y` 分量。它现在把上一可信 correction 和本次候选 correction 都作用到本次 fix 的同一个 LIO base pose，比较两者产生的实际 map-base 位置差；接受后将 gate 基线重置为零增量。这样车辆自身正常前进不计入 innovation，yaw 杠杆臂也不会导致 position gate 反复进入 `REACQUIRING`。
 
 安全边界没有放宽：真实的当前 base correction 达到 `0.50m/5deg` 仍进入 backlog，达到 `2.0m/20deg` 仍锁存 fault；非 Fixed、数据过期或 gate 未锁定仍立即撤销运动权限。此次修改只消除跨时间拼接产生的假 correction。
+
+2026-07-23 的 `cb_gate` bag 显示 FAST-LIO header 间隔 P95 为 `0.157s`、最大 `0.253s`，而 corrector heartbeat 为 `10Hz`。因此 `max_lio_age_s` 使用 `0.30s`，覆盖已观测的 Jetson 调度抖动；新鲜重复 stamp 只保持上次 TF。若 correction 正在 moving reacquire，重复帧保持低速 `RTK_REACQUIRING` authority，等待下一帧新 LIO，而不把 q=4 RTK 错误降级为停车。超过该窗口或出现非 Fixed/故障时仍 fail-closed。

@@ -126,7 +126,7 @@ goto_name / /goal_pose / /gps_goal
 - Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
 - goal manager 自己执行图 A*，起终点投影到最近 graph edge，不再依赖 `route_server` 的 Dijkstra 或少数 anchor
 - QGIS 道路面编译成 KeepoutFilter mask；MPPI 可在道路内部避障，但道路外部保持禁止通行
-- RTK 门控会进入连续的 `LIO_BRIDGE`：冻结最后可信的 `map -> odom`，FAST-LIO 继续更新 `odom -> base_footprint`，因此原有 map 坐标系下的 A* 路线仍有效，但必须限速。只要 `/fastlio2/degeneracy` 表明 LiDAR 几何健康即可持续传播；LIO 过期、正则化、最小特征值过低或位姿跳变会锁存停车。稳定 RTK 恢复后进入 `RTK_REACQUIRING`，以更低修正率在线把 `map -> odom` 拉回 RTK。
+- RTK 是 `map -> odom` 的唯一运动 authority。RTK position/heading gate 未锁定时冻结最后可信变换并停车，FAST-LIO 只继续提供局部 odom 与点云避障，不作为全局定位接力。Fixed RTK normal innovation gate 采用 `20deg / 1.5m`，恢复窗口 `7.5deg / 0.50m`，容许 `10` 次或 `2s` 的短暂不可处理输入；`q=4` 与 `2m / 20deg` fault 边界保持不变。
 - 实车 profile 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，但将 MPPI 工作量收敛到 `350x40` samples 和2秒预测视野
 - 默认 lean bag 保留较小的 local costmap 用于避障复盘，但不录占本次 bag `77.5%` 的 global costmap；debug profile 才追加 global costmap、原始点云和 legacy anchor 状态
 - `scene_gps_bundle.yaml` 是唯一 source of truth
@@ -318,7 +318,7 @@ current_route.yaml
 - **Nav2 专用障碍点云**: corridor local costmap 使用 `/fastlio2/body_cloud_nav2_obstacles`，高度窗为 `[-0.20, 1.20]m`；PGO/LIO 仍使用低窗 `/fastlio2/body_cloud`，避免为了建图稳定而裁掉的高障碍同时让 Nav2 失明
 - **RTK authoritative `map→odom`**: corridor 中 PGO 通过 `pgo_corridor_no_gps.yaml` 关闭 `publish_tf`，由 `rtk_map_odom_corrector` 根据 RTK fix、双天线 heading、`ENU→map` 和当前 `odom→base_link` 计算唯一的 `map→odom`
 - **RTK bootstrap**: 在 `gps_global_aligner` 尚未发布 `ENU→map` 前，`rtk_map_odom_corrector` 会用当前 RTK fix、heading 和 `odom→base_link` 先发布临时 `map→odom`，打破启动时 aligner 等待 map TF 的闭环
-- **RTK degraded hold 与 LIO bridge**: 当 RTK fix、heading 或 alignment gating 拒绝最新输入时，`rtk_map_odom_corrector` 冻结最后一次可信的 `map→odom`。只有此前已经达到 RTK authority 且 FAST-LIO 仍新鲜时，才进入 `LIO_BRIDGE`，以 `0.35 m/s` 沿原有 map 路线继续最多 `12 s`、`5 m`；本地里程计过期或单帧 LIO 平移/航向跳变超过 `0.50 m` / `15 度` 会锁存停车，直到 RTK authority 恢复。
+- **RTK degraded hold**: 当 RTK fix、heading 或 alignment gating 拒绝最新输入时，`rtk_map_odom_corrector` 冻结最后一次可信的 `map→odom` 并撤销运动权限；FAST-LIO 不再作为 RTK 退化期间的全局定位接力。为降低局部遮挡造成的短暂停车，Fixed RTK normal innovation gate 放宽到 `20 度 / 1.5 m`，恢复窗口为 `7.5 度 / 0.50 m`，并允许最多 `10` 次或 `2 s` 的短暂不可处理输入；`q=4` 与 `2 m / 20 度` fault 边界仍保持 fail-closed。
 - **RTK target 平滑与跳变门控**: `rtk_map_odom_corrector` 在 raw `map→odom` target 和最终单步限幅之间加入 target deadband + 低通，抑制 RTK/heading 微抖持续写入 `map→odom` 后造成后段“画龙”；target-jump gate 的平移/yaw 安全判断比较当前 raw RTK `map_base` 与上一帧可信 raw RTK `map_base`，避免把 `odom` 原点杠杆放大的 `map→odom` target 平移误判为 RTK 跳变
 - **室内外切换接口**: `rtk_map_odom_corrector` 发布 `/localization_authority/mode`、`/localization_authority/status` 和 `/localization_authority/diagnostics`；后续室内先验地图 relocalization 可作为新的 authority source 接管同一 `map→odom` 接口
 

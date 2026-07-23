@@ -546,7 +546,7 @@ python3 scripts/nav_gps_menu.py
 - scene identity 模式在 RTK position/heading gate 首次稳定锁定后直接建立绝对 `map→odom`；因此可从路网任意位置启动，后续更新仍经过 corridor authority 的平滑、跳变和 fault gate。
 - 若 `current_scene/road_keepout.yaml` 存在，local/global costmap 会启用 KeepoutFilter，车辆可在道路面内避障但不能驶出道路面。
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
-- `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`。authority 已锁定后 RTK 门控会进入 `LIO_BRIDGE`：冻结 GPS 推导的 `map->odom`，保留 FAST-LIO 的 `odom->base_footprint`，只要 `/fastlio2/degeneracy` 表明几何健康就以 `0.35m/s` 持续导航。原有 map 坐标系 A* 路线继续有效；稳定 RTK 恢复后进入 `RTK_REACQUIRING`，以同样低速在线修正地图变换。LIO 过期、正则化、最小特征值过低、跳变或 authority fault 才停车。
+- `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`。RTK 是唯一的 `map->odom` 与运动 authority；RTK position/heading gate 暂时未锁定时，系统冻结最后可信地图变换并发布零速度，不使用 FAST-LIO 作为全局定位接力。为减少局部遮挡处的 stop-go，Fixed RTK 的 normal innovation gate 放宽为 `20deg / 1.5m`，恢复窗口为 `7.5deg / 0.50m`，并容许最多 `10` 次或 `2s` 的短暂不可处理输入；`q=4` 和 `2m / 20deg` fault 边界保持不变。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。
 - MPPI 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，实车采样量收敛为 `batch_size=200`、`time_steps=32`，A* 连续路径按 `0.35m` 加密；1.6 秒预测视野下相比旧 `500x48` 每周期轨迹仿真量降低约73%。只有全部轨迹碰撞时才额外执行最多 3 轮噪声重采样，正常控制周期不增加这部分计算。
 - 动态障碍使 `FollowPath` abort 时，goal manager 不再清空目的地：先进入 `BLOCKED_WAIT` 并保持零速，每 `2s` 从当前位置重新 A*。重试后 LIO 连续运动 `3s` 才发布 `BLOCKED_RECOVERED`；持续阻塞 `60s` 才最终失败，期间可用菜单 `s` 主动取消。

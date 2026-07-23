@@ -254,8 +254,13 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "heading_quality_wait_s: 0.30" in master_params_text
     assert "max_translation_rate_mps: 0.20" in master_params_text
     assert "max_yaw_rate_degps: 2.0" in master_params_text
-    assert "heading_locked_innovation_deg: 15.0" in master_params_text
-    assert "position_locked_innovation_m: 1.0" in master_params_text
+    assert "heading_locked_innovation_deg: 20.0" in master_params_text
+    assert "position_locked_innovation_m: 1.5" in master_params_text
+    assert "heading_recovery_spread_deg: 7.5" in master_params_text
+    assert "position_recovery_diameter_m: 0.50" in master_params_text
+    assert "gate_max_failures: 10" in master_params_text
+    assert "gate_processable_timeout_s: 2.0" in master_params_text
+    assert "enable_local_odom_bridge: false" in master_params_text
     assert "backlog_translation_m: 0.50" in master_params_text
     assert "fault_translation_m: 2.0" in master_params_text
 

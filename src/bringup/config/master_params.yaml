@@ -251,15 +251,17 @@
     # map->base 空间按实测 dt 慢释放，避免远离 odom 原点后 yaw 放大为平移跳变。
     max_translation_rate_mps: 0.20
     max_yaw_rate_degps: 2.0
-    heading_locked_innovation_deg: 15.0
-    position_locked_innovation_m: 1.0
-    heading_recovery_spread_deg: 5.0
-    position_recovery_diameter_m: 0.30
+    # RTK Fixed 在局部遮挡区仍可能有小幅 heading/position innovation；放宽
+    # normal gate，避免短暂收星波动反复撤销 authority。大跳变 fault 不变。
+    heading_locked_innovation_deg: 20.0
+    position_locked_innovation_m: 1.5
+    heading_recovery_spread_deg: 7.5
+    position_recovery_diameter_m: 0.50
     recovery_min_samples: 5
     recovery_min_span_s: 0.30
     gate_max_candidates: 20
-    gate_max_failures: 5
-    gate_processable_timeout_s: 1.0
+    gate_max_failures: 10
+    gate_processable_timeout_s: 2.0
     backlog_translation_m: 0.50
     backlog_yaw_deg: 5.0
     fault_translation_m: 2.0
@@ -274,9 +276,9 @@
     allow_moving_backlog_release: true
     moving_reacquire_translation_rate_mps: 0.05
     moving_reacquire_yaw_rate_degps: 0.5
-    # RTK 门控期间冻结最后可信 map->odom，FAST-LIO (LiDAR+IMU) 继续推进
-    # odom->base。只要 LiDAR 几何仍健康即可连续低速导航；LIO 退化/跳变才停车。
-    enable_local_odom_bridge: true
+    # RTK 是 map->odom 的唯一运动 authority。门控不通过时冻结最后可信
+    # map->odom 并停车；FAST-LIO 仍用于局部 odom 与点云避障，不接力全局导航。
+    enable_local_odom_bridge: false
     local_bridge_max_step_translation_m: 0.50
     local_bridge_max_step_yaw_deg: 15.0
     max_lio_degeneracy_age_s: 0.50

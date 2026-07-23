@@ -346,6 +346,14 @@ def generate_launch_description():
                 "blocked_wait_timeout_s": 60.0,
                 "blocked_recovery_confirmation_s": 3.0,
                 "stop_override_topic": "/gps_nav/stop_override",
+                "road_keepout_yaml": road_keepout_yaml,
+                "road_rejoin_active_topic": "/gps_nav/road_rejoin_active",
+                "road_rejoin_max_outside_distance_m": 1.0,
+                "road_rejoin_max_graph_distance_m": 1.25,
+                "road_rejoin_timeout_s": 12.0,
+                "road_rejoin_parameter_timeout_s": 2.0,
+                "local_costmap_node": "/local_costmap/local_costmap",
+                "local_keepout_enabled_parameter": "road_keepout_filter.enabled",
             },
         ],
     )
@@ -382,6 +390,8 @@ def generate_launch_description():
             {
                 "stop_override_topic": "/gps_nav/stop_override",
                 "straight_max_mps": 1.5,
+                "road_rejoin_active_topic": "/gps_nav/road_rejoin_active",
+                "road_rejoin_max_mps": 0.35,
             },
         ],
     )

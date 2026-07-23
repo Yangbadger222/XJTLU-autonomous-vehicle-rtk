@@ -21,6 +21,7 @@ class CorridorCmdVelGuard(Node):
             "/localization_authority/max_linear_speed_mps",
         )
         self.declare_parameter("stop_override_topic", "/gps_corridor/stop_override")
+        self.declare_parameter("road_rejoin_active_topic", "/gps_nav/road_rejoin_active")
         self.declare_parameter("output_topic", "/cmd_vel_guarded")
         self.declare_parameter("straight_max_mps", 0.85)
         self.declare_parameter("turn_product_limit", 0.25)
@@ -28,6 +29,7 @@ class CorridorCmdVelGuard(Node):
         self.declare_parameter("command_timeout_s", 0.25)
         self.declare_parameter("heartbeat_timeout_s", 0.50)
         self.declare_parameter("require_speed_limit", True)
+        self.declare_parameter("road_rejoin_max_mps", 0.35)
 
         self._guard = CorridorCommandGuard(
             straight_max_mps=float(self.get_parameter("straight_max_mps").value),
@@ -41,6 +43,9 @@ class CorridorCmdVelGuard(Node):
             ),
             require_speed_limit=bool(
                 self.get_parameter("require_speed_limit").value
+            ),
+            road_rejoin_max_mps=float(
+                self.get_parameter("road_rejoin_max_mps").value
             ),
         )
         self._output_pub = self.create_publisher(
@@ -70,6 +75,12 @@ class CorridorCmdVelGuard(Node):
             self._stop_callback,
             10,
         )
+        self._road_rejoin_sub = self.create_subscription(
+            Bool,
+            str(self.get_parameter("road_rejoin_active_topic").value),
+            self._road_rejoin_callback,
+            10,
+        )
         self._timer = self.create_timer(0.05, self._timer_callback)
 
     def _command_callback(self, msg: Twist) -> None:
@@ -87,6 +98,9 @@ class CorridorCmdVelGuard(Node):
 
     def _stop_callback(self, msg: Bool) -> None:
         self._guard.update_stop_override(msg.data, received_s=time.monotonic())
+
+    def _road_rejoin_callback(self, msg: Bool) -> None:
+        self._guard.update_road_rejoin(msg.data)
 
     def _timer_callback(self) -> None:
         guarded = self._guard.evaluate(now_s=time.monotonic())

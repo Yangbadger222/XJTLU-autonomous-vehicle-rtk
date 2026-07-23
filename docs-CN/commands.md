@@ -545,6 +545,7 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 不要求车辆在 anchor 附近；goal manager 将当前 pose 和终点投影到最近 graph edge，插入虚拟端点后执行 A*，整条路线只发送一次 `FollowPath`。
 - scene identity 模式在 RTK position/heading gate 首次稳定锁定后直接建立绝对 `map→odom`；因此可从路网任意位置启动，后续更新仍经过 corridor authority 的平滑、跳变和 fault gate。
 - 若 `current_scene/road_keepout.yaml` 存在，local/global costmap 会启用 KeepoutFilter，车辆可在道路面内避障但不能驶出道路面。
+- 出现 `ROAD_REJOIN_PREPARE` 表示可信位姿刚好落在道路 Polygon 外。只有最近 graph edge 已验证在道路内、且当前位置距道路自由空间不超过 `1.0m` 时才允许恢复：guard 将线速度限制为 `0.35m/s`，仅临时放开 local filter，RTK 与动态障碍门控持续有效，重新回到道路后必须先恢复 local filter 才继续 A* 路线。`ROAD_REJOIN_ABORT` 或 `ROAD_REJOIN_RESTORE_WAIT` 是刻意的停车状态，不能用未经 guard 的命令绕过。
 - `nav-gps` 现在复用 corridor RTK authoritative 链：PGO 关闭 `publish_tf` 和 GPS 因子，`rtk_map_odom_corrector` 是唯一 `map→odom` owner。
 - `nav-gps` 同样启用 `/cmd_vel_nav -> guard -> /cmd_vel`。RTK 是唯一的 `map->odom` 与运动 authority；RTK position/heading gate 暂时未锁定时，系统冻结最后可信地图变换并发布零速度，不使用 FAST-LIO 作为全局定位接力。为减少局部遮挡处的 stop-go，Fixed RTK 的 normal innovation gate 放宽为 `20deg / 1.5m`，恢复窗口为 `7.5deg / 0.50m`，并容许最多 `10` 次或 `2s` 的短暂不可处理输入；`q=4` 和 `2m / 20deg` fault 边界保持不变。
 - Nav2 使用 corridor RTK MPPI profile 与 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云；旧 `nav2_gps.yaml` DWB profile 暂不作为实车选点导航入口。

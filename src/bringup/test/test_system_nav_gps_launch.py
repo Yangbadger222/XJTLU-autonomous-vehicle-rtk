@@ -65,6 +65,8 @@ def test_nav_gps_applies_qgis_road_keepout_to_both_costmaps():
     assert '"plugin": "nav2_costmap_2d::KeepoutFilter"' in text
     assert 'name="road_keepout_mask_server"' in text
     assert '"mask_topic": "/road_keepout_mask"' in text
+    assert '"road_keepout_yaml": road_keepout_yaml' in text
+    assert '"local_costmap_node": "/local_costmap/local_costmap"' in text
 
 
 def test_nav_gps_routes_commands_through_authority_guard():
@@ -76,6 +78,7 @@ def test_nav_gps_routes_commands_through_authority_guard():
     assert '"guarded_cmd_vel": "true"' in text
     assert 'executable="corridor_cmd_vel_guard_node"' in text
     assert '"stop_override_topic": "/gps_nav/stop_override"' in text
+    assert '"road_rejoin_active_topic": "/gps_nav/road_rejoin_active"' in text
     assert '"/localization_authority/motion_allowed"' in text
     assert 'src="/cmd_vel"' in explore_text
     assert 'dst="/cmd_vel_guarded"' in explore_text
@@ -107,6 +110,7 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert 'follow_path["vx_max"] = 1.5' in text
     assert 'smoother_params["max_velocity"] = [1.5, 0.0, 0.70]' in text
     assert '"straight_max_mps": 1.5' in text
+    assert '"road_rejoin_max_mps": 0.35' in text
     assert '"path_density_m": 0.35' in text
 
     master_params = MASTER_PARAMS.read_text(encoding="utf-8")

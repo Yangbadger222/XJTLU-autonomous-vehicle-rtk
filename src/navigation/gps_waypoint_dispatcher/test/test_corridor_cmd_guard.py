@@ -46,6 +46,20 @@ def test_guard_applies_authority_speed_limit_when_present():
     assert result.linear_x == pytest.approx(0.35)
 
 
+def test_guard_caps_speed_during_short_road_rejoin_only():
+    guard = _ready_guard(straight_max_mps=1.5, road_rejoin_max_mps=0.35)
+    guard.update_speed_limit(1.5, received_s=10.0)
+    guard.update_command(1.2, 0.0, received_s=10.0)
+
+    assert guard.evaluate(now_s=10.1).linear_x == pytest.approx(1.2)
+
+    guard.update_road_rejoin(True)
+    assert guard.evaluate(now_s=10.1).linear_x == pytest.approx(0.35)
+
+    guard.update_road_rejoin(False)
+    assert guard.evaluate(now_s=10.1).linear_x == pytest.approx(1.2)
+
+
 def test_guard_fails_closed_when_required_speed_limit_is_missing_or_stale():
     guard = _ready_guard(require_speed_limit=True)
     guard.update_command(0.40, 0.0, received_s=10.0)
@@ -130,6 +144,7 @@ def test_guard_node_contract_and_setup_entrypoint():
     assert '"/localization_authority/motion_allowed"' in node_text
     assert '"/localization_authority/max_linear_speed_mps"' in node_text
     assert '"/gps_corridor/stop_override"' in node_text
+    assert '"/gps_nav/road_rejoin_active"' in node_text
     assert '"/cmd_vel_guarded"' in node_text
     assert "time.monotonic()" in node_text
     assert "create_timer(0.05" in node_text

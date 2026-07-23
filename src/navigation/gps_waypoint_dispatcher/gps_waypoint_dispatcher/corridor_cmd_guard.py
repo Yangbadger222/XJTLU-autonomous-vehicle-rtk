@@ -22,6 +22,7 @@ class CorridorCommandGuard:
         command_timeout_s: float = 0.25,
         heartbeat_timeout_s: float = 0.50,
         require_speed_limit: bool = False,
+        road_rejoin_max_mps: float = 0.35,
     ) -> None:
         values = (
             straight_max_mps,
@@ -29,6 +30,7 @@ class CorridorCommandGuard:
             min_turn_rate_radps,
             command_timeout_s,
             heartbeat_timeout_s,
+            road_rejoin_max_mps,
         )
         if not all(math.isfinite(value) and value > 0.0 for value in values):
             raise ValueError("guard limits and timeouts must be finite and positive")
@@ -38,6 +40,7 @@ class CorridorCommandGuard:
         self.command_timeout_s = command_timeout_s
         self.heartbeat_timeout_s = heartbeat_timeout_s
         self.require_speed_limit = bool(require_speed_limit)
+        self.road_rejoin_max_mps = road_rejoin_max_mps
         self._command: tuple[float, float] | None = None
         self._command_received_s: float | None = None
         self._authority_allowed: bool | None = None
@@ -46,6 +49,7 @@ class CorridorCommandGuard:
         self._stop_received_s: float | None = None
         self._speed_limit_mps: float | None = None
         self._speed_limit_received_s: float | None = None
+        self._road_rejoin_active = False
 
     def update_command(
         self, linear_x: float, angular_z: float, *, received_s: float
@@ -64,6 +68,9 @@ class CorridorCommandGuard:
     def update_speed_limit(self, max_linear_speed_mps: float, *, received_s: float) -> None:
         self._speed_limit_mps = float(max_linear_speed_mps)
         self._speed_limit_received_s = received_s
+
+    def update_road_rejoin(self, active: bool) -> None:
+        self._road_rejoin_active = bool(active)
 
     @staticmethod
     def _age(now_s: float, received_s: float | None) -> float:
@@ -116,5 +123,7 @@ class CorridorCommandGuard:
         )
         if self._speed_limit_mps is not None:
             v_limit = min(v_limit, self._speed_limit_mps)
+        if self._road_rejoin_active:
+            v_limit = min(v_limit, self.road_rejoin_max_mps)
         limited_x = math.copysign(min(abs(linear_x), v_limit), linear_x)
         return GuardedCommand(limited_x, angular_z, True, "ALLOWED")

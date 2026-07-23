@@ -126,6 +126,7 @@ goto_name / /goal_pose / /gps_goal
 - Nav2 使用 corridor RTK MPPI profile 和 `/fastlio2/body_cloud_nav2_obstacles` 高窗障碍点云，而不是旧 `nav2_gps.yaml` 的 DWB profile
 - goal manager 自己执行图 A*，起终点投影到最近 graph edge，不再依赖 `route_server` 的 Dijkstra 或少数 anchor
 - QGIS 道路面编译成 KeepoutFilter mask；MPPI 可在道路内部避障，但道路外部保持禁止通行
+- 若可信当前位姿仅略微落在编译道路面外，goal manager 可执行一次有界 `ROAD_REJOIN`：必须验证最近 graph 投影位于道路 mask 内，且离道路自由空间不超过 `1.0m`，才临时关闭**仅 local** KeepoutFilter，并以 `0.35m/s` 沿该短路径回到道路。global filter、RTK authority、stop override 与点云障碍层始终保持有效；恢复正常路线前必须重新确认 local filter 已开启。缺少 mask/参数服务、越界过远、未真正回到道路或超时都会 fail-closed 保持零速度。
 - RTK 是 `map -> odom` 的唯一运动 authority。RTK position/heading gate 未锁定时冻结最后可信变换并停车，FAST-LIO 只继续提供局部 odom 与点云避障，不作为全局定位接力。Fixed RTK normal innovation gate 采用 `20deg / 1.5m`，恢复窗口 `7.5deg / 0.50m`，容许 `10` 次或 `2s` 的短暂不可处理输入；`q=4` 与 `2m / 20deg` fault 边界保持不变。
 - 实车 profile 保持 `controller_frequency=20Hz` 与 `model_dt=0.05s` 匹配，但将 MPPI 工作量收敛到 `350x40` samples 和2秒预测视野
 - 默认 lean bag 保留较小的 local costmap 用于避障复盘，但不录占本次 bag `77.5%` 的 global costmap；debug profile 才追加 global costmap、原始点云和 legacy anchor 状态

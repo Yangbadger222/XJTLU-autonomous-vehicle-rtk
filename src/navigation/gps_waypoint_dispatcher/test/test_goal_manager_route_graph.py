@@ -72,6 +72,20 @@ def test_goal_manager_waits_and_replans_after_blocked_follow_path():
     assert "if self._plan_from_current_pose():" in text
 
 
+def test_goal_manager_recovers_only_a_short_verified_offroad_drift():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert "RoadKeepoutMap" in text
+    assert "make_road_rejoin_target" in text
+    assert '"ROAD_REJOIN_PREPARE"' in text
+    assert '"DISABLING_LOCAL_KEEPOUT"' in text
+    assert '"RESTORING_LOCAL_KEEPOUT"' in text
+    assert '"road_keepout_filter.enabled"' in text
+    assert "AsyncParametersClient" in text
+    assert "ROAD_REJOIN_NO_ROAD_ENTRY" in text
+    assert "self._publish_road_rejoin_active(False)" in text
+
+
 def test_goal_manager_ignores_reliable_republish_of_the_active_goal():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 

@@ -12,6 +12,8 @@ from nav_msgs.msg import Odometry, Path as NavPath
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rclpy.parameter_client import AsyncParametersClient
 from rclpy.time import Time
 from std_msgs.msg import Bool, Empty, String
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -28,6 +30,12 @@ from gps_waypoint_dispatcher.route_safety import (
     ContinuousReadiness,
     LocalOdomWatchdog,
     WatchdogDecision,
+)
+from gps_waypoint_dispatcher.road_rejoin import (
+    RoadKeepoutError,
+    RoadKeepoutMap,
+    RoadRejoinTarget,
+    make_road_rejoin_target,
 )
 from gps_waypoint_dispatcher.scene_runtime import (
     FixedENUProjector,
@@ -74,6 +82,16 @@ class GPSGoalManager(Node):
         self.declare_parameter("local_rate_abort_count", 3)
         self.declare_parameter("local_catastrophic_rate_mps", 10.0)
         self.declare_parameter("local_catastrophic_yaw_rate_radps", 10.0)
+        self.declare_parameter("road_keepout_yaml", "")
+        self.declare_parameter("road_rejoin_active_topic", "/gps_nav/road_rejoin_active")
+        self.declare_parameter("road_rejoin_max_outside_distance_m", 1.0)
+        self.declare_parameter("road_rejoin_max_graph_distance_m", 1.25)
+        self.declare_parameter("road_rejoin_timeout_s", 12.0)
+        self.declare_parameter("road_rejoin_parameter_timeout_s", 2.0)
+        self.declare_parameter("local_costmap_node", "/local_costmap/local_costmap")
+        self.declare_parameter(
+            "local_keepout_enabled_parameter", "road_keepout_filter.enabled"
+        )
 
         self.scene_points_file = str(self.get_parameter("scene_points_file").value)
         self.route_frame = str(self.get_parameter("route_frame").value)
@@ -110,6 +128,21 @@ class GPSGoalManager(Node):
                 self.get_parameter("blocked_recovery_confirmation_s").value
             ),
         )
+        self.road_rejoin_max_outside_distance_m = float(
+            self.get_parameter("road_rejoin_max_outside_distance_m").value
+        )
+        self.road_rejoin_max_graph_distance_m = float(
+            self.get_parameter("road_rejoin_max_graph_distance_m").value
+        )
+        self.road_rejoin_timeout_s = float(
+            self.get_parameter("road_rejoin_timeout_s").value
+        )
+        self.road_rejoin_parameter_timeout_s = float(
+            self.get_parameter("road_rejoin_parameter_timeout_s").value
+        )
+        self.local_keepout_enabled_parameter = str(
+            self.get_parameter("local_keepout_enabled_parameter").value
+        )
 
         scene = load_scene_points(self.scene_points_file)
         self.scene_name = scene["scene_name"]
@@ -121,6 +154,9 @@ class GPSGoalManager(Node):
             float(origin["lat"]),
             float(origin["lon"]),
             float(origin.get("alt", 0.0)),
+        )
+        self.road_keepout_map = self._load_road_keepout_map(
+            str(self.get_parameter("road_keepout_yaml").value)
         )
 
         self.follow_path_client = ActionClient(self, FollowPath, "follow_path")
@@ -136,6 +172,13 @@ class GPSGoalManager(Node):
         )
         self.stop_override_pub = self.create_publisher(
             Bool, str(self.get_parameter("stop_override_topic").value), 10
+        )
+        self.road_rejoin_pub = self.create_publisher(
+            Bool, str(self.get_parameter("road_rejoin_active_topic").value), 10
+        )
+        self.local_costmap_params = AsyncParametersClient(
+            self,
+            str(self.get_parameter("local_costmap_node").value),
         )
 
         self.create_subscription(
@@ -200,6 +243,14 @@ class GPSGoalManager(Node):
         self.authority_loss_started_mono: float | None = None
         self.hold_started_mono: float | None = None
         self.generation = 0
+        self.road_rejoin_phase = "IDLE"
+        self.road_rejoin_target: RoadRejoinTarget | None = None
+        self.road_rejoin_path: NavPath | None = None
+        self.road_rejoin_deadline_mono: float | None = None
+        self.road_rejoin_parameter_deadline_mono: float | None = None
+        self.road_rejoin_parameter_future = None
+        self.road_rejoin_parameter_operation: str | None = None
+        self.road_rejoin_restore_outcome: str | None = None
 
         publish_hz = max(
             1.0, float(self.get_parameter("stop_override_publish_hz").value)
@@ -208,6 +259,7 @@ class GPSGoalManager(Node):
             1.0 / publish_hz, self._supervision_timer_callback
         )
         self._publish_stop_override(True)
+        self._publish_road_rejoin_active(False)
         destinations = ", ".join(sorted(self.destination_names)) or "(none)"
         self.get_logger().info(
             "GPS A* goal manager ready: scene=%s destinations=%s"
@@ -242,6 +294,28 @@ class GPSGoalManager(Node):
     def _publish_stop_override(self, stop: bool) -> None:
         self.stop_override = bool(stop)
         self.stop_override_pub.publish(Bool(data=self.stop_override))
+
+    def _publish_road_rejoin_active(self, active: bool) -> None:
+        self.road_rejoin_pub.publish(Bool(data=bool(active)))
+
+    def _load_road_keepout_map(self, yaml_path: str) -> RoadKeepoutMap | None:
+        if not yaml_path:
+            self.get_logger().warning(
+                "ROAD_REJOIN_DISABLED: road_keepout_yaml is not configured"
+            )
+            return None
+        try:
+            road_map = RoadKeepoutMap.load(yaml_path)
+        except RoadKeepoutError as exc:
+            self.get_logger().error(
+                f"ROAD_REJOIN_DISABLED: cannot load road keepout map: {exc}"
+            )
+            return None
+        self.get_logger().info(
+            "ROAD_REJOIN_READY: %dx%d at %.3fm/cell"
+            % (road_map.width, road_map.height, road_map.resolution)
+        )
+        return road_map
 
     def _system_status_callback(self, msg: String) -> None:
         self.system_status = msg.data.strip() or "NO_FIX"
@@ -382,7 +456,12 @@ class GPSGoalManager(Node):
         self._publish_status("WAITING_FOR_AUTHORITY", f"target={label}")
 
     def _build_path(self, plan: RoutePlan) -> NavPath:
-        points = densify_polyline(plan.points, self.path_density_m)
+        return self._build_path_from_points(plan.points)
+
+    def _build_path_from_points(
+        self, source_points: tuple[tuple[float, float], ...]
+    ) -> NavPath:
+        points = densify_polyline(source_points, self.path_density_m)
         path = NavPath()
         path.header.frame_id = self.route_frame
         path.header.stamp = self.get_clock().now().to_msg()
@@ -416,6 +495,8 @@ class GPSGoalManager(Node):
             float(current_pose.pose.position.x),
             float(current_pose.pose.position.y),
         )
+        if self._start_road_rejoin_if_needed(start_xy):
+            return False
         try:
             plan = self.route_planner.plan(
                 start_xy,
@@ -443,23 +524,277 @@ class GPSGoalManager(Node):
         )
         return True
 
-    def _send_follow_path(self) -> None:
-        if self.pending_path is None:
+    def _start_road_rejoin_if_needed(self, start_xy: tuple[float, float]) -> bool:
+        """Start a bounded re-entry when the current pose is just off-road.
+
+        ``True`` means this call handled planning, either by beginning the
+        rejoin state machine or by failing closed.  Normal route planning can
+        continue only when the current pose is already in the drivable mask or
+        no compiled mask is configured.
+        """
+
+        if self.road_keepout_map is None or self.road_keepout_map.is_drivable(*start_xy):
+            return False
+        try:
+            projection = self.route_planner.nearest_edge(start_xy)
+            target = make_road_rejoin_target(
+                self.road_keepout_map,
+                start_xy,
+                (projection.x, projection.y),
+                self.road_rejoin_max_outside_distance_m,
+                self.road_rejoin_max_graph_distance_m,
+            )
+        except (RoutePlanningError, ValueError) as exc:
+            self._finish_failure(f"road_rejoin_projection_failed={exc}")
+            return True
+        if target is None:
+            nearest_road_m = self.road_keepout_map.nearest_drivable_distance(
+                start_xy[0], start_xy[1], self.road_rejoin_max_outside_distance_m
+            )
+            self._finish_failure(
+                "road_rejoin_unsafe; nearest_road_m=%s; max_outside_m=%.2f"
+                % (
+                    "none" if nearest_road_m is None else f"{nearest_road_m:.2f}",
+                    self.road_rejoin_max_outside_distance_m,
+                )
+            )
+            return True
+
+        self.road_rejoin_target = target
+        self.road_rejoin_path = self._build_path_from_points(
+            (start_xy, (target.x, target.y))
+        )
+        self.path_pub.publish(self.road_rejoin_path)
+        if self.road_rejoin_path.poses:
+            self.goal_pub.publish(self.road_rejoin_path.poses[-1])
+        now_mono = time.monotonic()
+        self.road_rejoin_phase = "DISABLING_LOCAL_KEEPOUT"
+        self.road_rejoin_deadline_mono = now_mono + self.road_rejoin_timeout_s
+        self.road_rejoin_parameter_deadline_mono = (
+            now_mono + self.road_rejoin_parameter_timeout_s
+        )
+        self.road_rejoin_parameter_future = None
+        self.road_rejoin_restore_outcome = None
+        self._publish_stop_override(True)
+        self._publish_road_rejoin_active(True)
+        self._publish_status(
+            "ROAD_REJOIN_PREPARE",
+            "target=%s; outside_m=%.2f; graph_m=%.2f; x=%.2f; y=%.2f"
+            % (
+                self.current_target_label,
+                target.outside_distance_m,
+                target.graph_distance_m,
+                target.x,
+                target.y,
+            ),
+        )
+        return True
+
+    def _send_follow_path(self, *, road_rejoin: bool = False) -> None:
+        path = self.road_rejoin_path if road_rejoin else self.pending_path
+        if path is None:
             self._finish_failure("missing_pending_path")
             return
         self.generation += 1
         generation = self.generation
         goal = FollowPath.Goal()
-        goal.path = self.pending_path
+        goal.path = path
         goal.controller_id = self.controller_id
         goal.goal_checker_id = self.goal_checker_id
         self.goal_send_pending = True
         self._publish_stop_override(True)
-        self._publish_status("FOLLOWING_ROUTE", f"target={self.current_target_label}")
+        if road_rejoin:
+            self._publish_status(
+                "ROAD_REJOIN_FOLLOWING", f"target={self.current_target_label}"
+            )
+        else:
+            self._publish_status("FOLLOWING_ROUTE", f"target={self.current_target_label}")
         future = self.follow_path_client.send_goal_async(goal)
         future.add_done_callback(
             lambda completed, token=generation: self._on_goal_response(completed, token)
         )
+
+    def _road_rejoin_active(self) -> bool:
+        return self.road_rejoin_phase != "IDLE"
+
+    @staticmethod
+    def _parameter_results_successful(results) -> bool:
+        return bool(results) and all(
+            bool(getattr(result, "successful", False)) for result in results
+        )
+
+    def _request_keepout_parameter(self, enabled: bool) -> bool:
+        if self.road_rejoin_parameter_future is not None:
+            return True
+        if not self.local_costmap_params.wait_for_service(timeout_sec=0.0):
+            return False
+        try:
+            self.road_rejoin_parameter_future = self.local_costmap_params.set_parameters(
+                [
+                    Parameter(
+                        name=self.local_keepout_enabled_parameter,
+                        value=bool(enabled),
+                    )
+                ]
+            )
+            self.road_rejoin_parameter_operation = "ENABLE" if enabled else "DISABLE"
+        except Exception as exc:
+            self.get_logger().warning(
+                "ROAD_REJOIN parameter request failed to start: %s" % exc
+            )
+            return False
+        return True
+
+    def _consume_keepout_parameter_result(self) -> tuple[str, bool, str] | None:
+        future = self.road_rejoin_parameter_future
+        if future is None or not future.done():
+            return None
+        operation = getattr(self, "road_rejoin_parameter_operation", "UNKNOWN")
+        self.road_rejoin_parameter_future = None
+        self.road_rejoin_parameter_operation = None
+        try:
+            results = future.result()
+        except Exception as exc:
+            return operation, False, str(exc)
+        if self._parameter_results_successful(results):
+            return operation, True, ""
+        reasons = [str(getattr(result, "reason", "")) for result in results or []]
+        return operation, False, "; ".join(reason for reason in reasons if reason)
+
+    def _begin_road_rejoin_restore(self, outcome: str) -> None:
+        if not self._road_rejoin_active():
+            return
+        self._publish_stop_override(True)
+        self.road_rejoin_phase = "RESTORING_LOCAL_KEEPOUT"
+        self.road_rejoin_restore_outcome = outcome
+        self.road_rejoin_parameter_deadline_mono = (
+            time.monotonic() + self.road_rejoin_parameter_timeout_s
+        )
+        self._publish_status(
+            "ROAD_REJOIN_RESTORE",
+            f"target={self.current_target_label}; outcome={outcome}",
+        )
+
+    def _complete_road_rejoin_restore(self) -> None:
+        outcome = self.road_rejoin_restore_outcome or "FAILED"
+        self.road_rejoin_phase = "IDLE"
+        self.road_rejoin_target = None
+        self.road_rejoin_path = None
+        self.road_rejoin_deadline_mono = None
+        self.road_rejoin_parameter_deadline_mono = None
+        self.road_rejoin_parameter_future = None
+        self.road_rejoin_parameter_operation = None
+        self.road_rejoin_restore_outcome = None
+        self._publish_road_rejoin_active(False)
+
+        if not self.busy:
+            return
+        if outcome == "RESUME":
+            self._publish_status(
+                "ROAD_REJOIN_COMPLETE", f"target={self.current_target_label}"
+            )
+            if self._authority_ready() and self._plan_from_current_pose():
+                self._send_follow_path()
+            return
+        if outcome == "AUTHORITY_HOLD":
+            self.authority_readiness = ContinuousReadiness(
+                self.authority_ready_confirmation_s
+            )
+            self._publish_status(
+                "GLOBAL_CORRECTION_HOLD", f"target={self.current_target_label}"
+            )
+            return
+        if outcome == "USER":
+            self._finish_cancelled("user_stop")
+            return
+        self._finish_failure(outcome.lower())
+
+    def _poll_road_rejoin(self, now_mono: float) -> bool:
+        """Advance the fail-closed local-keepout handoff.
+
+        Returns ``True`` while the ordinary route state machine must remain
+        paused.  Every exit either restores the local road filter or leaves the
+        guard publishing an explicit stop.
+        """
+
+        if not self._road_rejoin_active():
+            return False
+
+        result = self._consume_keepout_parameter_result()
+        if self.road_rejoin_phase == "DISABLING_LOCAL_KEEPOUT":
+            if result is not None:
+                operation, successful, reason = result
+                if operation != "DISABLE" or not successful:
+                    self._publish_status(
+                        "ROAD_REJOIN_ABORT",
+                        "local_keepout_disable_failed=%s" % (reason or operation),
+                    )
+                    self._begin_road_rejoin_restore("ROAD_REJOIN_KEEP_OUT_DISABLE")
+                    return True
+                self.road_rejoin_phase = "FOLLOWING"
+                self._publish_status(
+                    "ROAD_REJOIN_LOCAL_KEEPOUT_DISABLED",
+                    f"target={self.current_target_label}",
+                )
+                self._send_follow_path(road_rejoin=True)
+                return True
+            if now_mono > (self.road_rejoin_parameter_deadline_mono or now_mono):
+                self._publish_status(
+                    "ROAD_REJOIN_ABORT", "local_keepout_disable_timeout"
+                )
+                self._begin_road_rejoin_restore("ROAD_REJOIN_KEEP_OUT_TIMEOUT")
+                return True
+            self._request_keepout_parameter(False)
+            return True
+
+        if self.road_rejoin_phase == "FOLLOWING":
+            if now_mono > (self.road_rejoin_deadline_mono or now_mono):
+                if self.cancel_reason is None:
+                    self.cancel_reason = "ROAD_REJOIN_TIMEOUT"
+                    self._publish_status(
+                        "ROAD_REJOIN_ABORT",
+                        f"target={self.current_target_label}; timeout",
+                    )
+                    self._request_cancel()
+            return True
+
+        if self.road_rejoin_phase != "RESTORING_LOCAL_KEEPOUT":
+            self._begin_road_rejoin_restore("ROAD_REJOIN_UNKNOWN_STATE")
+            return True
+
+        if result is not None:
+            operation, successful, reason = result
+            if operation == "DISABLE" and successful:
+                # A user/authority stop can arrive while the disable call is
+                # in flight.  Restore only after its result is known.
+                self.road_rejoin_parameter_deadline_mono = (
+                    now_mono + self.road_rejoin_parameter_timeout_s
+                )
+            elif operation == "ENABLE" and successful:
+                self._complete_road_rejoin_restore()
+                return True
+            elif operation == "DISABLE":
+                self._complete_road_rejoin_restore()
+                return True
+            else:
+                self.get_logger().warning(
+                    "ROAD_REJOIN restore parameter failed: %s" % (reason or operation)
+                )
+
+        if self.road_rejoin_parameter_future is None:
+            self._request_keepout_parameter(True)
+        if now_mono > (self.road_rejoin_parameter_deadline_mono or now_mono):
+            # Keep the vehicle stopped and continue retrying.  Forgetting the
+            # request here would risk returning to normal driving with the
+            # local road boundary still disabled.
+            self.road_rejoin_parameter_deadline_mono = (
+                now_mono + self.road_rejoin_parameter_timeout_s
+            )
+            self._publish_status(
+                "ROAD_REJOIN_RESTORE_WAIT",
+                f"target={self.current_target_label}; local_keepout_unconfirmed",
+            )
+        return True
 
     def _on_goal_response(self, future, generation: int) -> None:
         try:
@@ -468,6 +803,9 @@ class GPSGoalManager(Node):
             if generation != self.generation or not self.busy:
                 return
             self.goal_send_pending = False
+            if self.road_rejoin_phase == "FOLLOWING":
+                self._begin_road_rejoin_restore("ROAD_REJOIN_FOLLOW_PATH_SEND")
+                return
             self._finish_failure(f"follow_path_send_failed={exc}")
             return
         if generation != self.generation or not self.busy:
@@ -481,6 +819,9 @@ class GPSGoalManager(Node):
             return
         self.goal_send_pending = False
         if goal_handle is None or not goal_handle.accepted:
+            if self.road_rejoin_phase == "FOLLOWING":
+                self._begin_road_rejoin_restore("ROAD_REJOIN_FOLLOW_PATH_REJECTED")
+                return
             self._finish_failure("follow_path_rejected")
             return
         self.follow_path_goal_handle = goal_handle
@@ -532,7 +873,39 @@ class GPSGoalManager(Node):
         try:
             wrapped = future.result()
         except Exception as exc:
+            if self.road_rejoin_phase == "FOLLOWING":
+                self._begin_road_rejoin_restore("ROAD_REJOIN_FOLLOW_PATH_RESULT")
+                return
             self._finish_failure(f"follow_path_result_failed={exc}")
+            return
+
+        if self.road_rejoin_phase == "FOLLOWING":
+            if wrapped.status == GoalStatus.STATUS_SUCCEEDED:
+                current_pose = self._lookup_current_pose()
+                returned_to_road = bool(
+                    current_pose is not None
+                    and self.road_keepout_map is not None
+                    and self.road_keepout_map.is_drivable(
+                        float(current_pose.pose.position.x),
+                        float(current_pose.pose.position.y),
+                    )
+                )
+                self._begin_road_rejoin_restore(
+                    "RESUME" if returned_to_road else "ROAD_REJOIN_NO_ROAD_ENTRY"
+                )
+                return
+            if wrapped.status == GoalStatus.STATUS_CANCELED:
+                reason = self.cancel_reason or "ROAD_REJOIN_CANCELLED"
+                self.cancel_reason = None
+                outcome = {
+                    "AUTHORITY_HOLD": "AUTHORITY_HOLD",
+                    "USER": "USER",
+                }.get(reason, reason)
+                self._begin_road_rejoin_restore(outcome)
+                return
+            self._begin_road_rejoin_restore(
+                f"ROAD_REJOIN_FOLLOW_PATH_STATUS_{wrapped.status}"
+            )
             return
 
         if wrapped.status == GoalStatus.STATUS_CANCELED:
@@ -616,6 +989,13 @@ class GPSGoalManager(Node):
             self._publish_status("IDLE", "no_active_goal")
             return
         self.cancel_reason = "USER"
+        if self._road_rejoin_active():
+            self._publish_status("CANCEL_REQUESTED", f"target={self.current_target_label}")
+            if self.follow_path_goal_handle is not None or self.goal_send_pending:
+                self._request_cancel()
+            else:
+                self._begin_road_rejoin_restore("USER")
+            return
         if self.follow_path_goal_handle is None and not self.goal_send_pending:
             self._finish_cancelled("user_stop")
             return
@@ -627,6 +1007,33 @@ class GPSGoalManager(Node):
         if not self.busy:
             return
         now_mono = time.monotonic()
+        if self._road_rejoin_active():
+            local_abort = bool(
+                self.local_watchdog_result is not None
+                and self.local_watchdog_result.decision is WatchdogDecision.LOCAL_ABORT
+            )
+            authority_problem = self._authority_faulted() or not self._authority_ready()
+            if local_abort:
+                if self.road_rejoin_phase == "FOLLOWING" and (
+                    self.follow_path_goal_handle is not None or self.goal_send_pending
+                ):
+                    self.cancel_reason = "ROAD_REJOIN_LOCAL_ODOM_INVALID"
+                    self._request_cancel()
+                elif self.road_rejoin_phase != "RESTORING_LOCAL_KEEPOUT":
+                    self._begin_road_rejoin_restore("ROAD_REJOIN_LOCAL_ODOM_INVALID")
+                return
+            if authority_problem and self.road_rejoin_phase != "RESTORING_LOCAL_KEEPOUT":
+                self._publish_stop_override(True)
+                if self.road_rejoin_phase == "FOLLOWING" and (
+                    self.follow_path_goal_handle is not None or self.goal_send_pending
+                ):
+                    self.cancel_reason = "AUTHORITY_HOLD"
+                    self._request_cancel()
+                elif self.road_rejoin_phase != "FOLLOWING":
+                    self._begin_road_rejoin_restore("AUTHORITY_HOLD")
+                return
+            self._poll_road_rejoin(now_mono)
+            return
         if (
             self.local_watchdog_result is not None
             and self.local_watchdog_result.decision is WatchdogDecision.LOCAL_ABORT
@@ -789,6 +1196,7 @@ class GPSGoalManager(Node):
         self.authority_loss_started_mono = None
         self.hold_started_mono = None
         self.blocked_retry.clear()
+        self._publish_road_rejoin_active(False)
         self._publish_stop_override(True)
 
     def _finish_success(self) -> None:
@@ -813,6 +1221,7 @@ def main(args=None) -> None:
     finally:
         if rclpy.ok():
             node._publish_stop_override(True)
+            node._publish_road_rejoin_active(False)
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

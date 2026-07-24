@@ -244,7 +244,9 @@ hot fallback. The plugin returns the CPU command whenever CUDA reports all traje
 a non-finite result, more than `20 ms` GPU elapsed time, or a disagreement larger than `0.25 m/s`
 or `0.20 rad/s`. It therefore changes command authority but does not yet remove CPU MPPI work;
 the mode is for guarded vehicle validation, not a claim of reduced CPU load. The physical e-stop
-and gamepad motor override remain mandatory safety layers.
+and gamepad motor override remain mandatory safety layers. The first-authority profile caps both
+GPU and CPU fallback at `0.75 m/s` and `0.50 rad/s`; ordinary CPU/shadow nav-gps remains at its
+normal `1.5 m/s` and `0.70 rad/s` limits.
 
 Existing pre-CUDA navigation bags can also validate the actual Orin GPU workload before a new
 field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,

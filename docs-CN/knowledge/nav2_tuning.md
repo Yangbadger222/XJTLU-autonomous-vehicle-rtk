@@ -236,7 +236,8 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY=true FYP_USE_RVIZ=false \
 这会把 CUDA 的首条控制作为返回给 Nav2 的命令，同时 stock MPPI 保持同周期 hot fallback。出现所有候选碰撞、
 CUDA 非有限输出、GPU 耗时超过 `20 ms`，或 CPU/GPU 差异超过 `0.25 m/s` / `0.20 rad/s` 时，插件立即返回 CPU
 命令。因此它改变的是 command authority，但暂时不移除 CPU MPPI 工作；该模式用于受保护的实车验证，不能宣称
-降低 CPU 负载。物理急停和手柄电机禁用仍是必须保留的安全层。
+降低 CPU 负载。物理急停和手柄电机禁用仍是必须保留的安全层。首轮 authority profile 会将 GPU 和 CPU fallback
+同时限制在 `0.75 m/s`、`0.50 rad/s`；普通 CPU/shadow nav-gps 仍保留 `1.5 m/s`、`0.70 rad/s` 上限。
 
 已有的、早于 CUDA 接入的导航 rosbag 也可先验证 Orin 上的真实 GPU 工作量，无需重新下楼。
 `mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、

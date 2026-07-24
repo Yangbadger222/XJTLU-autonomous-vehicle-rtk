@@ -123,6 +123,11 @@ def _make_nav_gps_rtk_nav2_params(
         follow_path["cuda_mppi_authority_max_gpu_elapsed_ms"] = 20.0
         follow_path["cuda_mppi_authority_max_vx_delta"] = 0.25
         follow_path["cuda_mppi_authority_max_wz_delta"] = 0.20
+        if enable_cuda_mppi_authority:
+            # First authority validation keeps both GPU and CPU fallback in a
+            # bounded envelope. The normal nav-gps profile remains unchanged.
+            follow_path["vx_max"] = 0.75
+            follow_path["wz_max"] = 0.50
     follow_path["plugin"] = (
         "nav2_rotation_shim_controller::RotationShimController"
     )
@@ -145,7 +150,9 @@ def _make_nav_gps_rtk_nav2_params(
     global_costmap_params["publish_frequency"] = 1.0
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
-    smoother_params["max_velocity"] = [1.5, 0.0, 0.70]
+    smoother_params["max_velocity"] = (
+        [0.75, 0.0, 0.50] if enable_cuda_mppi_authority else [1.5, 0.0, 0.70]
+    )
     smoother_params["min_velocity"] = [0.0, 0.0, -0.70]
     smoother_params["max_accel"] = [0.85, 0.0, 1.4]
     smoother_params["max_decel"] = [-1.2, 0.0, -1.8]

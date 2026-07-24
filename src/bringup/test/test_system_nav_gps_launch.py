@@ -108,7 +108,7 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert 'follow_path["retry_attempt_limit"] = 3' in text
     assert 'follow_path["open_loop"] = False' in text
     assert 'follow_path["vx_max"] = 1.5' in text
-    assert 'smoother_params["max_velocity"] = [1.5, 0.0, 0.70]' in text
+    assert '[0.75, 0.0, 0.50] if enable_cuda_mppi_authority else [1.5, 0.0, 0.70]' in text
     assert '"straight_max_mps": 1.5' in text
     assert '"road_rejoin_max_mps": 0.35' in text
     assert '"path_density_m": 0.35' in text

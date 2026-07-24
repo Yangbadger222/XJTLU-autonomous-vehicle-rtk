@@ -1,6 +1,7 @@
 #include "nav2_cuda_mppi_controller/cuda_mppi_shadow_controller.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <exception>
 #include <mutex>
 #include <utility>
@@ -17,9 +18,10 @@ namespace nav2_cuda_mppi_controller
 namespace
 {
 
+template<typename ValueT>
 void declareIfMissing(
   const rclcpp_lifecycle::LifecycleNode::SharedPtr & node,
-  const std::string & name, const rclcpp::ParameterValue & value)
+  const std::string & name, ValueT value)
 {
   if (!node->has_parameter(name)) {
     node->declare_parameter(name, value);
@@ -111,7 +113,7 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
     if (!node) {
       throw std::runtime_error("CUDA MPPI shadow controller lost lifecycle node");
     }
-    const std::size_t lookahead = static_cast<std::size_t>(std::max(
+    const std::size_t lookahead = static_cast<std::size_t>(std::max<std::int64_t>(
       0, node->get_parameter(name_ + ".cuda_shadow_lookahead_points").as_int()));
     const auto & target = transformed_path.poses.at(std::min(
       lookahead, transformed_path.poses.size() - 1U));

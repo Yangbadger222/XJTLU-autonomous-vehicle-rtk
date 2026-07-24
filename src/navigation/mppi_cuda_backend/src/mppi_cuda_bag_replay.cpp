@@ -114,14 +114,14 @@ struct LocalPathInput
 
 void printUsage(const char * program)
 {
-  std::cout << "Usage: " << program << " <bag_path> [options]\\n"
-            << "  --output <csv>             Write one row for every evaluated costmap frame\\n"
-            << "  --max-frames <count>       Stop after this many evaluated frames (0 = all)\\n"
-            << "  --batch-size <count>       CUDA sample count (default: 4096)\\n"
-            << "  --time-steps <count>       CUDA horizon steps (default: 48)\\n"
-            << "  --prune-distance <metres>  Local path horizon (default: 4.0)\\n"
-            << "  --lookahead-points <count> CUDA target index in the local path (default: 6)\\n"
-            << "  --track-unknown            Treat OccupancyGrid unknown cells as collisions\\n";
+  std::cout << "Usage: " << program << " <bag_path> [options]\n"
+            << "  --output <csv>             Write one row for every evaluated costmap frame\n"
+            << "  --max-frames <count>       Stop after this many evaluated frames (0 = all)\n"
+            << "  --batch-size <count>       CUDA sample count (default: 4096)\n"
+            << "  --time-steps <count>       CUDA horizon steps (default: 48)\n"
+            << "  --prune-distance <metres>  Local path horizon (default: 4.0)\n"
+            << "  --lookahead-points <count> CUDA target index in the local path (default: 6)\n"
+            << "  --track-unknown            Treat OccupancyGrid unknown cells as collisions\n";
 }
 
 std::size_t parseSize(const std::string & value, const char * flag)
@@ -405,7 +405,7 @@ int main(int argc, char ** argv)
         throw std::runtime_error("unable to open output CSV: " + options.output_path);
       }
       output << "stamp_ns,gpu_ms,cpu_vx,cpu_wz,gpu_vx,gpu_wz,abs_vx_error,abs_wz_error,"
-             << "command_age_ms,all_trajectories_collide\\n";
+             << "command_age_ms,all_trajectories_collide\n";
     }
 
     mppi_cuda_backend::SamplingConfig config;

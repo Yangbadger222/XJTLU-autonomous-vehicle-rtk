@@ -431,7 +431,7 @@ int main(int argc, char ** argv)
         const auto message = deserialize<tf2_msgs::msg::TFMessage>(bag_message);
         for (const auto & transform : message.transforms) {
           if (bag_message->topic_name == kTfStaticTopic) {
-            tf_buffer.setTransformStatic(transform, kAuthorityName);
+            tf_buffer.setTransform(transform, kAuthorityName, true);
           } else {
             tf_buffer.setTransform(transform, kAuthorityName);
           }

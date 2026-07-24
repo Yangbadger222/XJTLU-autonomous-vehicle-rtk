@@ -181,6 +181,32 @@ Localization semantics:
 - `waypoint_collector` subscribes to RViz's `/clicked_point`
 - `gps_waypoint_dispatcher` sends the complete A* route as one `FollowPath`; intermediate graph nodes do not stop the vehicle
 - `goto_name`, `goto_latlon`, and `/goal_pose` all snap to the route graph before planning
+
+## 9. CUDA MPPI Backend (Shadow Foundation)
+
+`src/navigation/mppi_cuda_backend` is a Jetson-Orin-specific CUDA backend for the expensive
+batch-parallel portion of MPPI. It keeps candidate DiffDrive sampling, trajectory rollout,
+centre-point costmap scoring, path/goal scoring, and softmax control update on the GPU. Only the
+two optimized control vectors return to host memory, so it is intended to make batches above the
+current CPU profile practical.
+
+It is deliberately **not** selected by `nav-gps`, `corridor`, or any controller plugin yet. The
+first backend uses a centre-point costmap collision check; production Nav2 also has optional
+footprint collision checking and additional critics. It must first run as a shadow backend and
+demonstrate command/collision parity against the existing `nav2_mppi_controller` before it can
+replace a production controller.
+
+On the Orin NX (CUDA 12.2, compute capability 8.7), build and profile only this package with:
+
+```bash
+colcon build --packages-select mppi_cuda_backend --symlink-install --parallel-workers 1
+source install/setup.bash
+ros2 run mppi_cuda_backend mppi_cuda_benchmark
+```
+
+The benchmark reports mean and P95 kernel-plus-transfer time for `1000x32`, `2048x32`,
+`4096x32`, and `4096x48`. The GPU controller integration may raise `batch_size` only when its P95
+remains safely below the 20 Hz controller budget and the shadow safety comparison passes.
 ## 2026-07-10 Corridor Authority Containment
 
 Corridor now separates local motion, global correction, and command authority. `rtk_map_odom_corrector` aligns stamped RTK observations with a 2 s `/fastlio2/lio_odom` history, requires five consistent Fixed samples, and releases correction in `map->base_footprint` space at at most `0.20 m/s` and `2 deg/s`. A NORMAL correction below the backlog thresholds retains motion authority while rate-limited until it converges. Only moderate backlog (`0.50-2.0 m` or `5-20 deg`) requires one second stopped before slow release; larger backlog latches `FAULT_HOLD`. This prevents valid 0.49 m or 4.9 deg corrections from repeatedly stopping the vehicle because of a fixed sample-count timeout.

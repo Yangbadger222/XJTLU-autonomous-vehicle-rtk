@@ -181,6 +181,29 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - `waypoint_collector` 订阅 RViz 的 `/clicked_point`
 - `gps_waypoint_dispatcher` 将整条 A* 路线作为一次 `FollowPath` 交给 Nav2，中间图节点不会停车
 - `goto_name`、`goto_latlon` 和 `/goal_pose` 都先吸附到路网再规划
+
+## 9. CUDA MPPI Backend（Shadow 基础）
+
+`src/navigation/mppi_cuda_backend` 是面向 Jetson Orin 的 CUDA backend，覆盖 MPPI 中适合大规模
+并行的部分：DiffDrive 候选采样、轨迹 rollout、中心点 costmap 评分、路径/终点代价，以及 softmax
+控制序列更新都留在 GPU，只将最终两条控制序列传回主机。目标是在不增加 CPU 控制负载的前提下，让
+大于当前 CPU profile 的 batch 成为可能。
+
+它目前**没有**被 `nav-gps`、`corridor` 或任何 controller plugin 选中。第一阶段只实现中心点
+costmap 碰撞检查，而生产 Nav2 还支持可选 footprint 碰撞和更多 critic。因此必须先作为 shadow
+backend，对照现有 `nav2_mppi_controller` 验证命令和碰撞判定一致，才能替换生产控制器。
+
+在 Orin NX（CUDA 12.2、compute capability 8.7）上，仅编译并压测这个包：
+
+```bash
+colcon build --packages-select mppi_cuda_backend --symlink-install --parallel-workers 1
+source install/setup.bash
+ros2 run mppi_cuda_backend mppi_cuda_benchmark
+```
+
+benchmark 会输出 `1000x32`、`2048x32`、`4096x32` 和 `4096x48` 的平均与 P95 kernel+传输时间。
+只有 GPU controller 的 P95 仍明显低于 20 Hz 控制周期预算、且 shadow 安全对照通过，才允许提高
+生产 `batch_size`。
 ## 2026-07-10 Corridor Authority 收敛链
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。

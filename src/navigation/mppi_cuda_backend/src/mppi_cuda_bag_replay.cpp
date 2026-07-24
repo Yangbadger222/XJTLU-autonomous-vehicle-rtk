@@ -39,6 +39,7 @@ constexpr char kCommandTopic[] = "/cmd_vel_nav";
 constexpr char kTfTopic[] = "/tf";
 constexpr char kTfStaticTopic[] = "/tf_static";
 constexpr char kAuthorityName[] = "mppi_cuda_bag_replay";
+constexpr char kRobotBaseFrame[] = "base_footprint";
 
 struct Options
 {
@@ -273,7 +274,7 @@ std::optional<LocalPathInput> makeLocalPathInput(
   const auto stamp = headerStamp(costmap.header);
   try {
     const auto local_from_base = tf_buffer.lookupTransform(
-      costmap.header.frame_id, "base_link", stamp, tf2::durationFromSec(0.0));
+      costmap.header.frame_id, kRobotBaseFrame, stamp, tf2::durationFromSec(0.0));
     geometry_msgs::msg::PoseStamped robot_local;
     robot_local.header.frame_id = costmap.header.frame_id;
     robot_local.header.stamp = costmap.header.stamp;

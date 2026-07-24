@@ -108,11 +108,12 @@ struct DeviceProblem
 
 __device__ float normalizeAngle(float angle)
 {
-  float normalized = fmodf(angle + CUDART_PI_F, 2.0F * CUDART_PI_F);
+  constexpr float kPi = kTwoPi * 0.5F;
+  float normalized = fmodf(angle + kPi, kTwoPi);
   if (normalized <= 0.0F) {
-    normalized += CUDART_PI_F;
+    normalized += kPi;
   } else {
-    normalized -= CUDART_PI_F;
+    normalized -= kPi;
   }
   return normalized;
 }

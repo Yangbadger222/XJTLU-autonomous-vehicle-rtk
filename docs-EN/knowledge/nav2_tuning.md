@@ -196,6 +196,13 @@ footprint collision checking and additional critics. It must first run as a shad
 demonstrate command/collision parity against the existing `nav2_mppi_controller` before it can
 replace a production controller.
 
+`nav2_cuda_mppi_controller::CudaMppiShadowController` is the next integration layer. It inherits
+the stock MPPI controller, returns its CPU command unchanged, and evaluates the GPU `4096`-batch
+shadow against the same transformed local path and costmap. It publishes timing, GPU candidate
+collision state, and CPU/GPU command comparison under
+`/controller_server/FollowPath/cuda_shadow_diagnostics`. It is installed but intentionally absent
+from every production launch configuration.
+
 On the Orin NX (CUDA 12.2, compute capability 8.7), build and profile only this package with:
 
 ```bash

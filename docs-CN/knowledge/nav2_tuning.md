@@ -193,6 +193,12 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 costmap 碰撞检查，而生产 Nav2 还支持可选 footprint 碰撞和更多 critic。因此必须先作为 shadow
 backend，对照现有 `nav2_mppi_controller` 验证命令和碰撞判定一致，才能替换生产控制器。
 
+`nav2_cuda_mppi_controller::CudaMppiShadowController` 是下一层 Nav2 接入：它继承 stock MPPI，
+保持 CPU 命令原样输出，同时针对同一份 local path 与 costmap 执行 GPU `4096` batch shadow，发布
+时间、GPU 候选碰撞状态和 CPU/GPU 命令对比到
+`/controller_server/FollowPath/cuda_shadow_diagnostics`。插件会安装，但刻意不出现在任何生产 launch
+配置中。
+
 在 Orin NX（CUDA 12.2、compute capability 8.7）上，仅编译并压测这个包：
 
 ```bash

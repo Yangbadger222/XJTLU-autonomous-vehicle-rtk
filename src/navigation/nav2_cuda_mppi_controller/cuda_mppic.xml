@@ -1,0 +1,11 @@
+<library path="nav2_cuda_mppi_controller">
+  <class
+    type="nav2_cuda_mppi_controller::CudaMppiShadowController"
+    base_class_type="nav2_core::Controller">
+    <description>
+      Runs the stock Nav2 CPU MPPI command path and evaluates a CUDA MPPI shadow
+      batch against the same local path and costmap. It never publishes the CUDA
+      command as the vehicle command.
+    </description>
+  </class>
+</library>

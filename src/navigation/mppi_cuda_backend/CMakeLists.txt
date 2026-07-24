@@ -50,7 +50,7 @@ target_link_libraries(mppi_cuda_benchmark PRIVATE ${PROJECT_NAME})
 
 add_executable(mppi_cuda_bag_replay src/mppi_cuda_bag_replay.cpp)
 target_compile_features(mppi_cuda_bag_replay PRIVATE cxx_std_17)
-target_link_libraries(mppi_cuda_bag_replay PRIVATE ${PROJECT_NAME})
+target_link_libraries(mppi_cuda_bag_replay ${PROJECT_NAME})
 ament_target_dependencies(mppi_cuda_bag_replay
   geometry_msgs
   nav_msgs

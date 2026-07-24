@@ -539,7 +539,7 @@ int main(int argc, char ** argv)
         ++counters.stale_command;
         continue;
       }
-      const auto local_input = makeLocalPathInput(costmap, path_state, tf_buffer, options);
+      auto local_input = makeLocalPathInput(costmap, path_state, tf_buffer, options);
       if (!local_input) {
         ++counters.empty_local_path;
         continue;

@@ -114,6 +114,11 @@ struct LocalPathInput
   float target_y{0.0F};
   float goal_x{0.0F};
   float goal_y{0.0F};
+  std::vector<float> path_x;
+  std::vector<float> path_y;
+  std::vector<float> path_yaw;
+  std::vector<unsigned char> path_valid;
+  std::vector<float> path_integrated_distance;
 };
 
 void printUsage(const char * program)
@@ -127,7 +132,7 @@ void printUsage(const char * program)
             << "  --wz-std <radps>           CUDA angular sampling deviation (default: 0.22)\n"
             << "  --prune-distance <metres>  Local path horizon (default: 4.0)\n"
             << "  --lookahead-points <count> CUDA target index in the local path (default: 6)\n"
-            << "  --track-unknown            Treat OccupancyGrid unknown cells as collisions\n";
+            << "  --track-unknown            Mirror Nav2 tracking unknown cells as traversable\n";
 }
 
 std::size_t parseSize(const std::string & value, const char * flag)
@@ -272,6 +277,43 @@ std::vector<unsigned char> makeRawCostmap(const nav_msgs::msg::OccupancyGrid & o
   return raw;
 }
 
+void populatePathCriticData(
+  LocalPathInput & input, const nav_msgs::msg::OccupancyGrid & costmap,
+  const std::vector<unsigned char> & raw_costmap, bool track_unknown)
+{
+  const std::size_t path_size = input.path_x.size();
+  if (path_size < 2U) {
+    throw std::invalid_argument("local MPPI path must have at least two poses");
+  }
+
+  input.path_valid.assign(path_size - 1U, 0U);
+  input.path_integrated_distance.assign(path_size, 0.0F);
+  for (std::size_t index = 1U; index < path_size; ++index) {
+    input.path_integrated_distance[index] = input.path_integrated_distance[index - 1U] +
+      std::hypot(
+      input.path_x[index] - input.path_x[index - 1U],
+      input.path_y[index] - input.path_y[index - 1U]);
+  }
+
+  for (std::size_t index = 0U; index + 1U < path_size; ++index) {
+    const int map_x = static_cast<int>(std::floor(
+        (input.path_x[index] - static_cast<float>(costmap.info.origin.position.x)) /
+        costmap.info.resolution));
+    const int map_y = static_cast<int>(std::floor(
+        (input.path_y[index] - static_cast<float>(costmap.info.origin.position.y)) /
+        costmap.info.resolution));
+    if (map_x < 0 || map_y < 0 || map_x >= static_cast<int>(costmap.info.width) ||
+      map_y >= static_cast<int>(costmap.info.height))
+    {
+      continue;
+    }
+    const unsigned char cost = raw_costmap[
+      static_cast<std::size_t>(map_y) * costmap.info.width + static_cast<std::size_t>(map_x)];
+    input.path_valid[index] = cost != 254U && cost != 253U &&
+      (cost != 255U || track_unknown) ? 1U : 0U;
+  }
+}
+
 std::optional<LocalPathInput> makeLocalPathInput(
   const nav_msgs::msg::OccupancyGrid & costmap, PathState & path_state,
   tf2_ros::Buffer & tf_buffer, const Options & options)
@@ -339,21 +381,29 @@ std::optional<LocalPathInput> makeLocalPathInput(
       }
       local_poses.push_back(std::move(transformed));
     }
-    if (local_poses.empty()) {
+    if (local_poses.size() < 2U) {
       return std::nullopt;
     }
 
     const auto & target = local_poses.at(std::min(options.lookahead_points, local_poses.size() - 1U));
     const auto & goal = local_poses.back();
-    return LocalPathInput{
-      static_cast<float>(robot_local.pose.position.x),
-      static_cast<float>(robot_local.pose.position.y),
-      static_cast<float>(tf2::getYaw(robot_local.pose.orientation)),
-      static_cast<float>(target.pose.position.x),
-      static_cast<float>(target.pose.position.y),
-      static_cast<float>(goal.pose.position.x),
-      static_cast<float>(goal.pose.position.y),
-    };
+    LocalPathInput input;
+    input.robot_x = static_cast<float>(robot_local.pose.position.x);
+    input.robot_y = static_cast<float>(robot_local.pose.position.y);
+    input.robot_yaw = static_cast<float>(tf2::getYaw(robot_local.pose.orientation));
+    input.target_x = static_cast<float>(target.pose.position.x);
+    input.target_y = static_cast<float>(target.pose.position.y);
+    input.goal_x = static_cast<float>(goal.pose.position.x);
+    input.goal_y = static_cast<float>(goal.pose.position.y);
+    input.path_x.reserve(local_poses.size());
+    input.path_y.reserve(local_poses.size());
+    input.path_yaw.reserve(local_poses.size());
+    for (const auto & pose : local_poses) {
+      input.path_x.push_back(static_cast<float>(pose.pose.position.x));
+      input.path_y.push_back(static_cast<float>(pose.pose.position.y));
+      input.path_yaw.push_back(static_cast<float>(tf2::getYaw(pose.pose.orientation)));
+    }
+    return input;
   } catch (const tf2::TransformException &) {
     return std::nullopt;
   }
@@ -430,6 +480,7 @@ int main(int argc, char ** argv)
     config.gamma = 0.015F;
     config.path_weight = 16.0F;
     config.goal_weight = 5.0F;
+    config.nav2_critics.enabled = true;
     mppi_cuda_backend::CudaMppiBackend backend;
     PathState path_state;
     std::optional<geometry_msgs::msg::Twist> latest_command;
@@ -510,6 +561,9 @@ int main(int argc, char ** argv)
       input.path_target_y = local_input->target_y;
       input.goal_x = local_input->goal_x;
       input.goal_y = local_input->goal_y;
+      input.path_x = local_input->path_x;
+      input.path_y = local_input->path_y;
+      input.path_yaw = local_input->path_yaw;
       input.nominal_vx.assign(config.time_steps, static_cast<float>(latest_command->linear.x));
       input.nominal_wz.assign(config.time_steps, static_cast<float>(latest_command->angular.z));
       input.costmap = {
@@ -521,6 +575,9 @@ int main(int argc, char ** argv)
         static_cast<float>(costmap.info.origin.position.y),
         options.track_unknown,
       };
+      populatePathCriticData(*local_input, costmap, raw_costmap, options.track_unknown);
+      input.path_valid = std::move(local_input->path_valid);
+      input.path_integrated_distance = std::move(local_input->path_integrated_distance);
       const auto result = backend.optimize(config, input);
       const float vx_difference = std::fabs(result.control_vx.front() - input.nominal_vx.front());
       const float wz_difference = std::fabs(result.control_wz.front() - input.nominal_wz.front());

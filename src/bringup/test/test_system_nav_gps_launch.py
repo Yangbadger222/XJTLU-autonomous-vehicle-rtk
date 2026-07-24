@@ -123,7 +123,8 @@ def test_nav_gps_cuda_mppi_shadow_is_explicit_and_non_authoritative_by_default()
     assert '"FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"' in text
     assert '"nav2_cuda_mppi_controller::CudaMppiShadowController"' in text
     assert 'follow_path["cuda_shadow_batch_size"] = 4096' in text
-    assert 'follow_path["cuda_shadow_time_steps"] = 48' in text
+    assert 'follow_path["cuda_shadow_time_steps"]' not in text
+    assert 'follow_path["time_steps"] = 32' in text
     assert '"/controller_server/FollowPath/cuda_shadow_diagnostics"' in text
     assert 'follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"' in text
 

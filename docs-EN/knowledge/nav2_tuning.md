@@ -190,16 +190,19 @@ centre-point costmap scoring, path/goal scoring, and softmax control update on t
 two optimized control vectors return to host memory, so it is intended to make batches above the
 current CPU profile practical.
 
-It is deliberately **not** selected by `nav-gps`, `corridor`, or any controller plugin yet. The
-first backend uses a centre-point costmap collision check; production Nav2 also has optional
-footprint collision checking and additional critics. It must first run as a shadow backend and
-demonstrate command/collision parity against the existing `nav2_mppi_controller` before it can
-replace a production controller.
+It is deliberately **not selected by default** by `nav-gps` or `corridor`. The current backend
+matches the active centre-point critic set; production Nav2 can still be configured for footprint
+collision or different critics. It must first run as a shadow backend and demonstrate
+command/collision parity against the existing `nav2_mppi_controller` before it can replace a
+production controller.
 
 `nav2_cuda_mppi_controller::CudaMppiShadowController` is the next integration layer. It inherits
-the stock MPPI controller, returns its CPU command unchanged, and evaluates the GPU `4096`-batch
-shadow against the same transformed local path and costmap. It publishes timing, GPU candidate
-collision state, and CPU/GPU command comparison under
+the stock MPPI controller, returns its CPU command unchanged, and evaluates a GPU `4096`-batch
+shadow against the same transformed local path and costmap. The shadow reads the CPU controller's
+active horizon, `model_dt`, velocity constraints, noise scales, temperature, gamma, full
+post-shift control sequence, and enabled centre-point critic parameters. It implements the active
+`Constraint`, `Cost`, `Goal`, `GoalAngle`, `PathAlign`, `PathFollow`, `PathAngle`, and
+`PreferForward` critics. It publishes timing, GPU candidate collision state, and CPU/GPU command comparison under
 `/controller_server/FollowPath/cuda_shadow_diagnostics`. It is installed but intentionally absent
 from every production launch configuration.
 
@@ -223,17 +226,20 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 ```
 
 This replaces only Rotation Shim's inner plugin with `CudaMppiShadowController`. That class still
-delegates its command to stock MPPI at `batch_size=200`; its GPU `4096x48` result is diagnostic
-only and is saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`.
+delegates its command to stock MPPI at `batch_size=200`; CUDA may use a larger batch, but always
+uses the CPU time horizon and full post-shift control sequence. The result is diagnostic only and
+is saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`. The active
+vehicle profile uses centre-point collision checking; a future footprint-enabled `CostCritic`
+explicitly disables the CUDA shadow rather than silently approximating the footprint.
 
 Existing pre-CUDA navigation bags can also validate the actual Orin GPU workload before a new
 field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,
 `/local_costmap/costmap`, `/gps_waypoint_dispatcher/path_map`, and `/cmd_vel_nav`; it sends no ROS
 commands and does not need `ros2 bag play`. When available, it also reads `/fastlio2/lio_odom` so
 rollout index zero matches Humble MPPI's measured-velocity initialization. It converts the published `OccupancyGrid` back from its
-0--100 representation to the CUDA backend's 0--254 cost range, reconstructs the local MPPI path
-using the latest TF available when each costmap was recorded, and writes CPU/GPU command deltas
-plus GPU timing to CSV:
+0--100 representation to the CUDA backend's 0--254 cost range, reconstructs the local MPPI path,
+path-validity mask, and path arc length using the latest TF available when each costmap was
+recorded, and writes CPU/GPU command deltas plus GPU timing to CSV:
 
 ```bash
 ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
@@ -242,10 +248,11 @@ ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
 ```
 
 The replay proves GPU timing and detects obvious collision/command disagreements, but it is not
-whole-controller parity: the historical bag does not contain the original `FollowPath` action
-input or GPU diagnostics, and the CUDA backend has not yet implemented every stock Nav2 critic.
-Its output is therefore an acceptance gate for continued shadow validation, never a reason by
-itself to activate GPU commands or raise production CPU `batch_size`.
+whole-controller parity: an historical bag records only the emitted first command, not the full
+post-shift CPU control sequence or the CPU noise tensor. Replay therefore uses the recorded command
+as a nominal fallback, while live shadow receives the actual full sequence. Its output is an
+acceptance gate for continued shadow validation, never a reason by itself to activate GPU commands
+or raise production CPU `batch_size`.
 
 To compare the CUDA backend against the current vehicle CPU sampling profile, use the same
 sample count, horizon, and noise standard deviations instead of the larger GPU shadow profile:

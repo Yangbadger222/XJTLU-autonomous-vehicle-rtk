@@ -189,13 +189,15 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 控制序列更新都留在 GPU，只将最终两条控制序列传回主机。目标是在不增加 CPU 控制负载的前提下，让
 大于当前 CPU profile 的 batch 成为可能。
 
-它目前**没有**被 `nav-gps`、`corridor` 或任何 controller plugin 选中。第一阶段只实现中心点
-costmap 碰撞检查，而生产 Nav2 还支持可选 footprint 碰撞和更多 critic。因此必须先作为 shadow
-backend，对照现有 `nav2_mppi_controller` 验证命令和碰撞判定一致，才能替换生产控制器。
+它目前**默认不被** `nav-gps` 或 `corridor` 选中。当前 backend 对齐已启用的 centre-point critic
+集合；生产 Nav2 仍可能切换 footprint 碰撞或其他 critic。因此必须先作为 shadow backend，对照现有
+`nav2_mppi_controller` 验证命令和碰撞判定一致，才能替换生产控制器。
 
 `nav2_cuda_mppi_controller::CudaMppiShadowController` 是下一层 Nav2 接入：它继承 stock MPPI，
-保持 CPU 命令原样输出，同时针对同一份 local path 与 costmap 执行 GPU `4096` batch shadow，发布
-时间、GPU 候选碰撞状态和 CPU/GPU 命令对比到
+保持 CPU 命令原样输出，同时针对同一份 local path 与 costmap 执行 GPU `4096` batch shadow。shadow 直接
+读取 CPU controller 的 horizon、`model_dt`、速度约束、噪声尺度、temperature、gamma、完整移位后控制序列和
+当前 centre-point critic 参数，已实现启用的 `Constraint`、`Cost`、`Goal`、`GoalAngle`、`PathAlign`、
+`PathFollow`、`PathAngle` 和 `PreferForward` critics，并发布时间、GPU 候选碰撞状态和 CPU/GPU 命令对比到
 `/controller_server/FollowPath/cuda_shadow_diagnostics`。插件会安装，但刻意不出现在任何生产 launch
 配置中。
 
@@ -219,16 +221,18 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 ```
 
 这只会将 Rotation Shim 内层替换为 `CudaMppiShadowController`。该类仍把实际命令委托给
-`batch_size=200` 的 stock MPPI；GPU 的 `4096x48` 结果仅用于诊断，并会写入普通 rosbag 的
-`/controller_server/FollowPath/cuda_shadow_diagnostics`。
+`batch_size=200` 的 stock MPPI；CUDA 可以提高 batch，但始终复用 CPU time horizon 和完整的移位后控制序列。
+结果仅用于诊断，并会写入普通 rosbag 的
+`/controller_server/FollowPath/cuda_shadow_diagnostics`。当前实车 profile 使用中心点碰撞；未来若
+`CostCritic` 切换到 footprint 碰撞，shadow 会显式关闭，不会静默近似。
 
 已有的、早于 CUDA 接入的导航 rosbag 也可先验证 Orin 上的真实 GPU 工作量，无需重新下楼。
 `mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、
 `/gps_waypoint_dispatcher/path_map` 和 `/cmd_vel_nav`，不会发布任何 ROS 控制命令，也不需要
 `ros2 bag play`。若存在，它还会读取 `/fastlio2/lio_odom`，使 rollout 的第 0 步与 Humble MPPI
 的实测速度初始化一致。它会将发布出来的 `OccupancyGrid` 从 `0--100` 代价表示恢复成 CUDA backend 使用的
-`0--254`，使用每个 costmap 记录时已可用的最新 TF 重建 local MPPI path，并把 CPU/GPU 命令差和 GPU
-耗时写入 CSV：
+`0--254`，使用每个 costmap 记录时已可用的最新 TF 重建 local MPPI path、路径可通行掩码和累计弧长，
+并把 CPU/GPU 命令差和 GPU 耗时写入 CSV：
 
 ```bash
 ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
@@ -237,9 +241,9 @@ ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
 ```
 
 该回放可以证明 GPU 耗时，并发现明显的碰撞/命令分歧，但不等于完整 controller 的同等性：历史 bag
-没有保存原始 `FollowPath` action 输入或 GPU 诊断，且 CUDA backend 仍未实现全部 stock Nav2 critic。
-所以输出只能作为继续 shadow 验证的准入条件，不能单独成为启用 GPU 命令或提高生产 CPU
-`batch_size` 的理由。
+只保存了实际发布的第一条命令，没有保存完整的移位后 CPU 控制序列或 CPU noise tensor。因此回放只能把
+录到的命令作为 nominal fallback；实时 shadow 才能得到完整控制序列。输出只能作为继续 shadow 验证的准入条件，
+不能单独成为启用 GPU 命令或提高生产 CPU `batch_size` 的理由。
 
 若要让 CUDA backend 与当前实车 CPU 的采样 profile 对比，不能直接使用更大的 GPU shadow profile，而应使用相同
 sample count、horizon 和噪声标准差：

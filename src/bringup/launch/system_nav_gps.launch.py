@@ -113,21 +113,13 @@ def _make_nav_gps_rtk_nav2_params(
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
     if enable_cuda_mppi_shadow:
         # This plugin subclasses the stock MPPI controller and returns its CPU
-        # command unchanged. CUDA evaluates a larger shadow batch for timing
-        # and safety-parity evidence only.
+        # command unchanged. CUDA may use a larger batch, but mirrors the CPU
+        # horizon, sampling profile, control sequence, costmap, and critics.
         follow_path["primary_controller"] = (
             "nav2_cuda_mppi_controller::CudaMppiShadowController"
         )
         follow_path["cuda_shadow_enabled"] = True
         follow_path["cuda_shadow_batch_size"] = 4096
-        follow_path["cuda_shadow_time_steps"] = 48
-        follow_path["cuda_shadow_vx_std"] = 0.28
-        follow_path["cuda_shadow_wz_std"] = 0.22
-        follow_path["cuda_shadow_temperature"] = 0.45
-        follow_path["cuda_shadow_gamma"] = 0.015
-        follow_path["cuda_shadow_path_weight"] = 16.0
-        follow_path["cuda_shadow_goal_weight"] = 5.0
-        follow_path["cuda_shadow_lookahead_points"] = 6
     follow_path["plugin"] = (
         "nav2_rotation_shim_controller::RotationShimController"
     )

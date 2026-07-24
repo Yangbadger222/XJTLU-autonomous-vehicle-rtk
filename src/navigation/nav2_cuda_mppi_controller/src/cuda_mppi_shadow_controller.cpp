@@ -1,14 +1,17 @@
 #include "nav2_cuda_mppi_controller/cuda_mppi_shadow_controller.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <exception>
 #include <mutex>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "nav2_costmap_2d/cost_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "tf2/utils.h"
@@ -36,6 +39,100 @@ diagnostic_msgs::msg::KeyValue value(const std::string & key, const std::string 
   return item;
 }
 
+float parameterFloat(
+  const rclcpp_lifecycle::LifecycleNode::SharedPtr & node, const std::string & name)
+{
+  return static_cast<float>(node->get_parameter(name).as_double());
+}
+
+std::size_t parameterSize(
+  const rclcpp_lifecycle::LifecycleNode::SharedPtr & node, const std::string & name)
+{
+  const auto value = node->get_parameter(name).as_int();
+  if (value <= 0) {
+    throw std::invalid_argument(name + " must be positive for CUDA MPPI shadow");
+  }
+  return static_cast<std::size_t>(value);
+}
+
+float normalizeAngle(float angle)
+{
+  return std::atan2(std::sin(angle), std::cos(angle));
+}
+
+void populatePathAndValidity(
+  const nav_msgs::msg::Path & path, nav2_costmap_2d::Costmap2D & costmap,
+  bool track_unknown, mppi_cuda_backend::OptimizerInput & input)
+{
+  if (path.poses.size() < 2U) {
+    throw std::invalid_argument("transformed MPPI path must have at least two poses");
+  }
+
+  input.path_x.reserve(path.poses.size());
+  input.path_y.reserve(path.poses.size());
+  input.path_yaw.reserve(path.poses.size());
+  input.path_integrated_distance.reserve(path.poses.size());
+  input.path_integrated_distance.push_back(0.0F);
+  for (std::size_t index = 0U; index < path.poses.size(); ++index) {
+    const auto & pose = path.poses[index].pose;
+    const float x = static_cast<float>(pose.position.x);
+    const float y = static_cast<float>(pose.position.y);
+    input.path_x.push_back(x);
+    input.path_y.push_back(y);
+    input.path_yaw.push_back(static_cast<float>(tf2::getYaw(pose.orientation)));
+    if (index > 0U) {
+      input.path_integrated_distance.push_back(
+        input.path_integrated_distance.back() + std::hypot(
+          x - input.path_x[index - 1U], y - input.path_y[index - 1U]));
+    }
+  }
+
+  input.path_valid.assign(path.poses.size() - 1U, 0U);
+  for (std::size_t index = 0U; index + 1U < path.poses.size(); ++index) {
+    unsigned int map_x = 0U;
+    unsigned int map_y = 0U;
+    if (!costmap.worldToMap(input.path_x[index], input.path_y[index], map_x, map_y)) {
+      continue;
+    }
+    const unsigned char cost = costmap.getCost(map_x, map_y);
+    input.path_valid[index] = cost != nav2_costmap_2d::LETHAL_OBSTACLE &&
+      cost != nav2_costmap_2d::INSCRIBED_INFLATED_OBSTACLE &&
+      (cost != nav2_costmap_2d::NO_INFORMATION || track_unknown) ? 1U : 0U;
+  }
+}
+
+void copyCpuControlSequence(
+  nav2_mppi_controller::Optimizer & optimizer,
+  const geometry_msgs::msg::PoseStamped & robot_pose, float model_dt,
+  mppi_cuda_backend::OptimizerInput & input)
+{
+  // MPPIController has already emitted control index one and shifted its
+  // sequence. The returned trajectory therefore encodes the exact nominal
+  // sequence retained for the next CPU optimization cycle.
+  const auto trajectory = optimizer.getOptimizedTrajectory();
+  const std::size_t time_steps = trajectory.shape()[0];
+  if (time_steps != input.nominal_vx.size()) {
+    throw std::runtime_error("CPU MPPI control sequence length does not match CUDA shadow horizon");
+  }
+
+  float previous_x = static_cast<float>(robot_pose.pose.position.x);
+  float previous_y = static_cast<float>(robot_pose.pose.position.y);
+  float previous_yaw = static_cast<float>(tf2::getYaw(robot_pose.pose.orientation));
+  for (std::size_t index = 0U; index < time_steps; ++index) {
+    const float x = trajectory(index, 0);
+    const float y = trajectory(index, 1);
+    const float yaw = trajectory(index, 2);
+    const float dx = x - previous_x;
+    const float dy = y - previous_y;
+    input.nominal_vx[index] =
+      (dx * std::cos(previous_yaw) + dy * std::sin(previous_yaw)) / model_dt;
+    input.nominal_wz[index] = normalizeAngle(yaw - previous_yaw) / model_dt;
+    previous_x = x;
+    previous_y = y;
+    previous_yaw = yaw;
+  }
+}
+
 }  // namespace
 
 void CudaMppiShadowController::configure(
@@ -52,32 +149,60 @@ void CudaMppiShadowController::configure(
   const auto prefix = name_ + ".";
   declareIfMissing(node, prefix + "cuda_shadow_enabled", true);
   declareIfMissing(node, prefix + "cuda_shadow_batch_size", 4096);
-  declareIfMissing(node, prefix + "cuda_shadow_time_steps", 48);
-  declareIfMissing(node, prefix + "cuda_shadow_vx_std", 0.28);
-  declareIfMissing(node, prefix + "cuda_shadow_wz_std", 0.22);
-  declareIfMissing(node, prefix + "cuda_shadow_temperature", 0.45);
-  declareIfMissing(node, prefix + "cuda_shadow_gamma", 0.015);
-  declareIfMissing(node, prefix + "cuda_shadow_path_weight", 16.0);
-  declareIfMissing(node, prefix + "cuda_shadow_goal_weight", 5.0);
-  declareIfMissing(node, prefix + "cuda_shadow_lookahead_points", 6);
 
   shadow_enabled_ = node->get_parameter(prefix + "cuda_shadow_enabled").as_bool();
-  shadow_config_.batch_size = static_cast<std::size_t>(
-    node->get_parameter(prefix + "cuda_shadow_batch_size").as_int());
-  shadow_config_.time_steps = static_cast<std::size_t>(
-    node->get_parameter(prefix + "cuda_shadow_time_steps").as_int());
-  shadow_config_.vx_std = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_vx_std").as_double());
-  shadow_config_.wz_std = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_wz_std").as_double());
-  shadow_config_.temperature = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_temperature").as_double());
-  shadow_config_.gamma = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_gamma").as_double());
-  shadow_config_.path_weight = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_path_weight").as_double());
-  shadow_config_.goal_weight = static_cast<float>(
-    node->get_parameter(prefix + "cuda_shadow_goal_weight").as_double());
+  shadow_config_.batch_size = parameterSize(node, prefix + "cuda_shadow_batch_size");
+  // The CUDA shadow may use a larger batch, but every temporal, dynamic, and
+  // critic parameter comes from the CPU controller it is checking.
+  shadow_config_.time_steps = parameterSize(node, prefix + "time_steps");
+  shadow_config_.model_dt = parameterFloat(node, prefix + "model_dt");
+  shadow_config_.vx_min = parameterFloat(node, prefix + "vx_min");
+  shadow_config_.vx_max = parameterFloat(node, prefix + "vx_max");
+  shadow_config_.wz_max = parameterFloat(node, prefix + "wz_max");
+  shadow_config_.vx_std = parameterFloat(node, prefix + "vx_std");
+  shadow_config_.wz_std = parameterFloat(node, prefix + "wz_std");
+  shadow_config_.temperature = parameterFloat(node, prefix + "temperature");
+  shadow_config_.gamma = parameterFloat(node, prefix + "gamma");
+  auto & critic = shadow_config_.nav2_critics;
+  critic.enabled = true;
+  critic.consider_footprint = node->get_parameter(
+    prefix + "CostCritic.consider_footprint").as_bool();
+  critic.constraint_weight = parameterFloat(node, prefix + "ConstraintCritic.cost_weight");
+  critic.cost_weight = parameterFloat(node, prefix + "CostCritic.cost_weight");
+  critic.cost_critical = parameterFloat(node, prefix + "CostCritic.critical_cost");
+  critic.cost_collision = parameterFloat(node, prefix + "CostCritic.collision_cost");
+  critic.cost_near_goal_distance = parameterFloat(node, prefix + "CostCritic.near_goal_distance");
+  critic.goal_weight = parameterFloat(node, prefix + "GoalCritic.cost_weight");
+  critic.goal_threshold = parameterFloat(node, prefix + "GoalCritic.threshold_to_consider");
+  critic.goal_angle_weight = parameterFloat(node, prefix + "GoalAngleCritic.cost_weight");
+  critic.goal_angle_threshold = parameterFloat(
+    node, prefix + "GoalAngleCritic.threshold_to_consider");
+  critic.path_align_weight = parameterFloat(node, prefix + "PathAlignCritic.cost_weight");
+  critic.path_align_threshold = parameterFloat(
+    node, prefix + "PathAlignCritic.threshold_to_consider");
+  critic.path_align_max_occupancy_ratio = parameterFloat(
+    node, prefix + "PathAlignCritic.max_path_occupancy_ratio");
+  critic.path_align_offset = parameterSize(node, prefix + "PathAlignCritic.offset_from_furthest");
+  critic.path_align_step = parameterSize(node, prefix + "PathAlignCritic.trajectory_point_step");
+  critic.path_follow_weight = parameterFloat(node, prefix + "PathFollowCritic.cost_weight");
+  critic.path_follow_threshold = parameterFloat(
+    node, prefix + "PathFollowCritic.threshold_to_consider");
+  critic.path_follow_offset = parameterSize(node, prefix + "PathFollowCritic.offset_from_furthest");
+  critic.path_angle_weight = parameterFloat(node, prefix + "PathAngleCritic.cost_weight");
+  critic.path_angle_threshold = parameterFloat(
+    node, prefix + "PathAngleCritic.threshold_to_consider");
+  critic.path_angle_max_to_furthest = parameterFloat(
+    node, prefix + "PathAngleCritic.max_angle_to_furthest");
+  critic.path_angle_offset = parameterSize(node, prefix + "PathAngleCritic.offset_from_furthest");
+  critic.prefer_forward_weight = parameterFloat(node, prefix + "PreferForwardCritic.cost_weight");
+  critic.prefer_forward_threshold = parameterFloat(
+    node, prefix + "PreferForwardCritic.threshold_to_consider");
+
+  if (critic.consider_footprint) {
+    RCLCPP_WARN(
+      logger_, "CUDA MPPI shadow disabled: CostCritic.consider_footprint is not supported");
+    shadow_enabled_ = false;
+  }
 
   if (shadow_enabled_ && mppi_cuda_backend::CudaMppiBackend::isAvailable()) {
     backend_ = std::make_unique<mppi_cuda_backend::CudaMppiBackend>();
@@ -88,7 +213,7 @@ void CudaMppiShadowController::configure(
   diagnostics_pub_ = node->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
     name_ + "/cuda_shadow_diagnostics", rclcpp::QoS(10));
   RCLCPP_INFO(
-    logger_, "CUDA MPPI shadow: enabled=%s batch=%zu steps=%zu",
+    logger_, "CUDA MPPI shadow: enabled=%s batch=%zu CPU-matched-steps=%zu",
     shadow_enabled_ ? "true" : "false", shadow_config_.batch_size, shadow_config_.time_steps);
 }
 
@@ -109,16 +234,6 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
       publishDiagnostic(cpu_command, nullptr, "transformed_path_empty");
       return cpu_command;
     }
-    const auto node = parent_.lock();
-    if (!node) {
-      throw std::runtime_error("CUDA MPPI shadow controller lost lifecycle node");
-    }
-    const std::size_t lookahead = static_cast<std::size_t>(std::max<std::int64_t>(
-      0, node->get_parameter(name_ + ".cuda_shadow_lookahead_points").as_int()));
-    const auto & target = transformed_path.poses.at(std::min(
-      lookahead, transformed_path.poses.size() - 1U));
-    const auto & goal = transformed_path.poses.back();
-
     auto * costmap = costmap_ros_->getCostmap();
     std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> costmap_lock(*(costmap->getMutex()));
     mppi_cuda_backend::OptimizerInput input;
@@ -127,12 +242,8 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
     input.robot_yaw = static_cast<float>(tf2::getYaw(robot_pose.pose.orientation));
     input.measured_vx = static_cast<float>(robot_speed.linear.x);
     input.measured_wz = static_cast<float>(robot_speed.angular.z);
-    input.path_target_x = static_cast<float>(target.pose.position.x);
-    input.path_target_y = static_cast<float>(target.pose.position.y);
-    input.goal_x = static_cast<float>(goal.pose.position.x);
-    input.goal_y = static_cast<float>(goal.pose.position.y);
-    input.nominal_vx.assign(shadow_config_.time_steps, static_cast<float>(cpu_command.twist.linear.x));
-    input.nominal_wz.assign(shadow_config_.time_steps, static_cast<float>(cpu_command.twist.angular.z));
+    input.nominal_vx.assign(shadow_config_.time_steps, 0.0F);
+    input.nominal_wz.assign(shadow_config_.time_steps, 0.0F);
     input.costmap = {
       costmap->getCharMap(),
       costmap->getSizeInCellsX(),
@@ -142,6 +253,13 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
       static_cast<float>(costmap->getOriginY()),
       costmap_ros_->getLayeredCostmap()->isTrackingUnknown(),
     };
+    populatePathAndValidity(
+      transformed_path, *costmap, input.costmap.track_unknown, input);
+    input.path_target_x = input.path_x.back();
+    input.path_target_y = input.path_y.back();
+    input.goal_x = input.path_x.back();
+    input.goal_y = input.path_y.back();
+    copyCpuControlSequence(optimizer_, robot_pose, shadow_config_.model_dt, input);
     const auto gpu_result = backend_->optimize(shadow_config_, input);
     publishDiagnostic(cpu_command, &gpu_result, "ok");
   } catch (const std::exception & error) {

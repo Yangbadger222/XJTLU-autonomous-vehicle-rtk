@@ -3,9 +3,10 @@
     type="nav2_cuda_mppi_controller::CudaMppiShadowController"
     base_class_type="nav2_core::Controller">
     <description>
-      Runs the stock Nav2 CPU MPPI command path and evaluates a CUDA MPPI shadow
-      batch against the same local path and costmap. It never publishes the CUDA
-      command as the vehicle command.
+      Runs the stock Nav2 CPU MPPI path with a CUDA batch against the same local
+      path and costmap. CPU remains the default command authority. An explicit
+      guarded authority mode may return CUDA controls only while GPU timing,
+      finite values, collision state, and CPU/GPU agreement remain within bounds.
     </description>
   </class>
 </library>

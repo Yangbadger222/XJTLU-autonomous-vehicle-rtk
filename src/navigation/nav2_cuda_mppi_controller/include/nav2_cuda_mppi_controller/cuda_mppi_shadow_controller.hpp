@@ -11,9 +11,9 @@
 namespace nav2_cuda_mppi_controller
 {
 
-// The stock controller remains authoritative. This derived plugin is the
-// integration harness that feeds exactly the Nav2 local path and costmap into
-// the CUDA backend for performance and safety-parity evidence.
+// The stock controller is the default authority. An explicit guarded GPU
+// authority mode may return the CUDA command only while its bounded result is
+// healthy and remains close to the same-cycle CPU hot fallback.
 class CudaMppiShadowController : public nav2_mppi_controller::MPPIController
 {
 public:
@@ -34,6 +34,10 @@ private:
     const std::string & message);
 
   bool shadow_enabled_{true};
+  bool gpu_authority_enabled_{false};
+  float authority_max_gpu_elapsed_ms_{20.0F};
+  float authority_max_vx_delta_{0.25F};
+  float authority_max_wz_delta_{0.20F};
   mppi_cuda_backend::SamplingConfig shadow_config_;
   std::unique_ptr<mppi_cuda_backend::CudaMppiBackend> backend_;
   rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr diagnostics_pub_;

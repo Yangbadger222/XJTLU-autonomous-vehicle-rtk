@@ -225,12 +225,26 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
   bash scripts/launch_with_logs.sh nav-gps
 ```
 
-This replaces only Rotation Shim's inner plugin with `CudaMppiShadowController`. That class still
-delegates its command to stock MPPI at `batch_size=200`; CUDA may use a larger batch, but always
-uses the CPU time horizon and full post-shift control sequence. The result is diagnostic only and
-is saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`. The active
+This replaces only Rotation Shim's inner plugin with `CudaMppiShadowController`. By default that
+class delegates its command to stock MPPI at `batch_size=200`; CUDA may use a larger batch, but
+always uses the CPU time horizon and full post-shift control sequence. The diagnostic result is
+saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`. The active
 vehicle profile uses centre-point collision checking; a future footprint-enabled `CostCritic`
-explicitly disables the CUDA shadow rather than silently approximating the footprint.
+explicitly disables the CUDA path rather than silently approximating the footprint.
+
+For the guarded GPU authority experiment, add the following separate opt-in flag:
+
+```bash
+FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY=true FYP_USE_RVIZ=false \
+  python3 scripts/nav_gps_menu.py
+```
+
+This makes the CUDA first control the returned Nav2 command while stock MPPI remains a same-cycle
+hot fallback. The plugin returns the CPU command whenever CUDA reports all trajectories colliding,
+a non-finite result, more than `20 ms` GPU elapsed time, or a disagreement larger than `0.25 m/s`
+or `0.20 rad/s`. It therefore changes command authority but does not yet remove CPU MPPI work;
+the mode is for guarded vehicle validation, not a claim of reduced CPU load. The physical e-stop
+and gamepad motor override remain mandatory safety layers.
 
 Existing pre-CUDA navigation bags can also validate the actual Orin GPU workload before a new
 field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,

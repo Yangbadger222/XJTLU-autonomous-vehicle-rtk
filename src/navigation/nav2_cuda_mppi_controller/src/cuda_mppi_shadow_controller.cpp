@@ -60,6 +60,13 @@ float normalizeAngle(float angle)
   return std::atan2(std::sin(angle), std::cos(angle));
 }
 
+bool hasFiniteFirstControl(const mppi_cuda_backend::OptimizationResult & result)
+{
+  return !result.control_vx.empty() && !result.control_wz.empty() &&
+         std::isfinite(result.control_vx.front()) && std::isfinite(result.control_wz.front()) &&
+         std::isfinite(result.gpu_elapsed_ms);
+}
+
 void populatePathAndValidity(
   const nav_msgs::msg::Path & path, nav2_costmap_2d::Costmap2D & costmap,
   bool track_unknown, mppi_cuda_backend::OptimizerInput & input)
@@ -149,8 +156,23 @@ void CudaMppiShadowController::configure(
   const auto prefix = name_ + ".";
   declareIfMissing(node, prefix + "cuda_shadow_enabled", true);
   declareIfMissing(node, prefix + "cuda_shadow_batch_size", 4096);
+  declareIfMissing(node, prefix + "cuda_mppi_authority_enabled", false);
+  declareIfMissing(node, prefix + "cuda_mppi_authority_max_gpu_elapsed_ms", 20.0);
+  declareIfMissing(node, prefix + "cuda_mppi_authority_max_vx_delta", 0.25);
+  declareIfMissing(node, prefix + "cuda_mppi_authority_max_wz_delta", 0.20);
 
   shadow_enabled_ = node->get_parameter(prefix + "cuda_shadow_enabled").as_bool();
+  gpu_authority_enabled_ = node->get_parameter(
+    prefix + "cuda_mppi_authority_enabled").as_bool();
+  authority_max_gpu_elapsed_ms_ = parameterFloat(
+    node, prefix + "cuda_mppi_authority_max_gpu_elapsed_ms");
+  authority_max_vx_delta_ = parameterFloat(
+    node, prefix + "cuda_mppi_authority_max_vx_delta");
+  authority_max_wz_delta_ = parameterFloat(
+    node, prefix + "cuda_mppi_authority_max_wz_delta");
+  if (gpu_authority_enabled_) {
+    shadow_enabled_ = true;
+  }
   shadow_config_.batch_size = parameterSize(node, prefix + "cuda_shadow_batch_size");
   // The CUDA shadow may use a larger batch, but every temporal, dynamic, and
   // critic parameter comes from the CPU controller it is checking.
@@ -213,8 +235,9 @@ void CudaMppiShadowController::configure(
   diagnostics_pub_ = node->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
     name_ + "/cuda_shadow_diagnostics", rclcpp::QoS(10));
   RCLCPP_INFO(
-    logger_, "CUDA MPPI shadow: enabled=%s batch=%zu CPU-matched-steps=%zu",
-    shadow_enabled_ ? "true" : "false", shadow_config_.batch_size, shadow_config_.time_steps);
+    logger_, "CUDA MPPI: shadow=%s authority=%s batch=%zu CPU-matched-steps=%zu",
+    shadow_enabled_ ? "true" : "false", gpu_authority_enabled_ ? "true" : "false",
+    shadow_config_.batch_size, shadow_config_.time_steps);
 }
 
 geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityCommands(
@@ -261,9 +284,40 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
     input.goal_y = input.path_y.back();
     copyCpuControlSequence(optimizer_, robot_pose, shadow_config_.model_dt, input);
     const auto gpu_result = backend_->optimize(shadow_config_, input);
-    publishDiagnostic(cpu_command, &gpu_result, "ok");
+    if (!gpu_authority_enabled_) {
+      publishDiagnostic(cpu_command, &gpu_result, "shadow_cpu_authoritative");
+      return cpu_command;
+    }
+
+    if (gpu_result.all_trajectories_collide) {
+      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_all_trajectories_collide");
+      return cpu_command;
+    }
+    if (!hasFiniteFirstControl(gpu_result)) {
+      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_non_finite_gpu_control");
+      return cpu_command;
+    }
+    if (gpu_result.gpu_elapsed_ms > authority_max_gpu_elapsed_ms_) {
+      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_gpu_runtime_budget");
+      return cpu_command;
+    }
+
+    const float vx_delta = std::fabs(
+      gpu_result.control_vx.front() - static_cast<float>(cpu_command.twist.linear.x));
+    const float wz_delta = std::fabs(
+      gpu_result.control_wz.front() - static_cast<float>(cpu_command.twist.angular.z));
+    if (vx_delta > authority_max_vx_delta_ || wz_delta > authority_max_wz_delta_) {
+      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_gpu_cpu_disagreement");
+      return cpu_command;
+    }
+
+    auto gpu_command = cpu_command;
+    gpu_command.twist.linear.x = gpu_result.control_vx.front();
+    gpu_command.twist.angular.z = gpu_result.control_wz.front();
+    publishDiagnostic(cpu_command, &gpu_result, "gpu_authoritative");
+    return gpu_command;
   } catch (const std::exception & error) {
-    publishDiagnostic(cpu_command, nullptr, error.what());
+    publishDiagnostic(cpu_command, nullptr, "cpu_fallback_" + std::string(error.what()));
     RCLCPP_WARN_THROTTLE(logger_, *clock_, 2000, "CUDA MPPI shadow failed: %s", error.what());
   }
   return cpu_command;

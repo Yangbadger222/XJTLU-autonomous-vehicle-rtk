@@ -75,7 +75,7 @@ def _nav_gps_bag_topics(profile):
 
 
 def _make_nav_gps_rtk_nav2_params(
-    source_file, *, enable_road_keepout, enable_cuda_mppi_shadow
+    source_file, *, enable_road_keepout, enable_cuda_mppi_shadow, enable_cuda_mppi_authority
 ):
     with open(source_file, "r", encoding="utf-8") as stream:
         data = yaml.safe_load(stream)
@@ -112,14 +112,17 @@ def _make_nav_gps_rtk_nav2_params(
     follow_path["open_loop"] = False
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
     if enable_cuda_mppi_shadow:
-        # This plugin subclasses the stock MPPI controller and returns its CPU
-        # command unchanged. CUDA may use a larger batch, but mirrors the CPU
-        # horizon, sampling profile, control sequence, costmap, and critics.
+        # CUDA mirrors the active CPU MPPI objective. Authority remains CPU
+        # unless the separately opt-in guarded authority flag is set.
         follow_path["primary_controller"] = (
             "nav2_cuda_mppi_controller::CudaMppiShadowController"
         )
         follow_path["cuda_shadow_enabled"] = True
         follow_path["cuda_shadow_batch_size"] = 4096
+        follow_path["cuda_mppi_authority_enabled"] = enable_cuda_mppi_authority
+        follow_path["cuda_mppi_authority_max_gpu_elapsed_ms"] = 20.0
+        follow_path["cuda_mppi_authority_max_vx_delta"] = 0.25
+        follow_path["cuda_mppi_authority_max_wz_delta"] = 0.20
     follow_path["plugin"] = (
         "nav2_rotation_shim_controller::RotationShimController"
     )
@@ -192,10 +195,15 @@ def generate_launch_description():
     cuda_mppi_shadow_enabled = os.environ.get(
         "FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"
     ).strip().lower() in {"1", "true", "yes", "on"}
+    cuda_mppi_authority_enabled = os.environ.get(
+        "FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY", "false"
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    cuda_mppi_shadow_enabled = cuda_mppi_shadow_enabled or cuda_mppi_authority_enabled
     nav_gps_rtk_nav2_params = _make_nav_gps_rtk_nav2_params(
         default_nav2_params,
         enable_road_keepout=road_keepout_enabled,
         enable_cuda_mppi_shadow=cuda_mppi_shadow_enabled,
+        enable_cuda_mppi_authority=cuda_mppi_authority_enabled,
     )
     nav_gps_no_recovery_bt_xml = os.path.join(
         bringup_share,
@@ -482,6 +490,8 @@ def generate_launch_description():
                 msg=(
                     "Nav GPS CUDA MPPI shadow: "
                     + ("enabled" if cuda_mppi_shadow_enabled else "disabled")
+                    + "; authority: "
+                    + ("enabled" if cuda_mppi_authority_enabled else "cpu")
                 )
             ),
             LogInfo(

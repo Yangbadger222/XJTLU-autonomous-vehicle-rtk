@@ -13,6 +13,7 @@
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
 #include "nav2_core/exceptions.hpp"
+#include "nav2_costmap_2d/costmap_filters/filter_values.hpp"
 #include "nav2_costmap_2d/cost_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"

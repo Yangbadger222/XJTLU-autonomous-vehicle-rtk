@@ -385,6 +385,9 @@ int main(int argc, char ** argv)
     rclcpp::init(argc, argv);
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
     tf2_ros::Buffer tf_buffer(clock, tf2::durationFromSec(30.0));
+    // TF is inserted synchronously from the bag before each lookup. Humble's
+    // wrapper otherwise rejects even zero-timeout lookups without this flag.
+    tf_buffer.setUsingDedicatedThread(true);
     rosbag2_cpp::Reader reader;
     rosbag2_storage::StorageOptions storage_options;
     storage_options.uri = options.bag_path;

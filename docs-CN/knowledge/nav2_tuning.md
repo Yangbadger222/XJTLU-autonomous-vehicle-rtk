@@ -8,6 +8,16 @@ RTK 驱动现在将 `THS`、`HPR` 和 `UNIHEADING` 视为相互竞争的航向�
 
 RTK authority 因此区分航向与平移硬故障。平移间隙超过 `2.0m` 仍永久 fail-closed；航向间隙超过 `20deg` 则以 `HEADING_JUMP_HOLD` 冻结最后可信 TF、撤销运动权限，并等待正常恢复航向窗口持续 `recovery_confirmation_s`。输入稳定后会自动回到正常状态，单次航向源异常不再要求重新启动导航。
 
+## Nav-GPS 线速度上限 1.2 m/s（2026-07-24）
+
+Nav-GPS 的标准 MPPI 配置、CUDA authority 配置、`velocity_smoother`、底盘命令
+保护和 RTK authority 运动限速统一为 `1.2 m/s`。各层限速保持一致，避免某一层
+悄悄允许比另一层平滑或接受能力更快的命令。角速度和加速度限制保持不变，保留
+现有的转弯和制动特性。
+
+原因：将此前 `1.5 m/s` 的实车上限下调，同时在航向恢复验证期间保留足够的户外
+路线行进速度。
+
 ## 1. 基本概念
 
 - 路径（Path）: 由 planner 生成的空间几何点集合

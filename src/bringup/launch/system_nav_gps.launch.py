@@ -100,7 +100,7 @@ def _make_nav_gps_rtk_nav2_params(
     follow_path["batch_size"] = 200
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
-    follow_path["vx_max"] = 1.5
+    follow_path["vx_max"] = 1.2
     follow_path["wz_max"] = 0.70
     follow_path["ax_max"] = 0.85
     follow_path["ax_min"] = -1.2
@@ -124,8 +124,8 @@ def _make_nav_gps_rtk_nav2_params(
         if enable_cuda_mppi_authority:
             # CUDA failure becomes a Nav2 controller failure, which publishes
             # zero velocity and enters the existing BLOCKED_WAIT retry flow.
-            # Keep the first GPU-only field profile below normal nav-gps speed.
-            follow_path["vx_max"] = 0.75
+            # Keep the GPU-only field profile within the Nav-GPS speed cap.
+            follow_path["vx_max"] = 1.2
             follow_path["wz_max"] = 0.50
     follow_path["plugin"] = (
         "nav2_rotation_shim_controller::RotationShimController"
@@ -150,7 +150,7 @@ def _make_nav_gps_rtk_nav2_params(
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
     smoother_params["max_velocity"] = (
-        [0.75, 0.0, 0.50] if enable_cuda_mppi_authority else [1.5, 0.0, 0.70]
+        [1.2, 0.0, 0.50] if enable_cuda_mppi_authority else [1.2, 0.0, 0.70]
     )
     smoother_params["min_velocity"] = [0.0, 0.0, -0.70]
     smoother_params["max_accel"] = [0.85, 0.0, 1.4]
@@ -419,7 +419,7 @@ def generate_launch_description():
             params_file,
             {
                 "stop_override_topic": "/gps_nav/stop_override",
-                "straight_max_mps": 1.5,
+                "straight_max_mps": 1.2,
                 "road_rejoin_active_topic": "/gps_nav/road_rejoin_active",
                 "road_rejoin_max_mps": 0.35,
             },

@@ -370,6 +370,8 @@ class CorrectionReleaseReason(Enum):
     MOVING_REACQUIRE = "MOVING_REACQUIRE"
     STOP_CONFIRMATION_PENDING = "STOP_CONFIRMATION_PENDING"
     RELEASING_BACKLOG = "RELEASING_BACKLOG"
+    HEADING_JUMP_HOLD = "HEADING_JUMP_HOLD"
+    HEADING_RECOVERY_PENDING = "HEADING_RECOVERY_PENDING"
     FAULT_LATCHED = "FAULT_LATCHED"
     LOCAL_ODOM_INVALID = "LOCAL_ODOM_INVALID"
     INVALID_OUTPUT_POSE = "INVALID_OUTPUT_POSE"
@@ -892,6 +894,7 @@ class CorrectionReleaseState:
         self._last_now_s: float | None = None
         self._last_lio_stamp_s: float | None = None
         self._backlog_active = False
+        self._heading_jump_hold = False
         self._fault_latched = False
         self._stopped_since_s: float | None = None
         self._recovery_since_s: float | None = None
@@ -979,8 +982,12 @@ class CorrectionReleaseState:
         self._last_finite_translation_gap_m = gap_m
         self._last_finite_yaw_gap_rad = gap_yaw_rad
 
-        if gap_m > self.fault_translation_m or gap_yaw_rad > self.fault_yaw_rad:
+        if gap_m > self.fault_translation_m:
             self._fault_latched = True
+        elif gap_yaw_rad > self.fault_yaw_rad:
+            self._heading_jump_hold = True
+            self._stopped_since_s = None
+            self._recovery_since_s = None
         elif gap_m >= self.backlog_translation_m or gap_yaw_rad >= self.backlog_yaw_rad:
             self._backlog_active = True
 
@@ -1009,6 +1016,40 @@ class CorrectionReleaseState:
                 gap_yaw_rad,
                 mode=CorrectionReleaseMode.LOCAL_ODOM_STALE,
             )
+
+        if self._heading_jump_hold:
+            heading_recovered = gates_locked and gap_yaw_rad < self.recovery_yaw_rad
+            if not heading_recovered:
+                self._recovery_since_s = None
+                return self._frozen_result(
+                    previous_output_map_odom,
+                    previous_map_base,
+                    target_map_base,
+                    CorrectionReleaseReason.HEADING_JUMP_HOLD,
+                    gap_m,
+                    gap_yaw_rad,
+                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                )
+            if self._recovery_since_s is None:
+                self._recovery_since_s = now_s
+            recovery_duration_s = max(0.0, now_s - self._recovery_since_s)
+            recovery_epsilon_s = _time_comparison_epsilon_s(
+                self._recovery_since_s,
+                now_s,
+                self._recovery_since_s + self.recovery_confirmation_s,
+            )
+            if recovery_duration_s + recovery_epsilon_s < self.recovery_confirmation_s:
+                return self._frozen_result(
+                    previous_output_map_odom,
+                    previous_map_base,
+                    target_map_base,
+                    CorrectionReleaseReason.HEADING_RECOVERY_PENDING,
+                    gap_m,
+                    gap_yaw_rad,
+                    mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                )
+            self._heading_jump_hold = False
+            self._recovery_since_s = None
 
         lio_invalid = not all(
             math.isfinite(value)
@@ -1271,7 +1312,7 @@ class CorrectionReleaseState:
     def _active_mode(self) -> CorrectionReleaseMode:
         if self._fault_latched:
             return CorrectionReleaseMode.FAULT_HOLD
-        if self._backlog_active:
+        if self._heading_jump_hold or self._backlog_active:
             return CorrectionReleaseMode.CORRECTION_BACKLOG
         return CorrectionReleaseMode.NORMAL
 

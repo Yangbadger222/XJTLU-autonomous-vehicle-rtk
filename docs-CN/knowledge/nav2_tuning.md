@@ -1,5 +1,13 @@
 # Nav2 参数调优记录
 
+## UM982 航向连续性（2026-07-24）
+
+RTK 驱动现在将 `THS`、`HPR` 和 `UNIHEADING` 视为相互竞争的航向源，不再按串口最后到达的语句直接发布。生产配置优先使用 `THS`；只有 `THS` 连续缺失 `1.5 s` 后，`UNIHEADING` 才可候选接管，并且需要连续三个备用源样本。接管时备用源会对齐到最后可信航向；持续航向还受 `75 deg/s`、每样本 `15 deg` 和 `2 deg` 余量限制。`/rtk/status` 会报告当前来源、连续性偏置与被拒绝的航向数。
+
+这是因为 2026-07-24 的 nav-gps bag 中 RTK 始终 Fixed，但航向从 `THS 346.2 deg` 切换为 `UNIHEADING 70.3 deg`。位置 `q=4` 并不能保证两个航向语义可安全混用到 `map -> odom`。
+
+RTK authority 因此区分航向与平移硬故障。平移间隙超过 `2.0m` 仍永久 fail-closed；航向间隙超过 `20deg` 则以 `HEADING_JUMP_HOLD` 冻结最后可信 TF、撤销运动权限，并等待正常恢复航向窗口持续 `recovery_confirmation_s`。输入稳定后会自动回到正常状态，单次航向源异常不再要求重新启动导航。
+
 ## 1. 基本概念
 
 - 路径（Path）: 由 planner 生成的空间几何点集合

@@ -1527,14 +1527,7 @@ def test_correction_release_can_reacquire_a_safe_rtk_target_while_moving():
     assert math.degrees(result.yaw_step_rad) == pytest.approx(0.05)
 
 
-@pytest.mark.parametrize(
-    "target",
-    [
-        _pose(x=2.001),
-        _pose(yaw=math.radians(20.01)),
-    ],
-)
-def test_correction_release_gap_above_hard_boundary_latches_fault(target):
+def test_correction_release_translation_gap_above_hard_boundary_latches_fault():
     state = CorrectionReleaseState()
     previous = _pose()
     _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
@@ -1542,7 +1535,7 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
     fault = _release_update(
         state,
         previous=previous,
-        target=target,
+        target=_pose(x=2.001),
         now_s=10.1,
         lio_stamp_s=1.1,
     )
@@ -1562,7 +1555,41 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
     assert still_faulted.motion_allowed is False
 
 
-@pytest.mark.parametrize("fault_kind", ["translation", "yaw"])
+def test_correction_release_heading_jump_holds_then_recovers_without_restart():
+    state = CorrectionReleaseState(recovery_confirmation_s=0.5)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    held = _release_update(
+        state,
+        previous=previous,
+        target=_pose(yaw=math.radians(20.1)),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=previous,
+        now_s=10.2,
+        lio_stamp_s=1.2,
+    )
+    recovered = _release_update(
+        state,
+        previous=previous,
+        target=previous,
+        now_s=10.7,
+        lio_stamp_s=1.7,
+    )
+
+    assert held.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert held.reason is CorrectionReleaseReason.HEADING_JUMP_HOLD
+    assert held.motion_allowed is False
+    assert pending.reason is CorrectionReleaseReason.HEADING_RECOVERY_PENDING
+    assert recovered.mode is CorrectionReleaseMode.NORMAL
+    assert recovered.motion_allowed is True
+
+
 @pytest.mark.parametrize(
     "probe_kind",
     [
@@ -1574,18 +1601,13 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
         "nonfinite_target",
     ],
 )
-def test_correction_release_latched_hard_fault_precedes_all_later_validation(
-    fault_kind,
+def test_correction_release_latched_translation_fault_precedes_all_later_validation(
     probe_kind,
 ):
     state = CorrectionReleaseState()
     trusted = _pose(x=0.2, y=-0.1, yaw=0.05)
     _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
-    fault_target = (
-        _pose(x=trusted.x + 2.1, y=trusted.y, yaw=trusted.yaw)
-        if fault_kind == "translation"
-        else _pose(x=trusted.x, y=trusted.y, yaw=trusted.yaw + math.radians(20.1))
-    )
+    fault_target = _pose(x=trusted.x + 2.1, y=trusted.y, yaw=trusted.yaw)
     fault = _release_update(
         state,
         previous=trusted,

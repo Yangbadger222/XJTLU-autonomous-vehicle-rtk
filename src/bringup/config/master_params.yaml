@@ -399,6 +399,15 @@
     # so the receiver reports the leftward baseline direction; base_link +X is vehicle front.
     # 2026-06-29 bag-based estimate: 88.5 deg, pending a dedicated straight-line calibration.
     heading_offset_deg: 88.5
+    # Prefer THS. UNIHEADING is a continuity-aligned fallback after THS has
+    # been absent for 1.5 s, preventing sentence-source convention jumps.
+    heading_primary_source: "THS"
+    heading_fallback_source: "UNIHEADING"
+    heading_fallback_timeout_s: 1.5
+    heading_switch_min_samples: 3
+    heading_max_rate_degps: 75.0
+    heading_max_step_deg: 15.0
+    heading_rate_slack_deg: 2.0
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

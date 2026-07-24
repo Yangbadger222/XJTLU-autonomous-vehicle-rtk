@@ -17,6 +17,7 @@
 
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/serialization.hpp"
@@ -36,6 +37,7 @@ namespace
 constexpr char kLocalCostmapTopic[] = "/local_costmap/costmap";
 constexpr char kPathTopic[] = "/gps_waypoint_dispatcher/path_map";
 constexpr char kCommandTopic[] = "/cmd_vel_nav";
+constexpr char kLioOdomTopic[] = "/fastlio2/lio_odom";
 constexpr char kTfTopic[] = "/tf";
 constexpr char kTfStaticTopic[] = "/tf_static";
 constexpr char kAuthorityName[] = "mppi_cuda_bag_replay";
@@ -48,6 +50,8 @@ struct Options
   std::size_t max_frames{0U};
   std::size_t batch_size{4096U};
   std::size_t time_steps{48U};
+  float vx_std{0.28F};
+  float wz_std{0.22F};
   float prune_distance_m{4.0F};
   std::size_t lookahead_points{6U};
   bool track_unknown{false};
@@ -119,6 +123,8 @@ void printUsage(const char * program)
             << "  --max-frames <count>       Stop after this many evaluated frames (0 = all)\n"
             << "  --batch-size <count>       CUDA sample count (default: 4096)\n"
             << "  --time-steps <count>       CUDA horizon steps (default: 48)\n"
+            << "  --vx-std <mps>             CUDA linear sampling deviation (default: 0.28)\n"
+            << "  --wz-std <radps>           CUDA angular sampling deviation (default: 0.22)\n"
             << "  --prune-distance <metres>  Local path horizon (default: 4.0)\n"
             << "  --lookahead-points <count> CUDA target index in the local path (default: 6)\n"
             << "  --track-unknown            Treat OccupancyGrid unknown cells as collisions\n";
@@ -178,6 +184,10 @@ Options parseOptions(int argc, char ** argv)
       options.batch_size = parseSize(next(), "--batch-size");
     } else if (flag == "--time-steps") {
       options.time_steps = parseSize(next(), "--time-steps");
+    } else if (flag == "--vx-std") {
+      options.vx_std = parsePositiveFloat(next(), "--vx-std");
+    } else if (flag == "--wz-std") {
+      options.wz_std = parsePositiveFloat(next(), "--wz-std");
     } else if (flag == "--prune-distance") {
       options.prune_distance_m = parsePositiveFloat(next(), "--prune-distance");
     } else if (flag == "--lookahead-points") {
@@ -404,8 +414,9 @@ int main(int argc, char ** argv)
       if (!output) {
         throw std::runtime_error("unable to open output CSV: " + options.output_path);
       }
-      output << "stamp_ns,gpu_ms,cpu_vx,cpu_wz,gpu_vx,gpu_wz,abs_vx_error,abs_wz_error,"
-             << "command_age_ms,all_trajectories_collide\n";
+      output << "stamp_ns,gpu_ms,cpu_vx,cpu_wz,measured_vx,measured_wz,gpu_vx,gpu_wz,"
+             << "abs_vx_error,abs_wz_error,command_age_ms,lio_speed_age_ms,"
+             << "all_trajectories_collide\n";
     }
 
     mppi_cuda_backend::SamplingConfig config;
@@ -413,8 +424,8 @@ int main(int argc, char ** argv)
     config.time_steps = options.time_steps;
     config.vx_max = 1.5F;
     config.wz_max = 0.7F;
-    config.vx_std = 0.28F;
-    config.wz_std = 0.22F;
+    config.vx_std = options.vx_std;
+    config.wz_std = options.wz_std;
     config.temperature = 0.45F;
     config.gamma = 0.015F;
     config.path_weight = 16.0F;
@@ -423,6 +434,7 @@ int main(int argc, char ** argv)
     PathState path_state;
     std::optional<geometry_msgs::msg::Twist> latest_command;
     std::optional<rclcpp::Time> latest_command_stamp;
+    std::optional<nav_msgs::msg::Odometry> latest_lio_odom;
     Counters counters;
     Samples gpu_ms;
     Samples vx_error;
@@ -450,6 +462,10 @@ int main(int argc, char ** argv)
       if (bag_message->topic_name == kCommandTopic) {
         latest_command = deserialize<geometry_msgs::msg::Twist>(bag_message);
         latest_command_stamp = messageStamp(bag_message);
+        continue;
+      }
+      if (bag_message->topic_name == kLioOdomTopic) {
+        latest_lio_odom = deserialize<nav_msgs::msg::Odometry>(bag_message);
         continue;
       }
       if (bag_message->topic_name != kLocalCostmapTopic) {
@@ -486,6 +502,10 @@ int main(int argc, char ** argv)
       input.robot_x = local_input->robot_x;
       input.robot_y = local_input->robot_y;
       input.robot_yaw = local_input->robot_yaw;
+      if (latest_lio_odom) {
+        input.measured_vx = static_cast<float>(latest_lio_odom->twist.twist.linear.x);
+        input.measured_wz = static_cast<float>(latest_lio_odom->twist.twist.angular.z);
+      }
       input.path_target_x = local_input->target_x;
       input.path_target_y = local_input->target_y;
       input.goal_x = local_input->goal_x;
@@ -504,6 +524,9 @@ int main(int argc, char ** argv)
       const auto result = backend.optimize(config, input);
       const float vx_difference = std::fabs(result.control_vx.front() - input.nominal_vx.front());
       const float wz_difference = std::fabs(result.control_wz.front() - input.nominal_wz.front());
+      const float lio_speed_age_ms = latest_lio_odom ?
+        static_cast<float>((stamp - headerStamp(latest_lio_odom->header)).seconds()) * 1000.0F :
+        std::numeric_limits<float>::quiet_NaN();
       ++counters.evaluated;
       counters.all_collide += result.all_trajectories_collide ? 1U : 0U;
       gpu_ms.add(result.gpu_elapsed_ms);
@@ -514,8 +537,10 @@ int main(int argc, char ** argv)
         output << std::fixed << std::setprecision(6)
                << stamp.nanoseconds() << ',' << result.gpu_elapsed_ms << ','
                << input.nominal_vx.front() << ',' << input.nominal_wz.front() << ','
+               << input.measured_vx << ',' << input.measured_wz << ','
                << result.control_vx.front() << ',' << result.control_wz.front() << ','
                << vx_difference << ',' << wz_difference << ',' << age_s * 1000.0F << ','
+               << lio_speed_age_ms << ','
                << (result.all_trajectories_collide ? 1 : 0) << '\n';
       }
       if (options.max_frames != 0U && counters.evaluated >= options.max_frames) {

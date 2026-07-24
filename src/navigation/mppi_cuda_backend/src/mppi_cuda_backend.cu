@@ -117,6 +117,8 @@ __global__ void rolloutAndScore(
   float x = problem.robot_x;
   float y = problem.robot_y;
   float yaw = problem.robot_yaw;
+  float propagated_vx = problem.measured_vx;
+  float propagated_wz = problem.measured_wz;
   float obstacle_cost = 0.0F;
   float regularization_cost = 0.0F;
   bool collision = false;
@@ -132,9 +134,12 @@ __global__ void rolloutAndScore(
     candidate_vx[offset + step] = vx;
     candidate_wz[offset + step] = wz;
 
-    yaw += wz * problem.model_dt;
-    x += vx * cosf(yaw) * problem.model_dt;
-    y += vx * sinf(yaw) * problem.model_dt;
+    // Match Nav2 Humble's MotionModel::predict(): state velocity at index 0
+    // is measured odometry, and sampled candidate controls are shifted by one
+    // rollout step. This matters at high speed and around a close obstacle.
+    yaw += propagated_wz * problem.model_dt;
+    x += propagated_vx * cosf(yaw) * problem.model_dt;
+    y += propagated_vx * sinf(yaw) * problem.model_dt;
     regularization_cost += problem.gamma * (
       nominal_vx[step] * vx_noise / (problem.vx_std * problem.vx_std) +
       nominal_wz[step] * wz_noise / (problem.wz_std * problem.wz_std));
@@ -153,6 +158,8 @@ __global__ void rolloutAndScore(
       break;
     }
     obstacle_cost += static_cast<float>(map_cost) / 254.0F;
+    propagated_vx = vx;
+    propagated_wz = wz;
   }
 
   if (!collision) {

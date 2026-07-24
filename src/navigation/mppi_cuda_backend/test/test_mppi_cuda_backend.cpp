@@ -59,4 +59,32 @@ TEST(MppiCudaBackend, MarksACompletelyLethalCostmapAsBlocked)
   EXPECT_TRUE(result.all_trajectories_collide);
 }
 
+TEST(MppiCudaBackend, UsesMeasuredSpeedAtFirstRolloutStep)
+{
+  if (!mppi_cuda_backend::CudaMppiBackend::isAvailable()) {
+    GTEST_SKIP() << "CUDA device unavailable";
+  }
+  constexpr std::size_t kWidth = 64U;
+  constexpr std::size_t kHeight = 64U;
+  std::vector<unsigned char> costmap(kWidth * kHeight, 0U);
+  // The robot starts in cell (32, 32). At 1 m/s and dt=0.05, a measured
+  // first-step velocity enters the lethal cell (33, 32).
+  costmap[32U * kWidth + 33U] = 254U;
+  mppi_cuda_backend::SamplingConfig config;
+  config.batch_size = 256U;
+  config.time_steps = 1U;
+  config.model_dt = 0.05F;
+  config.vx_std = 0.01F;
+  config.wz_std = 0.01F;
+  mppi_cuda_backend::OptimizerInput input;
+  input.nominal_vx.assign(config.time_steps, 0.0F);
+  input.nominal_wz.assign(config.time_steps, 0.0F);
+  input.costmap = {costmap.data(), kWidth, kHeight, 0.05F, -1.6F, -1.6F, false};
+
+  mppi_cuda_backend::CudaMppiBackend backend;
+  EXPECT_FALSE(backend.optimize(config, input).all_trajectories_collide);
+  input.measured_vx = 1.0F;
+  EXPECT_TRUE(backend.optimize(config, input).all_trajectories_collide);
+}
+
 }  // namespace

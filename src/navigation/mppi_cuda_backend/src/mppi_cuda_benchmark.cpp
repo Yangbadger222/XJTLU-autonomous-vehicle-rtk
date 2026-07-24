@@ -67,6 +67,8 @@ void cpuReference(
     float x = input.robot_x;
     float y = input.robot_y;
     float yaw = input.robot_yaw;
+    float propagated_vx = input.measured_vx;
+    float propagated_wz = input.measured_wz;
     float obstacle_cost = 0.0F;
     float regularization_cost = 0.0F;
     bool collision = false;
@@ -79,9 +81,9 @@ void cpuReference(
       const float wz = std::clamp(input.nominal_wz[step] + wz_noise, -config.wz_max, config.wz_max);
       candidate_vx[offset + step] = vx;
       candidate_wz[offset + step] = wz;
-      yaw += wz * config.model_dt;
-      x += vx * std::cos(yaw) * config.model_dt;
-      y += vx * std::sin(yaw) * config.model_dt;
+      yaw += propagated_wz * config.model_dt;
+      x += propagated_vx * std::cos(yaw) * config.model_dt;
+      y += propagated_vx * std::sin(yaw) * config.model_dt;
       regularization_cost += config.gamma * (
         input.nominal_vx[step] * vx_noise / (config.vx_std * config.vx_std) +
         input.nominal_wz[step] * wz_noise / (config.wz_std * config.wz_std));
@@ -95,6 +97,8 @@ void cpuReference(
         break;
       }
       obstacle_cost += static_cast<float>(input.costmap.data[map_y * input.costmap.size_x + map_x]) / 254.0F;
+      propagated_vx = vx;
+      propagated_wz = wz;
     }
     costs[candidate] = collision ? config.collision_cost : regularization_cost +
       config.path_weight * std::hypot(x - input.path_target_x, y - input.path_target_y) +

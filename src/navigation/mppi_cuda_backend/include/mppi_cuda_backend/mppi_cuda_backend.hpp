@@ -44,6 +44,8 @@ struct OptimizerInput
   float robot_x{0.0F};
   float robot_y{0.0F};
   float robot_yaw{0.0F};
+  // Nav2's DiffDrive MotionModel uses measured odometry velocity at rollout
+  // index 0, then propagates sampled controls from index 1 onward.
   float measured_vx{0.0F};
   float measured_wz{0.0F};
   float path_target_x{0.0F};

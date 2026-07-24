@@ -112,8 +112,8 @@ def _make_nav_gps_rtk_nav2_params(
     follow_path["open_loop"] = False
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
     if enable_cuda_mppi_shadow:
-        # CUDA mirrors the active CPU MPPI objective. Authority remains CPU
-        # unless the separately opt-in guarded authority flag is set.
+        # Shadow mirrors the CPU objective. The explicit authority profile
+        # instead runs the complete MPPI optimization loop on CUDA.
         follow_path["primary_controller"] = (
             "nav2_cuda_mppi_controller::CudaMppiShadowController"
         )
@@ -121,11 +121,10 @@ def _make_nav_gps_rtk_nav2_params(
         follow_path["cuda_shadow_batch_size"] = 4096
         follow_path["cuda_mppi_authority_enabled"] = enable_cuda_mppi_authority
         follow_path["cuda_mppi_authority_max_gpu_elapsed_ms"] = 20.0
-        follow_path["cuda_mppi_authority_max_vx_delta"] = 0.25
-        follow_path["cuda_mppi_authority_max_wz_delta"] = 0.20
         if enable_cuda_mppi_authority:
-            # First authority validation keeps both GPU and CPU fallback in a
-            # bounded envelope. The normal nav-gps profile remains unchanged.
+            # CUDA failure becomes a Nav2 controller failure, which publishes
+            # zero velocity and enters the existing BLOCKED_WAIT retry flow.
+            # Keep the first GPU-only field profile below normal nav-gps speed.
             follow_path["vx_max"] = 0.75
             follow_path["wz_max"] = 0.50
     follow_path["plugin"] = (

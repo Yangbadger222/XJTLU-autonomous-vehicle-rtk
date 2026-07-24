@@ -232,21 +232,26 @@ saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostic
 vehicle profile uses centre-point collision checking; a future footprint-enabled `CostCritic`
 explicitly disables the CUDA path rather than silently approximating the footprint.
 
-For the guarded GPU authority experiment, add the following separate opt-in flag:
+For the GPU-only authority experiment, add the following separate opt-in flag:
 
 ```bash
 FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY=true FYP_USE_RVIZ=false \
   python3 scripts/nav_gps_menu.py
 ```
 
-This makes the CUDA first control the returned Nav2 command while stock MPPI remains a same-cycle
-hot fallback. The plugin returns the CPU command whenever CUDA reports all trajectories colliding,
-a non-finite result, more than `20 ms` GPU elapsed time, or a disagreement larger than `0.25 m/s`
-or `0.20 rad/s`. It therefore changes command authority but does not yet remove CPU MPPI work;
-the mode is for guarded vehicle validation, not a claim of reduced CPU load. The physical e-stop
-and gamepad motor override remain mandatory safety layers. The first-authority profile caps both
-GPU and CPU fallback at `0.75 m/s` and `0.50 rad/s`; ordinary CPU/shadow nav-gps remains at its
-normal `1.5 m/s` and `0.70 rad/s` limits.
+This bypasses stock MPPI's real-time optimizer completely. The CUDA controller owns its nominal
+control horizon, applies the same 9-point Savitzky-Golay smoothing shape, returns control index
+one for the matched `20 Hz` / `0.05 s` profile, and shifts that horizon before the next cycle.
+The stock controller is still configured for Nav2 path handling and for normal shadow mode, but
+its CPU `evalControl()` sampling and critic pass are not called while authority is enabled.
+
+CUDA is deliberately fail-stop rather than CPU-fallback: an all-collision result, non-finite
+sequence, unavailable CUDA backend, or GPU elapsed time above `20 ms` raises a Nav2 controller
+failure. Controller Server publishes zero velocity during its configured `1.5 s` tolerance, then
+the existing goal manager enters `BLOCKED_WAIT` and retries or stops safely. The first GPU-only
+field profile caps speed at `0.75 m/s` and angular speed at `0.50 rad/s`; ordinary CPU/shadow
+nav-gps remains at `1.5 m/s` and `0.70 rad/s`. The physical e-stop and gamepad motor override
+remain mandatory safety layers.
 
 Existing pre-CUDA navigation bags can also validate the actual Orin GPU workload before a new
 field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,

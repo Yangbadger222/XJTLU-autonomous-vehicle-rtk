@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <exception>
+#include <initializer_list>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -11,6 +12,7 @@
 
 #include "diagnostic_msgs/msg/diagnostic_status.hpp"
 #include "diagnostic_msgs/msg/key_value.hpp"
+#include "nav2_core/exceptions.hpp"
 #include "nav2_costmap_2d/cost_values.hpp"
 #include "pluginlib/class_list_macros.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -65,6 +67,117 @@ bool hasFiniteFirstControl(const mppi_cuda_backend::OptimizationResult & result)
   return !result.control_vx.empty() && !result.control_wz.empty() &&
          std::isfinite(result.control_vx.front()) && std::isfinite(result.control_wz.front()) &&
          std::isfinite(result.gpu_elapsed_ms);
+}
+
+bool hasFiniteControlSequence(const mppi_cuda_backend::OptimizationResult & result)
+{
+  if (result.control_vx.empty() || result.control_wz.empty() ||
+    result.control_vx.size() != result.control_wz.size() ||
+    !std::isfinite(result.gpu_elapsed_ms) || !std::isfinite(result.min_cost))
+  {
+    return false;
+  }
+  return std::all_of(
+    result.control_vx.begin(), result.control_vx.end(),
+    [](const float control) {return std::isfinite(control);}) &&
+         std::all_of(
+    result.control_wz.begin(), result.control_wz.end(),
+    [](const float control) {return std::isfinite(control);});
+}
+
+float savitskyGolaySample(const std::initializer_list<float> values)
+{
+  constexpr std::array<float, 9U> coefficients{
+    -21.0F / 231.0F, 14.0F / 231.0F, 39.0F / 231.0F,
+    54.0F / 231.0F, 59.0F / 231.0F, 54.0F / 231.0F,
+    39.0F / 231.0F, 14.0F / 231.0F, -21.0F / 231.0F};
+  if (values.size() != coefficients.size()) {
+    throw std::invalid_argument("Savitzky-Golay filter requires nine values");
+  }
+
+  float filtered = 0.0F;
+  std::size_t index = 0U;
+  for (const float sample : values) {
+    filtered += sample * coefficients[index++];
+  }
+  return filtered;
+}
+
+void savitskyGolayFilter(
+  std::vector<float> & sequence, std::array<float, 4U> & history)
+{
+  const std::size_t num_sequences = sequence.size() - 1U;
+  if (num_sequences < 20U) {
+    return;
+  }
+
+  std::size_t index = 0U;
+  sequence[index] = savitskyGolaySample({
+      history[0], history[1], history[2], history[3], sequence[index],
+      sequence[index + 1U], sequence[index + 2U], sequence[index + 3U],
+      sequence[index + 4U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      history[1], history[2], history[3], sequence[index - 1U], sequence[index],
+      sequence[index + 1U], sequence[index + 2U], sequence[index + 3U],
+      sequence[index + 4U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      history[2], history[3], sequence[index - 2U], sequence[index - 1U], sequence[index],
+      sequence[index + 1U], sequence[index + 2U], sequence[index + 3U],
+      sequence[index + 4U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      history[3], sequence[index - 3U], sequence[index - 2U], sequence[index - 1U],
+      sequence[index], sequence[index + 1U], sequence[index + 2U],
+      sequence[index + 3U], sequence[index + 4U]});
+
+  for (index = 4U; index != num_sequences - 4U; ++index) {
+    sequence[index] = savitskyGolaySample({
+        sequence[index - 4U], sequence[index - 3U], sequence[index - 2U],
+        sequence[index - 1U], sequence[index], sequence[index + 1U],
+        sequence[index + 2U], sequence[index + 3U], sequence[index + 4U]});
+  }
+
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      sequence[index - 4U], sequence[index - 3U], sequence[index - 2U],
+      sequence[index - 1U], sequence[index], sequence[index + 1U],
+      sequence[index + 2U], sequence[index + 3U], sequence[index + 3U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      sequence[index - 4U], sequence[index - 3U], sequence[index - 2U],
+      sequence[index - 1U], sequence[index], sequence[index + 1U],
+      sequence[index + 2U], sequence[index + 2U], sequence[index + 2U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      sequence[index - 4U], sequence[index - 3U], sequence[index - 2U],
+      sequence[index - 1U], sequence[index], sequence[index + 1U],
+      sequence[index + 1U], sequence[index + 1U], sequence[index + 1U]});
+  ++index;
+  sequence[index] = savitskyGolaySample({
+      sequence[index - 4U], sequence[index - 3U], sequence[index - 2U],
+      sequence[index - 1U], sequence[index], sequence[index], sequence[index],
+      sequence[index], sequence[index]});
+
+  history[0] = history[1];
+  history[1] = history[2];
+  history[2] = history[3];
+  history[3] = sequence[1U];
+}
+
+void shiftControlSequence(std::vector<float> & sequence)
+{
+  if (sequence.size() < 2U) {
+    throw std::invalid_argument("CUDA MPPI control sequence must contain two samples to shift");
+  }
+  std::rotate(sequence.begin(), sequence.begin() + 1, sequence.end());
+  sequence.back() = sequence[sequence.size() - 2U];
+}
+
+std::uint64_t nextSeed(std::uint64_t seed)
+{
+  return seed + 0x9e3779b97f4a7c15ULL;
 }
 
 void populatePathAndValidity(
@@ -158,18 +271,12 @@ void CudaMppiShadowController::configure(
   declareIfMissing(node, prefix + "cuda_shadow_batch_size", 4096);
   declareIfMissing(node, prefix + "cuda_mppi_authority_enabled", false);
   declareIfMissing(node, prefix + "cuda_mppi_authority_max_gpu_elapsed_ms", 20.0);
-  declareIfMissing(node, prefix + "cuda_mppi_authority_max_vx_delta", 0.25);
-  declareIfMissing(node, prefix + "cuda_mppi_authority_max_wz_delta", 0.20);
 
   shadow_enabled_ = node->get_parameter(prefix + "cuda_shadow_enabled").as_bool();
   gpu_authority_enabled_ = node->get_parameter(
     prefix + "cuda_mppi_authority_enabled").as_bool();
   authority_max_gpu_elapsed_ms_ = parameterFloat(
     node, prefix + "cuda_mppi_authority_max_gpu_elapsed_ms");
-  authority_max_vx_delta_ = parameterFloat(
-    node, prefix + "cuda_mppi_authority_max_vx_delta");
-  authority_max_wz_delta_ = parameterFloat(
-    node, prefix + "cuda_mppi_authority_max_wz_delta");
   if (gpu_authority_enabled_) {
     shadow_enabled_ = true;
   }
@@ -185,6 +292,36 @@ void CudaMppiShadowController::configure(
   shadow_config_.wz_std = parameterFloat(node, prefix + "wz_std");
   shadow_config_.temperature = parameterFloat(node, prefix + "temperature");
   shadow_config_.gamma = parameterFloat(node, prefix + "gamma");
+  gpu_base_vx_min_ = shadow_config_.vx_min;
+  gpu_base_vx_max_ = shadow_config_.vx_max;
+  gpu_base_wz_max_ = shadow_config_.wz_max;
+  if (gpu_base_vx_max_ <= 0.0F || gpu_base_wz_max_ <= 0.0F) {
+    throw std::invalid_argument("CUDA MPPI authority requires positive vx_max and wz_max");
+  }
+  gpu_regenerate_noises_ = node->get_parameter(prefix + "regenerate_noises").as_bool();
+  const auto retry_attempt_limit = node->get_parameter(prefix + "retry_attempt_limit").as_int();
+  if (retry_attempt_limit < 0) {
+    throw std::invalid_argument("retry_attempt_limit must not be negative for CUDA MPPI authority");
+  }
+  gpu_retry_attempt_limit_ = static_cast<std::size_t>(retry_attempt_limit);
+
+  const float controller_frequency = parameterFloat(node, "controller_frequency");
+  if (controller_frequency <= 0.0F) {
+    throw std::invalid_argument("controller_frequency must be positive for CUDA MPPI authority");
+  }
+  const float controller_period = 1.0F / controller_frequency;
+  constexpr float timing_epsilon = 1.0e-5F;
+  if (controller_period > shadow_config_.model_dt + timing_epsilon) {
+    throw std::invalid_argument(
+            "controller period exceeds CUDA MPPI model_dt; the control sequence cannot be shifted safely");
+  }
+  gpu_shift_control_sequence_ =
+    std::fabs(controller_period - shadow_config_.model_dt) <= timing_epsilon;
+  const auto iteration_count = node->get_parameter(prefix + "iteration_count").as_int();
+  if (gpu_authority_enabled_ && iteration_count != 1) {
+    throw std::invalid_argument(
+            "CUDA MPPI authority currently supports exactly one MPPI optimization iteration");
+  }
   auto & critic = shadow_config_.nav2_critics;
   critic.enabled = true;
   critic.consider_footprint = node->get_parameter(
@@ -232,12 +369,17 @@ void CudaMppiShadowController::configure(
     RCLCPP_WARN(logger_, "CUDA MPPI shadow disabled: no CUDA device available");
     shadow_enabled_ = false;
   }
+  if (gpu_authority_enabled_ && (!shadow_enabled_ || !backend_)) {
+    throw std::runtime_error("CUDA MPPI authority was requested but the CUDA backend is unavailable");
+  }
+  resetGpuAuthorityState();
   diagnostics_pub_ = node->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
     name_ + "/cuda_shadow_diagnostics", rclcpp::QoS(10));
   RCLCPP_INFO(
-    logger_, "CUDA MPPI: shadow=%s authority=%s batch=%zu CPU-matched-steps=%zu",
+    logger_, "CUDA MPPI: shadow=%s authority=%s batch=%zu steps=%zu cpu_realtime=%s",
     shadow_enabled_ ? "true" : "false", gpu_authority_enabled_ ? "true" : "false",
-    shadow_config_.batch_size, shadow_config_.time_steps);
+    shadow_config_.batch_size, shadow_config_.time_steps,
+    gpu_authority_enabled_ ? "disabled" : "enabled");
 }
 
 geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityCommands(
@@ -245,6 +387,12 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
   const geometry_msgs::msg::Twist & robot_speed,
   nav2_core::GoalChecker * goal_checker)
 {
+  if (gpu_authority_enabled_) {
+    // Do not call the stock optimizer here. The authority profile exists to
+    // remove its sampling/critic workload from the controller deadline.
+    return computeGpuAuthority(robot_pose, robot_speed, goal_checker);
+  }
+
   const auto cpu_command = nav2_mppi_controller::MPPIController::computeVelocityCommands(
     robot_pose, robot_speed, goal_checker);
   if (!shadow_enabled_ || !backend_) {
@@ -284,43 +432,192 @@ geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeVelocityComman
     input.goal_y = input.path_y.back();
     copyCpuControlSequence(optimizer_, robot_pose, shadow_config_.model_dt, input);
     const auto gpu_result = backend_->optimize(shadow_config_, input);
-    if (!gpu_authority_enabled_) {
-      publishDiagnostic(cpu_command, &gpu_result, "shadow_cpu_authoritative");
-      return cpu_command;
-    }
-
-    if (gpu_result.all_trajectories_collide) {
-      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_all_trajectories_collide");
-      return cpu_command;
-    }
-    if (!hasFiniteFirstControl(gpu_result)) {
-      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_non_finite_gpu_control");
-      return cpu_command;
-    }
-    if (gpu_result.gpu_elapsed_ms > authority_max_gpu_elapsed_ms_) {
-      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_gpu_runtime_budget");
-      return cpu_command;
-    }
-
-    const float vx_delta = std::fabs(
-      gpu_result.control_vx.front() - static_cast<float>(cpu_command.twist.linear.x));
-    const float wz_delta = std::fabs(
-      gpu_result.control_wz.front() - static_cast<float>(cpu_command.twist.angular.z));
-    if (vx_delta > authority_max_vx_delta_ || wz_delta > authority_max_wz_delta_) {
-      publishDiagnostic(cpu_command, &gpu_result, "cpu_fallback_gpu_cpu_disagreement");
-      return cpu_command;
-    }
-
-    auto gpu_command = cpu_command;
-    gpu_command.twist.linear.x = gpu_result.control_vx.front();
-    gpu_command.twist.angular.z = gpu_result.control_wz.front();
-    publishDiagnostic(cpu_command, &gpu_result, "gpu_authoritative");
-    return gpu_command;
+    publishDiagnostic(cpu_command, &gpu_result, "shadow_cpu_authoritative");
+    return cpu_command;
   } catch (const std::exception & error) {
-    publishDiagnostic(cpu_command, nullptr, "cpu_fallback_" + std::string(error.what()));
+    publishDiagnostic(cpu_command, nullptr, "shadow_error_" + std::string(error.what()));
     RCLCPP_WARN_THROTTLE(logger_, *clock_, 2000, "CUDA MPPI shadow failed: %s", error.what());
   }
   return cpu_command;
+}
+
+void CudaMppiShadowController::setPlan(const nav_msgs::msg::Path & path)
+{
+  nav2_mppi_controller::MPPIController::setPlan(path);
+  if (gpu_authority_enabled_) {
+    resetGpuAuthorityState();
+  }
+}
+
+void CudaMppiShadowController::setSpeedLimit(
+  const double & speed_limit, const bool & percentage)
+{
+  nav2_mppi_controller::MPPIController::setSpeedLimit(speed_limit, percentage);
+  if (speed_limit == nav2_costmap_2d::NO_SPEED_LIMIT) {
+    shadow_config_.vx_min = gpu_base_vx_min_;
+    shadow_config_.vx_max = gpu_base_vx_max_;
+    shadow_config_.wz_max = gpu_base_wz_max_;
+  } else {
+    const float ratio = percentage ?
+      static_cast<float>(speed_limit / 100.0) :
+      static_cast<float>(speed_limit / static_cast<double>(gpu_base_vx_max_));
+    shadow_config_.vx_min = gpu_base_vx_min_ * ratio;
+    shadow_config_.vx_max = gpu_base_vx_max_ * ratio;
+    shadow_config_.wz_max = gpu_base_wz_max_ * ratio;
+  }
+  for (float & control : gpu_nominal_vx_) {
+    control = std::clamp(control, shadow_config_.vx_min, shadow_config_.vx_max);
+  }
+  for (float & control : gpu_nominal_wz_) {
+    control = std::clamp(control, -shadow_config_.wz_max, shadow_config_.wz_max);
+  }
+}
+
+geometry_msgs::msg::TwistStamped CudaMppiShadowController::computeGpuAuthority(
+  const geometry_msgs::msg::PoseStamped & robot_pose,
+  const geometry_msgs::msg::Twist & robot_speed,
+  nav2_core::GoalChecker * goal_checker)
+{
+  static_cast<void>(goal_checker);
+  mppi_cuda_backend::OptimizationResult gpu_result;
+  bool has_gpu_result = false;
+  try {
+    const nav_msgs::msg::Path transformed_path = path_handler_.transformPath(robot_pose);
+    if (transformed_path.poses.empty()) {
+      throw std::invalid_argument("transformed_path_empty");
+    }
+
+    auto * costmap = costmap_ros_->getCostmap();
+    std::unique_lock<nav2_costmap_2d::Costmap2D::mutex_t> costmap_lock(*(costmap->getMutex()));
+    mppi_cuda_backend::OptimizerInput input;
+    input.robot_x = static_cast<float>(robot_pose.pose.position.x);
+    input.robot_y = static_cast<float>(robot_pose.pose.position.y);
+    input.robot_yaw = static_cast<float>(tf2::getYaw(robot_pose.pose.orientation));
+    input.measured_vx = static_cast<float>(robot_speed.linear.x);
+    input.measured_wz = static_cast<float>(robot_speed.angular.z);
+    input.nominal_vx = gpu_nominal_vx_;
+    input.nominal_wz = gpu_nominal_wz_;
+    input.costmap = {
+      costmap->getCharMap(),
+      costmap->getSizeInCellsX(),
+      costmap->getSizeInCellsY(),
+      static_cast<float>(costmap->getResolution()),
+      static_cast<float>(costmap->getOriginX()),
+      static_cast<float>(costmap->getOriginY()),
+      costmap_ros_->getLayeredCostmap()->isTrackingUnknown(),
+    };
+    populatePathAndValidity(
+      transformed_path, *costmap, input.costmap.track_unknown, input);
+    input.path_target_x = input.path_x.back();
+    input.path_target_y = input.path_y.back();
+    input.goal_x = input.path_x.back();
+    input.goal_y = input.path_y.back();
+
+    const std::size_t attempts = gpu_regenerate_noises_ ? gpu_retry_attempt_limit_ + 1U : 1U;
+    for (std::size_t attempt = 0U; attempt < attempts; ++attempt) {
+      shadow_config_.seed = gpu_seed_;
+      if (gpu_regenerate_noises_) {
+        gpu_seed_ = nextSeed(gpu_seed_);
+      }
+      gpu_result = backend_->optimize(shadow_config_, input);
+      has_gpu_result = true;
+      if (!gpu_result.all_trajectories_collide) {
+        break;
+      }
+    }
+
+    if (gpu_result.all_trajectories_collide) {
+      throw std::runtime_error("all CUDA MPPI trajectories collide");
+    }
+    if (!hasFiniteControlSequence(gpu_result)) {
+      throw std::runtime_error("CUDA MPPI produced a non-finite control sequence");
+    }
+    if (gpu_result.gpu_elapsed_ms > authority_max_gpu_elapsed_ms_) {
+      throw std::runtime_error("CUDA MPPI exceeded its GPU runtime budget");
+    }
+
+    gpu_nominal_vx_ = gpu_result.control_vx;
+    gpu_nominal_wz_ = gpu_result.control_wz;
+    applyGpuControlPostprocessing(gpu_nominal_vx_, gpu_nominal_wz_);
+
+    geometry_msgs::msg::TwistStamped gpu_command;
+    gpu_command.header.stamp = clock_->now();
+    gpu_command.header.frame_id = costmap_ros_->getBaseFrameID();
+    gpu_command.twist.linear.x = gpu_nominal_vx_.front();
+    gpu_command.twist.angular.z = gpu_nominal_wz_.front();
+    publishAuthorityDiagnostic(&gpu_command, &gpu_result, "gpu_authoritative");
+    return gpu_command;
+  } catch (const std::exception & error) {
+    publishAuthorityDiagnostic(
+      nullptr, has_gpu_result ? &gpu_result : nullptr,
+      "gpu_authority_rejected_" + std::string(error.what()));
+    RCLCPP_WARN_THROTTLE(logger_, *clock_, 2000, "CUDA MPPI authority rejected control: %s", error.what());
+    throw nav2_core::PlannerException("CUDA MPPI authority rejected control: " + std::string(error.what()));
+  }
+}
+
+void CudaMppiShadowController::resetGpuAuthorityState()
+{
+  gpu_nominal_vx_.assign(shadow_config_.time_steps, 0.0F);
+  gpu_nominal_wz_.assign(shadow_config_.time_steps, 0.0F);
+  gpu_vx_history_.fill(0.0F);
+  gpu_wz_history_.fill(0.0F);
+  gpu_seed_ = 0x4d50504943554441ULL;
+  if (backend_) {
+    backend_->reset();
+  }
+}
+
+void CudaMppiShadowController::applyGpuControlPostprocessing(
+  std::vector<float> & control_vx, std::vector<float> & control_wz)
+{
+  if (control_vx.size() != shadow_config_.time_steps ||
+    control_wz.size() != shadow_config_.time_steps)
+  {
+    throw std::runtime_error("CUDA MPPI control sequence has an unexpected horizon");
+  }
+  savitskyGolayFilter(control_vx, gpu_vx_history_);
+  savitskyGolayFilter(control_wz, gpu_wz_history_);
+  if (gpu_shift_control_sequence_) {
+    shiftControlSequence(control_vx);
+    shiftControlSequence(control_wz);
+  }
+}
+
+void CudaMppiShadowController::publishAuthorityDiagnostic(
+  const geometry_msgs::msg::TwistStamped * gpu_command,
+  const mppi_cuda_backend::OptimizationResult * gpu_result,
+  const std::string & message)
+{
+  diagnostic_msgs::msg::DiagnosticArray array;
+  array.header.stamp = clock_->now();
+  diagnostic_msgs::msg::DiagnosticStatus status;
+  status.name = name_ + "/cuda_mppi_shadow";
+  status.hardware_id = "jetson-orin-cuda";
+  status.level = gpu_result == nullptr || gpu_result->all_trajectories_collide ?
+    diagnostic_msgs::msg::DiagnosticStatus::WARN : diagnostic_msgs::msg::DiagnosticStatus::OK;
+  status.message = message;
+  status.values.push_back(value("command_authority", "gpu_only"));
+  status.values.push_back(value("cpu_mppi_realtime", "disabled"));
+  status.values.push_back(value("batch_size", std::to_string(shadow_config_.batch_size)));
+  status.values.push_back(value("time_steps", std::to_string(shadow_config_.time_steps)));
+  status.values.push_back(value("retry_attempt_limit", std::to_string(gpu_retry_attempt_limit_)));
+  if (gpu_command != nullptr) {
+    status.values.push_back(value("returned_vx", std::to_string(gpu_command->twist.linear.x)));
+    status.values.push_back(value("returned_wz", std::to_string(gpu_command->twist.angular.z)));
+  }
+  if (gpu_result != nullptr) {
+    status.values.push_back(value("gpu_elapsed_ms", std::to_string(gpu_result->gpu_elapsed_ms)));
+    status.values.push_back(value("gpu_min_cost", std::to_string(gpu_result->min_cost)));
+    status.values.push_back(value(
+      "all_trajectories_collide", gpu_result->all_trajectories_collide ? "true" : "false"));
+    if (hasFiniteFirstControl(*gpu_result)) {
+      status.values.push_back(value("gpu_vx_raw", std::to_string(gpu_result->control_vx.front())));
+      status.values.push_back(value("gpu_wz_raw", std::to_string(gpu_result->control_wz.front())));
+    }
+  }
+  array.status.push_back(std::move(status));
+  diagnostics_pub_->publish(std::move(array));
 }
 
 void CudaMppiShadowController::publishDiagnostic(

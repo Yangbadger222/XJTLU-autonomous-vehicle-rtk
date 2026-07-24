@@ -226,18 +226,22 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 `/controller_server/FollowPath/cuda_shadow_diagnostics`。当前实车 profile 使用中心点碰撞；未来若
 `CostCritic` 切换到 footprint 碰撞，CUDA 路径会显式关闭，不会静默近似。
 
-若要进行受保护的 GPU authority 实验，单独显式开启：
+若要进行 GPU-only authority 实验，单独显式开启：
 
 ```bash
 FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY=true FYP_USE_RVIZ=false \
   python3 scripts/nav_gps_menu.py
 ```
 
-这会把 CUDA 的首条控制作为返回给 Nav2 的命令，同时 stock MPPI 保持同周期 hot fallback。出现所有候选碰撞、
-CUDA 非有限输出、GPU 耗时超过 `20 ms`，或 CPU/GPU 差异超过 `0.25 m/s` / `0.20 rad/s` 时，插件立即返回 CPU
-命令。因此它改变的是 command authority，但暂时不移除 CPU MPPI 工作；该模式用于受保护的实车验证，不能宣称
-降低 CPU 负载。物理急停和手柄电机禁用仍是必须保留的安全层。首轮 authority profile 会将 GPU 和 CPU fallback
-同时限制在 `0.75 m/s`、`0.50 rad/s`；普通 CPU/shadow nav-gps 仍保留 `1.5 m/s`、`0.70 rad/s` 上限。
+该模式会完全绕开 stock MPPI 的实时 optimizer。CUDA controller 自己维护 nominal control horizon，使用同形的
+9 点 Savitzky-Golay 平滑；在匹配的 `20 Hz` / `0.05 s` profile 中返回 control index 1，并在下一轮前移位。
+stock controller 仍用于 Nav2 的路径处理和普通 shadow 模式，但 authority 启用时不会调用它的 CPU
+`evalControl()` 采样和 critic 计算。
+
+CUDA 故障会 fail-stop，而不是回退到 CPU：所有候选碰撞、控制序列非有限、CUDA backend 不可用或 GPU 耗时超过
+`20 ms` 都会抛出 Nav2 controller failure。Controller Server 会在配置的 `1.5 s` 容忍时间内发布零速度，随后现有
+goal manager 进入 `BLOCKED_WAIT` 重试或安全停止。首轮 GPU-only 实车 profile 限制为 `0.75 m/s`、`0.50 rad/s`；
+普通 CPU/shadow nav-gps 仍为 `1.5 m/s`、`0.70 rad/s`。物理急停和手柄电机禁用仍是必须保留的安全层。
 
 已有的、早于 CUDA 接入的导航 rosbag 也可先验证 Orin 上的真实 GPU 工作量，无需重新下楼。
 `mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、

@@ -126,10 +126,30 @@ def test_nav_gps_cuda_mppi_shadow_is_explicit_and_non_authoritative_by_default()
     assert 'follow_path["cuda_shadow_batch_size"] = 4096' in text
     assert 'follow_path["cuda_mppi_authority_enabled"] = enable_cuda_mppi_authority' in text
     assert 'follow_path["cuda_mppi_authority_max_gpu_elapsed_ms"] = 20.0' in text
+    assert 'cuda_mppi_authority_max_vx_delta' not in text
+    assert 'cuda_mppi_authority_max_wz_delta' not in text
     assert 'follow_path["cuda_shadow_time_steps"]' not in text
     assert 'follow_path["time_steps"] = 32' in text
     assert '"/controller_server/FollowPath/cuda_shadow_diagnostics"' in text
     assert 'follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"' in text
+
+
+def test_cuda_mppi_authority_avoids_same_cycle_cpu_mppi_work():
+    source = Path(
+        "src/navigation/nav2_cuda_mppi_controller/src/"
+        "cuda_mppi_shadow_controller.cpp"
+    ).read_text(encoding="utf-8")
+
+    compute_method = source.index("CudaMppiShadowController::computeVelocityCommands(")
+    authority_branch = source.index("if (gpu_authority_enabled_) {", compute_method)
+    cpu_optimizer = source.index(
+        "nav2_mppi_controller::MPPIController::computeVelocityCommands(", compute_method
+    )
+    assert authority_branch < cpu_optimizer
+    assert "return computeGpuAuthority(robot_pose, robot_speed, goal_checker);" in source
+    assert "gpu_nominal_vx_ = gpu_result.control_vx;" in source
+    assert "savitskyGolayFilter(control_vx, gpu_vx_history_);" in source
+    assert "throw nav2_core::PlannerException" in source
 
 
 def test_nav_gps_waits_and_replans_when_dynamic_obstacles_block_mppi():

@@ -81,7 +81,8 @@ def test_goal_manager_recovers_only_a_short_verified_offroad_drift():
     assert '"DISABLING_LOCAL_KEEPOUT"' in text
     assert '"RESTORING_LOCAL_KEEPOUT"' in text
     assert '"road_keepout_filter.enabled"' in text
-    assert "AsyncParametersClient" in text
+    assert "SetParameters" in text
+    assert "create_client(" in text
     assert "ROAD_REJOIN_NO_ROAD_ENTRY" in text
     assert "self._publish_road_rejoin_active(False)" in text
 

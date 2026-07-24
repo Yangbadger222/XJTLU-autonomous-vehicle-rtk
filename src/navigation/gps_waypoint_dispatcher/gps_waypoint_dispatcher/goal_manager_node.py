@@ -9,11 +9,11 @@ from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import FollowPath
 from nav_msgs.msg import Odometry, Path as NavPath
+from rcl_interfaces.srv import SetParameters
 import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.parameter_client import AsyncParametersClient
 from rclpy.time import Time
 from std_msgs.msg import Bool, Empty, String
 from tf2_ros import Buffer, TransformException, TransformListener
@@ -176,9 +176,10 @@ class GPSGoalManager(Node):
         self.road_rejoin_pub = self.create_publisher(
             Bool, str(self.get_parameter("road_rejoin_active_topic").value), 10
         )
-        self.local_costmap_params = AsyncParametersClient(
-            self,
-            str(self.get_parameter("local_costmap_node").value),
+        local_costmap_node = str(self.get_parameter("local_costmap_node").value)
+        self.local_costmap_params = self.create_client(
+            SetParameters,
+            f"{local_costmap_node.rstrip('/')}/set_parameters",
         )
 
         self.create_subscription(
@@ -629,13 +630,15 @@ class GPSGoalManager(Node):
         if not self.local_costmap_params.wait_for_service(timeout_sec=0.0):
             return False
         try:
-            self.road_rejoin_parameter_future = self.local_costmap_params.set_parameters(
-                [
-                    Parameter(
-                        name=self.local_keepout_enabled_parameter,
-                        value=bool(enabled),
-                    )
-                ]
+            request = SetParameters.Request()
+            request.parameters = [
+                Parameter(
+                    name=self.local_keepout_enabled_parameter,
+                    value=bool(enabled),
+                ).to_parameter_msg()
+            ]
+            self.road_rejoin_parameter_future = self.local_costmap_params.call_async(
+                request
             )
             self.road_rejoin_parameter_operation = "ENABLE" if enabled else "DISABLE"
         except Exception as exc:
@@ -653,9 +656,10 @@ class GPSGoalManager(Node):
         self.road_rejoin_parameter_future = None
         self.road_rejoin_parameter_operation = None
         try:
-            results = future.result()
+            response = future.result()
         except Exception as exc:
             return operation, False, str(exc)
+        results = response.results if response is not None else []
         if self._parameter_results_successful(results):
             return operation, True, ""
         reasons = [str(getattr(result, "reason", "")) for result in results or []]

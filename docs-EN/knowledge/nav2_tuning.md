@@ -225,6 +225,25 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 This replaces only Rotation Shim's inner plugin with `CudaMppiShadowController`. That class still
 delegates its command to stock MPPI at `batch_size=200`; its GPU `4096x48` result is diagnostic
 only and is saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`.
+
+Existing pre-CUDA navigation bags can also validate the actual Orin GPU workload before a new
+field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,
+`/local_costmap/costmap`, `/gps_waypoint_dispatcher/path_map`, and `/cmd_vel_nav`; it sends no ROS
+commands and does not need `ros2 bag play`. It converts the published `OccupancyGrid` back from its
+0--100 representation to the CUDA backend's 0--254 cost range, reconstructs the local MPPI path
+at every costmap timestamp, and writes CPU/GPU command deltas plus GPU timing to CSV:
+
+```bash
+ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
+  ~/XJTLU-autonomous-vehicle/runtime-data/logs/2026-07-23-16-52-59/bag \\
+  --output /tmp/cb_gate_cuda_mppi.csv
+```
+
+The replay proves GPU timing and detects obvious collision/command disagreements, but it is not
+whole-controller parity: the historical bag does not contain the original `FollowPath` action
+input or GPU diagnostics, and the CUDA backend has not yet implemented every stock Nav2 critic.
+Its output is therefore an acceptance gate for continued shadow validation, never a reason by
+itself to activate GPU commands or raise production CPU `batch_size`.
 ## 2026-07-10 Corridor Authority Containment
 
 Corridor now separates local motion, global correction, and command authority. `rtk_map_odom_corrector` aligns stamped RTK observations with a 2 s `/fastlio2/lio_odom` history, requires five consistent Fixed samples, and releases correction in `map->base_footprint` space at at most `0.20 m/s` and `2 deg/s`. A NORMAL correction below the backlog thresholds retains motion authority while rate-limited until it converges. Only moderate backlog (`0.50-2.0 m` or `5-20 deg`) requires one second stopped before slow release; larger backlog latches `FAULT_HOLD`. This prevents valid 0.49 m or 4.9 deg corrections from repeatedly stopping the vehicle because of a fixed sample-count timeout.

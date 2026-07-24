@@ -221,6 +221,23 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 这只会将 Rotation Shim 内层替换为 `CudaMppiShadowController`。该类仍把实际命令委托给
 `batch_size=200` 的 stock MPPI；GPU 的 `4096x48` 结果仅用于诊断，并会写入普通 rosbag 的
 `/controller_server/FollowPath/cuda_shadow_diagnostics`。
+
+已有的、早于 CUDA 接入的导航 rosbag 也可先验证 Orin 上的真实 GPU 工作量，无需重新下楼。
+`mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、
+`/gps_waypoint_dispatcher/path_map` 和 `/cmd_vel_nav`，不会发布任何 ROS 控制命令，也不需要
+`ros2 bag play`。它会将发布出来的 `OccupancyGrid` 从 `0--100` 代价表示恢复成 CUDA backend 使用的
+`0--254`，在每个 costmap 时间戳重建 local MPPI path，并把 CPU/GPU 命令差和 GPU 耗时写入 CSV：
+
+```bash
+ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
+  ~/XJTLU-autonomous-vehicle/runtime-data/logs/2026-07-23-16-52-59/bag \\
+  --output /tmp/cb_gate_cuda_mppi.csv
+```
+
+该回放可以证明 GPU 耗时，并发现明显的碰撞/命令分歧，但不等于完整 controller 的同等性：历史 bag
+没有保存原始 `FollowPath` action 输入或 GPU 诊断，且 CUDA backend 仍未实现全部 stock Nav2 critic。
+所以输出只能作为继续 shadow 验证的准入条件，不能单独成为启用 GPU 命令或提高生产 CPU
+`batch_size` 的理由。
 ## 2026-07-10 Corridor Authority 收敛链
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。

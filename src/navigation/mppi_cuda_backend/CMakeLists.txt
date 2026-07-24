@@ -15,6 +15,15 @@ endif()
 
 enable_language(CUDA)
 find_package(CUDAToolkit REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/mppi_cuda_backend.cu
@@ -39,7 +48,22 @@ add_executable(mppi_cuda_benchmark src/mppi_cuda_benchmark.cpp)
 target_compile_features(mppi_cuda_benchmark PRIVATE cxx_std_17)
 target_link_libraries(mppi_cuda_benchmark PRIVATE ${PROJECT_NAME})
 
-install(TARGETS ${PROJECT_NAME} mppi_cuda_benchmark
+add_executable(mppi_cuda_bag_replay src/mppi_cuda_bag_replay.cpp)
+target_compile_features(mppi_cuda_bag_replay PRIVATE cxx_std_17)
+target_link_libraries(mppi_cuda_bag_replay PRIVATE ${PROJECT_NAME})
+ament_target_dependencies(mppi_cuda_bag_replay
+  geometry_msgs
+  nav_msgs
+  rclcpp
+  rosbag2_cpp
+  std_msgs
+  tf2
+  tf2_geometry_msgs
+  tf2_msgs
+  tf2_ros
+)
+
+install(TARGETS ${PROJECT_NAME} mppi_cuda_benchmark mppi_cuda_bag_replay
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

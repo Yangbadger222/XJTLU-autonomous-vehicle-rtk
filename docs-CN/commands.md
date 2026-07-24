@@ -554,6 +554,7 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
 - 当前 RTK-authority/A* 链默认不启动旧 `gps_anchor_localizer`，因为规划与运动许可均不依赖 anchor 或 `/gnss`；兼容实验可设置 `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true`。
 - 默认 lean bag 记录 RTK、FAST-LIO2 odom 与 degeneracy、`/rtk_fgo/*`、TF、authority mode/status/motion/speed-limit、goal 状态、三层速度和 `/plan`；200Hz Livox IMU、底盘 `/odom_CBoar`、local/global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。
+- 若要用历史 debug bag 对比 CUDA MPPI，而不启动 Nav2、也不发布任何控制命令，可运行 `ros2 run mppi_cuda_backend mppi_cuda_bag_replay <bag_path> --output /tmp/mppi_cuda.csv`。`2026-07-23-16-52-59` 的 `cb_gate` bag 已包含所需 TF、local costmap、A* path 与 `/cmd_vel_nav`。它只评估 shadow backend，不会启用 GPU 控制。
 - 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 
 ## 14. Fixed-Launch GPS Corridor

@@ -214,6 +214,17 @@ ros2 run mppi_cuda_backend mppi_cuda_benchmark
 The benchmark reports mean and P95 kernel-plus-transfer time for `1000x32`, `2048x32`,
 `4096x32`, and `4096x48`. The GPU controller integration may raise `batch_size` only when its P95
 remains safely below the 20 Hz controller budget and the shadow safety comparison passes.
+
+To exercise the integration without changing the actual controller command, launch nav-gps with:
+
+```bash
+FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
+  bash scripts/launch_with_logs.sh nav-gps
+```
+
+This replaces only Rotation Shim's inner plugin with `CudaMppiShadowController`. That class still
+delegates its command to stock MPPI at `batch_size=200`; its GPU `4096x48` result is diagnostic
+only and is saved in the normal bag at `/controller_server/FollowPath/cuda_shadow_diagnostics`.
 ## 2026-07-10 Corridor Authority Containment
 
 Corridor now separates local motion, global correction, and command authority. `rtk_map_odom_corrector` aligns stamped RTK observations with a 2 s `/fastlio2/lio_odom` history, requires five consistent Fixed samples, and releases correction in `map->base_footprint` space at at most `0.20 m/s` and `2 deg/s`. A NORMAL correction below the backlog thresholds retains motion authority while rate-limited until it converges. Only moderate backlog (`0.50-2.0 m` or `5-20 deg`) requires one second stopped before slow release; larger backlog latches `FAULT_HOLD`. This prevents valid 0.49 m or 4.9 deg corrections from repeatedly stopping the vehicle because of a fixed sample-count timeout.

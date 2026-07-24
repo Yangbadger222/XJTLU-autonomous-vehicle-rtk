@@ -117,6 +117,17 @@ def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
     assert "rtk_authoritative_max_linear_speed_mps: 1.5" in master_params
 
 
+def test_nav_gps_cuda_mppi_shadow_is_explicit_and_non_authoritative_by_default():
+    text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
+
+    assert '"FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"' in text
+    assert '"nav2_cuda_mppi_controller::CudaMppiShadowController"' in text
+    assert 'follow_path["cuda_shadow_batch_size"] = 4096' in text
+    assert 'follow_path["cuda_shadow_time_steps"] = 48' in text
+    assert '"/controller_server/FollowPath/cuda_shadow_diagnostics"' in text
+    assert 'follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"' in text
+
+
 def test_nav_gps_waits_and_replans_when_dynamic_obstacles_block_mppi():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
 

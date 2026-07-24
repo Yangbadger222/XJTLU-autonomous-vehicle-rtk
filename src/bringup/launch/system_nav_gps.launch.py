@@ -49,6 +49,7 @@ _NAV_GPS_BAG_BASE_TOPICS = [
     "/cmd_vel_nav",
     "/cmd_vel_guarded",
     "/plan",
+    "/controller_server/FollowPath/cuda_shadow_diagnostics",
 ]
 
 _NAV_GPS_BAG_DEBUG_TOPICS = [
@@ -73,7 +74,9 @@ def _nav_gps_bag_topics(profile):
     return topics
 
 
-def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
+def _make_nav_gps_rtk_nav2_params(
+    source_file, *, enable_road_keepout, enable_cuda_mppi_shadow
+):
     with open(source_file, "r", encoding="utf-8") as stream:
         data = yaml.safe_load(stream)
 
@@ -108,6 +111,23 @@ def _make_nav_gps_rtk_nav2_params(source_file, *, enable_road_keepout):
     follow_path["retry_attempt_limit"] = 3
     follow_path["open_loop"] = False
     follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"
+    if enable_cuda_mppi_shadow:
+        # This plugin subclasses the stock MPPI controller and returns its CPU
+        # command unchanged. CUDA evaluates a larger shadow batch for timing
+        # and safety-parity evidence only.
+        follow_path["primary_controller"] = (
+            "nav2_cuda_mppi_controller::CudaMppiShadowController"
+        )
+        follow_path["cuda_shadow_enabled"] = True
+        follow_path["cuda_shadow_batch_size"] = 4096
+        follow_path["cuda_shadow_time_steps"] = 48
+        follow_path["cuda_shadow_vx_std"] = 0.28
+        follow_path["cuda_shadow_wz_std"] = 0.22
+        follow_path["cuda_shadow_temperature"] = 0.45
+        follow_path["cuda_shadow_gamma"] = 0.015
+        follow_path["cuda_shadow_path_weight"] = 16.0
+        follow_path["cuda_shadow_goal_weight"] = 5.0
+        follow_path["cuda_shadow_lookahead_points"] = 6
     follow_path["plugin"] = (
         "nav2_rotation_shim_controller::RotationShimController"
     )
@@ -177,9 +197,13 @@ def generate_launch_description():
     pgo_nav_gps_override_file = os.path.join(bringup_share, "config", "pgo_corridor_no_gps.yaml")
     rtk_fgo_params_file = os.path.join(bringup_share, "config", "rtk_fgo.yaml")
     road_keepout_enabled = os.path.exists(default_road_keepout)
+    cuda_mppi_shadow_enabled = os.environ.get(
+        "FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"
+    ).strip().lower() in {"1", "true", "yes", "on"}
     nav_gps_rtk_nav2_params = _make_nav_gps_rtk_nav2_params(
         default_nav2_params,
         enable_road_keepout=road_keepout_enabled,
+        enable_cuda_mppi_shadow=cuda_mppi_shadow_enabled,
     )
     nav_gps_no_recovery_bt_xml = os.path.join(
         bringup_share,
@@ -462,6 +486,12 @@ def generate_launch_description():
                 )
             ),
             LogInfo(msg=f"Nav GPS bag profile: {bag_profile}"),
+            LogInfo(
+                msg=(
+                    "Nav GPS CUDA MPPI shadow: "
+                    + ("enabled" if cuda_mppi_shadow_enabled else "disabled")
+                )
+            ),
             LogInfo(
                 msg=[
                     "Nav GPS legacy anchor localizer: ",

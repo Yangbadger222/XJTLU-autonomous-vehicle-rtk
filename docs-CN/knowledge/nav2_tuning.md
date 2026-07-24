@@ -210,6 +210,17 @@ ros2 run mppi_cuda_backend mppi_cuda_benchmark
 benchmark 会输出 `1000x32`、`2048x32`、`4096x32` 和 `4096x48` 的平均与 P95 kernel+传输时间。
 只有 GPU controller 的 P95 仍明显低于 20 Hz 控制周期预算、且 shadow 安全对照通过，才允许提高
 生产 `batch_size`。
+
+要在不改变实际控制命令的前提下测试 Nav2 接入，使用：
+
+```bash
+FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
+  bash scripts/launch_with_logs.sh nav-gps
+```
+
+这只会将 Rotation Shim 内层替换为 `CudaMppiShadowController`。该类仍把实际命令委托给
+`batch_size=200` 的 stock MPPI；GPU 的 `4096x48` 结果仅用于诊断，并会写入普通 rosbag 的
+`/controller_server/FollowPath/cuda_shadow_diagnostics`。
 ## 2026-07-10 Corridor Authority 收敛链
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。

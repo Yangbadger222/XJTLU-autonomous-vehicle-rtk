@@ -226,7 +226,8 @@ FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
 `mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、
 `/gps_waypoint_dispatcher/path_map` 和 `/cmd_vel_nav`，不会发布任何 ROS 控制命令，也不需要
 `ros2 bag play`。它会将发布出来的 `OccupancyGrid` 从 `0--100` 代价表示恢复成 CUDA backend 使用的
-`0--254`，在每个 costmap 时间戳重建 local MPPI path，并把 CPU/GPU 命令差和 GPU 耗时写入 CSV：
+`0--254`，使用每个 costmap 记录时已可用的最新 TF 重建 local MPPI path，并把 CPU/GPU 命令差和 GPU
+耗时写入 CSV：
 
 ```bash
 ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\

@@ -271,10 +271,13 @@ std::optional<LocalPathInput> makeLocalPathInput(
   {
     return std::nullopt;
   }
-  const auto stamp = headerStamp(costmap.header);
   try {
+    // A recorded costmap normally trails its latest dynamic TF by one update
+    // period. Use the same latest-transform semantics as Costmap2DROS rather
+    // than requiring a future transform that a sequential bag reader has not
+    // seen yet.
     const auto local_from_base = tf_buffer.lookupTransform(
-      costmap.header.frame_id, kRobotBaseFrame, stamp, tf2::durationFromSec(0.0));
+      costmap.header.frame_id, kRobotBaseFrame, tf2::TimePointZero);
     geometry_msgs::msg::PoseStamped robot_local;
     robot_local.header.frame_id = costmap.header.frame_id;
     robot_local.header.stamp = costmap.header.stamp;
@@ -284,7 +287,7 @@ std::optional<LocalPathInput> makeLocalPathInput(
     robot_local.pose.orientation = local_from_base.transform.rotation;
 
     const auto path_from_local = tf_buffer.lookupTransform(
-      path_state.path.header.frame_id, costmap.header.frame_id, stamp, tf2::durationFromSec(0.0));
+      path_state.path.header.frame_id, costmap.header.frame_id, tf2::TimePointZero);
     geometry_msgs::msg::PoseStamped robot_path;
     tf2::doTransform(robot_local, robot_path, path_from_local);
 
@@ -307,7 +310,7 @@ std::optional<LocalPathInput> makeLocalPathInput(
     path_state.prune_index = closest;
 
     const auto local_from_path = tf_buffer.lookupTransform(
-      costmap.header.frame_id, path_state.path.header.frame_id, stamp, tf2::durationFromSec(0.0));
+      costmap.header.frame_id, path_state.path.header.frame_id, tf2::TimePointZero);
     const std::size_t local_end = integratedDistanceEnd(
       path_state.path, closest, options.prune_distance_m);
     std::vector<geometry_msgs::msg::PoseStamped> local_poses;
@@ -386,9 +389,6 @@ int main(int argc, char ** argv)
     rclcpp::init(argc, argv);
     auto clock = std::make_shared<rclcpp::Clock>(RCL_ROS_TIME);
     tf2_ros::Buffer tf_buffer(clock, tf2::durationFromSec(30.0));
-    // TF is inserted synchronously from the bag before each lookup. Humble's
-    // wrapper otherwise rejects even zero-timeout lookups without this flag.
-    tf_buffer.setUsingDedicatedThread(true);
     rosbag2_cpp::Reader reader;
     rosbag2_storage::StorageOptions storage_options;
     storage_options.uri = options.bag_path;

@@ -231,7 +231,8 @@ field session. `mppi_cuda_bag_replay` reads only the recorded `/tf`,
 `/local_costmap/costmap`, `/gps_waypoint_dispatcher/path_map`, and `/cmd_vel_nav`; it sends no ROS
 commands and does not need `ros2 bag play`. It converts the published `OccupancyGrid` back from its
 0--100 representation to the CUDA backend's 0--254 cost range, reconstructs the local MPPI path
-at every costmap timestamp, and writes CPU/GPU command deltas plus GPU timing to CSV:
+using the latest TF available when each costmap was recorded, and writes CPU/GPU command deltas
+plus GPU timing to CSV:
 
 ```bash
 ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\

@@ -372,6 +372,8 @@ def generate_launch_description():
                 "scene_points_file": scene_points_file,
                 "require_nav_ready": False,
                 "path_density_m": 0.35,
+                "route_snap_candidate_count": 8,
+                "route_snap_candidate_distance_slack_m": 1.0,
                 "blocked_retry_delay_s": 2.0,
                 "blocked_wait_timeout_s": 60.0,
                 "blocked_recovery_confirmation_s": 3.0,

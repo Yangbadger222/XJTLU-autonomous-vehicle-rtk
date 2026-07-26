@@ -57,6 +57,8 @@ class GPSGoalManager(Node):
         self.declare_parameter("controller_id", "FollowPath")
         self.declare_parameter("goal_checker_id", "general_goal_checker")
         self.declare_parameter("max_route_snap_distance_m", 8.0)
+        self.declare_parameter("route_snap_candidate_count", 8)
+        self.declare_parameter("route_snap_candidate_distance_slack_m", 1.0)
         self.declare_parameter("path_density_m", 0.20)
         self.declare_parameter("goal_success_tolerance_m", 1.0)
         self.declare_parameter("goal_pose_topic", "/goal_pose")
@@ -101,6 +103,12 @@ class GPSGoalManager(Node):
         self.goal_checker_id = str(self.get_parameter("goal_checker_id").value)
         self.max_route_snap_distance_m = float(
             self.get_parameter("max_route_snap_distance_m").value
+        )
+        self.route_snap_candidate_count = int(
+            self.get_parameter("route_snap_candidate_count").value
+        )
+        self.route_snap_candidate_distance_slack_m = float(
+            self.get_parameter("route_snap_candidate_distance_slack_m").value
         )
         self.path_density_m = float(self.get_parameter("path_density_m").value)
         self.goal_success_tolerance_m = float(
@@ -503,6 +511,10 @@ class GPSGoalManager(Node):
                 start_xy,
                 self.requested_goal_xy,
                 max_snap_distance_m=self.max_route_snap_distance_m,
+                snap_candidate_count=self.route_snap_candidate_count,
+                snap_candidate_distance_slack_m=(
+                    self.route_snap_candidate_distance_slack_m
+                ),
             )
         except RoutePlanningError as exc:
             self._finish_failure(f"astar_failed={exc}")

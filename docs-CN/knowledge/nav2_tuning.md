@@ -172,7 +172,7 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - nav-gps local costmap 保持 `8Hz` 障碍更新、降到 `2Hz` 对外发布；global costmap 为 `2Hz/1Hz`。在 `1.5m/s` 满速下，8Hz 约每 0.19m 更新一次障碍，同时减少 costmap 序列化和 DDS 开销。
 - global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
-- goal manager 将当前位置和终点投影到最近 graph edge，插入虚拟端点后执行欧氏启发式 A*；不再调用 route server 的 Dijkstra，也不依赖少数 anchor。
+- goal manager 将当前位置和终点投影到离最近道路不超过 `1.0m` 的至多 `8` 条 graph edge 候选，插入虚拟端点后执行欧氏启发式 A*，并选择“起终点吸附距离加图路径距离”最短的组合。这样在路口或相邻道路旁不会因单条几何最近边的微小差异被强制绕远；候选仍受最近道路窗口限制，不会跳到远处平行道路抄近路。
 - QGIS 道路 Polygon 编译为 local/global costmap 的 KeepoutFilter；MPPI 继续使用高窗点云在道路内部避障。
 - 小幅定位误差使车辆落在 QGIS Polygon 外时，不再立即让 local MPPI 的全部轨迹不可行。goal manager 读取同一份编译 PGM，只有验证 graph edge 回归点在道路内且当前位置离道路不超过 `1.0m` 时，才执行 `ROAD_REJOIN`：仅临时关闭 local filter，guard 强制线速度不高于 `0.35m/s`。global filter、障碍点云、RTK authority 与 stop heartbeat 从不放宽；成功回到道路后还会用 PGM 验证，再恢复 local filter 和重新规划。任何不确定情况都停车，不横穿未知的道路外区域。
 - 当前 Humble MPPI 在全部候选轨迹碰撞时抛出 `std::runtime_error`，绕过 controller server 只捕获 `PlannerException` 的 `failure_tolerance`。nav-gps 因此在 goal manager 层处理 abort：保持零速和原目的地，每 2 秒重新 A*，连续实际运动 3 秒确认恢复，60 秒仍阻塞才失败。

@@ -40,6 +40,29 @@ def test_astar_uses_direct_connection_when_both_projections_share_edge():
     assert math.isclose(plan.graph_cost_m, 6.0)
 
 
+def test_astar_selects_the_shorter_route_across_nearby_snap_edges():
+    planner = RouteGraphPlanner(
+        {
+            1: {"x": 0.0, "y": 0.0},
+            2: {"x": 100.0, "y": 0.0},
+            3: {"x": 0.0, "y": 10.0},
+            4: {"x": 100.0, "y": 10.0},
+        },
+        [[1, 2], [1, 3], [3, 4]],
+    )
+
+    # The bottom edge is 0.2m closer to the start point, but reaching the
+    # upper road through the only connector would add more than 100m.
+    plan = planner.plan((50.0, 4.9), (90.0, 10.0), max_snap_distance_m=6.0)
+
+    assert plan.graph_node_ids == (
+        RouteGraphPlanner.START_ID,
+        RouteGraphPlanner.GOAL_ID,
+    )
+    assert math.isclose(plan.graph_cost_m, 40.0)
+    assert math.isclose(plan.start_snap_distance_m, 5.1)
+
+
 def test_astar_rejects_pose_too_far_from_network():
     with pytest.raises(RoutePlanningError, match="start is"):
         _planner().plan((2.0, 20.0), (8.0, 0.0), max_snap_distance_m=2.0)

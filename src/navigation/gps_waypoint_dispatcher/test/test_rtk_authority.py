@@ -1103,6 +1103,46 @@ def test_correction_release_duplicate_keeps_moving_reacquire_authority():
     assert duplicate.motion_allowed is True
 
 
+def test_correction_release_duplicate_does_not_resume_after_new_stopped_sample():
+    state = CorrectionReleaseState(allow_moving_backlog_release=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.1,
+    )
+
+    stopped = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.2,
+        lio_stamp_s=1.2,
+        local_linear_rate_mps=0.0,
+        local_yaw_rate_radps=0.0,
+    )
+    duplicate = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.3,
+        lio_stamp_s=1.2,
+        local_linear_rate_mps=0.0,
+        local_yaw_rate_radps=0.0,
+    )
+
+    assert stopped.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert stopped.reason is CorrectionReleaseReason.STOP_CONFIRMATION_PENDING
+    assert not stopped.motion_allowed
+    assert duplicate.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert not duplicate.motion_allowed
+
+
 def test_correction_release_duplicate_backlog_stops_without_moving_reacquire():
     state = CorrectionReleaseState(allow_moving_backlog_release=False)
     previous = _pose()

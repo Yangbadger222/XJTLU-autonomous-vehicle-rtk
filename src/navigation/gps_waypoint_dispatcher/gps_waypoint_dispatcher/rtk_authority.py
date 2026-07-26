@@ -898,6 +898,7 @@ class CorrectionReleaseState:
         self._fault_latched = False
         self._stopped_since_s: float | None = None
         self._recovery_since_s: float | None = None
+        self._moving_reacquire_active = False
         identity = Pose2D(x=0.0, y=0.0, yaw=0.0)
         self._last_finite_output_map_odom = identity
         self._last_finite_output_map_base = identity
@@ -994,6 +995,7 @@ class CorrectionReleaseState:
         if self._fault_latched:
             self._stopped_since_s = None
             self._recovery_since_s = None
+            self._moving_reacquire_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1007,6 +1009,7 @@ class CorrectionReleaseState:
         if not math.isfinite(now_s):
             self._stopped_since_s = None
             self._recovery_since_s = None
+            self._moving_reacquire_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1018,6 +1021,7 @@ class CorrectionReleaseState:
             )
 
         if self._heading_jump_hold:
+            self._moving_reacquire_active = False
             heading_recovered = gates_locked and gap_yaw_rad < self.recovery_yaw_rad
             if not heading_recovered:
                 self._recovery_since_s = None
@@ -1075,6 +1079,7 @@ class CorrectionReleaseState:
         ):
             self._stopped_since_s = None
             self._recovery_since_s = None
+            self._moving_reacquire_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1093,7 +1098,7 @@ class CorrectionReleaseState:
             # alive at its reduced speed until the next distinct LIO sample.
             duplicate_reacquire = (
                 active_mode is CorrectionReleaseMode.CORRECTION_BACKLOG
-                and self.allow_moving_backlog_release
+                and self._moving_reacquire_active
             )
             return self._frozen_result(
                 previous_output_map_odom,
@@ -1158,6 +1163,7 @@ class CorrectionReleaseState:
                 if not self.allow_moving_backlog_release:
                     self._stopped_since_s = None
                     self._recovery_since_s = None
+                    self._moving_reacquire_active = False
                     return self._frozen_result(
                         previous_output_map_odom,
                         previous_map_base,
@@ -1171,6 +1177,7 @@ class CorrectionReleaseState:
                 self._stopped_since_s = None
 
             if not moving_reacquire:
+                self._moving_reacquire_active = False
                 if self._stopped_since_s is None:
                     self._stopped_since_s = now_s
                 stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
@@ -1198,6 +1205,8 @@ class CorrectionReleaseState:
                 stopped_duration_s = 0.0
         else:
             stopped_duration_s = 0.0
+
+        self._moving_reacquire_active = moving_reacquire
 
         try:
             translation_rate_mps = (

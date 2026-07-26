@@ -15,6 +15,12 @@ TEST(NtripResponse, WaitsForIcyLineTerminator)
   EXPECT_EQ(evaluateNtripResponse("ICY 200"), NtripResponseState::NeedMore);
 }
 
+TEST(NtripResponse, WaitsForFragmentedHttpStatusLine)
+{
+  EXPECT_EQ(evaluateNtripResponse("HTTP/"), NtripResponseState::NeedMore);
+  EXPECT_EQ(evaluateNtripResponse("HTTP/1.1 2"), NtripResponseState::NeedMore);
+}
+
 TEST(NtripResponse, AcceptsHttp200Header)
 {
   EXPECT_EQ(

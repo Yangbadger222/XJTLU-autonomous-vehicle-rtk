@@ -8,6 +8,8 @@ This prevents a positionally valid q=4 solution from becoming a navigation fault
 
 The RTK authority therefore separates heading and translation hard faults. A translation gap above `2.0 m` remains permanently fail-closed. A yaw gap above `20 deg` now freezes the last trusted transform with `HEADING_JUMP_HOLD`, revokes motion authority, and waits for the normal recovery yaw window continuously for `recovery_confirmation_s`. Stable input returns the state to normal automatically; an operator does not need to relaunch navigation after one rejected heading source transition.
 
+For the outdoor RTK profile, a correction backlog between the normal release threshold (`0.50 m` / `5 deg`) and the hard fault boundary no longer uses instantaneous FAST-LIO speed as a stop/go decision. While both RTK gates remain locked, it continues at the existing `0.35 m/s` reacquire cap and releases `map -> odom` through the same rate limiter. This prevents low-speed FAST-LIO noise around `0.05 m/s` from repeatedly clearing `/cmd_vel`; non-Fixed RTK, stale local odometry, a heading jump, and the hard boundaries still stop the vehicle.
+
 ## Nav-GPS 1.2 m/s Linear Limit (2026-07-24)
 
 The Nav-GPS linear-speed ceiling is `1.2 m/s` in the standard MPPI profile,

@@ -8,6 +8,8 @@ RTK 驱动将 `THS`、`HPR` 和 `UNIHEADING` 视为相互竞争的航向源，�
 
 RTK authority 因此区分航向与平移硬故障。平移间隙超过 `2.0m` 仍永久 fail-closed；航向间隙超过 `20deg` 则以 `HEADING_JUMP_HOLD` 冻结最后可信 TF、撤销运动权限，并等待正常恢复航向窗口持续 `recovery_confirmation_s`。输入稳定后会自动回到正常状态，单次航向源异常不再要求重新启动导航。
 
+户外 RTK profile 中，处于正常慢释放阈值（`0.50 m` / `5 deg`）和硬故障边界之间的 correction backlog，不再使用 FAST-LIO 的瞬时速度决定停车或放行。只要两个 RTK gate 仍锁定，就保持现有 `0.35 m/s` 重捕获限速，并通过同一套速率限制器连续释放 `map -> odom`。这样 FAST-LIO 在 `0.05 m/s` 附近的低速噪声不会反复清零 `/cmd_vel`；RTK 非 Fixed、局部里程计过期、航向跳变和硬故障边界仍会停车。
+
 ## Nav-GPS 线速度上限 1.2 m/s（2026-07-24）
 
 Nav-GPS 的标准 MPPI 配置、CUDA authority 配置、`velocity_smoother`、底盘命令

@@ -174,6 +174,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("local_bridge_max_linear_speed_mps", 0.35)
         self.declare_parameter("rtk_reacquire_max_linear_speed_mps", 0.35)
         self.declare_parameter("allow_moving_backlog_release", True)
+        self.declare_parameter("allow_bounded_backlog_motion", False)
         self.declare_parameter("moving_reacquire_translation_rate_mps", 0.05)
         self.declare_parameter("moving_reacquire_yaw_rate_degps", 0.5)
 
@@ -354,6 +355,9 @@ class RtkMapOdomCorrector(Node):
             ),
             allow_moving_backlog_release=bool(
                 self.get_parameter("allow_moving_backlog_release").value
+            ),
+            allow_bounded_backlog_motion=bool(
+                self.get_parameter("allow_bounded_backlog_motion").value
             ),
             moving_reacquire_translation_rate_mps=float(
                 self.get_parameter("moving_reacquire_translation_rate_mps").value

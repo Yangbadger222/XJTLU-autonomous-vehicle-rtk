@@ -368,6 +368,7 @@ class CorrectionReleaseReason(Enum):
     INVALID_PROCESS_TIME = "INVALID_PROCESS_TIME"
     MOVING_BACKLOG_HOLD = "MOVING_BACKLOG_HOLD"
     MOVING_REACQUIRE = "MOVING_REACQUIRE"
+    BOUNDED_BACKLOG_RELEASE = "BOUNDED_BACKLOG_RELEASE"
     STOP_CONFIRMATION_PENDING = "STOP_CONFIRMATION_PENDING"
     RELEASING_BACKLOG = "RELEASING_BACKLOG"
     HEADING_JUMP_HOLD = "HEADING_JUMP_HOLD"
@@ -868,6 +869,7 @@ class CorrectionReleaseState:
         recovery_yaw_rad: float = math.radians(2.0),
         recovery_confirmation_s: float = 1.0,
         allow_moving_backlog_release: bool = False,
+        allow_bounded_backlog_motion: bool = False,
         moving_reacquire_translation_rate_mps: float = 0.05,
         moving_reacquire_yaw_rate_radps: float = math.radians(0.5),
     ) -> None:
@@ -886,6 +888,7 @@ class CorrectionReleaseState:
         self.recovery_yaw_rad = recovery_yaw_rad
         self.recovery_confirmation_s = recovery_confirmation_s
         self.allow_moving_backlog_release = bool(allow_moving_backlog_release)
+        self.allow_bounded_backlog_motion = bool(allow_bounded_backlog_motion)
         self.moving_reacquire_translation_rate_mps = (
             moving_reacquire_translation_rate_mps
         )
@@ -899,6 +902,7 @@ class CorrectionReleaseState:
         self._stopped_since_s: float | None = None
         self._recovery_since_s: float | None = None
         self._moving_reacquire_active = False
+        self._backlog_motion_active = False
         identity = Pose2D(x=0.0, y=0.0, yaw=0.0)
         self._last_finite_output_map_odom = identity
         self._last_finite_output_map_base = identity
@@ -996,6 +1000,7 @@ class CorrectionReleaseState:
             self._stopped_since_s = None
             self._recovery_since_s = None
             self._moving_reacquire_active = False
+            self._backlog_motion_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1010,6 +1015,7 @@ class CorrectionReleaseState:
             self._stopped_since_s = None
             self._recovery_since_s = None
             self._moving_reacquire_active = False
+            self._backlog_motion_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1022,6 +1028,7 @@ class CorrectionReleaseState:
 
         if self._heading_jump_hold:
             self._moving_reacquire_active = False
+            self._backlog_motion_active = False
             heading_recovered = gates_locked and gap_yaw_rad < self.recovery_yaw_rad
             if not heading_recovered:
                 self._recovery_since_s = None
@@ -1080,6 +1087,7 @@ class CorrectionReleaseState:
             self._stopped_since_s = None
             self._recovery_since_s = None
             self._moving_reacquire_active = False
+            self._backlog_motion_active = False
             return self._frozen_result(
                 previous_output_map_odom,
                 previous_map_base,
@@ -1094,11 +1102,11 @@ class CorrectionReleaseState:
             active_mode = self._active_mode()
             # The authority heartbeat can run slightly faster than FAST-LIO.
             # A fresh duplicate is therefore a scheduling gap, not evidence that
-            # RTK or local odometry became unsafe. Keep a moving RTK reacquire
-            # alive at its reduced speed until the next distinct LIO sample.
+            # RTK or local odometry became unsafe. Keep a permitted bounded RTK
+            # backlog release alive until the next distinct LIO sample.
             duplicate_reacquire = (
                 active_mode is CorrectionReleaseMode.CORRECTION_BACKLOG
-                and self._moving_reacquire_active
+                and self._backlog_motion_active
             )
             return self._frozen_result(
                 previous_output_map_odom,
@@ -1154,16 +1162,21 @@ class CorrectionReleaseState:
         self._last_now_s = now_s
         dt_s = min(elapsed_s, self.max_dt_s)
         moving_reacquire = False
+        bounded_backlog_motion = False
         if self._backlog_active:
             stopped = (
                 abs(local_linear_rate_mps) < self.stopped_linear_rate_mps
                 and abs(local_yaw_rate_radps) < self.stopped_yaw_rate_radps
             )
             if not stopped:
-                if not self.allow_moving_backlog_release:
+                if not (
+                    self.allow_moving_backlog_release
+                    or self.allow_bounded_backlog_motion
+                ):
                     self._stopped_since_s = None
                     self._recovery_since_s = None
                     self._moving_reacquire_active = False
+                    self._backlog_motion_active = False
                     return self._frozen_result(
                         previous_output_map_odom,
                         previous_map_base,
@@ -1177,36 +1190,53 @@ class CorrectionReleaseState:
                 self._stopped_since_s = None
 
             if not moving_reacquire:
-                self._moving_reacquire_active = False
-                if self._stopped_since_s is None:
-                    self._stopped_since_s = now_s
-                stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
-                stopped_epsilon_s = _time_comparison_epsilon_s(
-                    self._stopped_since_s,
-                    now_s,
-                    self._stopped_since_s + self.stopped_confirmation_s,
+                bounded_backlog_motion = (
+                    self.allow_bounded_backlog_motion and gates_locked
                 )
-                if (
-                    stopped_duration_s + stopped_epsilon_s
-                    < self.stopped_confirmation_s
-                ):
+                if bounded_backlog_motion:
+                    # RTK gates remain locked and the correction is below the
+                    # hard fault boundary. FAST-LIO speed is too noisy to be a
+                    # motion-permission switch in this state, so keep Nav2
+                    # moving at the caller's reacquire speed limit while the
+                    # transform is still rate-limited below.
+                    self._stopped_since_s = None
                     self._recovery_since_s = None
-                    return self._frozen_result(
-                        previous_output_map_odom,
-                        previous_map_base,
-                        target_map_base,
-                        CorrectionReleaseReason.STOP_CONFIRMATION_PENDING,
-                        gap_m,
-                        gap_yaw_rad,
-                        mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
-                        stopped_duration_s=stopped_duration_s,
+                    stopped_duration_s = 0.0
+                else:
+                    self._moving_reacquire_active = False
+                    self._backlog_motion_active = False
+                    if self._stopped_since_s is None:
+                        self._stopped_since_s = now_s
+                    stopped_duration_s = max(0.0, now_s - self._stopped_since_s)
+                    stopped_epsilon_s = _time_comparison_epsilon_s(
+                        self._stopped_since_s,
+                        now_s,
+                        self._stopped_since_s + self.stopped_confirmation_s,
                     )
+                    if (
+                        stopped_duration_s + stopped_epsilon_s
+                        < self.stopped_confirmation_s
+                    ):
+                        self._recovery_since_s = None
+                        return self._frozen_result(
+                            previous_output_map_odom,
+                            previous_map_base,
+                            target_map_base,
+                            CorrectionReleaseReason.STOP_CONFIRMATION_PENDING,
+                            gap_m,
+                            gap_yaw_rad,
+                            mode=CorrectionReleaseMode.CORRECTION_BACKLOG,
+                            stopped_duration_s=stopped_duration_s,
+                        )
             else:
                 stopped_duration_s = 0.0
         else:
             stopped_duration_s = 0.0
 
         self._moving_reacquire_active = moving_reacquire
+        self._backlog_motion_active = (
+            self._backlog_active and (moving_reacquire or bounded_backlog_motion)
+        )
 
         try:
             translation_rate_mps = (
@@ -1283,6 +1313,7 @@ class CorrectionReleaseState:
                     self._backlog_active = False
                     self._stopped_since_s = None
                     self._recovery_since_s = None
+                    self._backlog_motion_active = False
 
         return CorrectionReleaseResult(
             output_map_odom=output_map_odom,
@@ -1290,7 +1321,7 @@ class CorrectionReleaseState:
             target_map_base=target_map_base,
             mode=(
                 CorrectionReleaseMode.RTK_REACQUIRING
-                if self._backlog_active and moving_reacquire
+                if self._backlog_active and self._backlog_motion_active
                 else (
                     CorrectionReleaseMode.CORRECTION_BACKLOG
                     if self._backlog_active
@@ -1301,13 +1332,17 @@ class CorrectionReleaseState:
                 CorrectionReleaseReason.MOVING_REACQUIRE
                 if self._backlog_active and moving_reacquire
                 else (
-                    CorrectionReleaseReason.RELEASING_BACKLOG
-                    if self._backlog_active
-                    else None
+                    CorrectionReleaseReason.BOUNDED_BACKLOG_RELEASE
+                    if self._backlog_active and bounded_backlog_motion
+                    else (
+                        CorrectionReleaseReason.RELEASING_BACKLOG
+                        if self._backlog_active
+                        else None
+                    )
                 )
             ),
             motion_allowed=gates_locked and (
-                not self._backlog_active or moving_reacquire
+                not self._backlog_active or self._backlog_motion_active
             ),
             dt_s=dt_s,
             translation_gap_m=output_gap_m,

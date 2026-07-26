@@ -279,6 +279,9 @@
     recovery_confirmation_s: 1.0
     # RTK 重捕获后以更低的地图校正速率连续回归，不要求 Nav2 停车。
     allow_moving_backlog_release: true
+    # FAST-LIO 瞬时速度在低速时会跨过 stopped 阈值。只要 RTK 两个 gate
+    # 仍锁定且修正未越过硬故障边界，保持低速连续释放而不是 stop-go。
+    allow_bounded_backlog_motion: true
     moving_reacquire_translation_rate_mps: 0.05
     moving_reacquire_yaw_rate_degps: 0.5
     # RTK 是 map->odom 的唯一运动 authority。门控不通过时冻结最后可信

@@ -36,6 +36,7 @@ ROAD_KEEPOUT_YAML = CURRENT_SCENE_DIR / "road_keepout.yaml"
 ROAD_KEEPOUT_IMAGE = CURRENT_SCENE_DIR / "road_keepout.pgm"
 ENGLISH_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 EARTH_RADIUS_M = 6378137.0
+ROUTE_INTERSECTION_EPSILON = 1e-9
 
 
 class LocalENUProjector:
@@ -99,6 +100,123 @@ def latlon_to_enu(
     return float(x), float(y), float(z)
 
 
+def _segment_intersection(
+    a: tuple[float, float],
+    b: tuple[float, float],
+    c: tuple[float, float],
+    d: tuple[float, float],
+) -> tuple[float, float, tuple[float, float]] | None:
+    """Return a proper segment crossing, excluding shared endpoints."""
+
+    ab_x, ab_y = b[0] - a[0], b[1] - a[1]
+    cd_x, cd_y = d[0] - c[0], d[1] - c[1]
+    denominator = ab_x * cd_y - ab_y * cd_x
+    if abs(denominator) <= ROUTE_INTERSECTION_EPSILON:
+        return None
+
+    ac_x, ac_y = c[0] - a[0], c[1] - a[1]
+    first_ratio = (ac_x * cd_y - ac_y * cd_x) / denominator
+    second_ratio = (ac_x * ab_y - ac_y * ab_x) / denominator
+    if not (
+        ROUTE_INTERSECTION_EPSILON < first_ratio < 1.0 - ROUTE_INTERSECTION_EPSILON
+        and ROUTE_INTERSECTION_EPSILON < second_ratio < 1.0 - ROUTE_INTERSECTION_EPSILON
+    ):
+        return None
+
+    return (
+        first_ratio,
+        second_ratio,
+        (a[0] + first_ratio * ab_x, a[1] + first_ratio * ab_y),
+    )
+
+
+def split_route_intersections(
+    nodes: dict[int, dict], edges: list[list[int]]
+) -> tuple[list[list[int]], int]:
+    """Insert graph nodes where two route segments properly cross.
+
+    Scene bundles often originate from separate QGIS LineStrings. A visual
+    crossing is not a graph connection unless it has an explicit shared node.
+    Resolving proper crossings at runtime keeps legacy bundles traversable
+    without changing their road geometry.
+    """
+
+    normalized_edges = [tuple(sorted((int(a), int(b)))) for a, b in edges]
+    normalized_edges = sorted(set(normalized_edges))
+    split_points: dict[tuple[int, int], list[tuple[float, int]]] = {
+        edge: [(0.0, edge[0]), (1.0, edge[1])] for edge in normalized_edges
+    }
+    intersection_ids: dict[tuple[float, float], int] = {}
+    used_names = {str(node["name"]).lower() for node in nodes.values()}
+    next_id = max(nodes) + 1
+
+    for index, first_edge in enumerate(normalized_edges):
+        first_start, first_end = first_edge
+        first_a = (float(nodes[first_start]["lon"]), float(nodes[first_start]["lat"]))
+        first_b = (float(nodes[first_end]["lon"]), float(nodes[first_end]["lat"]))
+        for second_edge in normalized_edges[index + 1 :]:
+            if set(first_edge) & set(second_edge):
+                continue
+            second_start, second_end = second_edge
+            second_a = (
+                float(nodes[second_start]["lon"]),
+                float(nodes[second_start]["lat"]),
+            )
+            second_b = (
+                float(nodes[second_end]["lon"]),
+                float(nodes[second_end]["lat"]),
+            )
+            crossing = _segment_intersection(first_a, first_b, second_a, second_b)
+            if crossing is None:
+                continue
+
+            first_ratio, second_ratio, point = crossing
+            key = (round(point[0], 9), round(point[1], 9))
+            node_id = intersection_ids.get(key)
+            if node_id is None:
+                name = f"intersection_{next_id}"
+                suffix = 2
+                while name.lower() in used_names:
+                    name = f"intersection_{next_id}_{suffix}"
+                    suffix += 1
+                used_names.add(name.lower())
+                first_alt = float(nodes[first_start]["alt"])
+                second_alt = float(nodes[first_end]["alt"])
+                node_id = next_id
+                next_id += 1
+                intersection_ids[key] = node_id
+                nodes[node_id] = {
+                    "id": node_id,
+                    "name": name,
+                    "lat": point[1],
+                    "lon": point[0],
+                    "alt": first_alt + first_ratio * (second_alt - first_alt),
+                    "anchor": True,
+                    "dest": False,
+                    "samples": 0,
+                    "spread_m": 0.0,
+                    "source": "route_intersection",
+                    "time": "",
+                }
+            split_points[first_edge].append((first_ratio, node_id))
+            split_points[second_edge].append((second_ratio, node_id))
+
+    if not intersection_ids:
+        return [list(edge) for edge in normalized_edges], 0
+
+    expanded_edges: set[tuple[int, int]] = set()
+    for edge in normalized_edges:
+        ordered = sorted(split_points[edge], key=lambda item: item[0])
+        ordered_ids: list[int] = []
+        for _, node_id in ordered:
+            if not ordered_ids or ordered_ids[-1] != node_id:
+                ordered_ids.append(node_id)
+        for start_id, end_id in zip(ordered_ids, ordered_ids[1:]):
+            if start_id != end_id:
+                expanded_edges.add(tuple(sorted((start_id, end_id))))
+    return [list(edge) for edge in sorted(expanded_edges)], len(intersection_ids)
+
+
 def sanitize_bundle(raw_bundle: dict) -> tuple[dict[int, dict], list[list[int]], dict]:
     raw_nodes = raw_bundle.get("nodes", {})
     if not isinstance(raw_nodes, dict) or not raw_nodes:
@@ -159,6 +277,8 @@ def sanitize_bundle(raw_bundle: dict) -> tuple[dict[int, dict], list[list[int]],
         seen_edges.add(normalized)
         edges.append([normalized[0], normalized[1]])
 
+    edges, intersection_node_count = split_route_intersections(nodes, edges)
+
     origin_id = raw_bundle.get("fixed_origin_node_id")
     if origin_id is None:
         raise ValueError("scene bundle is missing fixed_origin_node_id")
@@ -178,6 +298,7 @@ def sanitize_bundle(raw_bundle: dict) -> tuple[dict[int, dict], list[list[int]],
         "origin_id": origin_id,
         "anchor_ids": anchors,
         "destination_ids": destinations,
+        "intersection_node_count": intersection_node_count,
     }
 
 
@@ -428,6 +549,7 @@ def main() -> None:
     print(f"  anchors:      {len(scene_points['anchor_ids'])}")
     print(f"  destinations: {len(scene_points['destination_ids'])}")
     print(f"  edges:        {len(scene_points['edges'])}")
+    print(f"  intersections:{meta['intersection_node_count']}")
     print(f"  road_keepout: {keepout_yaml if keepout_yaml else 'not configured'}")
 
 

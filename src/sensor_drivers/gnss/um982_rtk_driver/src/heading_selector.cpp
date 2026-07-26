@@ -218,8 +218,9 @@ bool HeadingSelector::observeStablePrimaryRecoveryCandidate(
   if (!recovery_candidate_heading_deg_.has_value() ||
     !recovery_candidate_s_.has_value() ||
     received_s <= *recovery_candidate_s_ ||
-    std::abs(signedHeadingDeltaDeg(
-      heading_deg, *recovery_candidate_heading_deg_)) > config_.recovery_max_step_deg)
+    std::abs(
+      signedHeadingDeltaDeg(
+        heading_deg, *recovery_candidate_heading_deg_)) > config_.recovery_max_step_deg)
   {
     recovery_candidate_heading_deg_ = heading_deg;
     recovery_candidate_s_ = received_s;

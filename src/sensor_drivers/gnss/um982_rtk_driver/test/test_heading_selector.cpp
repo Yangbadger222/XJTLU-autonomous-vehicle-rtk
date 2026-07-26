@@ -55,6 +55,40 @@ TEST(HeadingSelector, RejectsNonPhysicalJumpFromActiveSource)
   EXPECT_NEAR(stable.heading_deg, 22.0, 1e-9);
 }
 
+TEST(HeadingSelector, RecoversStablePrimaryHeadingAfterDiscontinuity)
+{
+  HeadingSelectorConfig config;
+  config.recovery_min_samples = 3;
+  config.recovery_max_step_deg = 7.5;
+  HeadingSelector selector(config);
+
+  EXPECT_TRUE(selector.observe(HeadingSource::UNIHEADING, 0.0, 0.0).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 178.0, 0.5).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 183.0, 1.0).publish);
+  const auto recovered = selector.observe(HeadingSource::UNIHEADING, 186.0, 1.5);
+
+  EXPECT_TRUE(recovered.publish);
+  EXPECT_TRUE(recovered.continuity_recovered);
+  EXPECT_NEAR(recovered.heading_deg, 186.0, 1e-9);
+  ASSERT_TRUE(selector.activeSource().has_value());
+  EXPECT_EQ(*selector.activeSource(), HeadingSource::UNIHEADING);
+}
+
+TEST(HeadingSelector, DoesNotRecoverInconsistentPrimaryHeading)
+{
+  HeadingSelectorConfig config;
+  config.recovery_min_samples = 3;
+  config.recovery_max_step_deg = 7.5;
+  HeadingSelector selector(config);
+
+  EXPECT_TRUE(selector.observe(HeadingSource::UNIHEADING, 0.0, 0.0).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 170.0, 0.5).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 45.0, 1.0).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 170.0, 1.5).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 45.0, 2.0).publish);
+  EXPECT_EQ(selector.rejectedCount(), 4);
+}
+
 TEST(HeadingSelector, UsesFallbackAfterPrimaryNeverAppears)
 {
   HeadingSelectorConfig config;

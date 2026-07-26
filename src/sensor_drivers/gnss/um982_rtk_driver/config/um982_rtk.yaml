@@ -13,6 +13,8 @@ um982_rtk_driver:
     heading_max_rate_degps: 75.0
     heading_max_step_deg: 15.0
     heading_rate_slack_deg: 2.0
+    heading_recovery_min_samples: 3
+    heading_recovery_max_step_deg: 7.5
     publish_raw: true
     status_period_s: 1.0
     ntrip:

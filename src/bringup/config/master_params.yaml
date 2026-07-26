@@ -411,6 +411,11 @@
     heading_max_rate_degps: 75.0
     heading_max_step_deg: 15.0
     heading_rate_slack_deg: 2.0
+    # A large single UNIHEADING change is rejected. Three mutually consistent
+    # primary-source samples may rebase heading and are then held by the
+    # map->odom authority until its own recovery gate confirms them.
+    heading_recovery_min_samples: 3
+    heading_recovery_max_step_deg: 7.5
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

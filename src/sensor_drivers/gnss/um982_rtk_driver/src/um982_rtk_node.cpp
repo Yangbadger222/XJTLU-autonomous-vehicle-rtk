@@ -129,6 +129,10 @@ public:
       "heading_max_step_deg", 15.0);
     heading_selector_config.rate_slack_deg = declare_parameter<double>(
       "heading_rate_slack_deg", 2.0);
+    heading_selector_config.recovery_min_samples = declare_parameter<int>(
+      "heading_recovery_min_samples", 3);
+    heading_selector_config.recovery_max_step_deg = declare_parameter<double>(
+      "heading_recovery_max_step_deg", 7.5);
     heading_selector_ = std::make_unique<HeadingSelector>(heading_selector_config);
     epe_quality_0_ = declare_parameter<double>("epe_quality0", 1000000.0);
     epe_quality_1_ = declare_parameter<double>("epe_quality1", 4.0);
@@ -367,6 +371,11 @@ private:
       RCLCPP_WARN(
         get_logger(), "Switched heading source to %s with %.2f deg continuity bias",
         headingSourceName(source), selection.source_bias_deg);
+    }
+    if (selection.continuity_recovered) {
+      RCLCPP_WARN(
+        get_logger(), "Recovered %s heading after stable discontinuity at %.2f deg",
+        headingSourceName(source), selection.heading_deg);
     }
     publishCalibratedHeading(selection.heading_deg, stamp);
     std::lock_guard<std::mutex> lock(status_mutex_);

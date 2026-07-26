@@ -29,6 +29,8 @@ struct HeadingSelectorConfig
   double max_rate_degps = 75.0;
   double max_step_deg = 15.0;
   double rate_slack_deg = 2.0;
+  int recovery_min_samples = 3;
+  double recovery_max_step_deg = 7.5;
 };
 
 struct HeadingSelection
@@ -36,6 +38,7 @@ struct HeadingSelection
   bool publish = false;
   bool source_switched = false;
   bool continuity_rejected = false;
+  bool continuity_recovered = false;
   HeadingSource source = HeadingSource::THS;
   double heading_deg = 0.0;
   double source_bias_deg = 0.0;
@@ -59,6 +62,8 @@ private:
   bool sourceMayTakeControl(HeadingSource source, double received_s) const;
   bool continuityAccepts(double heading_deg, double received_s) const;
   void resetPendingSource();
+  void resetRecoveryCandidate();
+  bool observeStablePrimaryRecoveryCandidate(double heading_deg, double received_s);
   static double normalizeHeadingDeg(double heading_deg);
   static double signedHeadingDeltaDeg(double target_deg, double reference_deg);
   static std::size_t sourceIndex(HeadingSource source);
@@ -68,6 +73,9 @@ private:
   std::optional<HeadingSource> active_source_;
   std::optional<HeadingSource> pending_source_;
   int pending_source_samples_ = 0;
+  std::optional<double> recovery_candidate_heading_deg_;
+  std::optional<double> recovery_candidate_s_;
+  int recovery_candidate_samples_ = 0;
   std::optional<double> last_published_heading_deg_;
   std::optional<double> last_published_s_;
   std::array<std::optional<double>, kSourceCount> last_accepted_s_{};

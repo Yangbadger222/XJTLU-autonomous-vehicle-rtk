@@ -18,6 +18,7 @@ find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 
 add_library(um982_rtk_parser
+  src/heading_selector.cpp
   src/nmea_parser.cpp
   src/ntrip_response.cpp
 )
@@ -62,6 +63,10 @@ if(BUILD_TESTING)
   ament_add_gtest(test_ntrip_response test/test_ntrip_response.cpp)
   target_include_directories(test_ntrip_response PRIVATE include)
   target_link_libraries(test_ntrip_response um982_rtk_parser)
+
+  ament_add_gtest(test_heading_selector test/test_heading_selector.cpp)
+  target_include_directories(test_heading_selector PRIVATE include)
+  target_link_libraries(test_heading_selector um982_rtk_parser)
 
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)

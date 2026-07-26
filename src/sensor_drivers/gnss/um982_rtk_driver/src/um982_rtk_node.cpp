@@ -1,3 +1,4 @@
+#include "um982_rtk_driver/heading_selector.hpp"
 #include "um982_rtk_driver/nmea_parser.hpp"
 #include "um982_rtk_driver/ntrip_response.hpp"
 
@@ -102,6 +103,37 @@ public:
     publish_raw_ = declare_parameter<bool>("publish_raw", true);
     status_period_s_ = declare_parameter<double>("status_period_s", 1.0);
     heading_offset_deg_ = declare_parameter<double>("heading_offset_deg", 0.0);
+    const auto primary_heading_source = declare_parameter<std::string>(
+      "heading_primary_source", "UNIHEADING");
+    const auto fallback_heading_source = declare_parameter<std::string>(
+      "heading_fallback_source", "HPR");
+    const auto primary_source = parseHeadingSource(primary_heading_source);
+    const auto fallback_source = parseHeadingSource(fallback_heading_source);
+    if (!primary_source.has_value() || !fallback_source.has_value() ||
+      *primary_source == *fallback_source)
+    {
+      throw std::runtime_error(
+              "heading_primary_source and heading_fallback_source must be distinct "
+              "THS, HPR, or UNIHEADING values");
+    }
+    HeadingSelectorConfig heading_selector_config;
+    heading_selector_config.primary_source = *primary_source;
+    heading_selector_config.fallback_source = *fallback_source;
+    heading_selector_config.fallback_timeout_s = declare_parameter<double>(
+      "heading_fallback_timeout_s", 1.5);
+    heading_selector_config.switch_min_samples = declare_parameter<int>(
+      "heading_switch_min_samples", 3);
+    heading_selector_config.max_rate_degps = declare_parameter<double>(
+      "heading_max_rate_degps", 75.0);
+    heading_selector_config.max_step_deg = declare_parameter<double>(
+      "heading_max_step_deg", 15.0);
+    heading_selector_config.rate_slack_deg = declare_parameter<double>(
+      "heading_rate_slack_deg", 2.0);
+    heading_selector_config.recovery_min_samples = declare_parameter<int>(
+      "heading_recovery_min_samples", 3);
+    heading_selector_config.recovery_max_step_deg = declare_parameter<double>(
+      "heading_recovery_max_step_deg", 7.5);
+    heading_selector_ = std::make_unique<HeadingSelector>(heading_selector_config);
     epe_quality_0_ = declare_parameter<double>("epe_quality0", 1000000.0);
     epe_quality_1_ = declare_parameter<double>("epe_quality1", 4.0);
     epe_quality_2_ = declare_parameter<double>("epe_quality2", 0.1);
@@ -237,22 +269,12 @@ private:
       last_speed_mps_ = parsed->rmc->speed_mps;
       last_course_deg_ = parsed->rmc->course_deg;
     }
-    if (parsed->ths.has_value()) {
-      if (parsed->ths->mode != "V") {
-        publishHeading(parsed->ths->heading_deg, stamp);
-        std::lock_guard<std::mutex> lock(status_mutex_);
-        last_heading_deg_ = parsed->ths->heading_deg;
-        last_heading_source_ = "THS";
-        last_heading_valid_ = true;
-      }
+    if (parsed->ths.has_value() && parsed->ths->mode != "V") {
+      handleHeading(HeadingSource::THS, parsed->ths->heading_deg, stamp);
     }
     if (parsed->hpr.has_value()) {
       if (parsed->hpr->fix_type > 0) {
-        publishHeading(parsed->hpr->heading_deg, stamp);
-        std::lock_guard<std::mutex> lock(status_mutex_);
-        last_heading_deg_ = parsed->hpr->heading_deg;
-        last_heading_source_ = "HPR";
-        last_heading_valid_ = true;
+        handleHeading(HeadingSource::HPR, parsed->hpr->heading_deg, stamp);
       }
     }
     if (parsed->uniheading.has_value()) {
@@ -264,11 +286,7 @@ private:
         last_uniheading_status_ = data.solution_status + "/" + data.position_type;
       }
       if (heading_valid) {
-        publishHeading(data.heading_deg, stamp);
-        std::lock_guard<std::mutex> lock(status_mutex_);
-        last_heading_deg_ = data.heading_deg;
-        last_heading_source_ = "UNIHEADING";
-        last_heading_valid_ = true;
+        handleHeading(HeadingSource::UNIHEADING, data.heading_deg, stamp);
       }
     }
   }
@@ -326,13 +344,50 @@ private:
     }
   }
 
-  void publishHeading(double heading_deg, const rclcpp::Time & stamp)
+  void handleHeading(
+    HeadingSource source, double raw_heading_deg, const rclcpp::Time & stamp)
   {
     const double calibrated_heading_deg =
-      applyHeadingOffsetDeg(heading_deg, heading_offset_deg_);
+      applyHeadingOffsetDeg(raw_heading_deg, heading_offset_deg_);
     if (!std::isfinite(calibrated_heading_deg)) {
       return;
     }
+    HeadingSelection selection;
+    {
+      std::lock_guard<std::mutex> lock(heading_mutex_);
+      selection = heading_selector_->observe(
+        source, calibrated_heading_deg, steadyNowSeconds());
+    }
+    if (!selection.publish) {
+      if (selection.continuity_rejected) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 2000,
+          "Rejected %s heading jump at %.2f deg", headingSourceName(source),
+          calibrated_heading_deg);
+      }
+      return;
+    }
+    if (selection.source_switched) {
+      RCLCPP_WARN(
+        get_logger(), "Switched heading source to %s with %.2f deg continuity bias",
+        headingSourceName(source), selection.source_bias_deg);
+    }
+    if (selection.continuity_recovered) {
+      RCLCPP_WARN(
+        get_logger(), "Recovered %s heading after stable discontinuity at %.2f deg",
+        headingSourceName(source), selection.heading_deg);
+    }
+    publishCalibratedHeading(selection.heading_deg, stamp);
+    std::lock_guard<std::mutex> lock(status_mutex_);
+    last_heading_deg_ = raw_heading_deg;
+    last_heading_calibrated_deg_ = selection.heading_deg;
+    last_heading_source_bias_deg_ = selection.source_bias_deg;
+    last_heading_source_ = headingSourceName(source);
+    last_heading_valid_ = true;
+  }
+
+  void publishCalibratedHeading(double calibrated_heading_deg, const rclcpp::Time & stamp)
+  {
     geometry_msgs::msg::QuaternionStamped msg;
     msg.header.stamp = toRosTimeMsg(stamp);
     msg.header.frame_id = frame_id_;
@@ -343,6 +398,12 @@ private:
     msg.quaternion.z = quaternion.z();
     msg.quaternion.w = quaternion.w();
     heading_pub_->publish(msg);
+  }
+
+  static double steadyNowSeconds()
+  {
+    return std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
   }
 
   double defaultEpeForQuality(int quality) const
@@ -378,10 +439,11 @@ private:
            << " heading=";
     if (last_heading_valid_) {
       status << std::setprecision(3)
-             << applyHeadingOffsetDeg(last_heading_deg_, heading_offset_deg_)
+             << last_heading_calibrated_deg_
              << " " << last_heading_source_
              << " raw=" << last_heading_deg_
-             << " offset=" << heading_offset_deg_;
+             << " offset=" << heading_offset_deg_
+             << " source_bias=" << last_heading_source_bias_deg_;
     } else {
       status << "-";
     }
@@ -389,10 +451,17 @@ private:
            << " speed_mps=" << std::setprecision(2) << last_speed_mps_
            << " cog=" << last_course_deg_
            << " uniheading=" << last_uniheading_status_
+           << " heading_rejects=" << headingRejectedCount()
            << " ntrip=" << (ntrip_connected_.load() ? "connected" : "offline")
            << " rtcm_bytes=" << rtcm_bytes_.load();
     msg.data = status.str();
     status_pub_->publish(msg);
+  }
+
+  int headingRejectedCount()
+  {
+    std::lock_guard<std::mutex> lock(heading_mutex_);
+    return heading_selector_->rejectedCount();
   }
 
   void ntripLoop()
@@ -614,6 +683,7 @@ private:
   bool latest_gga_valid_for_ntrip_ = false;
 
   std::mutex status_mutex_;
+  std::mutex heading_mutex_;
   int last_fix_quality_ = 0;
   int last_satellites_ = 0;
   double last_hdop_ = 0.0;
@@ -625,8 +695,11 @@ private:
   double last_course_deg_ = 0.0;
   bool last_heading_valid_ = false;
   double last_heading_deg_ = 0.0;
+  double last_heading_calibrated_deg_ = 0.0;
+  double last_heading_source_bias_deg_ = 0.0;
   std::string last_heading_source_;
   std::string last_uniheading_status_ = "-";
+  std::unique_ptr<HeadingSelector> heading_selector_;
 };
 
 }  // namespace um982_rtk_driver

@@ -12,6 +12,8 @@ def test_goal_manager_uses_local_astar_from_current_pose_without_anchor_gate():
 
     assert "RouteGraphPlanner" in text
     assert "self.route_planner.plan(" in text
+    assert "route_snap_candidate_count" in text
+    assert "route_snap_candidate_distance_slack_m" in text
     assert 'self.declare_parameter("require_nav_ready", False)' in text
     assert "if self.require_nav_ready and self.system_status != \"NAV_READY\":" in text
     assert "ComputeRoute" not in text

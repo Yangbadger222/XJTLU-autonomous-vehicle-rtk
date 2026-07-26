@@ -554,6 +554,7 @@ python3 scripts/nav_gps_menu.py
 - `nav-gps` 实车入口默认关闭 RTK FGO shadow，避免与 FAST-LIO2/Nav2 争用 Jetson CPU；需要旁路录证据时显式设置 `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true`，且 shadow 仍固定 `publish_tf=false`、`nav2_use_fgo=false`。未来 FGO 接管时必须先关闭 RTK corrector 的 TF 发布，并继续提供统一的 `motion_allowed`。
 - 当前 RTK-authority/A* 链默认不启动旧 `gps_anchor_localizer`，因为规划与运动许可均不依赖 anchor 或 `/gnss`；兼容实验可设置 `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true`。
 - 默认 lean bag 记录 RTK、FAST-LIO2 odom 与 degeneracy、`/rtk_fgo/*`、TF、authority mode/status/motion/speed-limit、goal 状态、三层速度和 `/plan`；200Hz Livox IMU、底盘 `/odom_CBoar`、local/global costmap、旧 anchor 状态和原始点云只在 `FYP_NAV_GPS_BAG_PROFILE=debug` 时追加。
+- 若要用历史 debug bag 对比 CUDA MPPI，而不启动 Nav2、也不发布任何控制命令，可运行 `ros2 run mppi_cuda_backend mppi_cuda_bag_replay <bag_path> --output /tmp/mppi_cuda.csv`。`2026-07-23-16-52-59` 的 `cb_gate` bag 已包含所需 TF、local costmap、A* path、`/fastlio2/lio_odom` 与 `/cmd_vel_nav`。它只评估 shadow backend，不会启用 GPU 控制。要对齐 CPU profile，可追加 `--batch-size 200 --time-steps 32 --vx-std 0.20 --wz-std 0.15`。
 - 车上建议用 `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps`，避免 RViz 消耗 Jetson 资源。
 
 ## 14. Fixed-Launch GPS Corridor
@@ -748,37 +749,25 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 在使用 RTK 天线时，机器人必须拥有一个 NTRIP 账户才能接收到完整质量的信号。您可以在淘宝上购买这些账户，例如：[https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z](https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z)
 
-此外，本仓库自带一个用于管理这些认证凭据的脚本。
+运行时 NTRIP 工具只会将凭据保存到 gitignore 的 `runtime-data/config/`。
+`make ntrip-setup` 提供两套参数 profile：
 
-如需登录 NTRIP 账户，请运行：
-```bash
-make ntrip-login
-```
+- `standard` / `old`：`115200` 波特率的 NMEA，使用 `um982_cors.yaml`。
+- `mixed` / `new`：`921600` 波特率的 raw 加 NMEA，使用 `um982_cors_mixed.yaml`。
 
-如需修改账户参数（例如服务器 IP 和挂载点），请运行：
+先配置其中一套或两套，再选择每个仓库启动入口传给 UM982 的活动 profile：
+
 ```bash
 make ntrip-setup
+make ntrip-use-standard  # standard / old profile
+make ntrip-use-mixed     # mixed / new profile
+make ntrip-status        # 测试当前选择的 caster、账号和挂载点
 ```
 
-如需检查当前凭据并进行连接测试，请运行：
-```bash
-make ntrip-status
-```
-
-如需登出账户，请运行：
-```bash
-make ntrip-logout
-```
-
-等效的脚本直接调用方式：
-```bash
-@python3 scripts/setup_ntrip.py
-@python3 scripts/setup_ntrip.py --setup
-@python3 scripts/setup_ntrip.py --status
-@python3 scripts/setup_ntrip.py --logout
-```
-
-一旦登录成功，凭据将会保存在机器人中。除非您手动登出或更改凭据，否则每次系统启动时都会自动登录。
+通用写法是 `make ntrip-use PROFILE=standard|mixed`；`old` 和 `new` 也是可接受的别名。
+`make ntrip-login` 只替换活动 profile 的账号密码、不改变 endpoint；`make ntrip-logout`
+会禁用并清空活动 profile。每次启动时 launch wrapper 都会重新 source runtime 环境，
+因此在改账号前打开的终端不会继续带着旧密码启动。
 
 ***
 

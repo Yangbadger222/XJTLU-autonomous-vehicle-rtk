@@ -38,6 +38,11 @@ NtripResponseState evaluateNtripResponse(const std::string & response)
     return NtripResponseState::Accepted;
   }
   if (startsWith(line, "HTTP/")) {
+    // TCP may split the status line after "HTTP/". Do not reject until the
+    // complete line is available to inspect its status code.
+    if (!hasLineTerminator(response)) {
+      return NtripResponseState::NeedMore;
+    }
     const bool has_success_code =
       line.find(" 200 ") != std::string::npos ||
       (line.size() >= 12 && line.substr(9, 3) == "200");

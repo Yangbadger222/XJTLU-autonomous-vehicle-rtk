@@ -28,6 +28,7 @@
   <exec_depend>rviz2</exec_depend>
   <exec_depend>nav2_map_server</exec_depend>
   <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_cuda_mppi_controller</exec_depend>
   <exec_depend>waypoint_collector</exec_depend>
   <exec_depend>gps_waypoint_dispatcher</exec_depend>
   <exec_depend>spatio_temporal_voxel_layer</exec_depend>

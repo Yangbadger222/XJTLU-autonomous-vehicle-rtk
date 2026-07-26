@@ -553,6 +553,7 @@ Runtime notes:
 - The `nav-gps` vehicle entry point disables RTK FGO shadow by default so it does not compete with FAST-LIO2/Nav2 for Jetson CPU. Set `FYP_NAV_GPS_ENABLE_FGO_SHADOW=true` only for shadow evidence; it still forces `publish_tf=false` and `nav2_use_fgo=false`. A future FGO takeover must first disable RTK-corrector TF output and keep the common `motion_allowed` contract.
 - The current RTK-authority/A* chain disables the legacy `gps_anchor_localizer` by default because planning and motion permission consume neither anchors nor `/gnss`; set `FYP_NAV_GPS_ENABLE_LEGACY_ANCHOR_LOCALIZER=true` for compatibility experiments.
 - The default lean bag records RTK, FAST-LIO2 odom and degeneracy, `/rtk_fgo/*`, TF, authority mode/status/motion/speed-limit, goal status, all three velocity stages, and `/plan`. The 200Hz Livox IMU, chassis `/odom_CBoar`, local/global costmaps, legacy anchor status, and raw point clouds are added only with `FYP_NAV_GPS_BAG_PROFILE=debug`.
+- To evaluate CUDA MPPI against a historical debug bag without starting Nav2 or publishing any command, run `ros2 run mppi_cuda_backend mppi_cuda_bag_replay <bag_path> --output /tmp/mppi_cuda.csv`. The `2026-07-23-16-52-59` `cb_gate` bag contains the required TF, local costmap, A* path, `/fastlio2/lio_odom`, and `/cmd_vel_nav` inputs. This measures the shadow backend only; it does not activate GPU control. Add `--batch-size 200 --time-steps 32 --vx-std 0.20 --wz-std 0.15` for a CPU-profile comparison.
 - On the vehicle, prefer `FYP_USE_RVIZ=false bash scripts/launch_with_logs.sh nav-gps` to avoid spending Jetson resources on RViz.
 
 ## 14. Fixed-Launch GPS Corridor
@@ -747,37 +748,28 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 When using the RTK antenna, the robot must have an NTRIP account to receive full-quality signal. These can be bought in Taobao, for example in here: https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z
 
-In addition, this repo counts with a script that handles these credentials.
+The runtime NTRIP tool stores credentials only under gitignored
+`runtime-data/config/`. `make ntrip-setup` offers two parameter profiles:
 
-To login onto an NTRIP account, run:
-```bash
-make ntrip-login
-```
+- `standard` / `old`: NMEA at `115200` baud, using `um982_cors.yaml`.
+- `mixed` / `new`: raw plus NMEA at `921600` baud, using `um982_cors_mixed.yaml`.
 
-To change the account parameters, such as the server IP and mountpoint, run:
+Configure either profile or both, then select the one passed to UM982 by every
+repository launch entrypoint:
+
 ```bash
 make ntrip-setup
+make ntrip-use-standard  # standard / old profile
+make ntrip-use-mixed     # mixed / new profile
+make ntrip-status        # tests the selected caster, account and mountpoint
 ```
 
-To check current credentials and connection test, run:
-```bash
-make ntrip-status
-```
-
-To log out, run:
-```bash
-make ntrip-logout
-```
-
-Equivalent wrapper direct invocation:
-```bash
-@python3 scripts/setup_ntrip.py
-@python3 scripts/setup_ntrip.py --setup
-@python3 scripts/setup_ntrip.py --status
-@python3 scripts/setup_ntrip.py --logout
-```
-
-Once logged in, the credentials are stored in the robot. You will be logged in automatically every time until you manually log out or change the credentials.
+`make ntrip-use PROFILE=standard|mixed` is the generic form; `old` and `new`
+are accepted aliases. `make ntrip-login` replaces credentials for the selected
+profile without changing its endpoint. `make ntrip-logout` disables and clears
+the selected profile. The launch wrapper re-sources the runtime environment on
+every start, so a terminal opened before a credential change cannot retain an
+old password.
 
 ***
 

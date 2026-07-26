@@ -1,0 +1,13 @@
+<library path="nav2_cuda_mppi_controller">
+  <class
+    type="nav2_cuda_mppi_controller::CudaMppiShadowController"
+    base_class_type="nav2_core::Controller">
+    <description>
+      Runs the stock Nav2 CPU MPPI path with a CUDA batch against the same local
+      path and costmap. CPU remains the default command authority. An explicit
+      CUDA authority mode owns the full real-time optimizer and control sequence;
+      it reports invalid CUDA output as a Nav2 controller failure rather than
+      running CPU MPPI as a same-cycle fallback.
+    </description>
+  </class>
+</library>

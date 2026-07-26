@@ -279,6 +279,9 @@
     recovery_confirmation_s: 1.0
     # RTK 重捕获后以更低的地图校正速率连续回归，不要求 Nav2 停车。
     allow_moving_backlog_release: true
+    # FAST-LIO 瞬时速度在低速时会跨过 stopped 阈值。只要 RTK 两个 gate
+    # 仍锁定且修正未越过硬故障边界，保持低速连续释放而不是 stop-go。
+    allow_bounded_backlog_motion: true
     moving_reacquire_translation_rate_mps: 0.05
     moving_reacquire_yaw_rate_degps: 0.5
     # RTK 是 map->odom 的唯一运动 authority。门控不通过时冻结最后可信
@@ -290,7 +293,7 @@
     lio_min_eig_healthy: 75.0
     lio_reject_regularized: true
     # normal 时由各模式 guard 的 straight_max_mps 再次限速；接力/重捕获态必须低速。
-    rtk_authoritative_max_linear_speed_mps: 1.5
+    rtk_authoritative_max_linear_speed_mps: 1.2
     local_bridge_max_linear_speed_mps: 0.35
     rtk_reacquire_max_linear_speed_mps: 0.35
 
@@ -399,6 +402,20 @@
     # so the receiver reports the leftward baseline direction; base_link +X is vehicle front.
     # 2026-06-29 bag-based estimate: 88.5 deg, pending a dedicated straight-line calibration.
     heading_offset_deg: 88.5
+    # UNIHEADING is the verified dual-antenna vehicle-heading stream. THS is
+    # retained only in raw diagnostics: a THS jump must never seize /heading.
+    heading_primary_source: "UNIHEADING"
+    heading_fallback_source: "HPR"
+    heading_fallback_timeout_s: 1.5
+    heading_switch_min_samples: 3
+    heading_max_rate_degps: 75.0
+    heading_max_step_deg: 15.0
+    heading_rate_slack_deg: 2.0
+    # A large single UNIHEADING change is rejected. Three mutually consistent
+    # primary-source samples may rebase heading and are then held by the
+    # map->odom authority until its own recovery gate confirms them.
+    heading_recovery_min_samples: 3
+    heading_recovery_max_step_deg: 7.5
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

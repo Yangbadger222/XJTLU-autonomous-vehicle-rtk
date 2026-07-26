@@ -1,5 +1,25 @@
 # Nav2 参数调优记录
 
+## UM982 航向连续性（2026-07-24）
+
+RTK 驱动将 `THS`、`HPR` 和 `UNIHEADING` 视为相互竞争的航向源，不再按串口最后到达的语句直接发布。生产配置使用已经验证的双天线 `UNIHEADING` 作为主源；仅当它连续缺失 `1.5 s` 后，`HPR` 才可作为连续性对齐的备用源接管，并且需要连续三个备用样本。`THS` 仍记录到 `rtk/nmea_sentence` 用于诊断，但不能接管 `/heading`。持续航向仍受 `75 deg/s`、每样本 `15 deg` 和 `2 deg` 余量限制；`/rtk/status` 会报告当前来源、连续性偏置与被拒绝的航向数。
+
+这样可避免位置已经 q=4、但不同或不稳定的航向语句让导航失效。在 2026-07-26 的 nav-gps 会话中，活动 `THS` 流出现了约 `196` 度的异常跳变，驱动拒绝发布 `/heading`，继而使 RTK authority 降级。选择器引入前由 `UNIHEADING` 提供车体航向时运行稳定，因此现在它是唯一的生产主航向。
+
+RTK authority 因此区分航向与平移硬故障。平移间隙超过 `2.0m` 仍永久 fail-closed；航向间隙超过 `20deg` 则以 `HEADING_JUMP_HOLD` 冻结最后可信 TF、撤销运动权限，并等待正常恢复航向窗口持续 `recovery_confirmation_s`。输入稳定后会自动回到正常状态，单次航向源异常不再要求重新启动导航。
+
+户外 RTK profile 中，处于正常慢释放阈值（`0.50 m` / `5 deg`）和硬故障边界之间的 correction backlog，不再使用 FAST-LIO 的瞬时速度决定停车或放行。只要两个 RTK gate 仍锁定，就保持现有 `0.35 m/s` 重捕获限速，并通过同一套速率限制器连续释放 `map -> odom`。这样 FAST-LIO 在 `0.05 m/s` 附近的低速噪声不会反复清零 `/cmd_vel`；RTK 非 Fixed、局部里程计过期、航向跳变和硬故障边界仍会停车。
+
+## Nav-GPS 线速度上限 1.2 m/s（2026-07-24）
+
+Nav-GPS 的标准 MPPI 配置、CUDA authority 配置、`velocity_smoother`、底盘命令
+保护和 RTK authority 运动限速统一为 `1.2 m/s`。各层限速保持一致，避免某一层
+悄悄允许比另一层平滑或接受能力更快的命令。角速度和加速度限制保持不变，保留
+现有的转弯和制动特性。
+
+原因：将此前 `1.5 m/s` 的实车上限下调，同时在航向恢复验证期间保留足够的户外
+路线行进速度。
+
 ## 1. 基本概念
 
 - 路径（Path）: 由 planner 生成的空间几何点集合
@@ -152,7 +172,8 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - nav-gps local costmap 保持 `8Hz` 障碍更新、降到 `2Hz` 对外发布；global costmap 为 `2Hz/1Hz`。在 `1.5m/s` 满速下，8Hz 约每 0.19m 更新一次障碍，同时减少 costmap 序列化和 DDS 开销。
 - global costmap 继续保持 route-planning-only 语义，避免实时点云/unknown space 阻断路网目标。
 - `general_goal_checker.stateful=false`，避免一个目的地的到点状态残留到下一个 route graph 目标。
-- goal manager 将当前位置和终点投影到最近 graph edge，插入虚拟端点后执行欧氏启发式 A*；不再调用 route server 的 Dijkstra，也不依赖少数 anchor。
+- goal manager 将当前位置和终点投影到离最近道路不超过 `1.0m` 的至多 `8` 条 graph edge 候选，插入虚拟端点后执行欧氏启发式 A*，并选择“起终点吸附距离加图路径距离”最短的组合。这样在路口或相邻道路旁不会因单条几何最近边的微小差异被强制绕远；候选仍受最近道路窗口限制，不会跳到远处平行道路抄近路。
+- `build_scene_runtime.py` 会将 route edge 的内部平面交叉，以及端点距另一条边不超过 `0.25m` 的 T 路口缝隙，拆成显式 junction 节点和连接边。QGIS 线在视觉上相交、但原 bundle 未共享端点时，A* 也能在该路口转向；端点相接、超过容差的近平行路段和跨层道路不会被自动连接。
 - QGIS 道路 Polygon 编译为 local/global costmap 的 KeepoutFilter；MPPI 继续使用高窗点云在道路内部避障。
 - 小幅定位误差使车辆落在 QGIS Polygon 外时，不再立即让 local MPPI 的全部轨迹不可行。goal manager 读取同一份编译 PGM，只有验证 graph edge 回归点在道路内且当前位置离道路不超过 `1.0m` 时，才执行 `ROAD_REJOIN`：仅临时关闭 local filter，guard 强制线速度不高于 `0.35m/s`。global filter、障碍点云、RTK authority 与 stop heartbeat 从不放宽；成功回到道路后还会用 PGM 验证，再恢复 local filter 和重新规划。任何不确定情况都停车，不横穿未知的道路外区域。
 - 当前 Humble MPPI 在全部候选轨迹碰撞时抛出 `std::runtime_error`，绕过 controller server 只捕获 `PlannerException` 的 `failure_tolerance`。nav-gps 因此在 goal manager 层处理 abort：保持零速和原目的地，每 2 秒重新 A*，连续实际运动 3 秒确认恢复，60 秒仍阻塞才失败。
@@ -181,6 +202,93 @@ Corridor v2 使用 Rotation Shim + Regulated Pure Pursuit 替代 DWB：
 - `waypoint_collector` 订阅 RViz 的 `/clicked_point`
 - `gps_waypoint_dispatcher` 将整条 A* 路线作为一次 `FollowPath` 交给 Nav2，中间图节点不会停车
 - `goto_name`、`goto_latlon` 和 `/goal_pose` 都先吸附到路网再规划
+
+## 9. CUDA MPPI Backend（Shadow 基础）
+
+`src/navigation/mppi_cuda_backend` 是面向 Jetson Orin 的 CUDA backend，覆盖 MPPI 中适合大规模
+并行的部分：DiffDrive 候选采样、轨迹 rollout、中心点 costmap 评分、路径/终点代价，以及 softmax
+控制序列更新都留在 GPU，只将最终两条控制序列传回主机。目标是在不增加 CPU 控制负载的前提下，让
+大于当前 CPU profile 的 batch 成为可能。
+
+它目前**默认不被** `nav-gps` 或 `corridor` 选中。当前 backend 对齐已启用的 centre-point critic
+集合；生产 Nav2 仍可能切换 footprint 碰撞或其他 critic。因此必须先作为 shadow backend，对照现有
+`nav2_mppi_controller` 验证命令和碰撞判定一致，才能替换生产控制器。
+
+`nav2_cuda_mppi_controller::CudaMppiShadowController` 是下一层 Nav2 接入：它继承 stock MPPI，
+保持 CPU 命令原样输出，同时针对同一份 local path 与 costmap 执行 GPU `4096` batch shadow。shadow 直接
+读取 CPU controller 的 horizon、`model_dt`、速度约束、噪声尺度、temperature、gamma、完整移位后控制序列和
+当前 centre-point critic 参数，已实现启用的 `Constraint`、`Cost`、`Goal`、`GoalAngle`、`PathAlign`、
+`PathFollow`、`PathAngle` 和 `PreferForward` critics，并发布时间、GPU 候选碰撞状态和 CPU/GPU 命令对比到
+`/controller_server/FollowPath/cuda_shadow_diagnostics`。插件会安装，但刻意不出现在任何生产 launch
+配置中。
+
+在 Orin NX（CUDA 12.2、compute capability 8.7）上，仅编译并压测这个包：
+
+```bash
+colcon build --packages-select mppi_cuda_backend --symlink-install --parallel-workers 1
+source install/setup.bash
+ros2 run mppi_cuda_backend mppi_cuda_benchmark
+```
+
+benchmark 会输出 `1000x32`、`2048x32`、`4096x32` 和 `4096x48` 的平均与 P95 kernel+传输时间。
+只有 GPU controller 的 P95 仍明显低于 20 Hz 控制周期预算、且 shadow 安全对照通过，才允许提高
+生产 `batch_size`。
+
+要在不改变实际控制命令的前提下测试 Nav2 接入，使用：
+
+```bash
+FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW=true FYP_USE_RVIZ=false \
+  bash scripts/launch_with_logs.sh nav-gps
+```
+
+这只会将 Rotation Shim 内层替换为 `CudaMppiShadowController`。默认情况下，该类仍把实际命令委托给
+`batch_size=200` 的 stock MPPI；CUDA 可以提高 batch，但始终复用 CPU time horizon 和完整的移位后控制序列。
+诊断结果会写入普通 rosbag 的
+`/controller_server/FollowPath/cuda_shadow_diagnostics`。当前实车 profile 使用中心点碰撞；未来若
+`CostCritic` 切换到 footprint 碰撞，CUDA 路径会显式关闭，不会静默近似。
+
+若要进行 GPU-only authority 实验，单独显式开启：
+
+```bash
+FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY=true FYP_USE_RVIZ=false \
+  python3 scripts/nav_gps_menu.py
+```
+
+该模式会完全绕开 stock MPPI 的实时 optimizer。CUDA controller 自己维护 nominal control horizon，使用同形的
+9 点 Savitzky-Golay 平滑；在匹配的 `20 Hz` / `0.05 s` profile 中返回 control index 1，并在下一轮前移位。
+stock controller 仍用于 Nav2 的路径处理和普通 shadow 模式，但 authority 启用时不会调用它的 CPU
+`evalControl()` 采样和 critic 计算。
+
+CUDA 故障会 fail-stop，而不是回退到 CPU：所有候选碰撞、控制序列非有限、CUDA backend 不可用或 GPU 耗时超过
+`20 ms` 都会抛出 Nav2 controller failure。Controller Server 会在配置的 `1.5 s` 容忍时间内发布零速度，随后现有
+goal manager 进入 `BLOCKED_WAIT` 重试或安全停止。首轮 GPU-only 实车 profile 限制为 `0.75 m/s`、`0.50 rad/s`；
+普通 CPU/shadow nav-gps 仍为 `1.5 m/s`、`0.70 rad/s`。物理急停和手柄电机禁用仍是必须保留的安全层。
+
+已有的、早于 CUDA 接入的导航 rosbag 也可先验证 Orin 上的真实 GPU 工作量，无需重新下楼。
+`mppi_cuda_bag_replay` 只读取录包中的 `/tf`、`/local_costmap/costmap`、
+`/gps_waypoint_dispatcher/path_map` 和 `/cmd_vel_nav`，不会发布任何 ROS 控制命令，也不需要
+`ros2 bag play`。若存在，它还会读取 `/fastlio2/lio_odom`，使 rollout 的第 0 步与 Humble MPPI
+的实测速度初始化一致。它会将发布出来的 `OccupancyGrid` 从 `0--100` 代价表示恢复成 CUDA backend 使用的
+`0--254`，使用每个 costmap 记录时已可用的最新 TF 重建 local MPPI path、路径可通行掩码和累计弧长，
+并把 CPU/GPU 命令差和 GPU 耗时写入 CSV：
+
+```bash
+ros2 run mppi_cuda_backend mppi_cuda_bag_replay \\
+  ~/XJTLU-autonomous-vehicle/runtime-data/logs/2026-07-23-16-52-59/bag \\
+  --output /tmp/cb_gate_cuda_mppi.csv
+```
+
+该回放可以证明 GPU 耗时，并发现明显的碰撞/命令分歧，但不等于完整 controller 的同等性：历史 bag
+只保存了实际发布的第一条命令，没有保存完整的移位后 CPU 控制序列或 CPU noise tensor。因此回放只能把
+录到的命令作为 nominal fallback；实时 shadow 才能得到完整控制序列。输出只能作为继续 shadow 验证的准入条件，
+不能单独成为启用 GPU 命令或提高生产 CPU `batch_size` 的理由。
+
+若要让 CUDA backend 与当前实车 CPU 的采样 profile 对比，不能直接使用更大的 GPU shadow profile，而应使用相同
+sample count、horizon 和噪声标准差：
+
+```bash
+ros2 run mppi_cuda_backend mppi_cuda_bag_replay <bag_path> --batch-size 200 --time-steps 32 --vx-std 0.20 --wz-std 0.15
+```
 ## 2026-07-10 Corridor Authority 收敛链
 
 Corridor 现已拆分 local motion、global correction 与 command authority。`rtk_map_odom_corrector` 使用 2 秒 `/fastlio2/lio_odom` 时间戳历史对齐 RTK 观测，要求 5 个一致的 Fixed 样本，并在 `map→base_footprint` 空间以不超过 `0.20 m/s`、`2 deg/s` 慢释放。低于 backlog 阈值的 NORMAL correction 即使连续受速率限制也保持运动权限，直至收敛；中等 backlog（`0.50-2.0 m` 或 `5-20 deg`）才要求连续停车 1 秒后慢释放，更大 backlog 锁存 `FAULT_HOLD`。这样避免合法的 0.49 m 或 4.9 deg correction 因固定样本数超时而反复触发停车。

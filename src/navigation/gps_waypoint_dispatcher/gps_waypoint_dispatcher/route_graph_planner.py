@@ -112,21 +112,34 @@ class RouteGraphPlanner:
             raise ValueError("route graph must contain nodes and edges")
 
     def nearest_edge(self, point: tuple[float, float]) -> EdgeProjection:
+        return self.nearest_edges(point)[0]
+
+    def nearest_edges(
+        self, point: tuple[float, float]
+    ) -> tuple[EdgeProjection, ...]:
         if not all(math.isfinite(value) for value in point):
             raise RoutePlanningError("start or goal contains non-finite coordinates")
-        best: EdgeProjection | None = None
+        candidates: list[EdgeProjection] = []
         for start_id, end_id in self._edges:
             x, y, ratio, distance_m = _project_to_segment(
                 point,
                 self._points[start_id],
                 self._points[end_id],
             )
-            candidate = EdgeProjection(start_id, end_id, x, y, ratio, distance_m)
-            if best is None or candidate.distance_m < best.distance_m:
-                best = candidate
-        if best is None:
+            candidates.append(
+                EdgeProjection(start_id, end_id, x, y, ratio, distance_m)
+            )
+        if not candidates:
             raise RoutePlanningError("route graph has no traversable edge")
-        return best
+        candidates.sort(
+            key=lambda candidate: (
+                candidate.distance_m,
+                candidate.start_id,
+                candidate.end_id,
+                candidate.ratio,
+            )
+        )
+        return tuple(candidates)
 
     @staticmethod
     def _connect(
@@ -144,23 +157,112 @@ class RouteGraphPlanner:
         goal_xy: tuple[float, float],
         *,
         max_snap_distance_m: float = 8.0,
+        snap_candidate_count: int = 8,
+        snap_candidate_distance_slack_m: float = 1.0,
     ) -> RoutePlan:
         if not math.isfinite(max_snap_distance_m) or max_snap_distance_m <= 0.0:
             raise ValueError("max_snap_distance_m must be finite and positive")
-
-        start_projection = self.nearest_edge(start_xy)
-        goal_projection = self.nearest_edge(goal_xy)
-        if start_projection.distance_m > max_snap_distance_m:
-            raise RoutePlanningError(
-                "start is %.2fm from route graph (limit %.2fm)"
-                % (start_projection.distance_m, max_snap_distance_m)
+        if (
+            isinstance(snap_candidate_count, bool)
+            or not isinstance(snap_candidate_count, int)
+            or snap_candidate_count <= 0
+        ):
+            raise ValueError("snap_candidate_count must be a positive integer")
+        if (
+            not math.isfinite(snap_candidate_distance_slack_m)
+            or snap_candidate_distance_slack_m < 0.0
+        ):
+            raise ValueError(
+                "snap_candidate_distance_slack_m must be finite and non-negative"
             )
-        if goal_projection.distance_m > max_snap_distance_m:
-            raise RoutePlanningError(
-                "goal is %.2fm from route graph (limit %.2fm)"
-                % (goal_projection.distance_m, max_snap_distance_m)
-            )
 
+        start_candidates = self._snap_candidates(
+            start_xy,
+            label="start",
+            max_snap_distance_m=max_snap_distance_m,
+            candidate_count=snap_candidate_count,
+            distance_slack_m=snap_candidate_distance_slack_m,
+        )
+        goal_candidates = self._snap_candidates(
+            goal_xy,
+            label="goal",
+            max_snap_distance_m=max_snap_distance_m,
+            candidate_count=snap_candidate_count,
+            distance_slack_m=snap_candidate_distance_slack_m,
+        )
+
+        best_plan: RoutePlan | None = None
+        best_key: tuple[float, float, float, float, tuple[str, ...]] | None = None
+        last_error: RoutePlanningError | None = None
+        for start_projection in start_candidates:
+            for goal_projection in goal_candidates:
+                try:
+                    candidate_plan = self._plan_between_projections(
+                        start_xy,
+                        start_projection,
+                        goal_projection,
+                    )
+                except RoutePlanningError as exc:
+                    last_error = exc
+                    continue
+                # Prefer the shortest route reachable from the actual start and
+                # ending nearest to the requested destination. The bounded snap
+                # set avoids selecting a remote parallel road as a shortcut.
+                total_cost_m = (
+                    candidate_plan.graph_cost_m
+                    + candidate_plan.start_snap_distance_m
+                    + candidate_plan.goal_snap_distance_m
+                )
+                candidate_key = (
+                    total_cost_m,
+                    candidate_plan.graph_cost_m,
+                    candidate_plan.start_snap_distance_m,
+                    candidate_plan.goal_snap_distance_m,
+                    tuple(str(node_id) for node_id in candidate_plan.graph_node_ids),
+                )
+                if best_key is None or candidate_key < best_key:
+                    best_key = candidate_key
+                    best_plan = candidate_plan
+
+        if best_plan is None:
+            if last_error is not None:
+                raise last_error
+            raise RoutePlanningError("no route exists between snapped start and goal")
+        return best_plan
+
+    def _snap_candidates(
+        self,
+        point: tuple[float, float],
+        *,
+        label: str,
+        max_snap_distance_m: float,
+        candidate_count: int,
+        distance_slack_m: float,
+    ) -> tuple[EdgeProjection, ...]:
+        projections = self.nearest_edges(point)
+        nearest = projections[0]
+        if nearest.distance_m > max_snap_distance_m:
+            raise RoutePlanningError(
+                "%s is %.2fm from route graph (limit %.2fm)"
+                % (label, nearest.distance_m, max_snap_distance_m)
+            )
+        maximum_distance_m = min(
+            max_snap_distance_m,
+            nearest.distance_m + distance_slack_m,
+        )
+        candidates = [
+            projection
+            for projection in projections
+            if projection.distance_m <= maximum_distance_m + 1e-9
+        ]
+        return tuple(candidates[:candidate_count])
+
+    def _plan_between_projections(
+        self,
+        start_xy: tuple[float, float],
+        start_projection: EdgeProjection,
+        goal_projection: EdgeProjection,
+    ) -> RoutePlan:
         coordinates: dict[Hashable, tuple[float, float]] = dict(self._points)
         coordinates[self.START_ID] = (start_projection.x, start_projection.y)
         coordinates[self.GOAL_ID] = (goal_projection.x, goal_projection.y)

@@ -1103,6 +1103,46 @@ def test_correction_release_duplicate_keeps_moving_reacquire_authority():
     assert duplicate.motion_allowed is True
 
 
+def test_correction_release_duplicate_does_not_resume_after_new_stopped_sample():
+    state = CorrectionReleaseState(allow_moving_backlog_release=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.1,
+    )
+
+    stopped = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.2,
+        lio_stamp_s=1.2,
+        local_linear_rate_mps=0.0,
+        local_yaw_rate_radps=0.0,
+    )
+    duplicate = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.5),
+        now_s=10.3,
+        lio_stamp_s=1.2,
+        local_linear_rate_mps=0.0,
+        local_yaw_rate_radps=0.0,
+    )
+
+    assert stopped.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert stopped.reason is CorrectionReleaseReason.STOP_CONFIRMATION_PENDING
+    assert not stopped.motion_allowed
+    assert duplicate.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert not duplicate.motion_allowed
+
+
 def test_correction_release_duplicate_backlog_stops_without_moving_reacquire():
     state = CorrectionReleaseState(allow_moving_backlog_release=False)
     previous = _pose()
@@ -1527,14 +1567,106 @@ def test_correction_release_can_reacquire_a_safe_rtk_target_while_moving():
     assert math.degrees(result.yaw_step_rad) == pytest.approx(0.05)
 
 
+def test_correction_release_keeps_bounded_backlog_moving_with_noisy_lio_speed():
+    state = CorrectionReleaseState(allow_bounded_backlog_motion=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.50, yaw=math.radians(5.0)),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.02,
+        local_yaw_rate_radps=0.01,
+    )
+
+    assert result.mode is CorrectionReleaseMode.RTK_REACQUIRING
+    assert result.reason is CorrectionReleaseReason.BOUNDED_BACKLOG_RELEASE
+    assert result.motion_allowed is True
+    assert result.translation_step_m == pytest.approx(0.02)
+    assert math.degrees(result.yaw_step_rad) == pytest.approx(0.20)
+
+
+def test_correction_release_duplicate_keeps_bounded_backlog_motion():
+    state = CorrectionReleaseState(allow_bounded_backlog_motion=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+    release = _release_update(
+        state,
+        previous=previous,
+        target=_pose(x=0.50),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.02,
+    )
+    duplicate = _release_update(
+        state,
+        previous=release.output_map_odom,
+        target=_pose(x=0.50),
+        now_s=10.15,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.02,
+    )
+
+    assert duplicate.mode is CorrectionReleaseMode.RTK_REACQUIRING
+    assert duplicate.reason is CorrectionReleaseReason.DUPLICATE_LOCAL_ODOM
+    assert duplicate.motion_allowed is True
+
+
+def test_bounded_backlog_motion_ignores_noisy_lio_stopped_threshold_crossings():
+    state = CorrectionReleaseState(allow_bounded_backlog_motion=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    results = []
+    for index, linear_rate_mps in enumerate((0.02, 0.09, 0.03, 0.08, 0.04, 0.07)):
+        result = _release_update(
+            state,
+            previous=previous,
+            target=_pose(x=1.0, yaw=math.radians(6.0)),
+            now_s=10.1 + index * 0.1,
+            lio_stamp_s=1.1 + index * 0.1,
+            local_linear_rate_mps=linear_rate_mps,
+            local_yaw_rate_radps=0.01,
+        )
+        previous = result.output_map_odom
+        results.append(result)
+
+    assert all(result.motion_allowed for result in results)
+    assert all(result.mode is CorrectionReleaseMode.RTK_REACQUIRING for result in results)
+    assert CorrectionReleaseReason.STOP_CONFIRMATION_PENDING not in {
+        result.reason for result in results
+    }
+
+
 @pytest.mark.parametrize(
-    "target",
+    ("target", "reason"),
     [
-        _pose(x=2.001),
-        _pose(yaw=math.radians(20.01)),
+        (_pose(x=2.001), CorrectionReleaseReason.FAULT_LATCHED),
+        (_pose(yaw=math.radians(20.001)), CorrectionReleaseReason.HEADING_JUMP_HOLD),
     ],
 )
-def test_correction_release_gap_above_hard_boundary_latches_fault(target):
+def test_bounded_backlog_motion_never_overrides_rtk_hard_faults(target, reason):
+    state = CorrectionReleaseState(allow_bounded_backlog_motion=True)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    result = _release_update(
+        state,
+        previous=previous,
+        target=target,
+        now_s=10.1,
+        lio_stamp_s=1.1,
+        local_linear_rate_mps=0.02,
+    )
+
+    assert result.reason is reason
+    assert result.motion_allowed is False
+
+
+def test_correction_release_translation_gap_above_hard_boundary_latches_fault():
     state = CorrectionReleaseState()
     previous = _pose()
     _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
@@ -1542,7 +1674,7 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
     fault = _release_update(
         state,
         previous=previous,
-        target=target,
+        target=_pose(x=2.001),
         now_s=10.1,
         lio_stamp_s=1.1,
     )
@@ -1562,7 +1694,41 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
     assert still_faulted.motion_allowed is False
 
 
-@pytest.mark.parametrize("fault_kind", ["translation", "yaw"])
+def test_correction_release_heading_jump_holds_then_recovers_without_restart():
+    state = CorrectionReleaseState(recovery_confirmation_s=0.5)
+    previous = _pose()
+    _release_update(state, previous=previous, now_s=10.0, lio_stamp_s=1.0)
+
+    held = _release_update(
+        state,
+        previous=previous,
+        target=_pose(yaw=math.radians(20.1)),
+        now_s=10.1,
+        lio_stamp_s=1.1,
+    )
+    pending = _release_update(
+        state,
+        previous=previous,
+        target=previous,
+        now_s=10.2,
+        lio_stamp_s=1.2,
+    )
+    recovered = _release_update(
+        state,
+        previous=previous,
+        target=previous,
+        now_s=10.7,
+        lio_stamp_s=1.7,
+    )
+
+    assert held.mode is CorrectionReleaseMode.CORRECTION_BACKLOG
+    assert held.reason is CorrectionReleaseReason.HEADING_JUMP_HOLD
+    assert held.motion_allowed is False
+    assert pending.reason is CorrectionReleaseReason.HEADING_RECOVERY_PENDING
+    assert recovered.mode is CorrectionReleaseMode.NORMAL
+    assert recovered.motion_allowed is True
+
+
 @pytest.mark.parametrize(
     "probe_kind",
     [
@@ -1574,18 +1740,13 @@ def test_correction_release_gap_above_hard_boundary_latches_fault(target):
         "nonfinite_target",
     ],
 )
-def test_correction_release_latched_hard_fault_precedes_all_later_validation(
-    fault_kind,
+def test_correction_release_latched_translation_fault_precedes_all_later_validation(
     probe_kind,
 ):
     state = CorrectionReleaseState()
     trusted = _pose(x=0.2, y=-0.1, yaw=0.05)
     _release_update(state, previous=trusted, now_s=10.0, lio_stamp_s=1.0)
-    fault_target = (
-        _pose(x=trusted.x + 2.1, y=trusted.y, yaw=trusted.yaw)
-        if fault_kind == "translation"
-        else _pose(x=trusted.x, y=trusted.y, yaw=trusted.yaw + math.radians(20.1))
-    )
+    fault_target = _pose(x=trusted.x + 2.1, y=trusted.y, yaw=trusted.yaw)
     fault = _release_update(
         state,
         previous=trusted,

@@ -78,38 +78,20 @@ ntrip:
   enabled: false
 ```
 
-现场可新建一个不提交的临时参数文件，例如 `/tmp/um982_cors.yaml`：
-
-```yaml
-um982_rtk_driver:
-  ros__parameters:
-    ntrip:
-      enabled: true
-      host: "<caster-host>"
-      port: 2101
-      mountpoint: "<mountpoint>"
-      username: "<cors-user>"
-      password: ""
-      password_env: NTRIP_PASSWORD
-      connect_requires_valid_gga: true
-```
-
-启动前输入密码到环境变量：
+使用 `make ntrip-setup` 配置凭据。它会写入 gitignore 的
+`runtime-data/config/`、保存前测试 caster，并创建带时间戳的备份。随后单独选择
+活动的传输 profile：
 
 ```bash
-export NTRIP_PASSWORD='不要提交到git'
-ros2 launch um982_rtk_driver um982_rtk.launch.py params_file:=/tmp/um982_cors.yaml
+make ntrip-setup
+make ntrip-use-standard  # 旧 NMEA/115200 profile
+make ntrip-use-mixed     # 新 raw+NMEA/921600 profile
+make ntrip-status
 ```
 
-使用仓库入口启动时，可复用同一个临时文件：
-
-```bash
-export NTRIP_PASSWORD='不要提交到git'
-export FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml
-make launch-rtk-basic
-```
-
-`FYP_RTK_PARAMS_FILE` 也会透传给 `explore-gps`、`nav-gps` 和 `corridor` 的 UM982 driver；导航、PGO、场景等其他节点仍使用各自原来的参数文件。
+当前选择会写入 `FYP_RTK_PARAMS_FILE`，并传给 `rtk-basic`、`explore-gps`、
+`nav-gps`、`corridor` 与 `tightly-coupled` 的 UM982 driver。每次 launch 时
+`launch_with_logs.sh` 都会重新加载 runtime 环境，因此已打开的 shell 也会使用更新后的配置。
 
 当前 C++ NTRIP 客户端支持普通 TCP NTRIP，不支持 TLS caster。如果学校/CORS caster 强制 TLS，需要后续再加 TLS 库，或者由接收机/4G 模块自己处理 NTRIP。
 

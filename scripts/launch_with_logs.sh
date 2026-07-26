@@ -81,6 +81,15 @@ source /opt/ros/humble/setup.bash
 source ~/XJTLU-autonomous-vehicle/install/setup.bash
 set -u
 
+# Always refresh runtime-only NTRIP exports. This prevents a terminal opened
+# before `make ntrip-setup` from launching UM982 with stale credentials.
+RUNTIME_NTRIP_ENV="${FYP_NTRIP_ENV_FILE:-$HOME/XJTLU-autonomous-vehicle/runtime-data/config/um982_cors_env.sh}"
+if [[ "${FYP_NTRIP_SKIP_RUNTIME_ENV:-0}" != "1" && -f "$RUNTIME_NTRIP_ENV" ]]; then
+  set +u
+  source "$RUNTIME_NTRIP_ENV"
+  set -u
+fi
+
 case "$MODE" in
   slam)         LAUNCH_FILE="system_slam.launch.py" ;;
   explore)      LAUNCH_FILE="system_explore.launch.py" ;;

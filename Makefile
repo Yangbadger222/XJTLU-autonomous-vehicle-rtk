@@ -11,14 +11,16 @@ COLCON_BUILD := $(ROS_SETUP) && colcon build --symlink-install --parallel-worker
 # Massive regex for killing processes
 KILL_PATTERN := '[l]aunch_with_logs.sh|[r]os2 launch|[m]onitor_corridor_status(\.py)?|[r]os2 bag|[r]viz2|[l]ivox_ros_driver2_node|[l]io_node|[l]ocalizer_node|[p]go_node|[r]tk_fgo_node|[r]tk_map_odom_corrector|[c]orridor_cmd_vel_guard|[s]erial_twistctl_node|[s]erial_reader_node|[n]mea_serial_driver|[u]m982_rtk_node|[p]lanner_server|[c]ontroller_server|[b]ehavior_server|[b]t_navigator|[s]moother_server|[v]elocity_smoother|[l]ifecycle_manager|[w]aypoint_follower|[m]ap_server|[a]mcl|[c]omponent_container(_mt)?|[g]ps_route_runner|[g]ps_global_aligner|[g]ps_anchor_localizer|[r]oute_server|[g]oal_manager_node|[r]obot_state_publisher|[j]oint_state_publisher|[p]ointcloud_to_laserscan|[a]sync_slam_toolbox_node|[m]ap_saver_server|[f]rc_health_aggregator|[f]rc_event_marker|[f]rc_risk_pipeline|[f]rc_memory_manager|[f]rc_trial_runner'
 
-.PHONY: setup build build-% launch-% kill kill-runtime clean ntrip-% frc-daily test
+.PHONY: setup build build-% launch-% kill kill-runtime clean \
+	ntrip ntrip-login ntrip-setup ntrip-status ntrip-logout ntrip-use \
+	ntrip-use-standard ntrip-use-mixed ntrip-use-old ntrip-use-new frc-daily test
 
 # ==============================================================================
 # Auto-complete Helpers (Empty targets to trick bash/zsh tab-completion)
 # ==============================================================================
 launch-slam launch-explore launch-indoor-nav launch-corridor launch-explore-gps launch-nav-gps launch-rtk-basic launch-tightly-coupled launch-travel:
 
-ntrip-logout ntrip-status ntrip-setup:
+ntrip ntrip-logout ntrip-status ntrip-setup ntrip-use ntrip-use-standard ntrip-use-mixed ntrip-use-old ntrip-use-new:
 
 # ==============================================================================
 # Setup & Clean
@@ -95,13 +97,34 @@ frc-daily:
 	@echo ">>> 人工复核 $(BAG)/review/review.csv 后执行:"
 	@echo ">>> python3 -m frc_offline.auto_label_from_events --events $(BAG)/events.jsonl --review $(BAG)/review/review.csv"
 
-# Pattern rule for ntrip commands.
-# Exception for ntrip-login which has no flag.
-ntrip-login:
-	@python3 scripts/setup_ntrip.py
+ntrip:
+	@python3 scripts/setup_ntrip.py --setup
 
-ntrip-%:
-	@python3 scripts/setup_ntrip.py --$*
+ntrip-login:
+	@python3 scripts/setup_ntrip.py --login
+
+ntrip-setup:
+	@python3 scripts/setup_ntrip.py --setup
+
+ntrip-status:
+	@python3 scripts/setup_ntrip.py --status
+
+ntrip-logout:
+	@python3 scripts/setup_ntrip.py --logout
+
+ntrip-use:
+	@test -n "$(PROFILE)" || (echo "Usage: make ntrip-use PROFILE=standard|mixed"; exit 1)
+	@python3 scripts/setup_ntrip.py --use-profile "$(PROFILE)"
+
+ntrip-use-standard:
+	@python3 scripts/setup_ntrip.py --use-profile standard
+
+ntrip-use-mixed:
+	@python3 scripts/setup_ntrip.py --use-profile mixed
+
+ntrip-use-old: ntrip-use-standard
+
+ntrip-use-new: ntrip-use-mixed
 
 # ==============================================================================
 # Process Management

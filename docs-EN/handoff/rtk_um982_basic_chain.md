@@ -78,38 +78,21 @@ ntrip:
   enabled: false
 ```
 
-For field testing, create an untracked temporary parameter file such as `/tmp/um982_cors.yaml`:
-
-```yaml
-um982_rtk_driver:
-  ros__parameters:
-    ntrip:
-      enabled: true
-      host: "<caster-host>"
-      port: 2101
-      mountpoint: "<mountpoint>"
-      username: "<cors-user>"
-      password: ""
-      password_env: NTRIP_PASSWORD
-      connect_requires_valid_gga: true
-```
-
-Pass the password through an environment variable:
+Configure credentials with `make ntrip-setup`. It writes gitignored runtime
+files under `runtime-data/config/`, tests the caster before saving, and creates
+timestamped backups. Select the active transport profile separately:
 
 ```bash
-export NTRIP_PASSWORD='do-not-commit'
-ros2 launch um982_rtk_driver um982_rtk.launch.py params_file:=/tmp/um982_cors.yaml
+make ntrip-setup
+make ntrip-use-standard  # old NMEA/115200 profile
+make ntrip-use-mixed     # new raw+NMEA/921600 profile
+make ntrip-status
 ```
 
-When launching through repository entrypoints, reuse the same temporary file:
-
-```bash
-export NTRIP_PASSWORD='do-not-commit'
-export FYP_RTK_PARAMS_FILE=/tmp/um982_cors.yaml
-make launch-rtk-basic
-```
-
-`FYP_RTK_PARAMS_FILE` is also passed to the UM982 driver in `explore-gps`, `nav-gps`, and `corridor`; navigation, PGO, scene, and other nodes continue using their original parameter files.
+The selected profile becomes `FYP_RTK_PARAMS_FILE`; it is passed to the UM982
+driver in `rtk-basic`, `explore-gps`, `nav-gps`, `corridor`, and
+`tightly-coupled`. `launch_with_logs.sh` reloads the runtime environment for
+each launch, so configuration changes apply even from an already-open shell.
 
 The current C++ NTRIP client supports plain TCP NTRIP, not TLS casters. If the CORS caster requires TLS, add a TLS dependency later or let the receiver/vendor 4G module own NTRIP.
 

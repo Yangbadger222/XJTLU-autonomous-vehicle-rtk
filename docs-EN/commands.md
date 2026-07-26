@@ -748,37 +748,28 @@ hf download frogcar/rtk-data-2026-surf --repo-type dataset --local-dir ./rtk-dat
 
 When using the RTK antenna, the robot must have an NTRIP account to receive full-quality signal. These can be bought in Taobao, for example in here: https://e.tb.cn/h.Ry4kJCGRkkS8a8n?tk=VpOEgN1OG2z
 
-In addition, this repo counts with a script that handles these credentials.
+The runtime NTRIP tool stores credentials only under gitignored
+`runtime-data/config/`. `make ntrip-setup` offers two parameter profiles:
 
-To login onto an NTRIP account, run:
-```bash
-make ntrip-login
-```
+- `standard` / `old`: NMEA at `115200` baud, using `um982_cors.yaml`.
+- `mixed` / `new`: raw plus NMEA at `921600` baud, using `um982_cors_mixed.yaml`.
 
-To change the account parameters, such as the server IP and mountpoint, run:
+Configure either profile or both, then select the one passed to UM982 by every
+repository launch entrypoint:
+
 ```bash
 make ntrip-setup
+make ntrip-use-standard  # standard / old profile
+make ntrip-use-mixed     # mixed / new profile
+make ntrip-status        # tests the selected caster, account and mountpoint
 ```
 
-To check current credentials and connection test, run:
-```bash
-make ntrip-status
-```
-
-To log out, run:
-```bash
-make ntrip-logout
-```
-
-Equivalent wrapper direct invocation:
-```bash
-@python3 scripts/setup_ntrip.py
-@python3 scripts/setup_ntrip.py --setup
-@python3 scripts/setup_ntrip.py --status
-@python3 scripts/setup_ntrip.py --logout
-```
-
-Once logged in, the credentials are stored in the robot. You will be logged in automatically every time until you manually log out or change the credentials.
+`make ntrip-use PROFILE=standard|mixed` is the generic form; `old` and `new`
+are accepted aliases. `make ntrip-login` replaces credentials for the selected
+profile without changing its endpoint. `make ntrip-logout` disables and clears
+the selected profile. The launch wrapper re-sources the runtime environment on
+every start, so a terminal opened before a credential change cannot retain an
+old password.
 
 ***
 

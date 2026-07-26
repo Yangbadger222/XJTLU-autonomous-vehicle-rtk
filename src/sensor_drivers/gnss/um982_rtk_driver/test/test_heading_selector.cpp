@@ -6,20 +6,22 @@ using um982_rtk_driver::HeadingSelector;
 using um982_rtk_driver::HeadingSelectorConfig;
 using um982_rtk_driver::HeadingSource;
 
-TEST(HeadingSelector, KeepsPrimarySourceWhileItIsFresh)
+TEST(HeadingSelector, KeepsUniheadingPrimaryAndDoesNotPromoteThs)
 {
   HeadingSelector selector;
 
-  EXPECT_TRUE(selector.observe(HeadingSource::THS, 10.0, 0.0).publish);
-  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 95.0, 0.1).publish);
-  EXPECT_TRUE(selector.observe(HeadingSource::THS, 11.0, 0.2).publish);
+  EXPECT_TRUE(selector.observe(HeadingSource::UNIHEADING, 10.0, 0.0).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::THS, 196.0, 0.1).publish);
+  EXPECT_TRUE(selector.observe(HeadingSource::UNIHEADING, 11.0, 0.2).publish);
   ASSERT_TRUE(selector.activeSource().has_value());
-  EXPECT_EQ(*selector.activeSource(), HeadingSource::THS);
+  EXPECT_EQ(*selector.activeSource(), HeadingSource::UNIHEADING);
 }
 
 TEST(HeadingSelector, AlignsFallbackToLastTrustedHeadingBeforeSwitching)
 {
   HeadingSelectorConfig config;
+  config.primary_source = HeadingSource::THS;
+  config.fallback_source = HeadingSource::UNIHEADING;
   config.fallback_timeout_s = 1.0;
   config.switch_min_samples = 2;
   HeadingSelector selector(config);
@@ -37,7 +39,10 @@ TEST(HeadingSelector, AlignsFallbackToLastTrustedHeadingBeforeSwitching)
 
 TEST(HeadingSelector, RejectsNonPhysicalJumpFromActiveSource)
 {
-  HeadingSelector selector;
+  HeadingSelectorConfig config;
+  config.primary_source = HeadingSource::THS;
+  config.fallback_source = HeadingSource::UNIHEADING;
+  HeadingSelector selector(config);
 
   EXPECT_TRUE(selector.observe(HeadingSource::THS, 20.0, 0.0).publish);
   const auto jump = selector.observe(HeadingSource::THS, 55.0, 0.1);
@@ -53,6 +58,8 @@ TEST(HeadingSelector, RejectsNonPhysicalJumpFromActiveSource)
 TEST(HeadingSelector, UsesFallbackAfterPrimaryNeverAppears)
 {
   HeadingSelectorConfig config;
+  config.primary_source = HeadingSource::THS;
+  config.fallback_source = HeadingSource::UNIHEADING;
   config.fallback_timeout_s = 1.0;
   HeadingSelector selector(config);
 

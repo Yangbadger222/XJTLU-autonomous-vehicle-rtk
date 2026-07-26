@@ -104,9 +104,9 @@ public:
     status_period_s_ = declare_parameter<double>("status_period_s", 1.0);
     heading_offset_deg_ = declare_parameter<double>("heading_offset_deg", 0.0);
     const auto primary_heading_source = declare_parameter<std::string>(
-      "heading_primary_source", "THS");
+      "heading_primary_source", "UNIHEADING");
     const auto fallback_heading_source = declare_parameter<std::string>(
-      "heading_fallback_source", "UNIHEADING");
+      "heading_fallback_source", "HPR");
     const auto primary_source = parseHeadingSource(primary_heading_source);
     const auto fallback_source = parseHeadingSource(fallback_heading_source);
     if (!primary_source.has_value() || !fallback_source.has_value() ||

@@ -20,8 +20,10 @@ const char * headingSourceName(HeadingSource source);
 
 struct HeadingSelectorConfig
 {
-  HeadingSource primary_source = HeadingSource::THS;
-  HeadingSource fallback_source = HeadingSource::UNIHEADING;
+  // UNIHEADING is the UM982 dual-antenna solution used for vehicle control.
+  // THS remains available as raw diagnostics, but is not a control fallback.
+  HeadingSource primary_source = HeadingSource::UNIHEADING;
+  HeadingSource fallback_source = HeadingSource::HPR;
   double fallback_timeout_s = 1.5;
   int switch_min_samples = 3;
   double max_rate_degps = 75.0;

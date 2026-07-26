@@ -47,3 +47,25 @@ def test_sanitize_bundle_splits_proper_route_crossings_into_a_junction():
         (3, intersection_id),
         (4, intersection_id),
     }
+
+
+def test_sanitize_bundle_connects_a_small_t_junction_gap():
+    raw_bundle = {
+        "fixed_origin_node_id": 1,
+        "nodes": {
+            1: _node("west", 120.0000, 31.0000, anchor=True),
+            2: _node("east", 120.0002, 31.0000, dest=True),
+            3: _node("north", 120.0001, 31.0002),
+            # The south segment stops 0.11m before the east-west road.
+            4: _node("south", 120.0001, 30.9999990),
+        },
+        "edges": [[1, 2], [3, 4]],
+    }
+
+    nodes, edges, meta = build_scene_runtime.sanitize_bundle(raw_bundle)
+
+    assert meta["intersection_node_count"] == 1
+    intersection_id = max(nodes)
+    assert (1, intersection_id) in {tuple(edge) for edge in edges}
+    assert (2, intersection_id) in {tuple(edge) for edge in edges}
+    assert (4, intersection_id) in {tuple(edge) for edge in edges}

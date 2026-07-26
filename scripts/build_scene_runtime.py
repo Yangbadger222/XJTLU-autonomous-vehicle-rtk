@@ -36,7 +36,9 @@ ROAD_KEEPOUT_YAML = CURRENT_SCENE_DIR / "road_keepout.yaml"
 ROAD_KEEPOUT_IMAGE = CURRENT_SCENE_DIR / "road_keepout.pgm"
 ENGLISH_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 EARTH_RADIUS_M = 6378137.0
-ROUTE_INTERSECTION_EPSILON = 1e-9
+ROUTE_TOPOLOGY_EPSILON_M = 1e-4
+ROUTE_TOPOLOGY_RATIO_EPSILON = 1e-6
+ROUTE_NEAR_JUNCTION_TOLERANCE_M = 0.25
 
 
 class LocalENUProjector:
@@ -105,40 +107,49 @@ def _segment_intersection(
     b: tuple[float, float],
     c: tuple[float, float],
     d: tuple[float, float],
-) -> tuple[float, float, tuple[float, float]] | None:
+) -> tuple[float, float] | None:
     """Return a proper segment crossing, excluding shared endpoints."""
 
     ab_x, ab_y = b[0] - a[0], b[1] - a[1]
     cd_x, cd_y = d[0] - c[0], d[1] - c[1]
     denominator = ab_x * cd_y - ab_y * cd_x
-    if abs(denominator) <= ROUTE_INTERSECTION_EPSILON:
+    if abs(denominator) <= ROUTE_TOPOLOGY_EPSILON_M**2:
         return None
 
     ac_x, ac_y = c[0] - a[0], c[1] - a[1]
     first_ratio = (ac_x * cd_y - ac_y * cd_x) / denominator
     second_ratio = (ac_x * ab_y - ac_y * ab_x) / denominator
     if not (
-        ROUTE_INTERSECTION_EPSILON < first_ratio < 1.0 - ROUTE_INTERSECTION_EPSILON
-        and ROUTE_INTERSECTION_EPSILON < second_ratio < 1.0 - ROUTE_INTERSECTION_EPSILON
+        ROUTE_TOPOLOGY_RATIO_EPSILON < first_ratio < 1.0 - ROUTE_TOPOLOGY_RATIO_EPSILON
+        and ROUTE_TOPOLOGY_RATIO_EPSILON < second_ratio < 1.0 - ROUTE_TOPOLOGY_RATIO_EPSILON
     ):
         return None
+    return first_ratio, second_ratio
 
-    return (
-        first_ratio,
-        second_ratio,
-        (a[0] + first_ratio * ab_x, a[1] + first_ratio * ab_y),
-    )
+
+def _project_to_segment(
+    point: tuple[float, float],
+    start: tuple[float, float],
+    end: tuple[float, float],
+) -> tuple[float, float]:
+    delta_x, delta_y = end[0] - start[0], end[1] - start[1]
+    length_sq = delta_x * delta_x + delta_y * delta_y
+    if length_sq <= ROUTE_TOPOLOGY_EPSILON_M:
+        return 0.0, math.hypot(point[0] - start[0], point[1] - start[1])
+    ratio = ((point[0] - start[0]) * delta_x + (point[1] - start[1]) * delta_y) / length_sq
+    projected = (start[0] + ratio * delta_x, start[1] + ratio * delta_y)
+    return ratio, math.hypot(point[0] - projected[0], point[1] - projected[1])
 
 
 def split_route_intersections(
     nodes: dict[int, dict], edges: list[list[int]]
 ) -> tuple[list[list[int]], int]:
-    """Insert graph nodes where two route segments properly cross.
+    """Insert graph nodes where two route segments meet.
 
     Scene bundles often originate from separate QGIS LineStrings. A visual
     crossing is not a graph connection unless it has an explicit shared node.
-    Resolving proper crossings at runtime keeps legacy bundles traversable
-    without changing their road geometry.
+    Resolving proper crossings and sub-25cm endpoint gaps at runtime keeps
+    legacy bundles traversable without changing their road geometry.
     """
 
     normalized_edges = [tuple(sorted((int(a), int(b)))) for a, b in edges]
@@ -149,57 +160,105 @@ def split_route_intersections(
     intersection_ids: dict[tuple[float, float], int] = {}
     used_names = {str(node["name"]).lower() for node in nodes.values()}
     next_id = max(nodes) + 1
+    mean_lat_rad = math.radians(
+        sum(float(node["lat"]) for node in nodes.values()) / len(nodes)
+    )
+    lon_scale = EARTH_RADIUS_M * math.pi / 180.0 * math.cos(mean_lat_rad)
+    lat_scale = EARTH_RADIUS_M * math.pi / 180.0
+    connector_edges: set[tuple[int, int]] = set()
+
+    def local_point(node_id: int) -> tuple[float, float]:
+        node = nodes[node_id]
+        return float(node["lon"]) * lon_scale, float(node["lat"]) * lat_scale
+
+    def make_intersection_node(
+        edge: tuple[int, int], ratio: float
+    ) -> int:
+        nonlocal next_id
+        start_id, end_id = edge
+        start, end = nodes[start_id], nodes[end_id]
+        lon = float(start["lon"]) + ratio * (float(end["lon"]) - float(start["lon"]))
+        lat = float(start["lat"]) + ratio * (float(end["lat"]) - float(start["lat"]))
+        key = (round(lon, 9), round(lat, 9))
+        node_id = intersection_ids.get(key)
+        if node_id is not None:
+            return node_id
+        name = f"intersection_{next_id}"
+        suffix = 2
+        while name.lower() in used_names:
+            name = f"intersection_{next_id}_{suffix}"
+            suffix += 1
+        used_names.add(name.lower())
+        node_id = next_id
+        next_id += 1
+        intersection_ids[key] = node_id
+        start_alt = float(start["alt"])
+        end_alt = float(end["alt"])
+        nodes[node_id] = {
+            "id": node_id,
+            "name": name,
+            "lat": lat,
+            "lon": lon,
+            "alt": start_alt + ratio * (end_alt - start_alt),
+            "anchor": True,
+            "dest": False,
+            "samples": 0,
+            "spread_m": 0.0,
+            "source": "route_intersection",
+            "time": "",
+        }
+        return node_id
 
     for index, first_edge in enumerate(normalized_edges):
         first_start, first_end = first_edge
-        first_a = (float(nodes[first_start]["lon"]), float(nodes[first_start]["lat"]))
-        first_b = (float(nodes[first_end]["lon"]), float(nodes[first_end]["lat"]))
+        first_a = local_point(first_start)
+        first_b = local_point(first_end)
         for second_edge in normalized_edges[index + 1 :]:
             if set(first_edge) & set(second_edge):
                 continue
             second_start, second_end = second_edge
-            second_a = (
-                float(nodes[second_start]["lon"]),
-                float(nodes[second_start]["lat"]),
-            )
-            second_b = (
-                float(nodes[second_end]["lon"]),
-                float(nodes[second_end]["lat"]),
-            )
+            second_a = local_point(second_start)
+            second_b = local_point(second_end)
             crossing = _segment_intersection(first_a, first_b, second_a, second_b)
-            if crossing is None:
+            if crossing is not None:
+                first_ratio, second_ratio = crossing
+                node_id = make_intersection_node(first_edge, first_ratio)
+                split_points[first_edge].append((first_ratio, node_id))
+                split_points[second_edge].append((second_ratio, node_id))
                 continue
 
-            first_ratio, second_ratio, point = crossing
-            key = (round(point[0], 9), round(point[1], 9))
-            node_id = intersection_ids.get(key)
-            if node_id is None:
-                name = f"intersection_{next_id}"
-                suffix = 2
-                while name.lower() in used_names:
-                    name = f"intersection_{next_id}_{suffix}"
-                    suffix += 1
-                used_names.add(name.lower())
-                first_alt = float(nodes[first_start]["alt"])
-                second_alt = float(nodes[first_end]["alt"])
-                node_id = next_id
-                next_id += 1
-                intersection_ids[key] = node_id
-                nodes[node_id] = {
-                    "id": node_id,
-                    "name": name,
-                    "lat": point[1],
-                    "lon": point[0],
-                    "alt": first_alt + first_ratio * (second_alt - first_alt),
-                    "anchor": True,
-                    "dest": False,
-                    "samples": 0,
-                    "spread_m": 0.0,
-                    "source": "route_intersection",
-                    "time": "",
-                }
-            split_points[first_edge].append((first_ratio, node_id))
-            split_points[second_edge].append((second_ratio, node_id))
+            for endpoint_id, endpoint in (
+                (first_start, first_a),
+                (first_end, first_b),
+            ):
+                second_ratio, distance_m = _project_to_segment(
+                    endpoint, second_a, second_b
+                )
+                if (
+                    ROUTE_TOPOLOGY_RATIO_EPSILON
+                    < second_ratio
+                    < 1.0 - ROUTE_TOPOLOGY_RATIO_EPSILON
+                    and distance_m <= ROUTE_NEAR_JUNCTION_TOLERANCE_M
+                ):
+                    node_id = make_intersection_node(second_edge, second_ratio)
+                    split_points[second_edge].append((second_ratio, node_id))
+                    connector_edges.add(tuple(sorted((endpoint_id, node_id))))
+            for endpoint_id, endpoint in (
+                (second_start, second_a),
+                (second_end, second_b),
+            ):
+                first_ratio, distance_m = _project_to_segment(
+                    endpoint, first_a, first_b
+                )
+                if (
+                    ROUTE_TOPOLOGY_RATIO_EPSILON
+                    < first_ratio
+                    < 1.0 - ROUTE_TOPOLOGY_RATIO_EPSILON
+                    and distance_m <= ROUTE_NEAR_JUNCTION_TOLERANCE_M
+                ):
+                    node_id = make_intersection_node(first_edge, first_ratio)
+                    split_points[first_edge].append((first_ratio, node_id))
+                    connector_edges.add(tuple(sorted((endpoint_id, node_id))))
 
     if not intersection_ids:
         return [list(edge) for edge in normalized_edges], 0
@@ -214,6 +273,7 @@ def split_route_intersections(
         for start_id, end_id in zip(ordered_ids, ordered_ids[1:]):
             if start_id != end_id:
                 expanded_edges.add(tuple(sorted((start_id, end_id))))
+    expanded_edges.update(connector_edges)
     return [list(edge) for edge in sorted(expanded_edges)], len(intersection_ids)
 
 

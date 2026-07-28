@@ -188,7 +188,8 @@ class SurveyNode(Node):
             dist_to_robot = math.hypot(wx - current_x, wy - current_y)
             
             if dist_to_robot <= self.max_radius and dist_to_robot >= self.frontier_min_dist:
-                points.append((wx, wy))
+                # points.append((wx, wy))
+                points.append((wx, wy, data[y, x])) # append cost DEBUG
         
         # Fallback: Find the furthest point we can if everything is close
         if not points:
@@ -199,7 +200,8 @@ class SurveyNode(Node):
                 
                 # Absolute minimum distance safety net
                 if dist_to_robot >= self.frontier_fallback_min_dist and dist_to_robot <= self.max_radius:
-                    points.append((wx, wy))
+                    # points.append((wx, wy))
+                    points.append((wx, wy, data[y, x])) # append cost DEBUG
 
         return points
 
@@ -211,7 +213,10 @@ class SurveyNode(Node):
         points_array = np.array(points)
         
         # cluster the frontier points
-        clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array)
+        # clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array)
+
+        # DEBUG remove appended cost
+        clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array[:, :2])
         labels = clustering.labels_
         
         current_x, current_y = self.get_current_pose()
@@ -246,6 +251,9 @@ class SurveyNode(Node):
         # fallback if DBSCAN only found noise, just pick the first available point
         if best_target is None:
             best_target = points_array[0]
+
+        # DEBUG log cost
+        self.get_logger().info(f"Selected frontier goal at ({best_target[0]:.2f}, {best_target[1]:.2f}) with occupancy cost: {int(best_target[2])}")
 
         goal = PoseStamped()
         goal.header.frame_id = self.global_frame_id
@@ -285,7 +293,8 @@ class SurveyNode(Node):
             
             if dist_to_robot <= self.max_radius:
                 if dist_to_robot >= self.hypothesis_min_dist:
-                    points.append((wx, wy))
+                    # points.append((wx, wy))
+                    points.append((wx, wy, data[y, x])) # append cost DEBUG
         
         # Fallback if no points are far enough
         if not points:
@@ -298,13 +307,18 @@ class SurveyNode(Node):
                 if dist_to_robot <= self.max_radius:
                     # Relaxed distance constraint
                     if dist_to_robot >= self.hypothesis_fallback_min_dist:
-                        points.append((wx, wy))
+                        # points.append((wx, wy))
+                        points.append((wx, wy, data[y, x])) # append cost DEBUG
         
         if not points:
             self.get_logger().warn("Cannot generate hypothesis goal: No free space found beyond minimum distance.", throttle_duration_sec=2.0)
             return None
             
         target = random.choice(points)
+
+        # DEBUG log cost
+        self.get_logger().info(f"Selected hypothesis goal at ({target[0]:.2f}, {target[1]:.2f}) with occupancy cost: {int(target[2])}")
+
         goal = PoseStamped()
         goal.header.frame_id = self.global_frame_id
         goal.header.stamp = self.get_clock().now().to_msg()

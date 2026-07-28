@@ -539,7 +539,7 @@ global_costmap:
       resolution: 0.10
       # 是否追踪未知区域；决定全局规划是否把未知空间单独表达出来。 (Track unknown space; determines if global planning expresses unknown space separately.)
       # 改为 true：未知区域更明确；改为 false：未知区域更容易被当作可通行。 (If true: unknown area more explicit; If false: unknown area easier to be treated as passable.)
-      track_unknown_space: false # true
+      track_unknown_space: true # true
       trinary_costmap: false
       # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。 (Rolling window switch; determines if costmap is fixed in world coordinates or moves with robot.)
       # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。 (If true: map moves with vehicle; If false: map is fixed in global coordinates.)
@@ -552,7 +552,7 @@ global_costmap:
       height: 100
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。 (Costmap layer list; determines which map layers current costmap will overlay.)
       # 增删地图层：会直接改变障碍信息来源和代价图行为。 (Adding/removing map layers: directly changes obstacle info source and costmap behavior.)
-      plugins: ["stvl_layer", "inflation_layer"]
+      plugins: ["obstacle_layer", "inflation_layer"]
       # 膨胀层参数块；负责给障碍物外围增加安全缓冲。 (Inflation layer parameter block; responsible for adding safety buffer around obstacles.)
       # 改错结构或参数：障碍安全边界会偏大或偏小。 (Incorrect structure or parameters: obstacle safety boundary will be too large or too small.)
       inflation_layer:
@@ -566,50 +566,20 @@ global_costmap:
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
         inflation_radius: 0.40
-      # STVL 参数块；负责让全局图中的近场动态障碍自动衰减，避免人走开后仍残留。 (STVL parameter block; responsible for auto-decaying near-field dynamic obstacles in global map, avoiding remnants after people walk away.)
-      stvl_layer:
-        plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
+      # ObstacleLayer 参数块；负责 2D 障碍物更新和未知区域清除。 (ObstacleLayer parameter block; responsible for 2D obstacle updates and unknown space clearing.)
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        voxel_decay: 1.5
-        decay_model: 0
-        voxel_size: 0.05
-        track_unknown_space: true
-        mark_threshold: 0
-        update_footprint_enabled: true
-        combination_method: 1
-        origin_z: -0.45
-        publish_voxel_map: false
-        transform_tolerance: 0.5
-        mapping_mode: false
-        map_save_duration: 60.0
-        observation_sources: pointcloud_mark pointcloud_clear
-        pointcloud_mark:
-          data_type: "PointCloud2"
+        observation_sources: pointcloud
+        pointcloud:
           topic: /fastlio2/body_cloud
+          data_type: "PointCloud2"
           marking: true
-          clearing: false
-          obstacle_range: 15.0
+          clearing: true
+          obstacle_max_range: 15.0
+          raytrace_max_range: 15.0
           min_obstacle_height: -0.33
           max_obstacle_height: 0.30
-          expected_update_rate: 0.0
-          observation_persistence: 0.0
-          inf_is_valid: false
-          filter: "voxel"
-          voxel_min_points: 0
-          clear_after_reading: false
-        pointcloud_clear:
-          enabled: true
-          data_type: "PointCloud2"
-          topic: /fastlio2/body_cloud
-          marking: false
-          clearing: true
-          max_z: 0.30
-          min_z: -0.50
-          vertical_fov_angle: 1.03
-          vertical_fov_padding: 0.05
-          horizontal_fov_angle: 6.29
-          decay_acceleration: 5.0
-          model_type: 1
       # 是否总是发送完整代价地图；决定 costmap 发布全量还是增量更新。 (Always send full costmap; determines if costmap publishes full or incremental updates.)
       # 改为 true：下游更稳但带宽更高；改为 false：更省带宽但对订阅端要求更高。 (If true: downstream more stable but higher bandwidth; If false: saves bandwidth but higher requirement for subscriber.)
       always_send_full_costmap: true

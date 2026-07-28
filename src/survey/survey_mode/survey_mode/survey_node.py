@@ -16,6 +16,7 @@ from action_msgs.msg import GoalStatus
 import tf2_ros
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+from sklearn.cluster import DBSCAN
 
 class SurveyNode(Node):
     def __init__(self):
@@ -202,28 +203,55 @@ class SurveyNode(Node):
         if not points:
             return None
             
-        target = random.choice(points)
+        points_array = np.array(points)
+        
+        # cluster the frontier points
+        clustering = DBSCAN(eps=0.3, min_samples=4).fit(points_array)
+        labels = clustering.labels_
+        
+        current_x, current_y = self.get_current_pose()
+        if current_x is None:
+            return None
+
+        best_target = None
+        best_cost = float('inf')
+        
+        unique_labels = set(labels)
+        for label in unique_labels:
+            if label == -1:
+                continue # skip noise points
+                
+            cluster_points = points_array[labels == label]
+            cluster_size = len(cluster_points)
+            centroid_x = np.mean(cluster_points[:, 0])
+            centroid_y = np.mean(cluster_points[:, 1])
+            distance = math.hypot(centroid_x - current_x, centroid_y - current_y)
+            
+            # cost-utility
+            # we want to minimize distance but maximize the size of the frontier
+            cost = distance / (math.sqrt(cluster_size) + 1e-5)
+            
+            if cost < best_cost:
+                best_cost = cost
+                # Instead of sending the robot to the centroid (which might be in a wall),
+                # pick the actual frontier point in this cluster closest to the centroid
+                distances_to_centroid = np.hypot(cluster_points[:, 0] - centroid_x, cluster_points[:, 1] - centroid_y)
+                best_target = cluster_points[np.argmin(distances_to_centroid)]
+                
+        # fallback if DBSCAN only found noise, just pick the first available point
+        if best_target is None:
+            best_target = points_array[0]
+
         goal = PoseStamped()
         goal.header.frame_id = self.global_frame_id
         goal.header.stamp = self.get_clock().now().to_msg()
-        goal.pose.position.x = float(target[0])
-        goal.pose.position.y = float(target[1])
-        
-        current_x, current_y = self.get_current_pose()
-        if current_x is not None and current_y is not None:
-            dx = goal.pose.position.x - current_x
-            dy = goal.pose.position.y - current_y
-            if dx == 0.0 and dy == 0.0:
-                goal.pose.orientation.w = 1.0
-                goal.pose.orientation.z = 0.0
-            else:
-                yaw = math.atan2(dy, dx)
-                goal.pose.orientation.w = math.cos(yaw / 2.0)
-                goal.pose.orientation.z = math.sin(yaw / 2.0)
-        else:
-            goal.pose.orientation.w = 1.0
-            goal.pose.orientation.z = 0.0
-            
+        goal.pose.position.x = float(best_target[0])
+        goal.pose.position.y = float(best_target[1])
+        dx = goal.pose.position.x - current_x
+        dy = goal.pose.position.y - current_y
+        yaw = math.atan2(dy, dx) if (dx != 0.0 or dy != 0.0) else 0.0
+        goal.pose.orientation.w = math.cos(yaw / 2.0)
+        goal.pose.orientation.z = math.sin(yaw / 2.0)
         return goal
 
     def get_real_hypothesis_goal(self):

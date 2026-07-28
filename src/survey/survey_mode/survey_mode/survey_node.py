@@ -44,6 +44,8 @@ class SurveyNode(Node):
         self.declare_parameter('hypothesis_fallback_min_dist', 0.5)
         self.declare_parameter('max_candidates', 5)
         self.declare_parameter('timer_period', 1.0)
+        self.declare_parameter('dbscan_eps', 0.3)
+        self.declare_parameter('dbscan_min_samples', 4)
         
         self.max_radius = self.get_parameter('max_radius').value
         self.threshold_x = self.get_parameter('threshold_x').value
@@ -65,6 +67,8 @@ class SurveyNode(Node):
         self.hypothesis_fallback_min_dist = self.get_parameter('hypothesis_fallback_min_dist').value
         self.max_candidates = self.get_parameter('max_candidates').value
         self.timer_period = self.get_parameter('timer_period').value
+        self.dbscan_eps = self.get_parameter('dbscan_eps').value
+        self.dbscan_min_samples = self.get_parameter('dbscan_min_samples').value
         
         self.state = 'Autonomous_Exploration'
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, self.nav_to_pose_action)
@@ -206,7 +210,7 @@ class SurveyNode(Node):
         points_array = np.array(points)
         
         # cluster the frontier points
-        clustering = DBSCAN(eps=0.3, min_samples=4).fit(points_array)
+        clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array)
         labels = clustering.labels_
         
         current_x, current_y = self.get_current_pose()

@@ -44,3 +44,9 @@
     
     # The execution period (in seconds) for the main state machine loop timer.
     timer_period: 1.0
+
+    # The maximum distance between two points for them to be considered in the same neighborhood cluster.
+    dbscan_eps: 0.3
+    
+    # The minimum number of points required in a neighborhood to form a valid frontier cluster (filters out noise).
+    dbscan_min_samples: 4

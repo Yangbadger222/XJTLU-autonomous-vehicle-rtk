@@ -31,13 +31,13 @@
     frontier_min_dist: 0.8
     
     # The absolute fallback minimum distance (in meters) to select a frontier point if no points meet the preferred frontier_min_dist.
-    frontier_fallback_min_dist: 0.5
+    frontier_fallback_min_dist: 0.4
     
     # The preferred minimum distance (in meters) the robot should try to move towards a goal to gather new data while in Hypothesis_Testing mode.
     hypothesis_min_dist: 1.2
     
     # The fallback minimum distance (in meters) for a goal during Hypothesis_Testing if standard points are unavailable.
-    hypothesis_fallback_min_dist: 0.8
+    hypothesis_fallback_min_dist: 0.4
     
     # The maximum number of candidates requested from the global relocalization service in a single call.
     max_candidates: 5

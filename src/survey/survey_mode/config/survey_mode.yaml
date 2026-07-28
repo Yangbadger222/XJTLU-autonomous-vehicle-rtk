@@ -41,6 +41,9 @@
     
     # The maximum number of candidates requested from the global relocalization service in a single call.
     max_candidates: 5
+
+    # The maximum occupancy grid cost (0-100) a cell can have to be considered "free" for navigation.
+    max_free_cost: 50
     
     # The execution period (in seconds) for the main state machine loop timer.
     timer_period: 1.0

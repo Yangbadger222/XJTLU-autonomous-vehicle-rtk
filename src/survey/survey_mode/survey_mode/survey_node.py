@@ -43,6 +43,7 @@ class SurveyNode(Node):
         self.declare_parameter('hypothesis_min_dist', 3.0)
         self.declare_parameter('hypothesis_fallback_min_dist', 0.5)
         self.declare_parameter('max_candidates', 5)
+        self.declare_parameter('max_free_cost', 50)
         self.declare_parameter('timer_period', 1.0)
         self.declare_parameter('dbscan_eps', 0.3)
         self.declare_parameter('dbscan_min_samples', 4)
@@ -53,7 +54,6 @@ class SurveyNode(Node):
         self.confidence_confirm = self.get_parameter('confidence_confirm').value
         self.min_confirm_distance = self.get_parameter('min_confirm_distance').value
         self.map_database_dir = os.path.expanduser(self.get_parameter('map_database_dir').value)
-        
         self.global_frame_id = self.get_parameter('global_frame_id').value
         self.robot_base_frame_id = self.get_parameter('robot_base_frame_id').value
         self.nav_to_pose_action = self.get_parameter('nav_to_pose_action').value
@@ -66,6 +66,7 @@ class SurveyNode(Node):
         self.hypothesis_min_dist = self.get_parameter('hypothesis_min_dist').value
         self.hypothesis_fallback_min_dist = self.get_parameter('hypothesis_fallback_min_dist').value
         self.max_candidates = self.get_parameter('max_candidates').value
+        self.max_free_cost = self.get_parameter('max_free_cost').value
         self.timer_period = self.get_parameter('timer_period').value
         self.dbscan_eps = self.get_parameter('dbscan_eps').value
         self.dbscan_min_samples = self.get_parameter('dbscan_min_samples').value
@@ -163,7 +164,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        free_cells = (data >= 0) & (data < 50)
+        free_cells = (data >= 0) & (data < self.max_free_cost)
         unknown_cells = (data == -1)
         
         up = np.roll(unknown_cells, 1, axis=0); up[0,:] = False
@@ -267,7 +268,7 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        y_idx, x_idx = np.where((data >= 0) & (data < 50))
+        y_idx, x_idx = np.where((data >= 0) & (data < self.max_free_cost))
         
         current_x, current_y = self.get_current_pose()
         if current_x is None:

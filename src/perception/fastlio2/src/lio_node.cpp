@@ -244,7 +244,7 @@ public:
         m_builder_config.publish_cloud_height_filter_enabled =
             this->declare_parameter<bool>("publish_cloud_height_filter_enabled", false);
         m_builder_config.publish_cloud_min_z =
-            this->declare_parameter<double>("publish_cloud_min_z", -0.33);
+            this->declare_parameter<double>("publish_cloud_min_z", -0.10);
         m_builder_config.publish_cloud_max_z =
             this->declare_parameter<double>("publish_cloud_max_z", 0.30);
         m_builder_config.localization_cloud_enabled =

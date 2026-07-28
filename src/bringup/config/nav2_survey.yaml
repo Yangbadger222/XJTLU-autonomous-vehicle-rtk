@@ -497,7 +497,7 @@ local_costmap:
           marking: false
           clearing: true
           max_z: 0.30
-          min_z: -0.33
+          min_z: -0.50
           vertical_fov_angle: 1.03
           vertical_fov_padding: 0.05
           horizontal_fov_angle: 6.29
@@ -604,7 +604,7 @@ global_costmap:
           marking: false
           clearing: true
           max_z: 0.30
-          min_z: -0.33
+          min_z: -0.50
           vertical_fov_angle: 1.03
           vertical_fov_padding: 0.05
           horizontal_fov_angle: 6.29

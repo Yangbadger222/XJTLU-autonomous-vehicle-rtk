@@ -358,13 +358,36 @@ public:
             service_received = m_state.service_received;
         }
 
+        // if (!localize_success && !service_received)
+        // {
+        //     RCLCPP_WARN_THROTTLE(
+        //         this->get_logger(),
+        //         *this->get_clock(),
+        //         5000,
+        //         "PCD map loaded, but map->odom is gated until relocalization succeeds");
+        //     return;
+        // }
+
+        // send a static map -> odom to avoid tf breaking
         if (!localize_success && !service_received)
         {
-            RCLCPP_WARN_THROTTLE(
+            RCLCPP_INFO_THROTTLE(
                 this->get_logger(),
                 *this->get_clock(),
                 5000,
-                "PCD map loaded, but map->odom is gated until relocalization succeeds");
+                "PCD map loaded. Broadcasting identity map->local_frame transform while waiting for relocalization.");
+            
+            // Broadcast the default identity transform if we have received odometry
+            // which guarantees m_config.local_frame has been dynamically set
+            if (m_state.message_received)
+            {
+                rclcpp::Time now = this->now();
+                if ((now - m_state.last_republish_tf_time).seconds() >= (1.0 / m_config.tf_republish_hz))
+                {
+                    sendBroadCastTF(now);
+                    m_state.last_republish_tf_time = now;
+                }
+            }
             return;
         }
 

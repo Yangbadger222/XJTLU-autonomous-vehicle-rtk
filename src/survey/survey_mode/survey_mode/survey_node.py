@@ -267,6 +267,76 @@ class SurveyNode(Node):
         goal.pose.orientation.z = math.sin(yaw / 2.0)
         return goal
 
+    # def get_real_hypothesis_goal(self):
+    #     if self.occupancy_grid is None:
+    #         self.get_logger().warn("Cannot generate hypothesis goal: Occupancy grid is missing.", throttle_duration_sec=2.0)
+    #         return None
+            
+    #     info = self.occupancy_grid.info
+    #     w, h = info.width, info.height
+    #     data = np.array(self.occupancy_grid.data).reshape((h, w))
+        
+    #     y_idx, x_idx = np.where((data >= 0) & (data < self.max_free_cost))
+        
+    #     current_x, current_y = self.get_current_pose()
+    #     if current_x is None:
+    #         self.get_logger().warn("Cannot generate hypothesis goal: TF lookup for current pose failed.", throttle_duration_sec=2.0)
+    #         return None
+            
+    #     points = []
+    #     for y, x in zip(y_idx, x_idx):
+    #         wx = info.origin.position.x + (x + 0.5) * info.resolution
+    #         wy = info.origin.position.y + (y + 0.5) * info.resolution
+            
+    #         # check distance from the robot, not from the map origin
+    #         dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+            
+    #         if dist_to_robot <= self.max_radius:
+    #             if dist_to_robot >= self.hypothesis_min_dist:
+    #                 # points.append((wx, wy))
+    #                 points.append((wx, wy, data[y, x])) # append cost DEBUG
+        
+    #     # Fallback if no points are far enough
+    #     if not points:
+    #         for y, x in zip(y_idx, x_idx):
+    #             wx = info.origin.position.x + (x + 0.5) * info.resolution
+    #             wy = info.origin.position.y + (y + 0.5) * info.resolution
+                
+    #             dist_to_robot = math.hypot(wx - current_x, wy - current_y)
+                
+    #             if dist_to_robot <= self.max_radius:
+    #                 # Relaxed distance constraint
+    #                 if dist_to_robot >= self.hypothesis_fallback_min_dist:
+    #                     # points.append((wx, wy))
+    #                     points.append((wx, wy, data[y, x])) # append cost DEBUG
+        
+    #     if not points:
+    #         self.get_logger().warn("Cannot generate hypothesis goal: No free space found beyond minimum distance.", throttle_duration_sec=2.0)
+    #         return None
+            
+    #     target = random.choice(points)
+
+    #     # DEBUG log cost
+    #     self.get_logger().info(f"Selected hypothesis goal at ({target[0]:.2f}, {target[1]:.2f}) with occupancy cost: {int(target[2])}")
+
+    #     goal = PoseStamped()
+    #     goal.header.frame_id = self.global_frame_id
+    #     goal.header.stamp = self.get_clock().now().to_msg()
+    #     goal.pose.position.x = float(target[0])
+    #     goal.pose.position.y = float(target[1])
+        
+    #     dx = goal.pose.position.x - current_x
+    #     dy = goal.pose.position.y - current_y
+    #     if dx == 0.0 and dy == 0.0:
+    #         goal.pose.orientation.w = 1.0
+    #         goal.pose.orientation.z = 0.0
+    #     else:
+    #         yaw = math.atan2(dy, dx)
+    #         goal.pose.orientation.w = math.cos(yaw / 2.0)
+    #         goal.pose.orientation.z = math.sin(yaw / 2.0)
+            
+    #     return goal
+
     def get_real_hypothesis_goal(self):
         if self.occupancy_grid is None:
             self.get_logger().warn("Cannot generate hypothesis goal: Occupancy grid is missing.", throttle_duration_sec=2.0)
@@ -276,7 +346,8 @@ class SurveyNode(Node):
         w, h = info.width, info.height
         data = np.array(self.occupancy_grid.data).reshape((h, w))
         
-        y_idx, x_idx = np.where((data >= 0) & (data < self.max_free_cost))
+        # 1. Only filter out completely unknown cells (-1) at first
+        y_idx, x_idx = np.where(data >= 0)
         
         current_x, current_y = self.get_current_pose()
         if current_x is None:
@@ -284,20 +355,28 @@ class SurveyNode(Node):
             return None
             
         points = []
+        discarded_costs = [] # Track the costs of points that passed the distance check but failed the cost check
+
+        # Standard check
         for y, x in zip(y_idx, x_idx):
             wx = info.origin.position.x + (x + 0.5) * info.resolution
             wy = info.origin.position.y + (y + 0.5) * info.resolution
             
-            # check distance from the robot, not from the map origin
             dist_to_robot = math.hypot(wx - current_x, wy - current_y)
             
+            # Check distance bounds first
             if dist_to_robot <= self.max_radius:
                 if dist_to_robot >= self.hypothesis_min_dist:
-                    # points.append((wx, wy))
-                    points.append((wx, wy, data[y, x])) # append cost DEBUG
+                    cost = data[y, x]
+                    # Then check cost
+                    if cost < self.max_free_cost:
+                        points.append((wx, wy, cost))
+                    else:
+                        discarded_costs.append(cost)
         
-        # Fallback if no points are far enough
+        # Fallback check if no points were found
         if not points:
+            discarded_costs.clear() # Reset to track fallback discards instead
             for y, x in zip(y_idx, x_idx):
                 wx = info.origin.position.x + (x + 0.5) * info.resolution
                 wy = info.origin.position.y + (y + 0.5) * info.resolution
@@ -305,20 +384,33 @@ class SurveyNode(Node):
                 dist_to_robot = math.hypot(wx - current_x, wy - current_y)
                 
                 if dist_to_robot <= self.max_radius:
-                    # Relaxed distance constraint
                     if dist_to_robot >= self.hypothesis_fallback_min_dist:
-                        # points.append((wx, wy))
-                        points.append((wx, wy, data[y, x])) # append cost DEBUG
+                        cost = data[y, x]
+                        if cost < self.max_free_cost:
+                            points.append((wx, wy, cost))
+                        else:
+                            discarded_costs.append(cost)
         
         if not points:
-            self.get_logger().warn("Cannot generate hypothesis goal: No free space found beyond minimum distance.", throttle_duration_sec=2.0)
+            # 2. Log advanced debugging statistics if all points failed
+            if discarded_costs:
+                avg_cost = sum(discarded_costs) / len(discarded_costs)
+                min_cost = min(discarded_costs)
+                max_cost = max(discarded_costs)
+                
+                self.get_logger().warn(
+                    f"Cannot generate hypothesis goal: No free space found. "
+                    f"{len(discarded_costs)} points met distance criteria but failed cost check. "
+                    f"Discarded Costs -> Min: {min_cost}, Max: {max_cost}, Avg: {avg_cost:.1f} (Threshold: {self.max_free_cost})", 
+                    throttle_duration_sec=2.0
+                )
+            else:
+                self.get_logger().warn("Cannot generate hypothesis goal: No valid mapped points found within distance bounds AT ALL.", throttle_duration_sec=2.0)
             return None
             
         target = random.choice(points)
-
-        # DEBUG log cost
         self.get_logger().info(f"Selected hypothesis goal at ({target[0]:.2f}, {target[1]:.2f}) with occupancy cost: {int(target[2])}")
-
+        
         goal = PoseStamped()
         goal.header.frame_id = self.global_frame_id
         goal.header.stamp = self.get_clock().now().to_msg()

@@ -36,7 +36,7 @@ t_il: [-0.011, -0.02329, 0.04412]
 lidar_cov_inv: 1000.0
 
 publish_cloud_height_filter_enabled: true
-publish_cloud_min_z: -0.10 # -0.33
+publish_cloud_min_z: -0.33
 publish_cloud_max_z: 0.30
 localization_cloud_enabled: true
 localization_cloud_min_z: -0.20

@@ -562,6 +562,9 @@ class SurveyNode(Node):
                         goal = self.get_real_hypothesis_goal()
                         if goal:
                             self.send_nav_goal(goal)
+                        else:
+                            self.get_logger().warn("Costmap received, but NO valid frontiers found! Check grid bounds and unknown space.", throttle_duration_sec=2.0)
+
             elif confidence < self.confidence_guess:
                 self.get_logger().info("False positive match. Transitioning back to Autonomous_Exploration")
                 self.state = 'Autonomous_Exploration'
@@ -572,6 +575,9 @@ class SurveyNode(Node):
                     goal = self.get_real_hypothesis_goal()
                     if goal:
                         self.send_nav_goal(goal)
+                    else:
+                        self.get_logger().warn("Costmap received, but NO valid frontiers found! Check grid bounds and unknown space.", throttle_duration_sec=2.0)
+
 
     def state_machine_loop(self):
         current_x, current_y = self.get_current_pose()
@@ -602,6 +608,9 @@ class SurveyNode(Node):
                 goal = self.get_real_frontier_goal()
                 if goal:
                     self.send_nav_goal(goal)
+                else:
+                    self.get_logger().warn("Costmap received, but NO valid frontiers found! Check grid bounds and unknown space.", throttle_duration_sec=2.0)
+
                     
         elif self.state == 'Hypothesis_Testing':
             if not self.waiting_for_service:

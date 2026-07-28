@@ -454,7 +454,7 @@ local_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 2.5
+        cost_scaling_factor: 3.0 # 2.5 badger
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         inflation_radius: 0.40
@@ -559,7 +559,7 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 2.5
+        cost_scaling_factor: 3.0 # 2.5 badger
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         inflation_radius: 0.30

@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace
@@ -28,6 +30,78 @@ float percentile(std::vector<float> values, float quantile)
   const std::size_t index = static_cast<std::size_t>(quantile * (values.size() - 1U));
   std::nth_element(values.begin(), values.begin() + index, values.end());
   return values[index];
+}
+
+struct Options
+{
+  bool gpu_only{false};
+  bool full_critics{false};
+  std::size_t batch_size{0U};
+  std::size_t time_steps{0U};
+  std::size_t warmup_iterations{10U};
+  std::size_t samples{100U};
+};
+
+void printUsage(const char * program)
+{
+  std::cout << "Usage: " << program << " [options]\n"
+            << "Without --batch-size/--time-steps, runs the legacy CPU/GPU sweep.\n"
+            << "  --gpu-only             Skip the simplified CPU reference.\n"
+            << "  --full-critics         Exercise the CUDA Nav2-style critic path.\n"
+            << "  --batch-size <count>   Run one selected batch size.\n"
+            << "  --time-steps <count>   Run one selected horizon.\n"
+            << "  --samples <count>      Timed optimizer calls (default: 100).\n"
+            << "  --warmup <count>       Untimed optimizer calls (default: 10).\n";
+}
+
+std::size_t parseSize(const std::string & value, const char * flag)
+{
+  try {
+    const auto parsed = std::stoull(value);
+    if (parsed == 0U) {
+      throw std::invalid_argument("must be positive");
+    }
+    return static_cast<std::size_t>(parsed);
+  } catch (const std::exception &) {
+    throw std::invalid_argument(std::string(flag) + " requires a positive integer");
+  }
+}
+
+Options parseOptions(int argc, char ** argv)
+{
+  Options options;
+  for (int index = 1; index < argc; ++index) {
+    const std::string flag = argv[index];
+    const auto next = [&]() {
+        if (++index >= argc) {
+          throw std::invalid_argument(flag + " requires a value");
+        }
+        return std::string(argv[index]);
+      };
+    if (flag == "--gpu-only") {
+      options.gpu_only = true;
+    } else if (flag == "--full-critics") {
+      options.full_critics = true;
+      options.gpu_only = true;
+    } else if (flag == "--batch-size") {
+      options.batch_size = parseSize(next(), "--batch-size");
+    } else if (flag == "--time-steps") {
+      options.time_steps = parseSize(next(), "--time-steps");
+    } else if (flag == "--samples") {
+      options.samples = parseSize(next(), "--samples");
+    } else if (flag == "--warmup") {
+      options.warmup_iterations = parseSize(next(), "--warmup");
+    } else if (flag == "--help" || flag == "-h") {
+      printUsage(argv[0]);
+      std::exit(EXIT_SUCCESS);
+    } else {
+      throw std::invalid_argument("unknown option: " + flag);
+    }
+  }
+  if ((options.batch_size == 0U) != (options.time_steps == 0U)) {
+    throw std::invalid_argument("--batch-size and --time-steps must be provided together");
+  }
+  return options;
 }
 
 std::uint64_t splitmix64(std::uint64_t value)
@@ -127,7 +201,30 @@ void cpuReference(
   }
 }
 
-void runCase(std::size_t batch_size, std::size_t time_steps)
+void populateFullCriticPath(mppi_cuda_backend::SamplingConfig & config,
+  mppi_cuda_backend::OptimizerInput & input)
+{
+  constexpr std::size_t kPathSize = 80U;
+  constexpr float kPathSpacing = 0.1F;
+  config.nav2_critics.enabled = true;
+  input.path_x.reserve(kPathSize);
+  input.path_y.reserve(kPathSize);
+  input.path_yaw.reserve(kPathSize);
+  input.path_integrated_distance.reserve(kPathSize);
+  for (std::size_t index = 0U; index < kPathSize; ++index) {
+    input.path_x.push_back(static_cast<float>(index) * kPathSpacing);
+    input.path_y.push_back(-3.0F);
+    input.path_yaw.push_back(0.0F);
+    input.path_integrated_distance.push_back(static_cast<float>(index) * kPathSpacing);
+  }
+  input.path_valid.assign(kPathSize - 1U, 1U);
+  input.path_target_x = input.path_x.back();
+  input.path_target_y = input.path_y.back();
+  input.goal_x = input.path_x.back();
+  input.goal_y = input.path_y.back();
+}
+
+void runCase(std::size_t batch_size, std::size_t time_steps, const Options & options)
 {
   constexpr std::size_t kWidth = 240U;
   constexpr std::size_t kHeight = 240U;
@@ -145,52 +242,90 @@ void runCase(std::size_t batch_size, std::size_t time_steps)
   input.nominal_vx.assign(time_steps, 1.0F);
   input.nominal_wz.assign(time_steps, 0.0F);
   input.costmap = {costmap.data(), kWidth, kHeight, 0.05F, -6.0F, -6.0F, false};
+  if (options.full_critics) {
+    populateFullCriticPath(config, input);
+  }
 
   mppi_cuda_backend::CudaMppiBackend backend;
-  for (int iteration = 0; iteration < 10; ++iteration) {
+  for (std::size_t iteration = 0U; iteration < options.warmup_iterations; ++iteration) {
     backend.optimize(config, input);
   }
-  std::vector<float> timings;
+  std::vector<float> gpu_timings;
+  std::vector<float> wall_timings;
   std::vector<float> cpu_timings;
-  timings.reserve(100U);
-  cpu_timings.reserve(100U);
+  gpu_timings.reserve(options.samples);
+  wall_timings.reserve(options.samples);
+  cpu_timings.reserve(options.samples);
   mppi_cuda_backend::OptimizationResult result;
-  for (int iteration = 0; iteration < 100; ++iteration) {
+  for (std::size_t iteration = 0U; iteration < options.samples; ++iteration) {
+    const auto wall_start = std::chrono::steady_clock::now();
     result = backend.optimize(config, input);
-    timings.push_back(result.gpu_elapsed_ms);
-    const auto start = std::chrono::steady_clock::now();
-    cpuReference(config, input);
-    const auto finish = std::chrono::steady_clock::now();
-    cpu_timings.push_back(
-      std::chrono::duration<float, std::milli>(finish - start).count());
+    const auto wall_finish = std::chrono::steady_clock::now();
+    gpu_timings.push_back(result.gpu_elapsed_ms);
+    wall_timings.push_back(
+      std::chrono::duration<float, std::milli>(wall_finish - wall_start).count());
+    if (!options.gpu_only) {
+      const auto cpu_start = std::chrono::steady_clock::now();
+      cpuReference(config, input);
+      const auto cpu_finish = std::chrono::steady_clock::now();
+      cpu_timings.push_back(
+        std::chrono::duration<float, std::milli>(cpu_finish - cpu_start).count());
+    }
   }
-  const float mean = std::accumulate(timings.begin(), timings.end(), 0.0F) /
-    static_cast<float>(timings.size());
-  const float cpu_mean = std::accumulate(cpu_timings.begin(), cpu_timings.end(), 0.0F) /
-    static_cast<float>(cpu_timings.size());
+  const auto mean = [](const std::vector<float> & values) {
+      return std::accumulate(values.begin(), values.end(), 0.0F) /
+             static_cast<float>(values.size());
+    };
+  const float gpu_mean = mean(gpu_timings);
+  const float wall_mean = mean(wall_timings);
+  const float wall_p95 = percentile(wall_timings, 0.95F);
+  const float wall_p99 = percentile(wall_timings, 0.99F);
   std::cout << "batch=" << batch_size << " steps=" << time_steps
-            << " mean_ms=" << std::fixed << std::setprecision(3) << mean
-            << " p95_ms=" << percentile(timings, 0.95F)
-            << " cpu_mean_ms=" << cpu_mean
-            << " cpu_p95_ms=" << percentile(cpu_timings, 0.95F)
-            << " speedup=" << cpu_mean / mean
+            << " samples=" << options.samples
+            << " full_critics=" << std::boolalpha << options.full_critics
+            << " gpu_mean_ms=" << std::fixed << std::setprecision(3) << gpu_mean
+            << " gpu_p50_ms=" << percentile(gpu_timings, 0.50F)
+            << " gpu_p95_ms=" << percentile(gpu_timings, 0.95F)
+            << " gpu_p99_ms=" << percentile(gpu_timings, 0.99F)
+            << " wall_mean_ms=" << wall_mean
+            << " wall_p95_ms=" << wall_p95
+            << " wall_p99_ms=" << wall_p99
+            << " backend_p95_hz=" << 1000.0F / wall_p95
+            << " backend_p99_hz=" << 1000.0F / wall_p99
             << " cmd_vx=" << result.control_vx.front()
             << " cmd_wz=" << result.control_wz.front()
-            << " all_collide=" << std::boolalpha << result.all_trajectories_collide
-            << std::endl;
+            << " all_collide=" << result.all_trajectories_collide;
+  if (!options.gpu_only) {
+    const float cpu_mean = mean(cpu_timings);
+    std::cout << " cpu_mean_ms=" << cpu_mean
+              << " cpu_p95_ms=" << percentile(cpu_timings, 0.95F)
+              << " speedup=" << cpu_mean / gpu_mean;
+  }
+  std::cout << std::endl;
 }
 
 }  // namespace
 
-int main()
+int main(int argc, char ** argv)
 {
   if (!mppi_cuda_backend::CudaMppiBackend::isAvailable()) {
     std::cerr << "No CUDA device available" << std::endl;
     return EXIT_FAILURE;
   }
-  runCase(1000U, 32U);
-  runCase(2048U, 32U);
-  runCase(4096U, 32U);
-  runCase(4096U, 48U);
-  return EXIT_SUCCESS;
+  try {
+    const Options options = parseOptions(argc, argv);
+    if (options.batch_size != 0U) {
+      runCase(options.batch_size, options.time_steps, options);
+      return EXIT_SUCCESS;
+    }
+
+    runCase(1000U, 32U, options);
+    runCase(2048U, 32U, options);
+    runCase(4096U, 32U, options);
+    runCase(4096U, 48U, options);
+    return EXIT_SUCCESS;
+  } catch (const std::exception & error) {
+    std::cerr << "mppi_cuda_benchmark failed: " << error.what() << std::endl;
+    return EXIT_FAILURE;
+  }
 }

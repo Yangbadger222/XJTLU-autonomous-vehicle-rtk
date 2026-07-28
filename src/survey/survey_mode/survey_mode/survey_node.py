@@ -132,7 +132,7 @@ class SurveyNode(Node):
             trans = self.tf_buffer.lookup_transform(self.global_frame_id, self.robot_base_frame_id, rclpy.time.Time())
             return trans.transform.translation.x, trans.transform.translation.y
         except Exception as e:
-            self.get_logger().debug(f"TF Lookup failed: {e}")
+            self.get_logger().warn(f"TF Lookup failed: {e}")
             return None, None
 
     def publish_marker(self, publisher, type, r, g, b, x, y):

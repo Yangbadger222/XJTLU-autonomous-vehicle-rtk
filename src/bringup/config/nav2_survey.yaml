@@ -301,21 +301,21 @@ controller_server:
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: false
       closed_loop: false
-      time_steps: 16
+      time_steps: 12
       model_dt: 0.1
       batch_size: 128
-      vx_std: 0.16
+      vx_std: 0.28
       vy_std: 0.0
-      wz_std: 0.10
+      wz_std: 0.22
       vx_max: 0.30
       vx_min: 0.0
       vy_max: 0.0
-      wz_max: 0.65
-      wz_min: -0.65
-      ax_max: 0.40
-      ax_min: -0.8
-      az_max: 2.0
-      az_min: -2.0
+      wz_max: 1.2
+      wz_min: -1.2
+      ax_max: 1.2
+      ax_min: -3.0
+      az_max: 6.0
+      az_min: -6.0
       iteration_count: 1
       prune_distance: 4.0
       transform_tolerance: 0.5
@@ -339,7 +339,7 @@ controller_server:
         - "PathAlignCritic"
         - "PathFollowCritic"
         - "PathAngleCritic"
-        - "VelocityDeadbandCritic"
+        - "PreferForwardCritic"
 
       ConstraintCritic:
         enabled: true
@@ -367,18 +367,18 @@ controller_server:
         cost_weight: 3.0
         threshold_to_consider: 0.5
 
-      VelocityDeadbandCritic:
+      PreferForwardCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 15.0
-        deadband_velocities: [0.12, 0.0, 0.08]
+        cost_weight: 5.0
+        threshold_to_consider: 0.5
 
       PathAlignCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 6.0
+        cost_weight: 12.0
         max_path_occupancy_ratio: 0.05
-        trajectory_point_step: 5
+        trajectory_point_step: 4
         threshold_to_consider: 0.5
         offset_from_furthest: 6
         use_path_orientations: false
@@ -386,7 +386,7 @@ controller_server:
       PathFollowCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 12.0
+        cost_weight: 16.0
         offset_from_furthest: 5
         threshold_to_consider: 1.4
 
@@ -458,7 +458,7 @@ local_costmap:
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
-        inflation_radius: 0.30 # 0.40 badger
+        inflation_radius: 0.60
       # STVL 参数块；负责把 3D 点云写入体素层，并通过时间衰减清除陈旧障碍。 (STVL parameter block; responsible for writing 3D point cloud into voxel layer and clearing stale obstacles via time decay.)
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
@@ -540,6 +540,7 @@ global_costmap:
       # 是否追踪未知区域；决定全局规划是否把未知空间单独表达出来。 (Track unknown space; determines if global planning expresses unknown space separately.)
       # 改为 true：未知区域更明确；改为 false：未知区域更容易被当作可通行。 (If true: unknown area more explicit; If false: unknown area easier to be treated as passable.)
       track_unknown_space: true
+      trinary_costmap: false
       # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。 (Rolling window switch; determines if costmap is fixed in world coordinates or moves with robot.)
       # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。 (If true: map moves with vehicle; If false: map is fixed in global coordinates.)
       rolling_window: true
@@ -564,7 +565,7 @@ global_costmap:
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
-        inflation_radius: 0.30
+        inflation_radius: 0.40
       # STVL 参数块；负责让全局图中的近场动态障碍自动衰减，避免人走开后仍残留。 (STVL parameter block; responsible for auto-decaying near-field dynamic obstacles in global map, avoiding remnants after people walk away.)
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"

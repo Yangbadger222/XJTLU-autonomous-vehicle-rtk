@@ -138,7 +138,7 @@ bt_navigator:
     global_frame: map
     # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。 (Robot base frame; determines which TF the navigation module considers as the 'robot body'.)
     # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。 (Incorrect frame: collision checking, control, and behavior judgments will be distorted.)
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     # 输入或输出话题名；决定该模块从哪里取数据或向哪里发数据。 (Input or output topic name; determines where the module gets or sends data.)
     # 改错话题：上下游节点会直接断链。 (Incorrect topic: upstream/downstream nodes will directly disconnect.)
     odom_topic: /fastlio2/lio_odom
@@ -418,7 +418,7 @@ local_costmap:
       global_frame: odom
       # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。 (Robot base frame; determines which TF the navigation module considers as the 'robot body'.)
       # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。 (Incorrect frame: collision checking, control, and behavior judgments will be distorted.)
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。 (Whether to use simulation time; determines if the node reads /clock or real system time.)
       # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。 (If true: relies on external simulation clock; If false: uses system time directly.)
       use_sim_time: false
@@ -526,7 +526,7 @@ global_costmap:
       global_frame: map
       # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。 (Robot base frame; determines which TF the navigation module considers as the 'robot body'.)
       # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。 (Incorrect frame: collision checking, control, and behavior judgments will be distorted.)
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       # 是否使用仿真时间；决定该节点读取 /clock 还是真实系统时间。 (Whether to use simulation time; determines if the node reads /clock or real system time.)
       # 改为 true：依赖外部仿真时钟；改为 false：直接使用系统时间。 (If true: relies on external simulation clock; If false: uses system time directly.)
       use_sim_time: false
@@ -691,7 +691,7 @@ smoother_server:
     # 增删平滑器：会改变路径后处理能力或导致引用失败。 (Adding/removing smoothers: will change path post-processing ability or cause reference failure.)
     costmap_topic: global_costmap/costmap_raw
     footprint_topic: global_costmap/published_footprint
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     transform_tolerance: 0.1
     smoother_plugins: ["savitzky_golay_smoother"]
     # Savitzky-Golay 参数块；用于去掉 NavFn 路径中的细小锯齿和微小折线。 (Savitzky-Golay parameter block; used to remove tiny jaggies and micro zigzags in NavFn paths.)
@@ -768,7 +768,7 @@ behavior_server:
     global_frame: odom
     # 机器人基坐标系；决定导航模块认为“机器人本体”对应哪个 TF。 (Robot base frame; determines which TF the navigation module considers as the 'robot body'.)
     # 改成错误坐标系：碰撞检查、控制和行为判断都会失真。 (Incorrect frame: collision checking, control, and behavior judgments will be distorted.)
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     # TF 容忍时间；决定该模块接受多大的 TF 时间偏差。 (TF tolerance time; determines how much TF time deviation this module accepts.)
     # 调大：对 TF 延迟更宽松；调小：更严格但更容易因延迟失败。 (Increase: looser on TF latency; Decrease: stricter but easier to fail due to latency.)
     transform_tolerance: 0.1
@@ -872,6 +872,6 @@ velocity_smoother:
 survey_node:
   ros__parameters:
     global_frame_id: "map"
-    robot_base_frame_id: "base_footprint" # "base_link"
+    robot_base_frame_id: "base_link"
     nav_to_pose_action: "navigate_to_pose"
     global_costmap_topic: "/global_costmap/costmap"

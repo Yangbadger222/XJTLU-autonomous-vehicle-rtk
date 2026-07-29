@@ -47,6 +47,7 @@ class SurveyNode(Node):
         self.declare_parameter('timer_period', 1.0)
         self.declare_parameter('dbscan_eps', 0.3)
         self.declare_parameter('dbscan_min_samples', 4)
+        self.declare_parameter('target_region_radius', 0.5)
         
         self.max_radius = self.get_parameter('max_radius').value
         self.threshold_x = self.get_parameter('threshold_x').value
@@ -70,6 +71,7 @@ class SurveyNode(Node):
         self.timer_period = self.get_parameter('timer_period').value
         self.dbscan_eps = self.get_parameter('dbscan_eps').value
         self.dbscan_min_samples = self.get_parameter('dbscan_min_samples').value
+        self.target_region_radius = self.get_parameter('target_region_radius').value
         
         self.state = 'Autonomous_Exploration'
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, self.nav_to_pose_action)
@@ -98,6 +100,7 @@ class SurveyNode(Node):
         self.last_y = None
         self.match_found = False
         self.matched_map_name = "None"
+        self.target_region_center = None
         
         # Map database discovery
         self.maps_tested = []
@@ -212,45 +215,62 @@ class SurveyNode(Node):
             
         points_array = np.array(points)
         
-        # cluster the frontier points
-        # clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array)
-
-        # DEBUG remove appended cost
-        clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array[:, :2])
-        labels = clustering.labels_
-        
         current_x, current_y = self.get_current_pose()
         if current_x is None:
             return None
 
-        best_target = None
-        best_cost = float('inf')
-        
-        unique_labels = set(labels)
-        for label in unique_labels:
-            if label == -1:
-                continue # skip noise points
+        region_frontiers = []
+        if self.target_region_center is not None:
+            for pt in points:
+                dist = math.hypot(pt[0] - self.target_region_center[0], pt[1] - self.target_region_center[1])
+                if dist <= self.target_region_radius:
+                    region_frontiers.append(pt)
+            if not region_frontiers:
+                self.get_logger().info("Target region has no valid frontiers. Giving up on region.")
+                self.target_region_center = None
                 
-            cluster_points = points_array[labels == label]
-            cluster_size = len(cluster_points)
-            centroid_x = np.mean(cluster_points[:, 0])
-            centroid_y = np.mean(cluster_points[:, 1])
-            distance = math.hypot(centroid_x - current_x, centroid_y - current_y)
+        if self.target_region_center is not None:
+            best_target = min(region_frontiers, key=lambda p: p[2])
+        else:
+            # cluster the frontier points
+            # DEBUG remove appended cost
+            clustering = DBSCAN(eps=self.dbscan_eps, min_samples=self.dbscan_min_samples).fit(points_array[:, :2])
+            labels = clustering.labels_
             
-            # cost-utility
-            # we want to minimize distance but maximize the size of the frontier
-            cost = distance / (math.sqrt(cluster_size) + 1e-5)
+            best_target = None
+            best_cost = float('inf')
+            best_centroid = None
             
-            if cost < best_cost:
-                best_cost = cost
-                # Instead of sending the robot to the centroid (which might be in a wall),
-                # pick the actual frontier point in this cluster closest to the centroid
-                distances_to_centroid = np.hypot(cluster_points[:, 0] - centroid_x, cluster_points[:, 1] - centroid_y)
-                best_target = cluster_points[np.argmin(distances_to_centroid)]
+            unique_labels = set(labels)
+            for label in unique_labels:
+                if label == -1:
+                    continue # skip noise points
+                    
+                cluster_points = points_array[labels == label]
+                cluster_size = len(cluster_points)
+                centroid_x = np.mean(cluster_points[:, 0])
+                centroid_y = np.mean(cluster_points[:, 1])
+                distance = math.hypot(centroid_x - current_x, centroid_y - current_y)
                 
-        # fallback if DBSCAN only found noise, just pick the first available point
-        if best_target is None:
-            best_target = points_array[0]
+                # cost-utility
+                # we want to minimize distance but maximize the size of the frontier
+                cost = distance / (math.sqrt(cluster_size) + 1e-5)
+                
+                if cost < best_cost:
+                    best_cost = cost
+                    # Instead of sending the robot to the centroid (which might be in a wall),
+                    # pick the actual frontier point in this cluster closest to the centroid
+                    distances_to_centroid = np.hypot(cluster_points[:, 0] - centroid_x, cluster_points[:, 1] - centroid_y)
+                    best_target = cluster_points[np.argmin(distances_to_centroid)]
+                    best_centroid = (centroid_x, centroid_y)
+                    
+            # fallback if DBSCAN only found noise, just pick the first available point
+            if best_target is None:
+                best_target = points_array[0]
+                self.target_region_center = (best_target[0], best_target[1])
+            else:
+                self.target_region_center = best_centroid
+            self.get_logger().info(f"Selected NEW frontier target region at ({self.target_region_center[0]:.2f}, {self.target_region_center[1]:.2f})")
 
         # DEBUG log cost
         self.get_logger().info(f"Selected frontier goal at ({best_target[0]:.2f}, {best_target[1]:.2f}) with occupancy cost: {int(best_target[2])}")
@@ -338,7 +358,26 @@ class SurveyNode(Node):
                 self.get_logger().warn("Cannot generate hypothesis goal: No valid mapped points found within distance bounds AT ALL.", throttle_duration_sec=2.0)
             return None
             
-        target = random.choice(points)
+        region_points = []
+        if self.target_region_center is not None:
+            for pt in points:
+                dist = math.hypot(pt[0] - self.target_region_center[0], pt[1] - self.target_region_center[1])
+                if dist <= self.target_region_radius:
+                    region_points.append(pt)
+            if not region_points:
+                self.get_logger().info("Target region has no valid points. Giving up on region.")
+                self.target_region_center = None
+                
+        if self.target_region_center is None:
+            anchor = random.choice(points)
+            self.target_region_center = (anchor[0], anchor[1])
+            self.get_logger().info(f"Selected NEW hypothesis target region at ({anchor[0]:.2f}, {anchor[1]:.2f})")
+            for pt in points:
+                dist = math.hypot(pt[0] - self.target_region_center[0], pt[1] - self.target_region_center[1])
+                if dist <= self.target_region_radius:
+                    region_points.append(pt)
+
+        target = min(region_points, key=lambda p: p[2])
         self.get_logger().info(f"Selected hypothesis goal at ({target[0]:.2f}, {target[1]:.2f}) with occupancy cost: {int(target[2])}")
         
         goal = PoseStamped()
@@ -469,7 +508,6 @@ class SurveyNode(Node):
                 self.hypothesis_start_x = current_x
                 self.hypothesis_start_y = current_y
                 self.matched_map_name = self.currently_testing_map
-                self.goal_active = False
                 if current_x is not None:
                     self.publish_marker(self.initial_guess_pub, Marker.SPHERE, 1.0, 1.0, 0.0, current_x, current_y)
         elif self.state == 'Hypothesis_Testing':
@@ -499,7 +537,6 @@ class SurveyNode(Node):
                 self.get_logger().info("False positive match. Transitioning back to Autonomous_Exploration")
                 self.state = 'Autonomous_Exploration'
                 self.matched_map_name = "None"
-                self.goal_active = False
             else:
                 if not self.goal_active:
                     goal = self.get_real_hypothesis_goal()
@@ -513,6 +550,12 @@ class SurveyNode(Node):
         current_x, current_y = self.get_current_pose()
         if current_x is not None and current_y is not None:
             self.update_distance(current_x, current_y)
+            
+            if self.target_region_center is not None:
+                dist_to_region = math.hypot(current_x - self.target_region_center[0], current_y - self.target_region_center[1])
+                if dist_to_region < self.target_region_radius:
+                    self.get_logger().info("Entered target region. Clearing region.")
+                    self.target_region_center = None
 
         if self.state == 'Halted':
             return

@@ -53,3 +53,6 @@
     
     # The minimum number of points required in a neighborhood to form a valid frontier cluster (filters out noise).
     dbscan_min_samples: 4
+
+    # The radius (in meters) around a chosen target region center. The robot will consistently pick goals within this region until it arrives.
+    target_region_radius: 0.5

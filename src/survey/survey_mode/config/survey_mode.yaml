@@ -1,10 +1,10 @@
 /**:
   ros__parameters:
     # Maximum allowed distance (in meters) from the robot to a valid frontier or hypothesis navigation goal.
-    max_radius: 2.0
+    max_radius: 4.0
     
     # The maximum mapped area threshold. If the active map area exceeds this, the node gives up on finding a matching map and transitions to Pure_Mapping.
-    threshold_x: 1.3
+    threshold_x: 5.0
     
     # The minimum confidence score (0.0 to 1.0) required to transition from Autonomous_Exploration to Hypothesis_Testing (an initial map match guess).
     confidence_guess: 0.5

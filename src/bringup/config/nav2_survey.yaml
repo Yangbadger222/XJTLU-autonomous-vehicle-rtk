@@ -308,7 +308,7 @@ controller_server:
       vy_std: 0.0
       wz_std: 0.22
       vx_max: 0.30
-      vx_min: 0.0
+      vx_min: -0.15
       vy_max: 0.0
       wz_max: 1.2
       wz_min: -1.2
@@ -454,7 +454,7 @@ local_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 3.8 # 2.5 badger
+        cost_scaling_factor: 4.0 # 2.5 badger
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
@@ -517,10 +517,10 @@ global_costmap:
     ros__parameters:
       # 代价地图更新频率；决定障碍信息每秒刷新多少次。 (Costmap update frequency; determines how many times per second obstacle information is refreshed.)
       # 调大：环境更新更及时但 CPU 更高；调小：更省资源但环境变化反映更慢。 (Increase: environment updates timelier but higher CPU; Decrease: saves resources but slower reflection of environment changes.)
-      update_frequency: 5.0
+      update_frequency: 2.0
       # 代价地图发布频率；决定对外发布地图消息的频率。 (Costmap publish frequency; determines frequency of publishing map messages externally.)
       # 调大：下游拿到新地图更快；调小：带宽和 CPU 开销更低。 (Increase: downstream gets new maps faster; Decrease: lower bandwidth and CPU overhead.)
-      publish_frequency: 2.0
+      publish_frequency: 1.0
       # 全局参考坐标系；决定规划、行为或代价地图在 TF 树中的根坐标。 (Global reference frame; determines root frame for planning, behaviors, or costmap in TF tree.)
       # 改成错误坐标系：地图、路径和机器人位姿会整体错位。 (Incorrect frame: map, path, and robot pose will be entirely misaligned.)
       global_frame: map
@@ -565,7 +565,7 @@ global_costmap:
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
-        inflation_radius: 0.40
+        inflation_radius: 0.60
       # ObstacleLayer 参数块；负责 2D 障碍物更新和未知区域清除。 (ObstacleLayer parameter block; responsible for 2D obstacle updates and unknown space clearing.)
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -820,7 +820,7 @@ velocity_smoother:
     max_velocity: [0.3, 0.0, 1.2] # Changed from [1.0, 0.0, 1.2]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
-    min_velocity: [0.0, 0.0, -1.2]
+    min_velocity: [-0.15, 0.0, -1.2]
     # 上下界参数；用于限制速度、高度、代价或其它量的允许范围。 (Upper/lower bound parameters; used to limit allowable range of speed, height, cost or other quantities.)
     # 调大上界或调小下界：系统更激进；反向调整：系统更保守。 (Increase upper or decrease lower: system more aggressive; Adjust inversely: system more conservative.)
     max_accel: [1.2, 0.0, 6.0]

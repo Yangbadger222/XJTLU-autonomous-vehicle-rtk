@@ -454,11 +454,11 @@ local_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 2.5 # 4.0 # 2.5 badger
+        cost_scaling_factor: 2.0 # 4.0 # 2.5 badger
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
-        inflation_radius: 0.60
+        inflation_radius: 0.70
       # STVL 参数块；负责把 3D 点云写入体素层，并通过时间衰减清除陈旧障碍。 (STVL parameter block; responsible for writing 3D point cloud into voxel layer and clearing stale obstacles via time decay.)
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"
@@ -561,11 +561,11 @@ global_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
-        cost_scaling_factor: 2.5 # 4.0 # 2.5 badger
+        cost_scaling_factor: 2.0 # 4.0 # 2.5 badger
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。 (Cost scaling factor; determines cost decay around obstacles and safety boundary shape.)
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。 (Increase: cost field changes more obviously or conservatively; Decrease: more aggressive or gentler.)
         # Must remain >= 0.285 to prevent plugin crashes
-        inflation_radius: 0.60
+        inflation_radius: 0.70
       # ObstacleLayer 参数块；负责 2D 障碍物更新和未知区域清除。 (ObstacleLayer parameter block; responsible for 2D obstacle updates and unknown space clearing.)
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"

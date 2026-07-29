@@ -13,7 +13,7 @@
     confidence_confirm: 0.7
     
     # The minimum distance (in meters) the robot must physically travel during Hypothesis_Testing before a match can be fully confirmed.
-    min_confirm_distance: 0.8
+    min_confirm_distance: 1.5
     
     # The directory path where the previously saved maps and their localization descriptors (scan_context.yaml) are discovered and evaluated.
     map_database_dir: '~/XJTLU-autonomous-vehicle/runtime-data/maps/indoor'

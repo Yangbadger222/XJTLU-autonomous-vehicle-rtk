@@ -539,7 +539,7 @@ global_costmap:
       resolution: 0.10
       # 是否追踪未知区域；决定全局规划是否把未知空间单独表达出来。 (Track unknown space; determines if global planning expresses unknown space separately.)
       # 改为 true：未知区域更明确；改为 false：未知区域更容易被当作可通行。 (If true: unknown area more explicit; If false: unknown area easier to be treated as passable.)
-      track_unknown_space: true # true
+      track_unknown_space: true
       trinary_costmap: false
       # 滚动窗口开关；决定代价地图是固定在世界坐标还是跟着机器人移动。 (Rolling window switch; determines if costmap is fixed in world coordinates or moves with robot.)
       # 改为 true：地图跟车移动；改为 false：地图固定在全局坐标。 (If true: map moves with vehicle; If false: map is fixed in global coordinates.)

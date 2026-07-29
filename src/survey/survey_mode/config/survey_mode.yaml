@@ -10,7 +10,7 @@
     confidence_guess: 0.6
     
     # The minimum confidence score required during Hypothesis_Testing to definitively confirm the match and transition to Return_To_Home.
-    confidence_confirm: 0.8
+    confidence_confirm: 0.7
     
     # The minimum distance (in meters) the robot must physically travel during Hypothesis_Testing before a match can be fully confirmed.
     min_confirm_distance: 1.0

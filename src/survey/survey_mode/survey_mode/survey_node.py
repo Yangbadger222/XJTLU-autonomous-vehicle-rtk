@@ -432,8 +432,8 @@ class SurveyNode(Node):
             self.generate_summary()
             sys.exit(0)
         elif self.state == 'Return_To_Home':
-            self.get_logger().error("Failed to return home. Path might be blocked. Halting.")
-            self.state = 'Halted'
+            self.get_logger().error("Failed to return home. Path might be blocked. Will retry shortly.")
+            self.retry_home_time = self.get_clock().now().nanoseconds + 2e9 # 2 seconds delay
 
     def generate_summary(self):
         log_dir = os.environ.get('FYP_LOG_SESSION_DIR', '/tmp')
@@ -557,9 +557,6 @@ class SurveyNode(Node):
                     self.get_logger().info("Entered target region. Clearing region.")
                     self.target_region_center = None
 
-        if self.state == 'Halted':
-            return
-            
         if self.state == 'Autonomous_Exploration':
             if not self.maps_tested and not self.untested_maps:
                 self.get_logger().info("No maps found in database. Transitioning directly to Pure_Mapping")
@@ -604,6 +601,12 @@ class SurveyNode(Node):
                     
         elif self.state == 'Return_To_Home':
             if not self.goal_active:
+                if hasattr(self, 'retry_home_time'):
+                    if self.get_clock().now().nanoseconds < self.retry_home_time:
+                        return
+                    self.get_logger().info("Retrying to return home now...")
+                    del self.retry_home_time
+
                 goal = PoseStamped()
                 goal.header.frame_id = self.global_frame_id
                 goal.pose.position.x = 0.0

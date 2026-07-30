@@ -338,9 +338,12 @@ controller_server:
       CostCritic:
         enabled: true
         cost_power: 1
-        cost_weight: 7.0
+        cost_weight: 10.0
         critical_cost: 300.0
-        consider_footprint: false
+        # A center-point trajectory can fit between two obstacles even when
+        # the chassis cannot. Evaluate every sampled trajectory with the full
+        # local-costmap footprint.
+        consider_footprint: true
         collision_cost: 1000000.0
         near_goal_distance: 1.0
         trajectory_point_step: 2
@@ -426,7 +429,10 @@ local_costmap:
       resolution: 0.05
       # 机器人安全半径；用于碰撞检查和膨胀边界计算。
       # 调大：更保守、更不易贴边；调小：更激进、更容易走窄路。
-      robot_radius: 0.38625
+      # Physical body radius plus a 6.4 cm side-clearance allowance. This is
+      # intentionally a circle so rotation is not allowed to clip either side
+      # of a narrow passage.
+      robot_radius: 0.45
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
       # P4（FRC）：frc_layer 放 denoise 之后（风险不被去噪层抹掉）、
@@ -460,10 +466,13 @@ local_costmap:
         plugin: "nav2_costmap_2d::InflationLayer"
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        cost_scaling_factor: 2.0
+        # Lower scaling keeps obstacle cost high throughout the safety buffer.
+        cost_scaling_factor: 1.5
         # 代价场参数；决定障碍物周围代价衰减和安全边界形状。
         # 调大：代价场变化更明显或更保守；调小：更激进或更平缓。
-        inflation_radius: 0.43
+        # 0.45 m collision radius plus 0.15 m planning clearance. A passage
+        # must therefore be about 1.20 m clear before MPPI will prefer it.
+        inflation_radius: 0.60
       # STVL 参数块；负责把 3D 点云写入体素层，并通过时间衰减清除陈旧障碍。
       stvl_layer:
         plugin: "spatio_temporal_voxel_layer/SpatioTemporalVoxelLayer"

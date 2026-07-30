@@ -24,6 +24,7 @@ _CORRIDOR_BAG_BASE_TOPICS = [
     '/fix',
     '/heading',
     '/rtk/status',
+    '/rtk/health',
     '/rtk/nmea_sentence',
     '/fastlio2/lio_odom',
     '/fastlio2/degeneracy',

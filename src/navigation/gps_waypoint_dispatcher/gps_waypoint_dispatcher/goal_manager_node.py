@@ -550,7 +550,7 @@ class GPSGoalManager(Node):
             return False
         try:
             projection = self.route_planner.nearest_edge(start_xy)
-            target = make_road_rejoin_target(
+            decision = make_road_rejoin_target(
                 self.road_keepout_map,
                 start_xy,
                 (projection.x, projection.y),
@@ -560,19 +560,12 @@ class GPSGoalManager(Node):
         except (RoutePlanningError, ValueError) as exc:
             self._finish_failure(f"road_rejoin_projection_failed={exc}")
             return True
-        if target is None:
-            nearest_road_m = self.road_keepout_map.nearest_drivable_distance(
-                start_xy[0], start_xy[1], self.road_rejoin_max_outside_distance_m
-            )
-            self._finish_failure(
-                "road_rejoin_unsafe; nearest_road_m=%s; max_outside_m=%.2f"
-                % (
-                    "none" if nearest_road_m is None else f"{nearest_road_m:.2f}",
-                    self.road_rejoin_max_outside_distance_m,
-                )
-            )
+        if not decision.approved:
+            self._finish_failure("road_rejoin_unsafe; %s" % decision.status_fields())
             return True
 
+        target = decision.target
+        assert target is not None
         self.road_rejoin_target = target
         self.road_rejoin_path = self._build_path_from_points(
             (start_xy, (target.x, target.y))
@@ -592,13 +585,14 @@ class GPSGoalManager(Node):
         self._publish_road_rejoin_active(True)
         self._publish_status(
             "ROAD_REJOIN_PREPARE",
-            "target=%s; outside_m=%.2f; graph_m=%.2f; x=%.2f; y=%.2f"
+            "target=%s; outside_m=%.2f; graph_m=%.2f; x=%.2f; y=%.2f; %s"
             % (
                 self.current_target_label,
                 target.outside_distance_m,
                 target.graph_distance_m,
                 target.x,
                 target.y,
+                decision.status_fields(),
             ),
         )
         return True

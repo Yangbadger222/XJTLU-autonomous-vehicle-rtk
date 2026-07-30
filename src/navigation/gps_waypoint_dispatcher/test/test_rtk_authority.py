@@ -136,6 +136,9 @@ def test_local_odom_bridge_continues_while_local_estimator_stays_healthy():
     bridge = LocalOdomBridge(
         max_step_translation_m=0.50,
         max_step_yaw_rad=math.radians(15.0),
+        max_duration_s=100.0,
+        max_distance_m=100.0,
+        max_yaw_change_rad=math.radians(90.0),
     )
 
     result = bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True)
@@ -194,6 +197,32 @@ def test_local_odom_bridge_only_rearms_after_trusted_authority_resets_it():
 
     assert rearmed.allowed is True
     assert rearmed.state is LocalOdomBridgeState.ACTIVE
+
+
+@pytest.mark.parametrize(
+    ("now_s", "pose", "reason"),
+    [
+        (25.1, _pose(), "LOCAL_BRIDGE_TIMEOUT"),
+        (11.0, _pose(x=3.1), "LOCAL_BRIDGE_DISTANCE_LIMIT"),
+        (11.0, _pose(yaw=math.radians(31.0)), "LOCAL_BRIDGE_YAW_LIMIT"),
+    ],
+)
+def test_local_odom_bridge_latches_when_dead_reckoning_budget_is_exhausted(
+    now_s, pose, reason
+):
+    bridge = LocalOdomBridge(
+        max_step_translation_m=4.0,
+        max_step_yaw_rad=math.radians(40.0),
+        max_duration_s=15.0,
+        max_distance_m=3.0,
+        max_yaw_change_rad=math.radians(30.0),
+    )
+    assert bridge.evaluate(now_s=10.0, local_pose=_pose(), local_fresh=True).allowed
+
+    result = bridge.evaluate(now_s=now_s, local_pose=pose, local_fresh=True)
+
+    assert result.allowed is False
+    assert result.reason == reason
 
 
 @pytest.mark.parametrize("stamp_s", [0.0, -1.0, math.inf, math.nan])

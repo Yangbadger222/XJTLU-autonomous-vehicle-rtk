@@ -7,6 +7,7 @@ from collections import deque
 from dataclasses import dataclass
 
 import rclpy
+from diagnostic_msgs.msg import DiagnosticArray
 from geometry_msgs.msg import QuaternionStamped, TransformStamped
 from nav_msgs.msg import Odometry
 from nmea_msgs.msg import Sentence
@@ -71,6 +72,17 @@ class LioDegeneracy:
     received_mono_s: float
 
 
+@dataclass(frozen=True)
+class RtkHealth:
+    fix_quality: int
+    satellites: int
+    hdop: float
+    heading_valid: bool
+    ntrip_state: str
+    rtcm_age_s: float
+    received_mono_s: float
+
+
 def _stamp_s(stamp) -> float:
     return float(stamp.sec) + float(stamp.nanosec) * 1e-9
 
@@ -108,6 +120,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("fix_topic", "/fix")
         self.declare_parameter("heading_topic", "/heading")
         self.declare_parameter("nmea_topic", "/rtk/nmea_sentence")
+        self.declare_parameter("rtk_health_topic", "/rtk/health")
         self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
         self.declare_parameter("lio_degeneracy_topic", "/fastlio2/degeneracy")
         self.declare_parameter("alignment_topic", "/gps_corridor/enu_to_map")
@@ -141,6 +154,10 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_heading_age_s", 1.0)
         self.declare_parameter("max_alignment_age_s", 1.0)
         self.declare_parameter("max_gga_age_s", 1.5)
+        self.declare_parameter("max_rtk_health_age_s", 1.5)
+        self.declare_parameter("rtk_min_satellites", 10)
+        self.declare_parameter("rtk_max_hdop", 2.0)
+        self.declare_parameter("rtk_max_rtcm_age_s", 3.0)
         self.declare_parameter("max_lio_age_s", 0.20)
         self.declare_parameter("max_heading_for_fix_age_s", 0.30)
         self.declare_parameter("max_translation_rate_mps", 0.20)
@@ -167,6 +184,9 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("enable_local_odom_bridge", True)
         self.declare_parameter("local_bridge_max_step_translation_m", 0.50)
         self.declare_parameter("local_bridge_max_step_yaw_deg", 15.0)
+        self.declare_parameter("local_bridge_max_duration_s", 15.0)
+        self.declare_parameter("local_bridge_max_distance_m", 3.0)
+        self.declare_parameter("local_bridge_max_yaw_change_deg", 30.0)
         self.declare_parameter("max_lio_degeneracy_age_s", 0.50)
         self.declare_parameter("lio_min_eig_healthy", 75.0)
         self.declare_parameter("lio_reject_regularized", True)
@@ -184,6 +204,7 @@ class RtkMapOdomCorrector(Node):
         self._fix_topic = str(self.get_parameter("fix_topic").value)
         self._heading_topic = str(self.get_parameter("heading_topic").value)
         self._nmea_topic = str(self.get_parameter("nmea_topic").value)
+        self._rtk_health_topic = str(self.get_parameter("rtk_health_topic").value)
         self._lio_odom_topic = str(self.get_parameter("lio_odom_topic").value)
         self._lio_degeneracy_topic = str(
             self.get_parameter("lio_degeneracy_topic").value
@@ -235,6 +256,14 @@ class RtkMapOdomCorrector(Node):
             self.get_parameter("max_alignment_age_s").value
         )
         self._max_gga_age_s = float(self.get_parameter("max_gga_age_s").value)
+        self._max_rtk_health_age_s = float(
+            self.get_parameter("max_rtk_health_age_s").value
+        )
+        self._rtk_min_satellites = int(self.get_parameter("rtk_min_satellites").value)
+        self._rtk_max_hdop = float(self.get_parameter("rtk_max_hdop").value)
+        self._rtk_max_rtcm_age_s = float(
+            self.get_parameter("rtk_max_rtcm_age_s").value
+        )
         self._max_lio_age_s = float(self.get_parameter("max_lio_age_s").value)
         self._max_heading_for_fix_age_s = float(
             self.get_parameter("max_heading_for_fix_age_s").value
@@ -373,6 +402,15 @@ class RtkMapOdomCorrector(Node):
             max_step_yaw_rad=math.radians(
                 float(self.get_parameter("local_bridge_max_step_yaw_deg").value)
             ),
+            max_duration_s=float(
+                self.get_parameter("local_bridge_max_duration_s").value
+            ),
+            max_distance_m=float(
+                self.get_parameter("local_bridge_max_distance_m").value
+            ),
+            max_yaw_change_rad=math.radians(
+                float(self.get_parameter("local_bridge_max_yaw_change_deg").value)
+            ),
         )
         self.get_logger().info(
             "RTK authority gates: yaw=%.1fdeg position=%.2fm recovery=%d/%.2fs; "
@@ -403,6 +441,7 @@ class RtkMapOdomCorrector(Node):
         self._local_yaw_rate_radps = math.inf
         self._latest_lio_mono_s: float | None = None
         self._latest_lio_degeneracy: LioDegeneracy | None = None
+        self._latest_rtk_health: RtkHealth | None = None
         self._latest_fix_mono_s: float | None = None
         self._latest_heading_mono_s: float | None = None
         self._latest_gga_mono_s: float | None = None
@@ -440,6 +479,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._nmea_sub = self.create_subscription(
             Sentence, self._nmea_topic, self._nmea_callback, 50
+        )
+        self._rtk_health_sub = self.create_subscription(
+            DiagnosticArray, self._rtk_health_topic, self._rtk_health_callback, 10
         )
         self._lio_sub = self.create_subscription(
             Odometry, self._lio_odom_topic, self._lio_callback, 50
@@ -553,6 +595,26 @@ class RtkMapOdomCorrector(Node):
                 now_s=received,
                 kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
             )
+
+    def _rtk_health_callback(self, msg: DiagnosticArray) -> None:
+        for status in msg.status:
+            if status.name != "um982_rtk_driver/health":
+                continue
+            values = {item.key: item.value for item in status.values}
+            try:
+                health = RtkHealth(
+                    fix_quality=int(values["fix_quality"]),
+                    satellites=int(values["satellites"]),
+                    hdop=float(values["hdop"]),
+                    heading_valid=values["heading_valid"].lower() == "true",
+                    ntrip_state=str(values["ntrip_state"]),
+                    rtcm_age_s=float(values["rtcm_age_s"]),
+                    received_mono_s=time.monotonic(),
+                )
+            except (KeyError, TypeError, ValueError):
+                return
+            self._latest_rtk_health = health
+            return
 
     def _lio_callback(self, msg: Odometry) -> None:
         stamp_s = _stamp_s(msg.header.stamp)
@@ -846,7 +908,31 @@ class RtkMapOdomCorrector(Node):
             <= self._max_alignment_age_s
             and self._age_s(self._latest_lio_mono_s, now_mono_s)
             <= self._max_lio_age_s
+            and self._rtk_health_reason(now_mono_s) is None
         )
+
+    def _rtk_health_reason(self, now_mono_s: float) -> str | None:
+        health = self._latest_rtk_health
+        if health is None or (
+            now_mono_s - health.received_mono_s > self._max_rtk_health_age_s
+        ):
+            return "RTK_HEALTH_STALE"
+        if health.fix_quality != 4:
+            return "GNSS_NOT_RTK_FIXED"
+        if health.satellites < self._rtk_min_satellites:
+            return "GNSS_LOW_SATELLITES"
+        if not math.isfinite(health.hdop) or health.hdop > self._rtk_max_hdop:
+            return "GNSS_HDOP_EXCEEDED"
+        if not health.heading_valid:
+            return "GNSS_HEADING_INVALID"
+        if health.ntrip_state != "RTCM_FRESH":
+            return f"NTRIP_{health.ntrip_state}"
+        if (
+            not math.isfinite(health.rtcm_age_s)
+            or health.rtcm_age_s > self._rtk_max_rtcm_age_s
+        ):
+            return "RTCM_STALE"
+        return None
 
     def _local_odom_fresh(self, now_mono_s: float) -> bool:
         return (
@@ -976,6 +1062,7 @@ class RtkMapOdomCorrector(Node):
         self._heading_gate.check_timeout(now_s=now_mono_s)
         self._position_gate.check_timeout(now_s=now_mono_s)
         release = self._release(now_mono_s)
+        health_reason = self._rtk_health_reason(now_mono_s)
         fresh = self._authority_fresh(now_mono_s)
         rtk_motion_allowed = bool(release and release.motion_allowed and fresh)
         if rtk_motion_allowed:
@@ -1007,6 +1094,8 @@ class RtkMapOdomCorrector(Node):
         self._publish_frozen_output()
         if bridge_allowed:
             reason = release.reason.value if release and release.reason else "GATES_NOT_LOCKED"
+            if health_reason is not None:
+                reason = f"{health_reason};{reason}"
             self._publish_mode_status("LIO_BRIDGE", f"{reason};{bridge.reason}")
             self._publish_motion_allowed(True, self._local_bridge_max_linear_speed_mps)
         else:

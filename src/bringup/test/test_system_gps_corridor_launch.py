@@ -129,6 +129,20 @@ def test_corridor_local_costmap_is_near_field_for_mppi_stability():
     assert cost_critic["cost_weight"] >= 7.0
 
 
+def test_corridor_mppi_rejects_passages_narrower_than_the_body_clearance():
+    config = yaml.safe_load(CORRIDOR_NAV2_PARAMS.read_text(encoding="utf-8"))
+    controller = config["controller_server"]["ros__parameters"]
+    local_costmap = config["local_costmap"]["local_costmap"]["ros__parameters"]
+    inflation = local_costmap["inflation_layer"]
+    cost_critic = controller["FollowPath"]["CostCritic"]
+
+    assert cost_critic["consider_footprint"] is True
+    assert cost_critic["collision_cost"] >= 1_000_000.0
+    assert local_costmap["robot_radius"] >= 0.45
+    assert inflation["inflation_radius"] >= 0.60
+    assert inflation["cost_scaling_factor"] <= 1.5
+
+
 def test_corridor_route_runner_defaults_to_short_rtk_subgoals():
     text = ROUTE_RUNNER.read_text(encoding="utf-8")
 

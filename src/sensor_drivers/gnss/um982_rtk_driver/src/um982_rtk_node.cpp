@@ -30,6 +30,9 @@
 #include <vector>
 
 #include <builtin_interfaces/msg/time.hpp>
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_msgs/msg/key_value.hpp>
 #include <geometry_msgs/msg/quaternion_stamped.hpp>
 #include <nmea_msgs/msg/sentence.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -157,6 +160,14 @@ public:
     ntrip_password_ = readPasswordFromEnv(ntrip_password, ntrip_password_env);
     ntrip_send_gga_interval_s_ =
       declare_parameter<double>("ntrip.send_gga_interval_s", 5.0);
+    const bool legacy_connect_requires_valid_gga = declare_parameter<bool>(
+      "ntrip.connect_requires_valid_gga", false);
+    if (legacy_connect_requires_valid_gga) {
+      RCLCPP_WARN(
+        get_logger(),
+        "ntrip.connect_requires_valid_gga is deprecated and ignored; reconnects now run "
+        "without a valid GGA so RTK can recover from No Fix.");
+    }
     NtripReconnectConfig reconnect_config;
     reconnect_config.initial_backoff_s = declare_parameter<double>(
       "ntrip.reconnect_initial_backoff_s", 1.0);
@@ -168,11 +179,27 @@ public:
     reconnect_config.max_cached_valid_gga_age_s = declare_parameter<double>(
       "ntrip.max_cached_valid_gga_age_s", 30.0);
     ntrip_reconnect_policy_ = std::make_unique<NtripReconnectPolicy>(reconnect_config);
+    ntrip_rtcm_fresh_timeout_s_ = declare_parameter<double>(
+      "ntrip.rtcm_fresh_timeout_s", 3.0);
+    ntrip_rtcm_hard_timeout_s_ = declare_parameter<double>(
+      "ntrip.rtcm_hard_timeout_s", 10.0);
+    heading_hpr_requires_rtk_health_ = declare_parameter<bool>(
+      "heading_hpr_requires_rtk_health", true);
+    heading_hpr_max_gga_age_s_ = declare_parameter<double>(
+      "heading_hpr_max_gga_age_s", 1.5);
+    if (!std::isfinite(ntrip_rtcm_fresh_timeout_s_) || ntrip_rtcm_fresh_timeout_s_ <= 0.0 ||
+      !std::isfinite(ntrip_rtcm_hard_timeout_s_) ||
+      ntrip_rtcm_hard_timeout_s_ < ntrip_rtcm_fresh_timeout_s_ ||
+      !std::isfinite(heading_hpr_max_gga_age_s_) || heading_hpr_max_gga_age_s_ <= 0.0)
+    {
+      throw std::runtime_error("invalid NTRIP or HPR health timeout configuration");
+    }
 
     fix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("/fix", 10);
     heading_pub_ = create_publisher<geometry_msgs::msg::QuaternionStamped>("/heading", 10);
     raw_pub_ = create_publisher<nmea_msgs::msg::Sentence>("rtk/nmea_sentence", 50);
     status_pub_ = create_publisher<std_msgs::msg::String>("rtk/status", 10);
+    health_pub_ = create_publisher<diagnostic_msgs::msg::DiagnosticArray>("rtk/health", 10);
 
     serial_port_.setPort(port_);
     serial_port_.setBaudrate(static_cast<uint32_t>(baud_));
@@ -274,6 +301,8 @@ private:
         std::lock_guard<std::mutex> lock(gga_mutex_);
         latest_gga_sentence_ = line;
         latest_gga_valid_for_ntrip_ = parsed->gga->fix_quality != 0;
+        latest_gga_fix_quality_ = parsed->gga->fix_quality;
+        latest_gga_received_ = std::chrono::steady_clock::now();
         if (latest_gga_valid_for_ntrip_) {
           last_valid_gga_sentence_ = line;
           last_valid_gga_received_ = std::chrono::steady_clock::now();
@@ -291,7 +320,7 @@ private:
       handleHeading(HeadingSource::THS, parsed->ths->heading_deg, stamp);
     }
     if (parsed->hpr.has_value()) {
-      if (parsed->hpr->fix_type > 0) {
+      if (parsed->hpr->fix_type > 0 && hprHeadingEligible()) {
         handleHeading(HeadingSource::HPR, parsed->hpr->heading_deg, stamp);
       }
     }
@@ -446,34 +475,85 @@ private:
   {
     std_msgs::msg::String msg;
     std::ostringstream status;
-    std::lock_guard<std::mutex> lock(status_mutex_);
-    status << "fix=" << fixQualityText(last_fix_quality_)
-           << " q=" << last_fix_quality_
-           << " sats=" << last_satellites_
-           << " hdop=" << last_hdop_
-           << " lat=" << std::fixed << std::setprecision(8) << last_latitude_
-           << " lon=" << last_longitude_
-           << " alt=" << std::setprecision(3) << last_altitude_
-           << " heading=";
-    if (last_heading_valid_) {
-      status << std::setprecision(3)
-             << last_heading_calibrated_deg_
-             << " " << last_heading_source_
-             << " raw=" << last_heading_deg_
-             << " offset=" << heading_offset_deg_
-             << " source_bias=" << last_heading_source_bias_deg_;
-    } else {
-      status << "-";
+    {
+      std::lock_guard<std::mutex> lock(status_mutex_);
+      status << "fix=" << fixQualityText(last_fix_quality_)
+             << " q=" << last_fix_quality_
+             << " sats=" << last_satellites_
+             << " hdop=" << last_hdop_
+             << " lat=" << std::fixed << std::setprecision(8) << last_latitude_
+             << " lon=" << last_longitude_
+             << " alt=" << std::setprecision(3) << last_altitude_
+             << " heading=";
+      if (last_heading_valid_) {
+        status << std::setprecision(3)
+               << last_heading_calibrated_deg_
+               << " " << last_heading_source_
+               << " raw=" << last_heading_deg_
+               << " offset=" << heading_offset_deg_
+               << " source_bias=" << last_heading_source_bias_deg_;
+      } else {
+        status << "-";
+      }
+      status << " rmc=" << (last_rmc_valid_ ? "A" : "V")
+             << " speed_mps=" << std::setprecision(2) << last_speed_mps_
+             << " cog=" << last_course_deg_
+             << " uniheading=" << last_uniheading_status_;
     }
-    status << " rmc=" << (last_rmc_valid_ ? "A" : "V")
-           << " speed_mps=" << std::setprecision(2) << last_speed_mps_
-           << " cog=" << last_course_deg_
-           << " uniheading=" << last_uniheading_status_
-           << " heading_rejects=" << headingRejectedCount()
-           << " ntrip=" << (ntrip_connected_.load() ? "connected" : "offline")
+    status << " heading_rejects=" << headingRejectedCount()
+           << " ntrip=" << ntripHealthState()
+           << " rtcm_age_s=" << ntripRtcmAgeS()
            << " rtcm_bytes=" << rtcm_bytes_.load();
     msg.data = status.str();
     status_pub_->publish(msg);
+    publishHealth();
+  }
+
+  void publishHealth()
+  {
+    int fix_quality = 0;
+    int satellites = 0;
+    double hdop = std::numeric_limits<double>::quiet_NaN();
+    bool heading_valid = false;
+    std::string heading_source;
+    std::string uniheading_status;
+    {
+      std::lock_guard<std::mutex> lock(status_mutex_);
+      fix_quality = last_fix_quality_;
+      satellites = last_satellites_;
+      hdop = last_hdop_;
+      heading_valid = last_heading_valid_;
+      heading_source = last_heading_source_;
+      uniheading_status = last_uniheading_status_;
+    }
+    diagnostic_msgs::msg::DiagnosticStatus status;
+    status.name = "um982_rtk_driver/health";
+    status.hardware_id = "UM982";
+    const std::string ntrip_state = ntripHealthState();
+    status.level = ntrip_state == "RTCM_FRESH" && fix_quality == 4 && heading_valid ?
+      diagnostic_msgs::msg::DiagnosticStatus::OK : diagnostic_msgs::msg::DiagnosticStatus::WARN;
+    status.message = ntrip_state;
+    const auto add = [&status](const std::string & key, const std::string & value) {
+        diagnostic_msgs::msg::KeyValue item;
+        item.key = key;
+        item.value = value;
+        status.values.push_back(item);
+      };
+    add("fix_quality", std::to_string(fix_quality));
+    add("satellites", std::to_string(satellites));
+    add("hdop", std::to_string(hdop));
+    add("heading_valid", heading_valid ? "true" : "false");
+    add("heading_source", heading_source);
+    add("uniheading_status", uniheading_status);
+    add("heading_rejects", std::to_string(headingRejectedCount()));
+    add("ntrip_state", ntrip_state);
+    add("rtcm_age_s", std::to_string(ntripRtcmAgeS()));
+    add("rtcm_bytes", std::to_string(rtcm_bytes_.load()));
+    add("ntrip_reconnect_count", std::to_string(ntripReconnectCount()));
+    diagnostic_msgs::msg::DiagnosticArray health;
+    health.header.stamp = toRosTimeMsg(now());
+    health.status.push_back(status);
+    health_pub_->publish(health);
   }
 
   int headingRejectedCount()
@@ -494,6 +574,7 @@ private:
         }
         if (!connectNtrip(*initial_gga)) {
           ++consecutive_failures;
+          incrementNtripReconnectCount();
           waitBeforeNtripRetry(consecutive_failures);
           continue;
         }
@@ -502,9 +583,28 @@ private:
       pumpNtrip();
       if (!ntrip_connected_) {
         ++consecutive_failures;
+        incrementNtripReconnectCount();
         waitBeforeNtripRetry(consecutive_failures);
       }
     }
+  }
+
+  bool hprHeadingEligible()
+  {
+    if (!heading_hpr_requires_rtk_health_) {
+      return true;
+    }
+    {
+      std::lock_guard<std::mutex> lock(gga_mutex_);
+      if (latest_gga_fix_quality_ != 4 || !latest_gga_received_.has_value() ||
+        std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - *latest_gga_received_).count() >
+        heading_hpr_max_gga_age_s_)
+      {
+        return false;
+      }
+    }
+    return ntripHealthState() == "RTCM_FRESH";
   }
 
   std::optional<std::string> initialGgaForNtrip()
@@ -537,6 +637,7 @@ private:
 
   bool connectNtrip(const std::string & initial_gga)
   {
+    setNtripState("CONNECTING");
     ntrip_socket_ = openSocket();
     if (ntrip_socket_ < 0) {
       return false;
@@ -563,24 +664,25 @@ private:
     while (running_ && response_state == NtripResponseState::NeedMore) {
       const auto n = ::recv(ntrip_socket_, &c, 1, 0);
       if (n <= 0) {
-        closeNtrip();
+        closeNtrip("NTRIP_RESPONSE_CLOSED");
         return false;
       }
       header.push_back(c);
       response_state = evaluateNtripResponse(header);
       if (header.size() > 4096) {
-        closeNtrip();
+        closeNtrip("NTRIP_RESPONSE_INVALID");
         return false;
       }
     }
 
     if (response_state != NtripResponseState::Accepted) {
       RCLCPP_WARN(get_logger(), "NTRIP rejected connection: %.120s", header.c_str());
-      closeNtrip();
+      closeNtrip("NTRIP_REJECTED");
       return false;
     }
 
     ntrip_connected_ = true;
+    setNtripState("CONNECTED_NO_RTCM");
     if (!initial_gga.empty()) {
       sendGgaToNtrip(initial_gga);
     }
@@ -603,6 +705,7 @@ private:
       RCLCPP_WARN(
         get_logger(), "NTRIP DNS failed for %s: %s", ntrip_host_.c_str(),
         gai_strerror(rc));
+      setNtripState("DNS_FAILED");
       return -1;
     }
 
@@ -619,6 +722,9 @@ private:
       fd = -1;
     }
     ::freeaddrinfo(result);
+    if (fd < 0) {
+      setNtripState("TCP_CONNECT_FAILED");
+    }
     return fd;
   }
 
@@ -654,7 +760,7 @@ private:
     const ssize_t bytes = ::recv(ntrip_socket_, buffer.data(), buffer.size(), 0);
     if (bytes <= 0) {
       RCLCPP_WARN(get_logger(), "NTRIP connection closed");
-      closeNtrip();
+      closeNtrip("NTRIP_CONNECTION_CLOSED");
       return;
     }
 
@@ -664,8 +770,10 @@ private:
         serial_port_.write(buffer.data(), static_cast<size_t>(bytes));
       }
       rtcm_bytes_.fetch_add(static_cast<uint64_t>(bytes));
+      recordRtcmWrite();
     } catch (const std::exception & exc) {
       RCLCPP_WARN(get_logger(), "Failed to write RTCM to UM982: %s", exc.what());
+      setNtripState("RTCM_SERIAL_WRITE_FAILED");
     }
   }
 
@@ -681,13 +789,72 @@ private:
     ::send(ntrip_socket_, payload.data(), payload.size(), 0);
   }
 
-  void closeNtrip()
+  void closeNtrip(const std::string & state = "DISCONNECTED")
   {
     if (ntrip_socket_ >= 0) {
       ::close(ntrip_socket_);
       ntrip_socket_ = -1;
     }
     ntrip_connected_ = false;
+    setNtripState(state);
+  }
+
+  void setNtripState(const std::string & state)
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    ntrip_state_ = state;
+  }
+
+  void recordRtcmWrite()
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    last_rtcm_write_ = std::chrono::steady_clock::now();
+    ntrip_state_ = "RTCM_FRESH";
+  }
+
+  void incrementNtripReconnectCount()
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    ++ntrip_reconnect_count_;
+  }
+
+  uint64_t ntripReconnectCount()
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    return ntrip_reconnect_count_;
+  }
+
+  double ntripRtcmAgeS()
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    if (!last_rtcm_write_.has_value()) {
+      return std::numeric_limits<double>::infinity();
+    }
+    return std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - *last_rtcm_write_).count();
+  }
+
+  std::string ntripHealthState()
+  {
+    std::lock_guard<std::mutex> lock(ntrip_health_mutex_);
+    if (ntrip_state_ == "RTCM_SERIAL_WRITE_FAILED") {
+      return ntrip_state_;
+    }
+    if (!ntrip_connected_.load()) {
+      return ntrip_state_;
+    }
+    if (!last_rtcm_write_.has_value()) {
+      return "CONNECTED_NO_RTCM";
+    }
+    const double age_s = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - *last_rtcm_write_).count();
+    if (age_s <= ntrip_rtcm_fresh_timeout_s_) {
+      return "RTCM_FRESH";
+    }
+    if (age_s <= ntrip_rtcm_hard_timeout_s_) {
+      return "RTCM_STALE";
+    }
+    return "RTCM_TIMEOUT";
   }
 
   serial::Serial serial_port_;
@@ -700,6 +867,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::QuaternionStamped>::SharedPtr heading_pub_;
   rclcpp::Publisher<nmea_msgs::msg::Sentence>::SharedPtr raw_pub_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
+  rclcpp::Publisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr health_pub_;
   rclcpp::TimerBase::SharedPtr status_timer_;
 
   std::string port_;
@@ -722,6 +890,10 @@ private:
   std::string ntrip_username_;
   std::string ntrip_password_;
   double ntrip_send_gga_interval_s_ = 5.0;
+  double ntrip_rtcm_fresh_timeout_s_ = 3.0;
+  double ntrip_rtcm_hard_timeout_s_ = 10.0;
+  bool heading_hpr_requires_rtk_health_ = true;
+  double heading_hpr_max_gga_age_s_ = 1.5;
   std::unique_ptr<NtripReconnectPolicy> ntrip_reconnect_policy_;
   std::mt19937 ntrip_jitter_generator_{std::random_device{}()};
   int ntrip_socket_ = -1;
@@ -732,8 +904,15 @@ private:
   std::mutex gga_mutex_;
   std::string latest_gga_sentence_;
   bool latest_gga_valid_for_ntrip_ = false;
+  int latest_gga_fix_quality_ = 0;
+  std::optional<std::chrono::steady_clock::time_point> latest_gga_received_;
   std::string last_valid_gga_sentence_;
   std::optional<std::chrono::steady_clock::time_point> last_valid_gga_received_;
+
+  std::mutex ntrip_health_mutex_;
+  std::string ntrip_state_ = "DISCONNECTED";
+  std::optional<std::chrono::steady_clock::time_point> last_rtcm_write_;
+  uint64_t ntrip_reconnect_count_ = 0;
 
   std::mutex status_mutex_;
   std::mutex heading_mutex_;

@@ -54,10 +54,9 @@ class LocalOdomBridgeResult:
 class LocalOdomBridge:
     """Continuous local propagation after a trusted global localization loss.
 
-    This class deliberately does not impose a time or distance cut-off. The
-    caller must provide an independent FAST-LIO health decision and reset only
-    after global RTK authority has recovered. A local-estimator fault latches
-    the bridge off so a continuing RTK outage cannot repeatedly re-arm it.
+    The bridge is deliberately bounded by time, distance, and accumulated yaw
+    change. A local-estimator fault or a budget exhaustion latches it off so a
+    continuing RTK outage cannot silently become dead reckoning navigation.
     """
 
     def __init__(
@@ -65,16 +64,29 @@ class LocalOdomBridge:
         *,
         max_step_translation_m: float,
         max_step_yaw_rad: float,
+        max_duration_s: float = 15.0,
+        max_distance_m: float = 3.0,
+        max_yaw_change_rad: float = math.radians(30.0),
     ) -> None:
-        values = (max_step_translation_m, max_step_yaw_rad)
+        values = (
+            max_step_translation_m,
+            max_step_yaw_rad,
+            max_duration_s,
+            max_distance_m,
+            max_yaw_change_rad,
+        )
         if not all(math.isfinite(value) and value > 0.0 for value in values):
             raise ValueError("local odom bridge limits must be finite and positive")
         self.max_step_translation_m = max_step_translation_m
         self.max_step_yaw_rad = max_step_yaw_rad
+        self.max_duration_s = max_duration_s
+        self.max_distance_m = max_distance_m
+        self.max_yaw_change_rad = max_yaw_change_rad
         self._state = LocalOdomBridgeState.IDLE
         self._reason = "NOT_ARMED"
         self._started_s: float | None = None
         self._last_pose: Pose2D | None = None
+        self._initial_yaw: float | None = None
         self._distance_m = 0.0
         self._last_now_s: float | None = None
 
@@ -87,6 +99,7 @@ class LocalOdomBridge:
         self._reason = "NOT_ARMED"
         self._started_s = None
         self._last_pose = None
+        self._initial_yaw = None
         self._distance_m = 0.0
         self._last_now_s = None
 
@@ -114,13 +127,16 @@ class LocalOdomBridge:
             self._reason = "ACTIVE"
             self._started_s = now_s
             self._last_pose = local_pose
+            self._initial_yaw = local_pose.yaw
             self._distance_m = 0.0
             return self._result(True)
 
-        if self._last_pose is None or self._started_s is None:
+        if self._last_pose is None or self._started_s is None or self._initial_yaw is None:
             return self._exhaust("BRIDGE_STATE_INVALID")
         if now_s < self._started_s:
             return self._exhaust("REGRESSING_PROCESS_TIME")
+        if now_s - self._started_s > self.max_duration_s:
+            return self._exhaust("LOCAL_BRIDGE_TIMEOUT")
 
         step_translation_m = math.hypot(
             local_pose.x - self._last_pose.x,
@@ -133,6 +149,10 @@ class LocalOdomBridge:
             return self._exhaust("LOCAL_ODOM_TRANSLATION_JUMP")
         if step_yaw_rad > self.max_step_yaw_rad:
             return self._exhaust("LOCAL_ODOM_YAW_JUMP")
+        if self._distance_m + step_translation_m > self.max_distance_m:
+            return self._exhaust("LOCAL_BRIDGE_DISTANCE_LIMIT")
+        if abs(normalize_angle(local_pose.yaw - self._initial_yaw)) > self.max_yaw_change_rad:
+            return self._exhaust("LOCAL_BRIDGE_YAW_LIMIT")
 
         self._last_pose = local_pose
         self._distance_m += step_translation_m

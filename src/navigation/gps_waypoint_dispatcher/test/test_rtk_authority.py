@@ -2764,21 +2764,31 @@ def test_rtk_map_odom_corrector_preserves_fifo_and_quality_contracts():
     assert "FIX_QUALITY_UNAVAILABLE" in node_text
 
 
-def test_rtk_map_odom_corrector_appends_fixed_diagnostic_fields():
+def test_rtk_map_odom_corrector_publishes_named_actionable_diagnostics():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
         "rtk_map_odom_corrector_node.py",
         encoding="utf-8",
     ).read()
 
-    assert "float(self._heading_gate.state)" in node_text
-    assert "float(self._position_gate.state)" in node_text
-    assert "heading_innovation_deg" in node_text
-    assert "position_innovation_m" in node_text
-    assert "release.translation_gap_m" in node_text
-    assert "math.degrees(release.yaw_gap_rad)" in node_text
-    assert "1.0 if motion_allowed else 0.0" in node_text
-    assert "coherent_target_age_s" in node_text
+    assert "DiagnosticArray, DiagnosticStatus, KeyValue" in node_text
+    assert "DiagnosticArray, self._diagnostics_topic" in node_text
+    ordered_fields = [
+        "failure_class",
+        "failure_since_s",
+        "heading_error_deg",
+        "position_error_m",
+        "rtcm_age_s",
+        "fix_quality",
+        "satellites",
+        "hdop",
+    ]
+    positions = [node_text.index(f'value("{field}"') for field in ordered_fields]
+    assert positions == sorted(positions)
+    assert "HEADING_INNOVATION_EXCEEDED" in node_text
+    assert "POSITION_INNOVATION_EXCEEDED" in node_text
+    assert "LIO_DEGENERATE" in node_text
+    assert "ODOM_TIMESTAMP_INVALID" in node_text
 
 
 def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():

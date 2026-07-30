@@ -1,5 +1,6 @@
 #include "um982_rtk_driver/heading_selector.hpp"
 #include "um982_rtk_driver/nmea_parser.hpp"
+#include "um982_rtk_driver/ntrip_reconnect_policy.hpp"
 #include "um982_rtk_driver/ntrip_response.hpp"
 
 #include <arpa/inet.h>
@@ -8,6 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -18,6 +20,9 @@
 #include <iomanip>
 #include <memory>
 #include <mutex>
+#include <limits>
+#include <optional>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -152,8 +157,17 @@ public:
     ntrip_password_ = readPasswordFromEnv(ntrip_password, ntrip_password_env);
     ntrip_send_gga_interval_s_ =
       declare_parameter<double>("ntrip.send_gga_interval_s", 5.0);
-    ntrip_connect_requires_valid_gga_ =
-      declare_parameter<bool>("ntrip.connect_requires_valid_gga", true);
+    NtripReconnectConfig reconnect_config;
+    reconnect_config.initial_backoff_s = declare_parameter<double>(
+      "ntrip.reconnect_initial_backoff_s", 1.0);
+    reconnect_config.max_backoff_s = declare_parameter<double>(
+      "ntrip.reconnect_max_backoff_s", 10.0);
+    reconnect_config.jitter_s = declare_parameter<double>("ntrip.reconnect_jitter_s", 0.2);
+    reconnect_config.reconnect_without_valid_gga = declare_parameter<bool>(
+      "ntrip.reconnect_without_valid_gga", true);
+    reconnect_config.max_cached_valid_gga_age_s = declare_parameter<double>(
+      "ntrip.max_cached_valid_gga_age_s", 30.0);
+    ntrip_reconnect_policy_ = std::make_unique<NtripReconnectPolicy>(reconnect_config);
 
     fix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("/fix", 10);
     heading_pub_ = create_publisher<geometry_msgs::msg::QuaternionStamped>("/heading", 10);
@@ -260,6 +274,10 @@ private:
         std::lock_guard<std::mutex> lock(gga_mutex_);
         latest_gga_sentence_ = line;
         latest_gga_valid_for_ntrip_ = parsed->gga->fix_quality != 0;
+        if (latest_gga_valid_for_ntrip_) {
+          last_valid_gga_sentence_ = line;
+          last_valid_gga_received_ = std::chrono::steady_clock::now();
+        }
       }
       publishFix(*parsed->gga, stamp);
     }
@@ -466,32 +484,62 @@ private:
 
   void ntripLoop()
   {
+    unsigned int consecutive_failures = 0;
     while (rclcpp::ok() && running_) {
       if (!ntrip_connected_) {
-        std::string gga;
-        bool valid = false;
-        {
-          std::lock_guard<std::mutex> lock(gga_mutex_);
-          gga = latest_gga_sentence_;
-          valid = latest_gga_valid_for_ntrip_;
-        }
-        if (!gga.empty() && (!ntrip_connect_requires_valid_gga_ || valid)) {
-          connectNtrip(gga);
-        } else {
-          std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        const auto initial_gga = initialGgaForNtrip();
+        if (!initial_gga.has_value()) {
+          std::this_thread::sleep_for(std::chrono::milliseconds(200));
           continue;
         }
+        if (!connectNtrip(*initial_gga)) {
+          ++consecutive_failures;
+          waitBeforeNtripRetry(consecutive_failures);
+          continue;
+        }
+        consecutive_failures = 0;
       }
       pumpNtrip();
+      if (!ntrip_connected_) {
+        ++consecutive_failures;
+        waitBeforeNtripRetry(consecutive_failures);
+      }
     }
   }
 
-  void connectNtrip(const std::string & initial_gga)
+  std::optional<std::string> initialGgaForNtrip()
+  {
+    std::lock_guard<std::mutex> lock(gga_mutex_);
+    double cached_age_s = std::numeric_limits<double>::infinity();
+    if (last_valid_gga_received_.has_value()) {
+      cached_age_s = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - *last_valid_gga_received_).count();
+    }
+    return ntrip_reconnect_policy_->initialGga(
+      latest_gga_sentence_, latest_gga_valid_for_ntrip_, last_valid_gga_sentence_, cached_age_s);
+  }
+
+  void waitBeforeNtripRetry(unsigned int consecutive_failures)
+  {
+    std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    const auto delay = ntrip_reconnect_policy_->retryDelay(
+      consecutive_failures, distribution(ntrip_jitter_generator_));
+    RCLCPP_WARN(
+      get_logger(), "NTRIP reconnect attempt failed; retrying in %.2f s",
+      static_cast<double>(delay.count()) / 1000.0);
+    const auto deadline = std::chrono::steady_clock::now() + delay;
+    while (running_ && std::chrono::steady_clock::now() < deadline) {
+      const auto wakeup = std::min(
+        deadline, std::chrono::steady_clock::now() + std::chrono::milliseconds(100));
+      std::this_thread::sleep_until(wakeup);
+    }
+  }
+
+  bool connectNtrip(const std::string & initial_gga)
   {
     ntrip_socket_ = openSocket();
     if (ntrip_socket_ < 0) {
-      std::this_thread::sleep_for(std::chrono::seconds(2));
-      return;
+      return false;
     }
 
     std::string mountpoint = ntrip_mountpoint_;
@@ -516,29 +564,31 @@ private:
       const auto n = ::recv(ntrip_socket_, &c, 1, 0);
       if (n <= 0) {
         closeNtrip();
-        return;
+        return false;
       }
       header.push_back(c);
       response_state = evaluateNtripResponse(header);
       if (header.size() > 4096) {
         closeNtrip();
-        return;
+        return false;
       }
     }
 
     if (response_state != NtripResponseState::Accepted) {
       RCLCPP_WARN(get_logger(), "NTRIP rejected connection: %.120s", header.c_str());
       closeNtrip();
-      std::this_thread::sleep_for(std::chrono::seconds(2));
-      return;
+      return false;
     }
 
     ntrip_connected_ = true;
-    sendGgaToNtrip(initial_gga);
+    if (!initial_gga.empty()) {
+      sendGgaToNtrip(initial_gga);
+    }
     last_gga_sent_ = std::chrono::steady_clock::now();
     RCLCPP_INFO(
       get_logger(), "NTRIP connected to %s:%d%s",
       ntrip_host_.c_str(), ntrip_port_, mountpoint.c_str());
+    return true;
   }
 
   int openSocket()
@@ -672,7 +722,8 @@ private:
   std::string ntrip_username_;
   std::string ntrip_password_;
   double ntrip_send_gga_interval_s_ = 5.0;
-  bool ntrip_connect_requires_valid_gga_ = true;
+  std::unique_ptr<NtripReconnectPolicy> ntrip_reconnect_policy_;
+  std::mt19937 ntrip_jitter_generator_{std::random_device{}()};
   int ntrip_socket_ = -1;
   std::atomic<bool> ntrip_connected_{false};
   std::chrono::steady_clock::time_point last_gga_sent_ = std::chrono::steady_clock::now();
@@ -681,6 +732,8 @@ private:
   std::mutex gga_mutex_;
   std::string latest_gga_sentence_;
   bool latest_gga_valid_for_ntrip_ = false;
+  std::string last_valid_gga_sentence_;
+  std::optional<std::chrono::steady_clock::time_point> last_valid_gga_received_;
 
   std::mutex status_mutex_;
   std::mutex heading_mutex_;

@@ -10,6 +10,7 @@ any Nav2 runtime parameter.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from math import ceil, floor, hypot
 from pathlib import Path
 from typing import Optional, Tuple
@@ -29,6 +30,65 @@ class RoadRejoinTarget:
     y: float
     outside_distance_m: float
     graph_distance_m: float
+
+
+class RoadRejoinReason(str, Enum):
+    """The explicit outcome of a road-rejoin safety evaluation."""
+
+    REJOIN_APPROVED = "REJOIN_APPROVED"
+    ALREADY_ON_ROAD = "ALREADY_ON_ROAD"
+    NO_DRIVABLE_CELL_WITHIN_MARGIN = "NO_DRIVABLE_CELL_WITHIN_MARGIN"
+    GRAPH_PROJECTION_TOO_FAR = "GRAPH_PROJECTION_TOO_FAR"
+    GRAPH_PROJECTION_OUTSIDE_MASK = "GRAPH_PROJECTION_OUTSIDE_MASK"
+
+
+@dataclass(frozen=True)
+class RoadRejoinDecision:
+    """A rejoin target or the precise reason it was rejected.
+
+    All coordinates are in the route/map frame. ``nearest_mask_xy`` is the
+    nearest free keepout-map cell when one exists within the configured
+    margin. This deliberately gives status logs enough context to diagnose a
+    rejected re-entry without scraping map pixels offline.
+    """
+
+    reason: RoadRejoinReason
+    target: RoadRejoinTarget | None
+    current_xy: Tuple[float, float]
+    nearest_mask_xy: Tuple[float, float] | None
+    nearest_road_distance_m: float | None
+    graph_projection_xy: Tuple[float, float]
+    graph_projection_distance_m: float
+
+    @property
+    def approved(self) -> bool:
+        return self.target is not None
+
+    @staticmethod
+    def _format_xy(value: Tuple[float, float] | None) -> str:
+        return "none" if value is None else "(%.2f,%.2f)" % value
+
+    def status_fields(self) -> str:
+        """Stable key order for `/gps_nav/status` and bag post-processing."""
+
+        distance = (
+            "none"
+            if self.nearest_road_distance_m is None
+            else f"{self.nearest_road_distance_m:.2f}"
+        )
+        return (
+            "reason=%s; current_xy=%s; nearest_mask_xy=%s; "
+            "nearest_road_distance_m=%s; graph_projection_xy=%s; "
+            "graph_projection_distance_m=%.2f"
+            % (
+                self.reason.value,
+                self._format_xy(self.current_xy),
+                self._format_xy(self.nearest_mask_xy),
+                distance,
+                self._format_xy(self.graph_projection_xy),
+                self.graph_projection_distance_m,
+            )
+        )
 
 
 class RoadKeepoutMap:
@@ -108,6 +168,14 @@ class RoadKeepoutMap:
         assuming the road boundary is axis-aligned.
         """
 
+        nearest = self.nearest_drivable(x, y, max_distance_m)
+        return None if nearest is None else nearest[2]
+
+    def nearest_drivable(
+        self, x: float, y: float, max_distance_m: float
+    ) -> Tuple[float, float, float] | None:
+        """Return nearest free-cell centre and distance within the given margin."""
+
         if max_distance_m <= 0.0:
             return None
 
@@ -115,7 +183,7 @@ class RoadKeepoutMap:
         center_col = int(floor((x - self.origin_x) / self.resolution))
         map_y_cell = int(floor((y - self.origin_y) / self.resolution))
         center_row = self.height - 1 - map_y_cell
-        best = None
+        best: Tuple[float, float, float] | None = None
 
         min_col = max(0, center_col - max_cells)
         max_col = min(self.width - 1, center_col + max_cells)
@@ -127,8 +195,10 @@ class RoadKeepoutMap:
                     continue
                 cell_x, cell_y = self._cell_center(col, row)
                 distance = hypot(x - cell_x, y - cell_y)
-                if distance <= max_distance_m and (best is None or distance < best):
-                    best = distance
+                if distance <= max_distance_m and (
+                    best is None or distance < best[2]
+                ):
+                    best = (cell_x, cell_y, distance)
         return best
 
     def _world_to_index(self, x: float, y: float) -> Optional[int]:
@@ -152,34 +222,77 @@ def make_road_rejoin_target(
     graph_xy: Tuple[float, float],
     max_outside_distance_m: float,
     max_graph_distance_m: float,
-) -> Optional[RoadRejoinTarget]:
+) -> RoadRejoinDecision:
     """Validate a graph-edge projection as a short, safe road re-entry.
 
-    ``None`` means recovery is unsafe or unnecessary.  Callers must keep the
-    ordinary road keepout active and stop rather than trying to cross an
-    unknown amount of non-road space.
+    Callers must keep the ordinary road keepout active and stop whenever the
+    returned decision is not approved.
     """
 
     current_x, current_y = current_xy
-    if road_map.is_drivable(current_x, current_y):
-        return None
-
-    outside_distance = road_map.nearest_drivable_distance(
-        current_x, current_y, max_outside_distance_m
-    )
-    if outside_distance is None:
-        return None
-
     graph_x, graph_y = graph_xy
     graph_distance = hypot(graph_x - current_x, graph_y - current_y)
-    if graph_distance > max_graph_distance_m or not road_map.is_drivable(graph_x, graph_y):
-        return None
+    if road_map.is_drivable(current_x, current_y):
+        return RoadRejoinDecision(
+            reason=RoadRejoinReason.ALREADY_ON_ROAD,
+            target=None,
+            current_xy=current_xy,
+            nearest_mask_xy=(current_x, current_y),
+            nearest_road_distance_m=0.0,
+            graph_projection_xy=graph_xy,
+            graph_projection_distance_m=graph_distance,
+        )
 
-    return RoadRejoinTarget(
+    nearest = road_map.nearest_drivable(
+        current_x, current_y, max_outside_distance_m
+    )
+    if nearest is None:
+        return RoadRejoinDecision(
+            reason=RoadRejoinReason.NO_DRIVABLE_CELL_WITHIN_MARGIN,
+            target=None,
+            current_xy=current_xy,
+            nearest_mask_xy=None,
+            nearest_road_distance_m=None,
+            graph_projection_xy=graph_xy,
+            graph_projection_distance_m=graph_distance,
+        )
+
+    nearest_x, nearest_y, outside_distance = nearest
+    if graph_distance > max_graph_distance_m:
+        return RoadRejoinDecision(
+            reason=RoadRejoinReason.GRAPH_PROJECTION_TOO_FAR,
+            target=None,
+            current_xy=current_xy,
+            nearest_mask_xy=(nearest_x, nearest_y),
+            nearest_road_distance_m=outside_distance,
+            graph_projection_xy=graph_xy,
+            graph_projection_distance_m=graph_distance,
+        )
+    if not road_map.is_drivable(graph_x, graph_y):
+        return RoadRejoinDecision(
+            reason=RoadRejoinReason.GRAPH_PROJECTION_OUTSIDE_MASK,
+            target=None,
+            current_xy=current_xy,
+            nearest_mask_xy=(nearest_x, nearest_y),
+            nearest_road_distance_m=outside_distance,
+            graph_projection_xy=graph_xy,
+            graph_projection_distance_m=graph_distance,
+        )
+
+    target = RoadRejoinTarget(
         x=graph_x,
         y=graph_y,
         outside_distance_m=outside_distance,
         graph_distance_m=graph_distance,
+    )
+    return RoadRejoinDecision(
+        reason=RoadRejoinReason.REJOIN_APPROVED,
+        target=target,
+        current_xy=current_xy,
+        nearest_mask_xy=(nearest_x, nearest_y),
+        nearest_road_distance_m=outside_distance,
+        graph_projection_xy=graph_xy,
+        graph_projection_distance_m=graph_distance,
     )
 
 

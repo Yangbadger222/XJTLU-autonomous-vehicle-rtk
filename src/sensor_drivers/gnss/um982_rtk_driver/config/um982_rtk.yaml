@@ -15,6 +15,8 @@ um982_rtk_driver:
     heading_rate_slack_deg: 2.0
     heading_recovery_min_samples: 3
     heading_recovery_max_step_deg: 7.5
+    heading_hpr_requires_rtk_health: true
+    heading_hpr_max_gga_age_s: 1.5
     publish_raw: true
     status_period_s: 1.0
     ntrip:
@@ -26,4 +28,10 @@ um982_rtk_driver:
       password: ""
       password_env: NTRIP_PASSWORD
       send_gga_interval_s: 5.0
-      connect_requires_valid_gga: true
+      reconnect_initial_backoff_s: 1.0
+      reconnect_max_backoff_s: 10.0
+      reconnect_jitter_s: 0.2
+      reconnect_without_valid_gga: true
+      max_cached_valid_gga_age_s: 30.0
+      rtcm_fresh_timeout_s: 3.0
+      rtcm_hard_timeout_s: 10.0

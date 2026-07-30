@@ -219,6 +219,7 @@
     fix_topic: /fix
     heading_topic: /heading
     nmea_topic: /rtk/nmea_sentence
+    rtk_health_topic: /rtk/health
     lio_odom_topic: /fastlio2/lio_odom
     lio_degeneracy_topic: /fastlio2/degeneracy
     alignment_topic: /gps_corridor/enu_to_map
@@ -249,6 +250,10 @@
     max_heading_age_s: 1.0
     max_alignment_age_s: 1.0
     max_gga_age_s: 1.5
+    max_rtk_health_age_s: 1.5
+    rtk_min_satellites: 10
+    rtk_max_hdop: 2.0
+    rtk_max_rtcm_age_s: 3.0
     # FAST-LIO nominally runs at 10 Hz; allow measured Jetson scheduling jitter
     # below 0.30 s without treating a fresh repeated sample as an authority loss.
     max_lio_age_s: 0.30
@@ -284,11 +289,13 @@
     allow_bounded_backlog_motion: true
     moving_reacquire_translation_rate_mps: 0.05
     moving_reacquire_yaw_rate_degps: 0.5
-    # RTK 是 map->odom 的唯一运动 authority。门控不通过时冻结最后可信
-    # map->odom 并停车；FAST-LIO 仍用于局部 odom 与点云避障，不接力全局导航。
-    enable_local_odom_bridge: false
+    # RTK 短时失效时，只在 FAST-LIO 健康且预算未耗尽时允许受限接力。
+    enable_local_odom_bridge: true
     local_bridge_max_step_translation_m: 0.50
     local_bridge_max_step_yaw_deg: 15.0
+    local_bridge_max_duration_s: 15.0
+    local_bridge_max_distance_m: 3.0
+    local_bridge_max_yaw_change_deg: 30.0
     max_lio_degeneracy_age_s: 0.50
     lio_min_eig_healthy: 75.0
     lio_reject_regularized: true
@@ -416,6 +423,8 @@
     # map->odom authority until its own recovery gate confirms them.
     heading_recovery_min_samples: 3
     heading_recovery_max_step_deg: 7.5
+    heading_hpr_requires_rtk_health: true
+    heading_hpr_max_gga_age_s: 1.5
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.
@@ -430,7 +439,13 @@
       password: ""
       password_env: NTRIP_PASSWORD
       send_gga_interval_s: 5.0
-      connect_requires_valid_gga: true
+      reconnect_initial_backoff_s: 1.0
+      reconnect_max_backoff_s: 10.0
+      reconnect_jitter_s: 0.2
+      reconnect_without_valid_gga: true
+      max_cached_valid_gga_age_s: 30.0
+      rtcm_fresh_timeout_s: 3.0
+      rtcm_hard_timeout_s: 10.0
 
 /pointcloud_to_laserscan:
   ros__parameters:

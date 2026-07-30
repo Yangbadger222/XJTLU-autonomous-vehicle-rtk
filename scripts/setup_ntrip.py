@@ -206,7 +206,13 @@ def write_profile(
             "username": username,
             "password": "",
             "password_env": PASSWORD_ENV,
-            "connect_requires_valid_gga": True,
+            "reconnect_initial_backoff_s": 1.0,
+            "reconnect_max_backoff_s": 10.0,
+            "reconnect_jitter_s": 0.2,
+            "reconnect_without_valid_gga": True,
+            "max_cached_valid_gga_age_s": 30.0,
+            "rtcm_fresh_timeout_s": 3.0,
+            "rtcm_hard_timeout_s": 10.0,
         }
     )
     path.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")

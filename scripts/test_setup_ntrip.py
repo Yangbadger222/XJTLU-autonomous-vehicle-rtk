@@ -73,6 +73,9 @@ class SetupNtripTest(unittest.TestCase):
             self.assertEqual(ntrip["mountpoint"], "RTCM33GRCEJ")
             self.assertEqual(ntrip["password"], "")
             self.assertEqual(ntrip["password_env"], "NTRIP_PASSWORD")
+            self.assertTrue(ntrip["reconnect_without_valid_gga"])
+            self.assertEqual(ntrip["rtcm_fresh_timeout_s"], 3.0)
+            self.assertEqual(ntrip["rtcm_hard_timeout_s"], 10.0)
 
         env = SETUP_NTRIP.env_file(self.config_dir)
         self.assertEqual(SETUP_NTRIP.active_profile(self.config_dir).key, "mixed")

@@ -4,6 +4,7 @@ import pytest
 
 from gps_waypoint_dispatcher.road_rejoin import (
     RoadKeepoutMap,
+    RoadRejoinReason,
     make_road_rejoin_target,
 )
 
@@ -56,7 +57,7 @@ def test_rejoin_requires_short_verified_road_projection(tmp_path):
     pixels[2 * 5 + 2] = 254
     keepout = RoadKeepoutMap.load(_write_road_keepout(tmp_path, bytes(pixels)))
 
-    target = make_road_rejoin_target(
+    decision = make_road_rejoin_target(
         keepout,
         current_xy=(1.5, 2.5),
         graph_xy=(2.5, 2.5),
@@ -64,17 +65,22 @@ def test_rejoin_requires_short_verified_road_projection(tmp_path):
         max_graph_distance_m=1.25,
     )
 
+    assert decision.approved
+    assert decision.reason is RoadRejoinReason.REJOIN_APPROVED
+    target = decision.target
     assert target is not None
     assert (target.x, target.y) == (2.5, 2.5)
     assert target.outside_distance_m == pytest.approx(1.0)
     assert target.graph_distance_m == pytest.approx(1.0)
-    assert (
-        make_road_rejoin_target(
-            keepout,
-            current_xy=(1.5, 2.5),
-            graph_xy=(4.5, 2.5),
-            max_outside_distance_m=1.1,
-            max_graph_distance_m=4.0,
-        )
-        is None
+    rejected = make_road_rejoin_target(
+        keepout,
+        current_xy=(1.5, 2.5),
+        graph_xy=(4.5, 2.5),
+        max_outside_distance_m=1.1,
+        max_graph_distance_m=4.0,
     )
+    assert not rejected.approved
+    assert rejected.reason is RoadRejoinReason.GRAPH_PROJECTION_OUTSIDE_MASK
+    assert rejected.nearest_mask_xy == (2.5, 2.5)
+    assert rejected.graph_projection_distance_m == pytest.approx(3.0)
+    assert "nearest_road_distance_m=1.00" in rejected.status_fields()

@@ -7,7 +7,7 @@ from collections import deque
 from dataclasses import dataclass
 
 import rclpy
-from diagnostic_msgs.msg import DiagnosticArray
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import QuaternionStamped, TransformStamped
 from nav_msgs.msg import Odometry
 from nmea_msgs.msg import Sentence
@@ -457,13 +457,15 @@ class RtkMapOdomCorrector(Node):
         self._last_authoritative_mono_s: float | None = None
         self._bridge_map_odom: Pose2D | None = None
         self._last_bridge_result: LocalOdomBridgeResult | None = None
+        self._diagnostic_failure_class = "NONE"
+        self._diagnostic_failure_started_mono_s: float | None = None
         self._last_mode = ""
         self._last_status = ""
 
         self._mode_pub = self.create_publisher(String, self._mode_topic, 10)
         self._status_pub = self.create_publisher(String, self._status_topic, 10)
         self._diagnostics_pub = self.create_publisher(
-            Float64MultiArray, self._diagnostics_topic, 10
+            DiagnosticArray, self._diagnostics_topic, 10
         )
         self._motion_allowed_pub = self.create_publisher(
             Bool, self._motion_allowed_topic, 10
@@ -1159,44 +1161,109 @@ class RtkMapOdomCorrector(Node):
             if degeneracy is not None
             else math.nan
         )
-        data = [
-            1.0 if motion_allowed else 0.0,
-            self._age_s(self._latest_fix_mono_s, now_mono_s),
-            self._age_s(self._latest_heading_mono_s, now_mono_s),
-            self._age_s(self._latest_alignment_mono_s, now_mono_s),
-            position_innovation_m,
-            heading_innovation_deg,
-            output.x if output is not None else math.nan,
-            output.y if output is not None else math.nan,
-            math.degrees(output.yaw) if output is not None else math.nan,
-            1.0 if self._heading_quality(self._last_heading_enqueue_stamp_s or 0.0) == 4 else 0.0,
-            release.translation_step_m if release is not None else 0.0,
-            math.degrees(release.yaw_step_rad) if release is not None else 0.0,
-            float(self._heading_gate.state),
-            float(self._position_gate.state),
-            heading_innovation_deg,
-            position_innovation_m,
-            release.translation_gap_m if release is not None else math.nan,
-            math.degrees(release.yaw_gap_rad) if release is not None else math.nan,
-            1.0 if motion_allowed else 0.0,
-            coherent_target.x if coherent_target is not None else math.nan,
-            coherent_target.y if coherent_target is not None else math.nan,
-            math.degrees(coherent_target.yaw)
-            if coherent_target is not None
-            else math.nan,
-            coherent_target_age_s,
-            1.0 if bridge is not None and bridge.allowed else 0.0,
-            bridge.elapsed_s if bridge is not None else math.nan,
-            bridge.distance_m if bridge is not None else math.nan,
-            self._local_bridge_max_linear_speed_mps
-            if bridge is not None and bridge.allowed
-            else 0.0,
-            degeneracy.min_eig if degeneracy is not None else math.nan,
-            degeneracy.condition_number if degeneracy is not None else math.nan,
-            1.0 if degeneracy is not None and degeneracy.regularized else 0.0,
-            degeneracy_age_s,
+        failure_class, failure_since_s = self._diagnostic_failure(
+            now_mono_s, motion_allowed, release, bridge
+        )
+        health = self._latest_rtk_health
+
+        def value(key: str, raw) -> KeyValue:
+            if isinstance(raw, float):
+                rendered = "nan" if math.isnan(raw) else f"{raw:.6f}"
+            else:
+                rendered = str(raw)
+            return KeyValue(key=key, value=rendered)
+
+        # The first eight keys are the stable action-oriented diagnostic contract.
+        # Additional keys preserve the former numeric telemetry with explicit names.
+        values = [
+            value("failure_class", failure_class),
+            value("failure_since_s", failure_since_s),
+            value("heading_error_deg", heading_innovation_deg),
+            value("position_error_m", position_innovation_m),
+            value("rtcm_age_s", health.rtcm_age_s if health is not None else math.nan),
+            value("fix_quality", health.fix_quality if health is not None else -1),
+            value("satellites", health.satellites if health is not None else -1),
+            value("hdop", health.hdop if health is not None else math.nan),
+            value("motion_allowed", motion_allowed),
+            value("fix_age_s", self._age_s(self._latest_fix_mono_s, now_mono_s)),
+            value("heading_age_s", self._age_s(self._latest_heading_mono_s, now_mono_s)),
+            value("alignment_age_s", self._age_s(self._latest_alignment_mono_s, now_mono_s)),
+            value("output_map_odom_x", output.x if output is not None else math.nan),
+            value("output_map_odom_y", output.y if output is not None else math.nan),
+            value("output_map_odom_yaw_deg", math.degrees(output.yaw) if output is not None else math.nan),
+            value("heading_gate_state", self._heading_gate.state),
+            value("position_gate_state", self._position_gate.state),
+            value("release_translation_gap_m", release.translation_gap_m if release is not None else math.nan),
+            value("release_yaw_gap_deg", math.degrees(release.yaw_gap_rad) if release is not None else math.nan),
+            value("coherent_target_x", coherent_target.x if coherent_target is not None else math.nan),
+            value("coherent_target_y", coherent_target.y if coherent_target is not None else math.nan),
+            value("coherent_target_yaw_deg", math.degrees(coherent_target.yaw) if coherent_target is not None else math.nan),
+            value("coherent_target_age_s", coherent_target_age_s),
+            value("local_bridge_allowed", bridge is not None and bridge.allowed),
+            value("local_bridge_elapsed_s", bridge.elapsed_s if bridge is not None else math.nan),
+            value("local_bridge_distance_m", bridge.distance_m if bridge is not None else math.nan),
+            value("lio_min_eig", degeneracy.min_eig if degeneracy is not None else math.nan),
+            value("lio_condition_number", degeneracy.condition_number if degeneracy is not None else math.nan),
+            value("lio_regularized", degeneracy.regularized if degeneracy is not None else False),
+            value("lio_degeneracy_age_s", degeneracy_age_s),
         ]
-        self._safe_publish(self._diagnostics_pub, Float64MultiArray(data=data))
+        status = DiagnosticStatus()
+        status.name = "localization_authority"
+        status.hardware_id = "rtk_map_odom_corrector"
+        status.level = (
+            DiagnosticStatus.OK
+            if failure_class == "NONE"
+            else DiagnosticStatus.WARN if motion_allowed else DiagnosticStatus.ERROR
+        )
+        status.message = failure_class
+        status.values = values
+        diagnostics = DiagnosticArray()
+        diagnostics.header.stamp = self.get_clock().now().to_msg()
+        diagnostics.status = [status]
+        self._safe_publish(self._diagnostics_pub, diagnostics)
+
+    def _diagnostic_failure(
+        self, now_mono_s: float, motion_allowed: bool, release, bridge: LocalOdomBridgeResult | None
+    ) -> tuple[str, float]:
+        """Collapse detailed guards into a stable operator-facing failure class."""
+
+        reason = self._rtk_health_reason(now_mono_s)
+        if reason in {"RTCM_STALE", "RTK_HEALTH_STALE"}:
+            failure_class = "RTCM_STALE"
+        elif reason is not None and reason.startswith("NTRIP_"):
+            failure_class = "NTRIP_DISCONNECTED"
+        elif reason is not None and reason.startswith("GNSS_HEADING"):
+            failure_class = "HEADING_SOURCE_INVALID"
+        elif reason is not None and reason.startswith("GNSS_"):
+            failure_class = "GNSS_NO_SOLUTION"
+        elif release is not None and release.reason is not None and "HEADING" in release.reason.value:
+            failure_class = "HEADING_INNOVATION_EXCEEDED"
+        elif release is not None and release.reason is not None and (
+            "TRANSLATION" in release.reason.value or "POSITION" in release.reason.value
+        ):
+            failure_class = "POSITION_INNOVATION_EXCEEDED"
+        else:
+            local_reason = self._local_odom_health_reason(now_mono_s)
+            if local_reason is not None and "DEGENERATE" in local_reason:
+                failure_class = "LIO_DEGENERATE"
+            elif local_reason is not None or (
+                bridge is not None and "LOCAL_ODOM" in bridge.reason
+            ):
+                failure_class = "LIO_STALE"
+            elif not motion_allowed:
+                failure_class = "ODOM_TIMESTAMP_INVALID"
+            else:
+                failure_class = "NONE"
+
+        if failure_class == "NONE":
+            self._diagnostic_failure_class = "NONE"
+            self._diagnostic_failure_started_mono_s = None
+            return failure_class, 0.0
+        if failure_class != self._diagnostic_failure_class:
+            self._diagnostic_failure_class = failure_class
+            self._diagnostic_failure_started_mono_s = now_mono_s
+        started = self._diagnostic_failure_started_mono_s or now_mono_s
+        return failure_class, max(0.0, now_mono_s - started)
 
     def _publish_tf(self, pose: Pose2D) -> None:
         msg = TransformStamped()

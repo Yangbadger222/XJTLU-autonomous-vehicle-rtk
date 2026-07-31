@@ -255,6 +255,9 @@
     # motion authority. NARROW_FLOAT may maintain an already locked authority.
     heading_control_stable_duration_s: 5.0
     heading_control_min_samples: 5
+    # At a stop or crawl, reject NARROW_FLOAT heading because it is prone to
+    # antenna-heading drift and mode switching.
+    low_speed_heading_strict_mps: 0.10
     rtk_min_satellites: 10
     rtk_max_hdop: 2.0
     rtk_max_rtcm_age_s: 3.0

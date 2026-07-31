@@ -80,6 +80,8 @@ class RtkHealth:
     heading_valid: bool
     heading_control_eligible: bool
     heading_position_type: str
+    heading_solution_status: str
+    heading_rejects: int
     ntrip_state: str
     rtcm_age_s: float
     received_mono_s: float
@@ -240,6 +242,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_rtk_health_age_s", 1.5)
         self.declare_parameter("heading_control_stable_duration_s", 5.0)
         self.declare_parameter("heading_control_min_samples", 5)
+        self.declare_parameter("low_speed_heading_strict_mps", 0.10)
         self.declare_parameter("rtk_min_satellites", 10)
         self.declare_parameter("rtk_max_hdop", 2.0)
         self.declare_parameter("rtk_max_rtcm_age_s", 3.0)
@@ -350,6 +353,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._heading_control_min_samples = int(
             self.get_parameter("heading_control_min_samples").value
+        )
+        self._low_speed_heading_strict_mps = float(
+            self.get_parameter("low_speed_heading_strict_mps").value
         )
         self._rtk_min_satellites = int(self.get_parameter("rtk_min_satellites").value)
         self._rtk_max_hdop = float(self.get_parameter("rtk_max_hdop").value)
@@ -559,6 +565,7 @@ class RtkMapOdomCorrector(Node):
         self._last_bridge_result: LocalOdomBridgeResult | None = None
         self._diagnostic_failure_class = "NONE"
         self._diagnostic_failure_started_mono_s: float | None = None
+        self._heading_rejects_delta = 0
         self._last_mode = ""
         self._last_status = ""
 
@@ -716,12 +723,22 @@ class RtkMapOdomCorrector(Node):
                     heading_position_type=str(
                         values.get("uniheading_position_type", "UNKNOWN")
                     ),
+                    heading_solution_status=str(
+                        values.get("uniheading_status", "UNKNOWN")
+                    ),
+                    heading_rejects=int(values.get("heading_rejects", "0")),
                     ntrip_state=str(values["ntrip_state"]),
                     rtcm_age_s=float(values["rtcm_age_s"]),
                     received_mono_s=time.monotonic(),
                 )
             except (KeyError, TypeError, ValueError):
                 return
+            previous_health = self._latest_rtk_health
+            self._heading_rejects_delta = max(
+                0,
+                health.heading_rejects
+                - (previous_health.heading_rejects if previous_health is not None else health.heading_rejects),
+            )
             self._latest_rtk_health = health
             self._heading_control_readiness.observe(
                 health.heading_control_eligible, health.received_mono_s
@@ -1041,6 +1058,12 @@ class RtkMapOdomCorrector(Node):
             return "GNSS_HDOP_EXCEEDED"
         if not health.heading_valid:
             return "GNSS_HEADING_INVALID"
+        low_speed = (
+            math.isfinite(self._local_linear_rate_mps)
+            and abs(self._local_linear_rate_mps) < self._low_speed_heading_strict_mps
+        )
+        if low_speed and not health.heading_control_eligible:
+            return "GNSS_HEADING_LOW_SPEED_UNSTABLE"
         readiness = self._heading_control_readiness.snapshot(now_mono_s)
         if health.heading_control_eligible:
             if not readiness.stable:
@@ -1341,6 +1364,12 @@ class RtkMapOdomCorrector(Node):
                 health.heading_position_type if health is not None else "UNKNOWN",
             ),
             value(
+                "heading_solution_status",
+                health.heading_solution_status if health is not None else "UNKNOWN",
+            ),
+            value("heading_rejects", health.heading_rejects if health is not None else -1),
+            value("heading_rejects_delta", self._heading_rejects_delta),
+            value(
                 "heading_control_eligible",
                 health.heading_control_eligible if health is not None else False,
             ),
@@ -1358,6 +1387,14 @@ class RtkMapOdomCorrector(Node):
             value("position_gate_state", self._position_gate.state),
             value("release_translation_gap_m", release.translation_gap_m if release is not None else math.nan),
             value("release_yaw_gap_deg", math.degrees(release.yaw_gap_rad) if release is not None else math.nan),
+            value(
+                "heading_yaw_before_deg",
+                math.degrees(release.output_map_base.yaw) if release is not None else math.nan,
+            ),
+            value(
+                "heading_yaw_after_deg",
+                math.degrees(release.target_map_base.yaw) if release is not None else math.nan,
+            ),
             value("coherent_target_x", coherent_target.x if coherent_target is not None else math.nan),
             value("coherent_target_y", coherent_target.y if coherent_target is not None else math.nan),
             value("coherent_target_yaw_deg", math.degrees(coherent_target.yaw) if coherent_target is not None else math.nan),
@@ -1390,8 +1427,11 @@ class RtkMapOdomCorrector(Node):
     ) -> tuple[str, float]:
         """Collapse detailed guards into a stable operator-facing failure class."""
 
+        release_reason = release.reason.value if release is not None and release.reason is not None else ""
         reason = self._rtk_health_reason(now_mono_s)
-        if reason in {"RTCM_STALE", "RTK_HEALTH_STALE"}:
+        if "HEADING" in release_reason:
+            failure_class = "HEADING_INNOVATION_EXCEEDED"
+        elif reason in {"RTCM_STALE", "RTK_HEALTH_STALE"}:
             failure_class = "RTCM_STALE"
         elif reason is not None and reason.startswith("NTRIP_"):
             failure_class = "NTRIP_DISCONNECTED"
@@ -1401,8 +1441,6 @@ class RtkMapOdomCorrector(Node):
             failure_class = "HEADING_SOURCE_INVALID"
         elif reason is not None and reason.startswith("GNSS_"):
             failure_class = "GNSS_NO_SOLUTION"
-        elif release is not None and release.reason is not None and "HEADING" in release.reason.value:
-            failure_class = "HEADING_INNOVATION_EXCEEDED"
         elif release is not None and release.reason is not None and (
             "TRANSLATION" in release.reason.value or "POSITION" in release.reason.value
         ):

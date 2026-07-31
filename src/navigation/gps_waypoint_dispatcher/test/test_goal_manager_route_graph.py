@@ -56,6 +56,17 @@ def test_goal_manager_debounces_authority_loss_before_replan():
     assert grace_index < cancel_index
 
 
+def test_goal_manager_reports_heading_hold_timeout_with_authority_evidence():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("authority_diagnostics_topic", "/localization_authority/diagnostics")' in text
+    assert "def _authority_hold_timeout_detail(self)" in text
+    assert '"HEADING_NOT_RECOVERED_TIMEOUT"' in text
+    assert '("heading_jump_deg", diagnostics.get("release_yaw_gap_deg", "nan"))' in text
+    assert '("heading_reject_delta", diagnostics.get("heading_rejects_delta", "0"))' in text
+    assert "self._finish_failure(self._authority_hold_timeout_detail())" in text
+
+
 def test_goal_manager_waits_and_replans_after_blocked_follow_path():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 

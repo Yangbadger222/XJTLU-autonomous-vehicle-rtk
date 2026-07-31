@@ -2840,6 +2840,20 @@ def test_rtk_map_odom_corrector_keeps_narrow_float_at_reacquire_speed():
     assert "authority_speed_recovery_accel_mps2" in node_text
 
 
+def test_rtk_map_odom_corrector_reports_low_speed_heading_and_failure_evidence():
+    node_text = (
+        Path(__file__).resolve().parents[1]
+        / "gps_waypoint_dispatcher"
+        / "rtk_map_odom_corrector_node.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("low_speed_heading_strict_mps", 0.10)' in node_text
+    assert 'return "GNSS_HEADING_LOW_SPEED_UNSTABLE"' in node_text
+    assert 'value("heading_rejects_delta"' in node_text
+    assert 'value("heading_yaw_before_deg"' in node_text
+    assert 'failure_class = "HEADING_INNOVATION_EXCEEDED"' in node_text
+
+
 def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"

@@ -5,6 +5,7 @@ import math
 import time
 
 from action_msgs.msg import GoalStatus
+from diagnostic_msgs.msg import DiagnosticArray
 from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import FollowPath
@@ -69,6 +70,9 @@ class GPSGoalManager(Node):
         )
         self.declare_parameter(
             "authority_status_topic", "/localization_authority/status"
+        )
+        self.declare_parameter(
+            "authority_diagnostics_topic", "/localization_authority/diagnostics"
         )
         self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
         self.declare_parameter("stop_override_publish_hz", 20.0)
@@ -224,6 +228,12 @@ class GPSGoalManager(Node):
             10,
         )
         self.create_subscription(
+            DiagnosticArray,
+            str(self.get_parameter("authority_diagnostics_topic").value),
+            self._authority_diagnostics_callback,
+            10,
+        )
+        self.create_subscription(
             Odometry,
             str(self.get_parameter("lio_odom_topic").value),
             self._lio_odom_callback,
@@ -236,6 +246,7 @@ class GPSGoalManager(Node):
         self.motion_allowed = False
         self.motion_allowed_mono: float | None = None
         self.authority_status = "STARTUP"
+        self.authority_diagnostics: dict[str, str] = {}
         self.authority_readiness = ContinuousReadiness(
             self.authority_ready_confirmation_s
         )
@@ -335,6 +346,33 @@ class GPSGoalManager(Node):
 
     def _authority_status_callback(self, msg: String) -> None:
         self.authority_status = msg.data.strip() or "UNKNOWN"
+
+    def _authority_diagnostics_callback(self, msg: DiagnosticArray) -> None:
+        for status in msg.status:
+            if status.name == "localization_authority":
+                self.authority_diagnostics = {
+                    item.key: item.value for item in status.values
+                }
+                return
+
+    def _authority_hold_timeout_detail(self) -> str:
+        diagnostics = self.authority_diagnostics
+        failure_class = diagnostics.get("failure_class", "AUTHORITY_UNAVAILABLE")
+        timeout_class = (
+            "HEADING_NOT_RECOVERED_TIMEOUT"
+            if failure_class.startswith("HEADING_")
+            else "AUTHORITY_NOT_RECOVERED_TIMEOUT"
+        )
+        keys = (
+            ("failure_class", failure_class),
+            ("heading_jump_deg", diagnostics.get("release_yaw_gap_deg", "nan")),
+            ("yaw_before_deg", diagnostics.get("heading_yaw_before_deg", "nan")),
+            ("yaw_after_deg", diagnostics.get("heading_yaw_after_deg", "nan")),
+            ("heading_age_s", diagnostics.get("heading_age_s", "nan")),
+            ("heading_solution", diagnostics.get("heading_solution_status", "UNKNOWN")),
+            ("heading_reject_delta", diagnostics.get("heading_rejects_delta", "0")),
+        )
+        return "; ".join((timeout_class, *(f"{key}={value}" for key, value in keys)))
 
     def _lio_odom_callback(self, msg: Odometry) -> None:
         stamp_s = float(msg.header.stamp.sec) + float(msg.header.stamp.nanosec) * 1e-9
@@ -1137,7 +1175,7 @@ class GPSGoalManager(Node):
             and self.hold_started_mono is not None
             and now_mono - self.hold_started_mono > self.global_hold_timeout_s
         ):
-            self._finish_failure("authority_hold_timeout")
+            self._finish_failure(self._authority_hold_timeout_detail())
             return
 
         if action_active and not ready:
@@ -1201,7 +1239,7 @@ class GPSGoalManager(Node):
         if self.hold_started_mono is None:
             self.hold_started_mono = now_mono
         if now_mono - self.hold_started_mono > self.global_hold_timeout_s:
-            self._finish_failure("authority_hold_timeout")
+            self._finish_failure(self._authority_hold_timeout_detail())
             return
         if not self.authority_readiness.update(ready=ready, now_s=now_mono):
             return

@@ -48,6 +48,13 @@ topics=(
 )
 
 record_args=()
+# Keep a bounded in-memory queue, split long recordings, and let rosbag close
+# SQLite metadata cleanly after Ctrl-C instead of relying on process teardown.
+record_args+=(
+  --storage sqlite3
+  --max-cache-size "${BAG_MAX_CACHE_SIZE_BYTES:-104857600}"
+  --max-bag-size "${BAG_MAX_SIZE_BYTES:-1073741824}"
+)
 
 case "$PROFILE" in
   default)
@@ -78,4 +85,16 @@ case "$PROFILE" in
 esac
 
 echo "Recording bag to $BAG_PATH (PROFILE=$PROFILE)"
-exec ros2 bag record -o "$BAG_PATH" "${record_args[@]}" "${topics[@]}"
+echo "cache=${BAG_MAX_CACHE_SIZE_BYTES:-104857600}B split=${BAG_MAX_SIZE_BYTES:-1073741824}B"
+ros2 bag record -o "$BAG_PATH" "${record_args[@]}" "${topics[@]}" &
+recorder_pid=$!
+
+shutdown_recorder() {
+  trap - INT TERM
+  kill -INT "$recorder_pid" 2>/dev/null || true
+  wait "$recorder_pid" || true
+  exit 0
+}
+
+trap shutdown_recorder INT TERM
+wait "$recorder_pid"

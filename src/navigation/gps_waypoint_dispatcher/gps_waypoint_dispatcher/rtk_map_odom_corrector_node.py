@@ -133,6 +133,39 @@ class HeadingControlReadiness:
         )
 
 
+class AuthoritySpeedRecoveryRamp:
+    """Rate-limit only authority recovery; safety stops remain immediate."""
+
+    def __init__(self, acceleration_mps2: float) -> None:
+        if not math.isfinite(acceleration_mps2) or acceleration_mps2 <= 0.0:
+            raise ValueError("authority speed recovery acceleration must be positive")
+        self._acceleration_mps2 = acceleration_mps2
+        self._speed_mps = 0.0
+        self._last_update_s: float | None = None
+
+    def reset(self) -> None:
+        self._speed_mps = 0.0
+        self._last_update_s = None
+
+    def update(self, target_speed_mps: float, now_s: float) -> float:
+        if not math.isfinite(target_speed_mps) or target_speed_mps <= 0.0:
+            self.reset()
+            return 0.0
+        if self._last_update_s is None:
+            self._last_update_s = now_s
+            return self._speed_mps
+        elapsed_s = max(0.0, now_s - self._last_update_s)
+        self._last_update_s = now_s
+        if target_speed_mps <= self._speed_mps:
+            self._speed_mps = target_speed_mps
+        else:
+            self._speed_mps = min(
+                target_speed_mps,
+                self._speed_mps + self._acceleration_mps2 * elapsed_s,
+            )
+        return self._speed_mps
+
+
 def _stamp_s(stamp) -> float:
     return float(stamp.sec) + float(stamp.nanosec) * 1e-9
 
@@ -245,6 +278,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("rtk_authoritative_max_linear_speed_mps", 2.0)
         self.declare_parameter("local_bridge_max_linear_speed_mps", 0.35)
         self.declare_parameter("rtk_reacquire_max_linear_speed_mps", 0.35)
+        self.declare_parameter("authority_speed_recovery_accel_mps2", 0.20)
         self.declare_parameter("allow_moving_backlog_release", True)
         self.declare_parameter("allow_bounded_backlog_motion", False)
         self.declare_parameter("moving_reacquire_translation_rate_mps", 0.05)
@@ -346,6 +380,9 @@ class RtkMapOdomCorrector(Node):
         )
         self._rtk_reacquire_max_linear_speed_mps = float(
             self.get_parameter("rtk_reacquire_max_linear_speed_mps").value
+        )
+        self._authority_speed_recovery_ramp = AuthoritySpeedRecoveryRamp(
+            float(self.get_parameter("authority_speed_recovery_accel_mps2").value)
         )
 
         origin_lat = float(self.get_parameter("enu_origin_lat").value)
@@ -1142,7 +1179,9 @@ class RtkMapOdomCorrector(Node):
             if bridge_allowed:
                 self._publish_mode_status("LIO_BRIDGE", f"NO_ALIGNMENT;{bridge.reason}")
                 self._publish_motion_allowed(
-                    True, self._local_bridge_max_linear_speed_mps
+                    True,
+                    self._local_bridge_max_linear_speed_mps,
+                    now_mono_s=now_mono_s,
                 )
             else:
                 status = bridge.reason if bridge is not None else "NO_TRUSTED_AUTHORITY"
@@ -1172,9 +1211,13 @@ class RtkMapOdomCorrector(Node):
                 True,
                 (
                     self._rtk_reacquire_max_linear_speed_mps
-                    if reacquiring
+                    if (
+                        reacquiring
+                        or not health.heading_control_eligible
+                    )
                     else self._rtk_authoritative_max_linear_speed_mps
                 ),
+                now_mono_s=now_mono_s,
             )
             self._publish_diagnostics(True, release, None)
             return
@@ -1191,7 +1234,11 @@ class RtkMapOdomCorrector(Node):
             if health_reason is not None:
                 reason = f"{health_reason};{reason}"
             self._publish_mode_status("LIO_BRIDGE", f"{reason};{bridge.reason}")
-            self._publish_motion_allowed(True, self._local_bridge_max_linear_speed_mps)
+            self._publish_motion_allowed(
+                True,
+                self._local_bridge_max_linear_speed_mps,
+                now_mono_s=now_mono_s,
+            )
         else:
             reason = (
                 release.reason.value
@@ -1205,10 +1252,22 @@ class RtkMapOdomCorrector(Node):
         self._publish_diagnostics(bridge_allowed, release, bridge)
 
     def _publish_motion_allowed(
-        self, motion_allowed: bool, max_linear_speed_mps: float = 0.0
+        self,
+        motion_allowed: bool,
+        max_linear_speed_mps: float = 0.0,
+        *,
+        now_mono_s: float | None = None,
     ) -> None:
         self._safe_publish(self._motion_allowed_pub, Bool(data=motion_allowed))
-        speed_limit = max_linear_speed_mps if motion_allowed else 0.0
+        if not motion_allowed:
+            self._authority_speed_recovery_ramp.reset()
+            speed_limit = 0.0
+        elif now_mono_s is None:
+            speed_limit = max_linear_speed_mps
+        else:
+            speed_limit = self._authority_speed_recovery_ramp.update(
+                max_linear_speed_mps, now_mono_s
+            )
         self._safe_publish(
             self._motion_speed_limit_pub, Float32(data=float(speed_limit))
         )

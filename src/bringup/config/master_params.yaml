@@ -307,6 +307,9 @@
     rtk_authoritative_max_linear_speed_mps: 1.2
     local_bridge_max_linear_speed_mps: 0.35
     rtk_reacquire_max_linear_speed_mps: 0.35
+    # Authority recovery rises from zero through the low-speed cap instead of
+    # jumping directly back to full speed. Safety losses still stop immediately.
+    authority_speed_recovery_accel_mps2: 0.20
 
 /corridor_cmd_vel_guard:
   ros__parameters:

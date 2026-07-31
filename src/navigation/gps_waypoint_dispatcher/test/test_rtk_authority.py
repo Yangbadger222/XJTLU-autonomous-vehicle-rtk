@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import pytest
 
@@ -2812,6 +2813,31 @@ def test_rtk_map_odom_corrector_requires_narrow_int_before_authority_start():
     assert "not self._heading_control_established" in node_text
     assert "self._release_state.requires_heading_recovery" in node_text
     assert 'return "GNSS_HEADING_STABILIZING"' in node_text
+
+
+def test_authority_speed_recovery_ramp_limits_only_acceleration():
+    from gps_waypoint_dispatcher.rtk_map_odom_corrector_node import (
+        AuthoritySpeedRecoveryRamp,
+    )
+
+    ramp = AuthoritySpeedRecoveryRamp(0.20)
+
+    assert ramp.update(0.35, 10.0) == pytest.approx(0.0)
+    assert ramp.update(0.35, 11.0) == pytest.approx(0.20)
+    assert ramp.update(1.20, 12.0) == pytest.approx(0.40)
+    assert ramp.update(0.35, 12.1) == pytest.approx(0.35)
+    assert ramp.update(0.0, 12.2) == pytest.approx(0.0)
+
+
+def test_rtk_map_odom_corrector_keeps_narrow_float_at_reacquire_speed():
+    node_text = (
+        Path(__file__).resolve().parents[1]
+        / "gps_waypoint_dispatcher"
+        / "rtk_map_odom_corrector_node.py"
+    ).read_text(encoding="utf-8")
+
+    assert "or not health.heading_control_eligible" in node_text
+    assert "authority_speed_recovery_accel_mps2" in node_text
 
 
 def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():

@@ -2789,6 +2789,29 @@ def test_rtk_map_odom_corrector_publishes_named_actionable_diagnostics():
     assert "POSITION_INNOVATION_EXCEEDED" in node_text
     assert "LIO_DEGENERATE" in node_text
     assert "ODOM_TIMESTAMP_INVALID" in node_text
+    assert "HEADING_STABILIZING" in node_text
+    assert 'value("heading_position_type"' in node_text
+    assert 'value("heading_control_eligible"' in node_text
+    assert 'value("heading_control_stable"' in node_text
+    assert 'value("heading_control_samples"' in node_text
+    assert 'value("heading_control_elapsed_s"' in node_text
+
+
+def test_rtk_map_odom_corrector_requires_narrow_int_before_authority_start():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "class HeadingControlReadiness:" in node_text
+    assert 'self.declare_parameter("heading_control_stable_duration_s", 5.0)' in node_text
+    assert 'self.declare_parameter("heading_control_min_samples", 5)' in node_text
+    assert "heading_control_eligible" in node_text
+    assert 'health.heading_position_type == "NARROW_FLOAT"' in node_text
+    assert "not self._heading_control_established" in node_text
+    assert "self._release_state.requires_heading_recovery" in node_text
+    assert 'return "GNSS_HEADING_STABILIZING"' in node_text
 
 
 def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():

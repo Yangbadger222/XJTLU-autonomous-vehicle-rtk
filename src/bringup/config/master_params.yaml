@@ -251,6 +251,10 @@
     max_alignment_age_s: 1.0
     max_gga_age_s: 1.5
     max_rtk_health_age_s: 1.5
+    # Only a continuous dual-antenna NARROW_INT run may establish or recover
+    # motion authority. NARROW_FLOAT may maintain an already locked authority.
+    heading_control_stable_duration_s: 5.0
+    heading_control_min_samples: 5
     rtk_min_satellites: 10
     rtk_max_hdop: 2.0
     rtk_max_rtcm_age_s: 3.0

@@ -78,9 +78,59 @@ class RtkHealth:
     satellites: int
     hdop: float
     heading_valid: bool
+    heading_control_eligible: bool
+    heading_position_type: str
     ntrip_state: str
     rtcm_age_s: float
     received_mono_s: float
+
+
+@dataclass(frozen=True)
+class HeadingControlReadinessSnapshot:
+    stable: bool
+    samples: int
+    elapsed_s: float
+
+
+class HeadingControlReadiness:
+    """Track the uninterrupted NARROW_INT run required to control the vehicle."""
+
+    def __init__(self, duration_s: float, min_samples: int) -> None:
+        if not math.isfinite(duration_s) or duration_s <= 0.0:
+            raise ValueError("heading control stable duration must be positive")
+        if isinstance(min_samples, bool) or min_samples <= 0:
+            raise ValueError("heading control minimum samples must be positive")
+        self._duration_s = duration_s
+        self._min_samples = min_samples
+        self._first_sample_s: float | None = None
+        self._last_sample_s: float | None = None
+        self._sample_count = 0
+
+    def observe(self, eligible: bool, received_mono_s: float) -> None:
+        if not eligible:
+            self._first_sample_s = None
+            self._last_sample_s = None
+            self._sample_count = 0
+            return
+        if self._first_sample_s is None:
+            self._first_sample_s = received_mono_s
+        self._last_sample_s = received_mono_s
+        self._sample_count += 1
+
+    def snapshot(self, now_mono_s: float) -> HeadingControlReadinessSnapshot:
+        if self._first_sample_s is None or self._last_sample_s is None:
+            return HeadingControlReadinessSnapshot(False, 0, 0.0)
+        elapsed_s = max(0.0, self._last_sample_s - self._first_sample_s)
+        stale = now_mono_s - self._last_sample_s > self._duration_s
+        return HeadingControlReadinessSnapshot(
+            stable=(
+                not stale
+                and self._sample_count >= self._min_samples
+                and elapsed_s >= self._duration_s
+            ),
+            samples=self._sample_count,
+            elapsed_s=elapsed_s,
+        )
 
 
 def _stamp_s(stamp) -> float:
@@ -155,6 +205,8 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("max_alignment_age_s", 1.0)
         self.declare_parameter("max_gga_age_s", 1.5)
         self.declare_parameter("max_rtk_health_age_s", 1.5)
+        self.declare_parameter("heading_control_stable_duration_s", 5.0)
+        self.declare_parameter("heading_control_min_samples", 5)
         self.declare_parameter("rtk_min_satellites", 10)
         self.declare_parameter("rtk_max_hdop", 2.0)
         self.declare_parameter("rtk_max_rtcm_age_s", 3.0)
@@ -259,6 +311,12 @@ class RtkMapOdomCorrector(Node):
         self._max_rtk_health_age_s = float(
             self.get_parameter("max_rtk_health_age_s").value
         )
+        self._heading_control_stable_duration_s = float(
+            self.get_parameter("heading_control_stable_duration_s").value
+        )
+        self._heading_control_min_samples = int(
+            self.get_parameter("heading_control_min_samples").value
+        )
         self._rtk_min_satellites = int(self.get_parameter("rtk_min_satellites").value)
         self._rtk_max_hdop = float(self.get_parameter("rtk_max_hdop").value)
         self._rtk_max_rtcm_age_s = float(
@@ -335,6 +393,11 @@ class RtkMapOdomCorrector(Node):
             ),
             **gate_common,
         )
+        self._heading_control_readiness = HeadingControlReadiness(
+            self._heading_control_stable_duration_s,
+            self._heading_control_min_samples,
+        )
+        self._heading_control_established = False
         self._position_gate = CorrectionGate.translation(
             locked_threshold=float(
                 self.get_parameter("position_locked_innovation_m").value
@@ -609,6 +672,13 @@ class RtkMapOdomCorrector(Node):
                     satellites=int(values["satellites"]),
                     hdop=float(values["hdop"]),
                     heading_valid=values["heading_valid"].lower() == "true",
+                    heading_control_eligible=(
+                        values.get("heading_control_eligible", "false").lower()
+                        == "true"
+                    ),
+                    heading_position_type=str(
+                        values.get("uniheading_position_type", "UNKNOWN")
+                    ),
                     ntrip_state=str(values["ntrip_state"]),
                     rtcm_age_s=float(values["rtcm_age_s"]),
                     received_mono_s=time.monotonic(),
@@ -616,6 +686,13 @@ class RtkMapOdomCorrector(Node):
             except (KeyError, TypeError, ValueError):
                 return
             self._latest_rtk_health = health
+            self._heading_control_readiness.observe(
+                health.heading_control_eligible, health.received_mono_s
+            )
+            if health.heading_control_eligible and self._heading_control_readiness.snapshot(
+                health.received_mono_s
+            ).stable:
+                self._heading_control_established = True
             return
 
     def _lio_callback(self, msg: Odometry) -> None:
@@ -927,6 +1004,21 @@ class RtkMapOdomCorrector(Node):
             return "GNSS_HDOP_EXCEEDED"
         if not health.heading_valid:
             return "GNSS_HEADING_INVALID"
+        readiness = self._heading_control_readiness.snapshot(now_mono_s)
+        if health.heading_control_eligible:
+            if not readiness.stable:
+                return "GNSS_HEADING_STABILIZING"
+        elif health.heading_position_type == "NARROW_FLOAT":
+            # Float solutions may maintain a locked authority, but never create
+            # or recover one after a heading hold.
+            if (
+                not self._heading_control_established
+                or self._heading_gate.state is not CorrectionGateState.LOCKED
+                or self._release_state.requires_heading_recovery
+            ):
+                return "GNSS_HEADING_FLOAT"
+        else:
+            return f"GNSS_HEADING_{health.heading_position_type}"
         if health.ntrip_state != "RTCM_FRESH":
             return f"NTRIP_{health.ntrip_state}"
         if (
@@ -1165,6 +1257,7 @@ class RtkMapOdomCorrector(Node):
             now_mono_s, motion_allowed, release, bridge
         )
         health = self._latest_rtk_health
+        heading_readiness = self._heading_control_readiness.snapshot(now_mono_s)
 
         def value(key: str, raw) -> KeyValue:
             if isinstance(raw, float):
@@ -1184,6 +1277,17 @@ class RtkMapOdomCorrector(Node):
             value("fix_quality", health.fix_quality if health is not None else -1),
             value("satellites", health.satellites if health is not None else -1),
             value("hdop", health.hdop if health is not None else math.nan),
+            value(
+                "heading_position_type",
+                health.heading_position_type if health is not None else "UNKNOWN",
+            ),
+            value(
+                "heading_control_eligible",
+                health.heading_control_eligible if health is not None else False,
+            ),
+            value("heading_control_stable", heading_readiness.stable),
+            value("heading_control_samples", heading_readiness.samples),
+            value("heading_control_elapsed_s", heading_readiness.elapsed_s),
             value("motion_allowed", motion_allowed),
             value("fix_age_s", self._age_s(self._latest_fix_mono_s, now_mono_s)),
             value("heading_age_s", self._age_s(self._latest_heading_mono_s, now_mono_s)),
@@ -1232,6 +1336,8 @@ class RtkMapOdomCorrector(Node):
             failure_class = "RTCM_STALE"
         elif reason is not None and reason.startswith("NTRIP_"):
             failure_class = "NTRIP_DISCONNECTED"
+        elif reason == "GNSS_HEADING_STABILIZING":
+            failure_class = "HEADING_STABILIZING"
         elif reason is not None and reason.startswith("GNSS_HEADING"):
             failure_class = "HEADING_SOURCE_INVALID"
         elif reason is not None and reason.startswith("GNSS_"):

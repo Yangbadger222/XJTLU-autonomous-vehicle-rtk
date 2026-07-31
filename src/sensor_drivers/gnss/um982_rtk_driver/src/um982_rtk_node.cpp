@@ -328,9 +328,14 @@ private:
       const auto & data = *parsed->uniheading;
       const bool heading_valid =
         data.solution_status == "SOL_COMPUTED" && data.position_type != "NONE";
+      const bool heading_control_eligible =
+        data.solution_status == "SOL_COMPUTED" && data.position_type == "NARROW_INT";
       {
         std::lock_guard<std::mutex> lock(status_mutex_);
+        last_uniheading_solution_status_ = data.solution_status;
+        last_uniheading_position_type_ = data.position_type;
         last_uniheading_status_ = data.solution_status + "/" + data.position_type;
+        last_heading_control_eligible_ = heading_control_eligible;
       }
       if (heading_valid) {
         handleHeading(HeadingSource::UNIHEADING, data.heading_deg, stamp);
@@ -515,22 +520,28 @@ private:
     int satellites = 0;
     double hdop = std::numeric_limits<double>::quiet_NaN();
     bool heading_valid = false;
+    bool heading_control_eligible = false;
     std::string heading_source;
     std::string uniheading_status;
+    std::string uniheading_solution_status;
+    std::string uniheading_position_type;
     {
       std::lock_guard<std::mutex> lock(status_mutex_);
       fix_quality = last_fix_quality_;
       satellites = last_satellites_;
       hdop = last_hdop_;
       heading_valid = last_heading_valid_;
+      heading_control_eligible = last_heading_control_eligible_;
       heading_source = last_heading_source_;
       uniheading_status = last_uniheading_status_;
+      uniheading_solution_status = last_uniheading_solution_status_;
+      uniheading_position_type = last_uniheading_position_type_;
     }
     diagnostic_msgs::msg::DiagnosticStatus status;
     status.name = "um982_rtk_driver/health";
     status.hardware_id = "UM982";
     const std::string ntrip_state = ntripHealthState();
-    status.level = ntrip_state == "RTCM_FRESH" && fix_quality == 4 && heading_valid ?
+    status.level = ntrip_state == "RTCM_FRESH" && fix_quality == 4 && heading_control_eligible ?
       diagnostic_msgs::msg::DiagnosticStatus::OK : diagnostic_msgs::msg::DiagnosticStatus::WARN;
     status.message = ntrip_state;
     const auto add = [&status](const std::string & key, const std::string & value) {
@@ -543,8 +554,11 @@ private:
     add("satellites", std::to_string(satellites));
     add("hdop", std::to_string(hdop));
     add("heading_valid", heading_valid ? "true" : "false");
+    add("heading_control_eligible", heading_control_eligible ? "true" : "false");
     add("heading_source", heading_source);
     add("uniheading_status", uniheading_status);
+    add("uniheading_solution_status", uniheading_solution_status);
+    add("uniheading_position_type", uniheading_position_type);
     add("heading_rejects", std::to_string(headingRejectedCount()));
     add("ntrip_state", ntrip_state);
     add("rtcm_age_s", std::to_string(ntripRtcmAgeS()));
@@ -926,11 +940,14 @@ private:
   double last_speed_mps_ = 0.0;
   double last_course_deg_ = 0.0;
   bool last_heading_valid_ = false;
+  bool last_heading_control_eligible_ = false;
   double last_heading_deg_ = 0.0;
   double last_heading_calibrated_deg_ = 0.0;
   double last_heading_source_bias_deg_ = 0.0;
   std::string last_heading_source_;
   std::string last_uniheading_status_ = "-";
+  std::string last_uniheading_solution_status_ = "UNKNOWN";
+  std::string last_uniheading_position_type_ = "UNKNOWN";
   std::unique_ptr<HeadingSelector> heading_selector_;
 };
 

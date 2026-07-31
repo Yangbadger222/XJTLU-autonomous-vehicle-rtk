@@ -930,6 +930,12 @@ class CorrectionReleaseState:
         self._last_finite_translation_gap_m = 0.0
         self._last_finite_yaw_gap_rad = 0.0
 
+    @property
+    def requires_heading_recovery(self) -> bool:
+        """True while an authority hold must be recovered with trusted heading."""
+
+        return self._heading_jump_hold or self._fault_latched
+
     def update(
         self,
         *,

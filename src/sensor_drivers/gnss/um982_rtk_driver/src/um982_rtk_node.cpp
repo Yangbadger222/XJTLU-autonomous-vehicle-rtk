@@ -187,6 +187,8 @@ public:
       "heading_hpr_requires_rtk_health", true);
     heading_hpr_max_gga_age_s_ = declare_parameter<double>(
       "heading_hpr_max_gga_age_s", 1.5);
+    heading_health_max_age_s_ = declare_parameter<double>("heading_health_max_age_s", 1.0);
+    heading_expected_period_s_ = declare_parameter<double>("heading_expected_period_s", 0.2);
     if (!std::isfinite(ntrip_rtcm_fresh_timeout_s_) || ntrip_rtcm_fresh_timeout_s_ <= 0.0 ||
       !std::isfinite(ntrip_rtcm_hard_timeout_s_) ||
       ntrip_rtcm_hard_timeout_s_ < ntrip_rtcm_fresh_timeout_s_ ||
@@ -431,6 +433,15 @@ private:
     }
     publishCalibratedHeading(selection.heading_deg, stamp);
     std::lock_guard<std::mutex> lock(status_mutex_);
+    const auto received = std::chrono::steady_clock::now();
+    if (last_heading_received_.has_value()) {
+      const double interval_s = std::chrono::duration<double>(received - *last_heading_received_).count();
+      last_heading_rate_hz_ = interval_s > 0.0 ? 1.0 / interval_s : 0.0;
+      heading_consecutive_drops_ = interval_s > heading_health_max_age_s_ ?
+        static_cast<uint64_t>(std::max(1.0, std::floor(interval_s / heading_expected_period_s_) - 1.0)) : 0U;
+    }
+    last_heading_received_ = received;
+    last_heading_header_latency_s_ = (now() - stamp).seconds();
     last_heading_deg_ = raw_heading_deg;
     last_heading_calibrated_deg_ = selection.heading_deg;
     last_heading_source_bias_deg_ = selection.source_bias_deg;
@@ -525,6 +536,10 @@ private:
     std::string uniheading_status;
     std::string uniheading_solution_status;
     std::string uniheading_position_type;
+    double heading_age_s = std::numeric_limits<double>::infinity();
+    double heading_rate_hz = 0.0;
+    double heading_header_latency_s = std::numeric_limits<double>::quiet_NaN();
+    uint64_t heading_consecutive_drops = 0;
     {
       std::lock_guard<std::mutex> lock(status_mutex_);
       fix_quality = last_fix_quality_;
@@ -536,7 +551,15 @@ private:
       uniheading_status = last_uniheading_status_;
       uniheading_solution_status = last_uniheading_solution_status_;
       uniheading_position_type = last_uniheading_position_type_;
+      if (last_heading_received_.has_value()) {
+        heading_age_s = std::chrono::duration<double>(
+          std::chrono::steady_clock::now() - *last_heading_received_).count();
+      }
+      heading_rate_hz = last_heading_rate_hz_;
+      heading_header_latency_s = last_heading_header_latency_s_;
+      heading_consecutive_drops = heading_consecutive_drops_;
     }
+    heading_valid = heading_valid && heading_age_s <= heading_health_max_age_s_;
     diagnostic_msgs::msg::DiagnosticStatus status;
     status.name = "um982_rtk_driver/health";
     status.hardware_id = "UM982";
@@ -559,6 +582,10 @@ private:
     add("uniheading_status", uniheading_status);
     add("uniheading_solution_status", uniheading_solution_status);
     add("uniheading_position_type", uniheading_position_type);
+    add("heading_age_s", std::to_string(heading_age_s));
+    add("heading_rate_hz", std::to_string(heading_rate_hz));
+    add("heading_header_latency_s", std::to_string(heading_header_latency_s));
+    add("heading_consecutive_drops", std::to_string(heading_consecutive_drops));
     add("heading_rejects", std::to_string(headingRejectedCount()));
     add("ntrip_state", ntrip_state);
     add("rtcm_age_s", std::to_string(ntripRtcmAgeS()));
@@ -908,6 +935,8 @@ private:
   double ntrip_rtcm_hard_timeout_s_ = 10.0;
   bool heading_hpr_requires_rtk_health_ = true;
   double heading_hpr_max_gga_age_s_ = 1.5;
+  double heading_health_max_age_s_ = 1.0;
+  double heading_expected_period_s_ = 0.2;
   std::unique_ptr<NtripReconnectPolicy> ntrip_reconnect_policy_;
   std::mt19937 ntrip_jitter_generator_{std::random_device{}()};
   int ntrip_socket_ = -1;
@@ -948,6 +977,10 @@ private:
   std::string last_uniheading_status_ = "-";
   std::string last_uniheading_solution_status_ = "UNKNOWN";
   std::string last_uniheading_position_type_ = "UNKNOWN";
+  std::optional<std::chrono::steady_clock::time_point> last_heading_received_;
+  double last_heading_rate_hz_ = 0.0;
+  double last_heading_header_latency_s_ = std::numeric_limits<double>::quiet_NaN();
+  uint64_t heading_consecutive_drops_ = 0;
   std::unique_ptr<HeadingSelector> heading_selector_;
 };
 

@@ -20,12 +20,30 @@ topics=(
   /livox/lidar
   /livox/imu
   /fix
+  /rtk/health
+  /rtk/status
+  /rtk/nmea_sentence
+  /heading
   /gnss
   /fastlio2/lio_odom
+  /fastlio2/degeneracy
+  /localization_authority/status
+  /localization_authority/diagnostics
+  /gps_goal_manager/status
+  /gps_waypoint_dispatcher/path_map
+  /gps_waypoint_dispatcher/goal_map
+  /scan
+  /local_costmap/costmap_raw
+  /global_costmap/costmap_raw
   /pgo/optimized_odom
   /tf
   /tf_static
   /cmd_vel
+  /cmd_vel_nav
+  /cmd_vel_guarded
+  /gps_nav/stop_override
+  /behavior_tree_log
+  /navigate_to_pose/_action/status
   /pgo/loop_markers
 )
 

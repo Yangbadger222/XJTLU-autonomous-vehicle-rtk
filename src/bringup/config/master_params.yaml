@@ -429,6 +429,8 @@
     heading_recovery_max_step_deg: 7.5
     heading_hpr_requires_rtk_health: true
     heading_hpr_max_gga_age_s: 1.5
+    heading_health_max_age_s: 1.0
+    heading_expected_period_s: 0.2
     # Publish raw NMEA to rtk/nmea_sentence for GGA quality inspection.
     publish_raw: true
     # Human-readable rtk/status publishing interval.

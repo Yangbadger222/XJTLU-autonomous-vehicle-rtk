@@ -966,10 +966,11 @@ class GPSGoalManager(Node):
             self.hold_started_mono = None
             self._publish_status(
                 "BLOCKED_WAIT",
-                "target=%s; result=%d; retry_in=%.2fs; timeout=%.1fs"
+                "target=%s; result=%d; %s; retry_in=%.2fs; timeout=%.1fs"
                 % (
                     self.current_target_label,
                     wrapped.status,
+                    self._follow_path_abort_context(wrapped),
                     self.blocked_retry.retry_delay_s,
                     self.blocked_retry.timeout_s - blocked.elapsed_s,
                 ),
@@ -992,6 +993,29 @@ class GPSGoalManager(Node):
             )
             return
         self._finish_success()
+
+    def _follow_path_abort_context(self, wrapped) -> str:
+        result = getattr(wrapped, "result", None)
+        error_code = getattr(result, "error_code", "unknown")
+        error_msg = str(getattr(result, "error_msg", "")).replace(";", ",")
+        pose = self._lookup_current_pose()
+        if pose is None:
+            return "nav2_error_code=%s; nav2_error_msg=%s; current_xy=unavailable" % (
+                error_code,
+                error_msg or "none",
+            )
+        x = float(pose.pose.position.x)
+        y = float(pose.pose.position.y)
+        keepout_drivable = (
+            self.road_keepout_map.is_drivable(x, y)
+            if self.road_keepout_map is not None
+            else None
+        )
+        return (
+            "nav2_error_code=%s; nav2_error_msg=%s; current_xy=(%.2f,%.2f); "
+            "keepout_drivable=%s"
+            % (error_code, error_msg or "none", x, y, keepout_drivable)
+        )
 
     def _stop_callback(self, _: Empty) -> None:
         if not self.busy:

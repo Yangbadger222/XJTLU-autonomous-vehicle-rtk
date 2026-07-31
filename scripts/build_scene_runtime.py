@@ -437,6 +437,15 @@ def install_keepout_assets(bundle: dict, bundle_path: Path) -> Path | None:
     if source_image.resolve() != ROAD_KEEPOUT_IMAGE.resolve():
         shutil.copy2(source_image, ROAD_KEEPOUT_IMAGE)
     map_metadata["image"] = ROAD_KEEPOUT_IMAGE.name
+    origin_node_id = int(bundle["fixed_origin_node_id"])
+    origin_node = bundle["nodes"][str(origin_node_id)]
+    map_metadata["scene_fixed_origin"] = {
+        "node_id": origin_node_id,
+        "lat": round(float(origin_node["lat"]), 7),
+        "lon": round(float(origin_node["lon"]), 7),
+        "alt": round(float(origin_node.get("alt", 0.0)), 2),
+        "enu_convention": "east_north_up",
+    }
     save_yaml(ROAD_KEEPOUT_YAML, map_metadata)
     return ROAD_KEEPOUT_YAML
 

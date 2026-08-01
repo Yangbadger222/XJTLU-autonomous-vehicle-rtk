@@ -2854,6 +2854,23 @@ def test_rtk_map_odom_corrector_reports_low_speed_heading_and_failure_evidence()
     assert 'failure_class = "HEADING_INNOVATION_EXCEEDED"' in node_text
 
 
+def test_rtk_map_odom_corrector_rejects_gnss_heading_jumps_not_seen_by_lio():
+    node_text = (
+        Path(__file__).resolve().parents[1]
+        / "gps_waypoint_dispatcher"
+        / "rtk_map_odom_corrector_node.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("heading_lio_crosscheck_enabled", True)' in node_text
+    assert 'self.declare_parameter("heading_lio_crosscheck_gnss_jump_deg", 8.0)' in node_text
+    assert 'self.declare_parameter("heading_lio_crosscheck_lio_turn_deg", 3.0)' in node_text
+    assert "def _heading_lio_mismatch(" in node_text
+    assert "PrerequisiteFailureKind.HEADING_LIO_MISMATCH" in node_text
+    assert 'return "GNSS_LIO_HEADING_MISMATCH"' in node_text
+    assert 'failure_class = "HEADING_LIO_MISMATCH"' in node_text
+    assert 'value("heading_lio_mismatch_rejects"' in node_text
+
+
 def test_rtk_map_odom_corrector_releases_only_timestamp_coherent_targets():
     node_text = open(
         "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"

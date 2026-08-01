@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>gps_waypoint_dispatcher</name>
+  <name>bringup</name>
   <version>1.0.0</version>
-  <description>GPS waypoint dispatcher for direct goals and road-network waypoint navigation</description>
+  <description>System bringup launch files, configuration, and runtime helpers</description>
   <maintainer email="Kevinlasnh@outlook.com">FYP Team</maintainer>
   <license>MIT</license>
 

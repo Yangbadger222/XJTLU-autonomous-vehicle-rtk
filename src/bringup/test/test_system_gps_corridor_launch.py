@@ -273,6 +273,9 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "heading_recovery_spread_deg: 7.5" in master_params_text
     assert "heading_control_stable_duration_s: 5.0" in master_params_text
     assert "heading_control_min_samples: 5" in master_params_text
+    assert "heading_lio_crosscheck_enabled: true" in master_params_text
+    assert "heading_lio_crosscheck_gnss_jump_deg: 8.0" in master_params_text
+    assert "heading_lio_crosscheck_lio_turn_deg: 3.0" in master_params_text
     assert "position_recovery_diameter_m: 0.50" in master_params_text
     assert "gate_max_failures: 10" in master_params_text
     assert "gate_processable_timeout_s: 2.0" in master_params_text

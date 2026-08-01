@@ -258,6 +258,12 @@
     # At a stop or crawl, reject NARROW_FLOAT heading because it is prone to
     # antenna-heading drift and mode switching.
     low_speed_heading_strict_mps: 0.10
+    # Reject a dual-antenna heading jump when timestamp-matched FAST-LIO did
+    # not rotate. A rejection requires a new stable NARROW_INT run.
+    heading_lio_crosscheck_enabled: true
+    heading_lio_crosscheck_max_interval_s: 0.30
+    heading_lio_crosscheck_gnss_jump_deg: 8.0
+    heading_lio_crosscheck_lio_turn_deg: 3.0
     rtk_min_satellites: 10
     rtk_max_hdop: 2.0
     rtk_max_rtcm_age_s: 3.0

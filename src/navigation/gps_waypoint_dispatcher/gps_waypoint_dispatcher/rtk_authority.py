@@ -370,6 +370,7 @@ class PrerequisiteFailureKind(Enum):
     STALE_INPUT = "STALE_INPUT"
     NON_FIXED_INPUT = "NON_FIXED_INPUT"
     MALFORMED_INPUT = "MALFORMED_INPUT"
+    HEADING_LIO_MISMATCH = "HEADING_LIO_MISMATCH"
 
 
 class CorrectionReleaseMode(Enum):
@@ -411,6 +412,7 @@ _IMMEDIATE_DEGRADE_FAILURES = frozenset(
         PrerequisiteFailureKind.STALE_INPUT,
         PrerequisiteFailureKind.NON_FIXED_INPUT,
         PrerequisiteFailureKind.MALFORMED_INPUT,
+        PrerequisiteFailureKind.HEADING_LIO_MISMATCH,
     }
 )
 

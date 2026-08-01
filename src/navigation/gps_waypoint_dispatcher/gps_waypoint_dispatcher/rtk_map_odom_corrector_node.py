@@ -119,6 +119,11 @@ class HeadingControlReadiness:
         self._last_sample_s = received_mono_s
         self._sample_count += 1
 
+    def reset(self) -> None:
+        self._first_sample_s = None
+        self._last_sample_s = None
+        self._sample_count = 0
+
     def snapshot(self, now_mono_s: float) -> HeadingControlReadinessSnapshot:
         if self._first_sample_s is None or self._last_sample_s is None:
             return HeadingControlReadinessSnapshot(False, 0, 0.0)
@@ -243,6 +248,10 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("heading_control_stable_duration_s", 5.0)
         self.declare_parameter("heading_control_min_samples", 5)
         self.declare_parameter("low_speed_heading_strict_mps", 0.10)
+        self.declare_parameter("heading_lio_crosscheck_enabled", True)
+        self.declare_parameter("heading_lio_crosscheck_max_interval_s", 0.30)
+        self.declare_parameter("heading_lio_crosscheck_gnss_jump_deg", 8.0)
+        self.declare_parameter("heading_lio_crosscheck_lio_turn_deg", 3.0)
         self.declare_parameter("rtk_min_satellites", 10)
         self.declare_parameter("rtk_max_hdop", 2.0)
         self.declare_parameter("rtk_max_rtcm_age_s", 3.0)
@@ -356,6 +365,18 @@ class RtkMapOdomCorrector(Node):
         )
         self._low_speed_heading_strict_mps = float(
             self.get_parameter("low_speed_heading_strict_mps").value
+        )
+        self._heading_lio_crosscheck_enabled = bool(
+            self.get_parameter("heading_lio_crosscheck_enabled").value
+        )
+        self._heading_lio_crosscheck_max_interval_s = float(
+            self.get_parameter("heading_lio_crosscheck_max_interval_s").value
+        )
+        self._heading_lio_crosscheck_gnss_jump_rad = math.radians(
+            float(self.get_parameter("heading_lio_crosscheck_gnss_jump_deg").value)
+        )
+        self._heading_lio_crosscheck_lio_turn_rad = math.radians(
+            float(self.get_parameter("heading_lio_crosscheck_lio_turn_deg").value)
         )
         self._rtk_min_satellites = int(self.get_parameter("rtk_min_satellites").value)
         self._rtk_max_hdop = float(self.get_parameter("rtk_max_hdop").value)
@@ -537,6 +558,11 @@ class RtkMapOdomCorrector(Node):
         self._accepted_heading_corrections: deque[tuple[float, float]] = deque(
             maxlen=100
         )
+        self._last_trusted_heading: tuple[float, float, float] | None = None
+        self._heading_lio_mismatch_active = False
+        self._heading_lio_mismatch_rejects = 0
+        self._last_heading_lio_gnss_delta_rad = math.nan
+        self._last_heading_lio_delta_rad = math.nan
         self._last_heading_enqueue_stamp_s: float | None = None
         self._last_fix_enqueue_stamp_s: float | None = None
         self._latest_lio_stamp_s: float | None = None
@@ -857,6 +883,38 @@ class RtkMapOdomCorrector(Node):
                 return None
         return None
 
+    def _heading_lio_mismatch(self, pending: PendingHeading, lio_yaw: float) -> bool:
+        """Reject a dual-antenna jump when timestamp-matched LIO did not turn."""
+        if not self._heading_lio_crosscheck_enabled or self._last_trusted_heading is None:
+            return False
+        previous_stamp_s, previous_gnss_yaw, previous_lio_yaw = (
+            self._last_trusted_heading
+        )
+        interval_s = pending.stamp_s - previous_stamp_s
+        if not 0.0 < interval_s <= self._heading_lio_crosscheck_max_interval_s:
+            return False
+        self._last_heading_lio_gnss_delta_rad = abs(
+            normalize_angle(pending.enu_yaw - previous_gnss_yaw)
+        )
+        self._last_heading_lio_delta_rad = abs(
+            normalize_angle(lio_yaw - previous_lio_yaw)
+        )
+        return (
+            self._last_heading_lio_gnss_delta_rad
+            >= self._heading_lio_crosscheck_gnss_jump_rad
+            and self._last_heading_lio_delta_rad
+            <= self._heading_lio_crosscheck_lio_turn_rad
+        )
+
+    def _heading_control_eligible_now(self, now_mono_s: float) -> bool:
+        health = self._latest_rtk_health
+        return bool(
+            health is not None
+            and self._age_s(health.received_mono_s, now_mono_s)
+            <= self._max_rtk_health_age_s
+            and health.heading_control_eligible
+        )
+
     def _process_heading(self, now_mono_s: float, alignment) -> None:
         while self._heading_queue:
             pending = self._heading_queue[0]
@@ -898,6 +956,26 @@ class RtkMapOdomCorrector(Node):
                     )
                 self._heading_queue.popleft()
                 continue
+            if self._heading_lio_mismatch_active and not self._heading_control_eligible_now(
+                now_mono_s
+            ):
+                self._heading_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.NON_FIXED_INPUT,
+                )
+                self._heading_queue.popleft()
+                continue
+            if self._heading_lio_mismatch(pending, interpolated.pose.yaw):
+                self._heading_lio_mismatch_active = True
+                self._heading_lio_mismatch_rejects += 1
+                self._heading_control_readiness.reset()
+                self._heading_control_established = False
+                self._heading_gate.prerequisite_failure(
+                    now_s=now_mono_s,
+                    kind=PrerequisiteFailureKind.HEADING_LIO_MISMATCH,
+                )
+                self._heading_queue.popleft()
+                continue
             map_yaw = normalize_angle(alignment[0] + pending.enu_yaw)
             correction = normalize_angle(map_yaw - interpolated.pose.yaw)
             result = self._heading_gate.observe(
@@ -906,6 +984,12 @@ class RtkMapOdomCorrector(Node):
             self._last_heading_innovation_rad = result.innovation
             if result.accepted:
                 self._record_heading_target(pending.stamp_s)
+                self._heading_lio_mismatch_active = False
+                self._last_trusted_heading = (
+                    pending.stamp_s,
+                    pending.enu_yaw,
+                    interpolated.pose.yaw,
+                )
             self._heading_queue.popleft()
 
     def _process_fix(self, now_mono_s: float, alignment) -> None:
@@ -1058,6 +1142,8 @@ class RtkMapOdomCorrector(Node):
             return "GNSS_HDOP_EXCEEDED"
         if not health.heading_valid:
             return "GNSS_HEADING_INVALID"
+        if self._heading_lio_mismatch_active:
+            return "GNSS_LIO_HEADING_MISMATCH"
         low_speed = (
             math.isfinite(self._local_linear_rate_mps)
             and abs(self._local_linear_rate_mps) < self._low_speed_heading_strict_mps
@@ -1376,6 +1462,16 @@ class RtkMapOdomCorrector(Node):
             value("heading_control_stable", heading_readiness.stable),
             value("heading_control_samples", heading_readiness.samples),
             value("heading_control_elapsed_s", heading_readiness.elapsed_s),
+            value("heading_lio_mismatch_active", self._heading_lio_mismatch_active),
+            value("heading_lio_mismatch_rejects", self._heading_lio_mismatch_rejects),
+            value(
+                "heading_lio_gnss_delta_deg",
+                math.degrees(self._last_heading_lio_gnss_delta_rad),
+            ),
+            value(
+                "heading_lio_delta_deg",
+                math.degrees(self._last_heading_lio_delta_rad),
+            ),
             value("motion_allowed", motion_allowed),
             value("fix_age_s", self._age_s(self._latest_fix_mono_s, now_mono_s)),
             value("heading_age_s", self._age_s(self._latest_heading_mono_s, now_mono_s)),
@@ -1429,7 +1525,9 @@ class RtkMapOdomCorrector(Node):
 
         release_reason = release.reason.value if release is not None and release.reason is not None else ""
         reason = self._rtk_health_reason(now_mono_s)
-        if "HEADING" in release_reason:
+        if reason == "GNSS_LIO_HEADING_MISMATCH":
+            failure_class = "HEADING_LIO_MISMATCH"
+        elif "HEADING" in release_reason:
             failure_class = "HEADING_INNOVATION_EXCEEDED"
         elif reason in {"RTCM_STALE", "RTK_HEALTH_STALE"}:
             failure_class = "RTCM_STALE"

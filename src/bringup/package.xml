@@ -7,6 +7,8 @@
   <maintainer email="Kevinlasnh@outlook.com">FYP Team</maintainer>
   <license>MIT</license>
 
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
   <depend>rclpy</depend>
   <depend>rcl_interfaces</depend>
   <depend>action_msgs</depend>
@@ -28,6 +30,6 @@
   <test_depend>python3-pytest</test_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

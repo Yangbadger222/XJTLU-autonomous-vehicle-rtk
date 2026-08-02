@@ -2941,3 +2941,29 @@ def test_rtk_map_odom_corrector_is_shutdown_safe():
     assert "_safe_publish(self._status_pub" in node_text
     assert "_safe_publish(self._diagnostics_pub" in node_text
     assert "Ignoring publish during shutdown" in node_text
+
+
+def test_rtk_map_odom_corrector_keeps_authoritative_publish_path_defined():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    authoritative_path = node_text.split("def _timer_callback(self) -> None:", 1)[1]
+    authoritative_path = authoritative_path.split("def _publish_motion_allowed(", 1)[0]
+    assert "health = self._latest_rtk_health" in authoritative_path
+    assert "or not health.heading_control_eligible" in authoritative_path
+
+
+def test_rtk_map_odom_corrector_logs_unhandled_callback_failures():
+    node_text = open(
+        "src/navigation/gps_waypoint_dispatcher/gps_waypoint_dispatcher/"
+        "rtk_map_odom_corrector_node.py",
+        encoding="utf-8",
+    ).read()
+
+    assert "from rclpy.executors import ExternalShutdownException" in node_text
+    assert "except (KeyboardInterrupt, ExternalShutdownException):" in node_text
+    assert "Unhandled exception in rtk_map_odom_corrector" in node_text
+    assert "traceback.format_exc()" in node_text

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import time
+import traceback
 from collections import deque
 from dataclasses import dataclass
 
@@ -11,6 +12,7 @@ from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import QuaternionStamped, TransformStamped
 from nav_msgs.msg import Odometry
 from nmea_msgs.msg import Sentence
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import NavSatFix
 from std_msgs.msg import Bool, Float32, Float32MultiArray, Float64MultiArray, String
@@ -1306,6 +1308,7 @@ class RtkMapOdomCorrector(Node):
         release = self._release(now_mono_s)
         health_reason = self._rtk_health_reason(now_mono_s)
         fresh = self._authority_fresh(now_mono_s)
+        health = self._latest_rtk_health
         rtk_motion_allowed = bool(release and release.motion_allowed and fresh)
         if rtk_motion_allowed:
             self._last_authoritative_mono_s = now_mono_s
@@ -1622,6 +1625,16 @@ def main(args=None) -> None:
     node = RtkMapOdomCorrector()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        # ROS shutdown is an expected termination path, not a node failure.
+        pass
+    except Exception:
+        # This process is launch-critical. Never let a callback error disappear
+        # behind a generic "exited early" message in the launcher.
+        node.get_logger().fatal(
+            f"Unhandled exception in rtk_map_odom_corrector:\n{traceback.format_exc()}"
+        )
+        raise
     finally:
         node.destroy_node()
         if rclpy.ok():

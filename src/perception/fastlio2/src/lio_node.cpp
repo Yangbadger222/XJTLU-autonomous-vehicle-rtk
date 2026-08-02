@@ -229,7 +229,7 @@ public:
         m_builder_config.nbg = this->declare_parameter<double>("nbg", 0.0001);
         m_builder_config.imu_init_num = this->declare_parameter<int>("imu_init_num", 20);
         m_builder_config.min_imu_samples_per_lidar =
-            this->declare_parameter<int>("min_imu_samples_per_lidar", 3);
+            this->declare_parameter<int>("min_imu_samples_per_lidar", 1);
         m_builder_config.near_search_num = this->declare_parameter<int>("near_search_num", 5);
         m_builder_config.ieskf_max_iter = this->declare_parameter<int>("ieskf_max_iter", 5);
         m_builder_config.gravity_align = this->declare_parameter<bool>("gravity_align", true);
@@ -759,7 +759,7 @@ public:
                 this->get_logger(),
                 *this->get_clock(),
                 2000,
-                "Dropping LIDAR package with only %zu IMU samples (minimum %d)",
+                "Dropping LIDAR package with only %zu new IMU samples (minimum %d)",
                 m_package.imus.size(),
                 m_builder_config.min_imu_samples_per_lidar);
             return;

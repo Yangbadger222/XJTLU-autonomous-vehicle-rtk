@@ -41,8 +41,10 @@
 
       # IMU 初始化样本数；调大更稳，但启动更慢。
       imu_init_num: 20
-      # 单帧 LiDAR 至少需要的 IMU 样本数；低于该值说明同步异常，直接丢帧避免 LIO 飞走。
-      min_imu_samples_per_lidar: 3
+      # IMUProcessor retains the preceding package boundary sample. One new
+      # timestamped IMU sample therefore provides a valid two-point interval;
+      # only a frame with no new IMU data is unsafe to process.
+      min_imu_samples_per_lidar: 1
       # 近邻搜索点数；调大更稳但计算更重。
       near_search_num: 5
       # IESKF 最大迭代次数；调大更充分但算力更高。

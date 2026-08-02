@@ -50,6 +50,14 @@ def test_nav_gps_starts_rtk_map_odom_corrector_from_scene_identity_alignment():
     assert '"/localization_authority/diagnostics",' in text
 
 
+def test_nav_gps_refreshes_runtime_scene_parameters_before_launch():
+    text = LAUNCH_WITH_LOGS.read_text(encoding="utf-8")
+
+    assert 'if [[ "$MODE" == "nav-gps" ]]; then' in text
+    assert 'scripts/build_scene_runtime.py' in text
+    assert 'ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE"' in text
+
+
 def test_nav_gps_uses_local_astar_goal_manager_without_route_server():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
 

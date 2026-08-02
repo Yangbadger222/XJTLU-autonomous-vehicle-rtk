@@ -184,4 +184,10 @@ if [[ "$MODE" == "corridor" && "${FYP_CORRIDOR_CONSOLE_MODE:-quiet}" != "raw" ]]
   exit "$MONITOR_RC"
 fi
 
+if [[ "$MODE" == "nav-gps" ]]; then
+  # nav-gps reads its parameters from a runtime scene file. Rebuild it from
+  # the tracked template so sensor-safety changes take effect after git pull.
+  python3 "$HOME/XJTLU-autonomous-vehicle/scripts/build_scene_runtime.py"
+fi
+
 ros2 launch "${LAUNCH_PACKAGE:-bringup}" "$LAUNCH_FILE" "${LAUNCH_ARGS[@]}" "${EXTRA_LAUNCH_ARGS[@]}"

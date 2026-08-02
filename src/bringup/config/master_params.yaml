@@ -9,6 +9,9 @@
       body_frame: base_footprint
       # 里程计坐标系；改动会影响 odom 相关 TF 链路。
       world_frame: odom
+      # Only the odom->base_footprint TF is future-dated for Nav2 lookups.
+      # The lio_odom measurement stamp remains unchanged for RTK alignment.
+      tf_future_tolerance_s: 0.10
       # 是否打印耗时日志；打开更利于诊断，但会增加终端噪声。
       print_time_cost: false
 

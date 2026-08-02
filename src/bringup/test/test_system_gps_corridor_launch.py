@@ -388,6 +388,16 @@ def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():
         assert lio_params["lidar_max_range"] >= 25.0
 
 
+def test_fastlio_tf_is_available_for_current_time_nav2_queries():
+    master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
+    lio_params = master_params["/fastlio2"]["lio_node"]["ros__parameters"]
+    lio_text = FASTLIO_NODE.read_text(encoding="utf-8")
+
+    assert lio_params["tf_future_tolerance_s"] == 0.10
+    assert 'declare_parameter<double>("tf_future_tolerance_s", 0.10)' in lio_text
+    assert "this->now().seconds() + m_node_config.tf_future_tolerance_s" in lio_text
+
+
 def test_um982_and_chassis_serial_links_keep_their_verified_baud_rates():
     master_params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
     standalone_rtk = yaml.safe_load(UM982_RTK_PARAMS.read_text(encoding="utf-8"))

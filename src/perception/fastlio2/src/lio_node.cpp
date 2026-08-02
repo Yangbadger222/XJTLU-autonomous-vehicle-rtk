@@ -106,6 +106,7 @@ struct NodeConfig
     std::string lidar_topic = "/livox/lidar";
     std::string body_frame = "base_link";
     std::string world_frame = "odom";
+    double tf_future_tolerance_s = 0.10;
     bool print_time_cost = false;
 };
 struct StateData
@@ -213,6 +214,8 @@ public:
         m_node_config.lidar_topic = this->declare_parameter<std::string>("lidar_topic", "/livox/lidar");
         m_node_config.body_frame = this->declare_parameter<std::string>("body_frame", "base_link");
         m_node_config.world_frame = this->declare_parameter<std::string>("world_frame", "odom");
+        m_node_config.tf_future_tolerance_s =
+            this->declare_parameter<double>("tf_future_tolerance_s", 0.10);
         m_node_config.print_time_cost = this->declare_parameter<bool>("print_time_cost", false);
 
         m_builder_config.lidar_filter_num = this->declare_parameter<int>("lidar_filter_num", 6);
@@ -825,7 +828,13 @@ public:
             m_log_file.flush();
         }
 
-        broadCastTF(m_tf_broadcaster, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
+        // Keep measurement-stamped odometry intact while making the live TF
+        // available for Nav2's current-time robot-pose lookup.
+        broadCastTF(
+            m_tf_broadcaster,
+            m_node_config.world_frame,
+            m_node_config.body_frame,
+            this->now().seconds() + m_node_config.tf_future_tolerance_s);
 
         publishOdometry(m_odom_pub, m_node_config.world_frame, m_node_config.body_frame, this->now().seconds());
 

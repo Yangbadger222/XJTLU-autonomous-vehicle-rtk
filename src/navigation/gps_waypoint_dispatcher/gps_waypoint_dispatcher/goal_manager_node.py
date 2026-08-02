@@ -396,6 +396,10 @@ class GPSGoalManager(Node):
             self.motion_allowed
             and 0.0 <= age_s <= self.motion_authority_max_age_s
             and not self._authority_faulted()
+            # Bridged and reacquiring poses may keep the low-level safety
+            # watchdog alive, but a new autonomous route needs a locked RTK
+            # map pose. Do not hand a FollowPath goal to Nav2 until then.
+            and self.authority_status == "RTK_AUTHORITATIVE"
         )
 
     def _lookup_current_pose(self) -> PoseStamped | None:

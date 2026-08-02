@@ -56,6 +56,12 @@ def test_goal_manager_debounces_authority_loss_before_replan():
     assert grace_index < cancel_index
 
 
+def test_goal_manager_starts_routes_only_after_rtk_authority_locks():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert 'self.authority_status == "RTK_AUTHORITATIVE"' in text
+
+
 def test_goal_manager_reports_heading_hold_timeout_with_authority_evidence():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 

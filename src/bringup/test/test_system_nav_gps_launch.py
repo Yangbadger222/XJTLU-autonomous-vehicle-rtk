@@ -106,12 +106,13 @@ def test_nav_gps_keeps_fgo_shadow_side_effect_free():
     assert '"nav2_use_fgo": False' in text
 
 
-def test_nav_gps_reduces_mppi_work_without_breaking_model_timing():
+def test_nav_gps_uses_a_sustainable_mppi_control_period():
     text = NAV_GPS_LAUNCH.read_text(encoding="utf-8")
 
-    assert 'controller_params["controller_frequency"] = 20.0' in text
-    assert 'follow_path["time_steps"] = 32' in text
-    assert 'follow_path["batch_size"] = 200' in text
+    assert 'controller_params["controller_frequency"] = 10.0' in text
+    assert 'follow_path["time_steps"] = 24' in text
+    assert 'follow_path["model_dt"] = 0.1' in text
+    assert 'follow_path["batch_size"] = 160' in text
     assert 'follow_path["publish_critics_stats"] = False' in text
     assert 'follow_path["retry_attempt_limit"] = 3' in text
     assert 'follow_path["open_loop"] = False' in text
@@ -137,7 +138,7 @@ def test_nav_gps_cuda_mppi_shadow_is_explicit_and_non_authoritative_by_default()
     assert 'cuda_mppi_authority_max_vx_delta' not in text
     assert 'cuda_mppi_authority_max_wz_delta' not in text
     assert 'follow_path["cuda_shadow_time_steps"]' not in text
-    assert 'follow_path["time_steps"] = 32' in text
+    assert 'follow_path["time_steps"] = 24' in text
     assert '"/controller_server/FollowPath/cuda_shadow_diagnostics"' in text
     assert 'follow_path["primary_controller"] = "nav2_mppi_controller::MPPIController"' in text
 

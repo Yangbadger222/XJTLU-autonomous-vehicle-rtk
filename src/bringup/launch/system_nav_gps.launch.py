@@ -86,7 +86,10 @@ def _make_nav_gps_rtk_nav2_params(
     bt_params["default_server_timeout"] = 1000
 
     controller_params = data["controller_server"]["ros__parameters"]
-    controller_params["controller_frequency"] = 20.0
+    # The vehicle CPU sustains the GPS MPPI controller at 10 Hz. Keep its
+    # prediction interval equal to that period so Nav2 does not shift an
+    # outdated control sequence or repeatedly request a future TF transform.
+    controller_params["controller_frequency"] = 10.0
     controller_params["failure_tolerance"] = 1.5
     controller_params["progress_checker"]["plugin"] = (
         "nav2_controller::PoseProgressChecker"
@@ -97,8 +100,9 @@ def _make_nav_gps_rtk_nav2_params(
     controller_params["general_goal_checker"]["stateful"] = False
 
     follow_path = controller_params["FollowPath"]
-    follow_path["time_steps"] = 32
-    follow_path["batch_size"] = 200
+    follow_path["time_steps"] = 24
+    follow_path["model_dt"] = 0.1
+    follow_path["batch_size"] = 160
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
     follow_path["vx_max"] = 1.2

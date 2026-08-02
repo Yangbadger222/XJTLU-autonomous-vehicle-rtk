@@ -237,6 +237,9 @@
     heading_quaternion_yaw_is_compass: true
     # 10 Hz TF/authority heartbeat；guard 会在 0.50 s 心跳缺失时停车。
     publish_period_s: 0.10
+    # map->odom short TF horizon; avoids Nav2 future-extrapolation failures
+    # caused by normal scheduling jitter between the controller and corrector.
+    tf_future_tolerance_s: 0.10
     # Heading/fix 各自最多排队 10 个，老样本阻塞时丢弃新到样本。
     observation_fifo_capacity: 10
     max_pending_observation_s: 0.30

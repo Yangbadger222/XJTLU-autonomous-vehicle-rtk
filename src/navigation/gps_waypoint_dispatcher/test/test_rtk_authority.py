@@ -2854,6 +2854,18 @@ def test_rtk_map_odom_corrector_reports_low_speed_heading_and_failure_evidence()
     assert 'failure_class = "HEADING_INNOVATION_EXCEEDED"' in node_text
 
 
+def test_rtk_map_odom_corrector_future_dates_map_odom_tf_for_nav2():
+    node_text = (
+        Path(__file__).resolve().parents[1]
+        / "gps_waypoint_dispatcher"
+        / "rtk_map_odom_corrector_node.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("tf_future_tolerance_s", 0.10)' in node_text
+    assert "from rclpy.duration import Duration" in node_text
+    assert "Duration(\n            seconds=self._tf_future_tolerance_s" in node_text
+
+
 def test_rtk_map_odom_corrector_rejects_gnss_heading_jumps_not_seen_by_lio():
     node_text = (
         Path(__file__).resolve().parents[1]

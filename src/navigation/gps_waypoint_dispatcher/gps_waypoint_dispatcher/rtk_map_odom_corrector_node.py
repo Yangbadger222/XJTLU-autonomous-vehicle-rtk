@@ -8,6 +8,7 @@ from collections import deque
 from dataclasses import dataclass
 
 import rclpy
+from rclpy.duration import Duration
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from geometry_msgs.msg import QuaternionStamped, TransformStamped
 from nav_msgs.msg import Odometry
@@ -235,6 +236,7 @@ class RtkMapOdomCorrector(Node):
         self.declare_parameter("enu_origin_alt", 0.0)
         self.declare_parameter("heading_quaternion_yaw_is_compass", True)
         self.declare_parameter("publish_period_s", 0.10)
+        self.declare_parameter("tf_future_tolerance_s", 0.10)
         self.declare_parameter("observation_fifo_capacity", 10)
         self.declare_parameter("max_pending_observation_s", 0.30)
         self.declare_parameter("fix_quality_wait_s", 0.25)
@@ -327,6 +329,9 @@ class RtkMapOdomCorrector(Node):
             self.get_parameter("heading_quaternion_yaw_is_compass").value
         )
         self._publish_period_s = float(self.get_parameter("publish_period_s").value)
+        self._tf_future_tolerance_s = float(
+            self.get_parameter("tf_future_tolerance_s").value
+        )
         self._observation_fifo_capacity = int(
             self.get_parameter("observation_fifo_capacity").value
         )
@@ -1571,7 +1576,13 @@ class RtkMapOdomCorrector(Node):
 
     def _publish_tf(self, pose: Pose2D) -> None:
         msg = TransformStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
+        # Nav2 asks for the robot pose at its current control timestamp. Give
+        # the map->odom transform a small standard TF horizon so scheduling
+        # jitter cannot turn a valid chain into a future-extrapolation error.
+        stamp = self.get_clock().now() + Duration(
+            seconds=self._tf_future_tolerance_s
+        )
+        msg.header.stamp = stamp.to_msg()
         msg.header.frame_id = self._map_frame
         msg.child_frame_id = self._odom_frame
         msg.transform.translation.x = pose.x

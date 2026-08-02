@@ -59,7 +59,9 @@ def test_goal_manager_debounces_authority_loss_before_replan():
 def test_goal_manager_starts_routes_only_after_rtk_authority_locks():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 
-    assert 'self.authority_status == "RTK_AUTHORITATIVE"' in text
+    assert '"authority_mode_topic", "/localization_authority/mode"' in text
+    assert "def _authority_mode_callback" in text
+    assert 'self.authority_mode == "RTK_AUTHORITATIVE"' in text
 
 
 def test_goal_manager_reports_heading_hold_timeout_with_authority_evidence():

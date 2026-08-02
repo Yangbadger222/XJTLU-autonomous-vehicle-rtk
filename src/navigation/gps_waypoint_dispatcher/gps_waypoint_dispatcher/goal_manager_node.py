@@ -72,6 +72,9 @@ class GPSGoalManager(Node):
             "authority_status_topic", "/localization_authority/status"
         )
         self.declare_parameter(
+            "authority_mode_topic", "/localization_authority/mode"
+        )
+        self.declare_parameter(
             "authority_diagnostics_topic", "/localization_authority/diagnostics"
         )
         self.declare_parameter("lio_odom_topic", "/fastlio2/lio_odom")
@@ -228,6 +231,12 @@ class GPSGoalManager(Node):
             10,
         )
         self.create_subscription(
+            String,
+            str(self.get_parameter("authority_mode_topic").value),
+            self._authority_mode_callback,
+            10,
+        )
+        self.create_subscription(
             DiagnosticArray,
             str(self.get_parameter("authority_diagnostics_topic").value),
             self._authority_diagnostics_callback,
@@ -246,6 +255,7 @@ class GPSGoalManager(Node):
         self.motion_allowed = False
         self.motion_allowed_mono: float | None = None
         self.authority_status = "STARTUP"
+        self.authority_mode = "STARTUP"
         self.authority_diagnostics: dict[str, str] = {}
         self.authority_readiness = ContinuousReadiness(
             self.authority_ready_confirmation_s
@@ -347,6 +357,9 @@ class GPSGoalManager(Node):
     def _authority_status_callback(self, msg: String) -> None:
         self.authority_status = msg.data.strip() or "UNKNOWN"
 
+    def _authority_mode_callback(self, msg: String) -> None:
+        self.authority_mode = msg.data.strip() or "UNKNOWN"
+
     def _authority_diagnostics_callback(self, msg: DiagnosticArray) -> None:
         for status in msg.status:
             if status.name == "localization_authority":
@@ -399,7 +412,7 @@ class GPSGoalManager(Node):
             # Bridged and reacquiring poses may keep the low-level safety
             # watchdog alive, but a new autonomous route needs a locked RTK
             # map pose. Do not hand a FollowPath goal to Nav2 until then.
-            and self.authority_status == "RTK_AUTHORITATIVE"
+            and self.authority_mode == "RTK_AUTHORITATIVE"
         )
 
     def _lookup_current_pose(self) -> PoseStamped | None:

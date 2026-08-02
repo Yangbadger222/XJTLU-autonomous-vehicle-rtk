@@ -15,6 +15,7 @@ um982_rtk_driver:
     heading_rate_slack_deg: 2.0
     heading_recovery_min_samples: 3
     heading_recovery_max_step_deg: 7.5
+    heading_recovery_max_rebase_deg: 45.0
     heading_hpr_requires_rtk_health: true
     heading_hpr_max_gga_age_s: 1.5
     publish_raw: true

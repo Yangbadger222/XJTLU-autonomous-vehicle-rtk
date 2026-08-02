@@ -31,6 +31,9 @@ struct HeadingSelectorConfig
   double rate_slack_deg = 2.0;
   int recovery_min_samples = 3;
   double recovery_max_step_deg = 7.5;
+  // A genuine vehicle turn is continuous and passes the normal rate gate.
+  // Never automatically rebase control heading across a large discontinuity.
+  double recovery_max_rebase_deg = 45.0;
 };
 
 struct HeadingSelection

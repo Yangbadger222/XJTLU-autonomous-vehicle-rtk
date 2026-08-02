@@ -49,11 +49,13 @@ HeadingSelector::HeadingSelector(HeadingSelectorConfig config)
     std::isfinite(config_.max_rate_degps) &&
     std::isfinite(config_.max_step_deg) &&
     std::isfinite(config_.rate_slack_deg) &&
-    std::isfinite(config_.recovery_max_step_deg);
+    std::isfinite(config_.recovery_max_step_deg) &&
+    std::isfinite(config_.recovery_max_rebase_deg);
   if (!finite_config || config_.fallback_timeout_s <= 0.0 ||
     config_.switch_min_samples <= 0 || config_.max_rate_degps <= 0.0 ||
     config_.max_step_deg <= 0.0 || config_.rate_slack_deg < 0.0 ||
-    config_.recovery_min_samples <= 0 || config_.recovery_max_step_deg <= 0.0)
+    config_.recovery_min_samples <= 0 || config_.recovery_max_step_deg <= 0.0 ||
+    config_.recovery_max_rebase_deg <= 0.0 || config_.recovery_max_rebase_deg > kHalfCircleDeg)
   {
     throw std::invalid_argument("invalid UM982 heading selector configuration");
   }
@@ -215,6 +217,13 @@ void HeadingSelector::resetRecoveryCandidate()
 bool HeadingSelector::observeStablePrimaryRecoveryCandidate(
   double heading_deg, double received_s)
 {
+  if (last_published_heading_deg_.has_value() &&
+    std::abs(signedHeadingDeltaDeg(heading_deg, *last_published_heading_deg_)) >
+    config_.recovery_max_rebase_deg)
+  {
+    resetRecoveryCandidate();
+    return false;
+  }
   if (!recovery_candidate_heading_deg_.has_value() ||
     !recovery_candidate_s_.has_value() ||
     received_s <= *recovery_candidate_s_ ||

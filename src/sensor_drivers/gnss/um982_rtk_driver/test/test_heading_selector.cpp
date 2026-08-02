@@ -89,6 +89,23 @@ TEST(HeadingSelector, DoesNotRecoverInconsistentPrimaryHeading)
   EXPECT_EQ(selector.rejectedCount(), 4);
 }
 
+TEST(HeadingSelector, DoesNotRecoverAStableButLargePrimaryHeadingJump)
+{
+  HeadingSelectorConfig config;
+  config.recovery_min_samples = 3;
+  config.recovery_max_step_deg = 7.5;
+  config.recovery_max_rebase_deg = 45.0;
+  HeadingSelector selector(config);
+
+  EXPECT_TRUE(selector.observe(HeadingSource::UNIHEADING, 10.0, 0.0).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 170.0, 0.5).publish);
+  EXPECT_FALSE(selector.observe(HeadingSource::UNIHEADING, 172.0, 1.0).publish);
+  const auto rejected = selector.observe(HeadingSource::UNIHEADING, 171.0, 1.5);
+
+  EXPECT_FALSE(rejected.publish);
+  EXPECT_FALSE(rejected.continuity_recovered);
+}
+
 TEST(HeadingSelector, UsesFallbackAfterPrimaryNeverAppears)
 {
   HeadingSelectorConfig config;

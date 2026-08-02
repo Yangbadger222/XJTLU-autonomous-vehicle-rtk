@@ -141,6 +141,8 @@ public:
       "heading_recovery_min_samples", 3);
     heading_selector_config.recovery_max_step_deg = declare_parameter<double>(
       "heading_recovery_max_step_deg", 7.5);
+    heading_selector_config.recovery_max_rebase_deg = declare_parameter<double>(
+      "heading_recovery_max_rebase_deg", 45.0);
     heading_selector_ = std::make_unique<HeadingSelector>(heading_selector_config);
     epe_quality_0_ = declare_parameter<double>("epe_quality0", 1000000.0);
     epe_quality_1_ = declare_parameter<double>("epe_quality1", 4.0);

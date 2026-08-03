@@ -279,7 +279,10 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "position_recovery_diameter_m: 0.50" in master_params_text
     assert "gate_max_failures: 10" in master_params_text
     assert "gate_processable_timeout_s: 2.0" in master_params_text
-    assert "enable_local_odom_bridge: false" in master_params_text
+    assert "enable_local_odom_bridge: true" in master_params_text
+    assert "local_bridge_max_duration_s: 15.0" in master_params_text
+    assert "local_bridge_max_distance_m: 3.0" in master_params_text
+    assert "local_bridge_max_linear_speed_mps: 0.35" in master_params_text
     assert "backlog_translation_m: 0.50" in master_params_text
     assert "fault_translation_m: 2.0" in master_params_text
 
@@ -373,7 +376,7 @@ def test_corridor_runtime_rejects_low_imu_fastlio_packages():
     assert lio_text.index("Dropping LIDAR package with only") < lio_text.index(
         "m_builder->process(m_package)"
     )
-    assert "min_imu_samples_per_lidar: 3" in params_text
+    assert "min_imu_samples_per_lidar: 1" in params_text
 
 
 def test_fastlio_outdoor_profile_keeps_enough_lidar_structure():

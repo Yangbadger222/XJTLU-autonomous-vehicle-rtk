@@ -433,6 +433,8 @@ local_costmap:
       # intentionally a circle so rotation is not allowed to clip either side
       # of a narrow passage.
       robot_radius: 0.45
+      # Required when MPPI CostCritic.consider_footprint is true.
+      footprint: "[[0.33, 0.305], [0.33, -0.305], [-0.33, -0.305], [-0.33, 0.305]]"
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
       # P4（FRC）：frc_layer 放 denoise 之后（风险不被去噪层抹掉）、

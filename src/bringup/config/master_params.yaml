@@ -9,9 +9,6 @@
       body_frame: base_footprint
       # 里程计坐标系；改动会影响 odom 相关 TF 链路。
       world_frame: odom
-      # Only the odom->base_footprint TF is future-dated for Nav2 lookups.
-      # The lio_odom measurement stamp remains unchanged for RTK alignment.
-      tf_future_tolerance_s: 0.10
       # 是否打印耗时日志；打开更利于诊断，但会增加终端噪声。
       print_time_cost: false
 
@@ -44,10 +41,8 @@
 
       # IMU 初始化样本数；调大更稳，但启动更慢。
       imu_init_num: 20
-      # IMUProcessor retains the preceding package boundary sample. One new
-      # timestamped IMU sample therefore provides a valid two-point interval;
-      # only a frame with no new IMU data is unsafe to process.
-      min_imu_samples_per_lidar: 1
+      # 单帧 LiDAR 至少需要的 IMU 样本数；低于该值说明同步异常，直接丢帧避免 LIO 飞走。
+      min_imu_samples_per_lidar: 3
       # 近邻搜索点数；调大更稳但计算更重。
       near_search_num: 5
       # IESKF 最大迭代次数；调大更充分但算力更高。
@@ -240,9 +235,6 @@
     heading_quaternion_yaw_is_compass: true
     # 10 Hz TF/authority heartbeat；guard 会在 0.50 s 心跳缺失时停车。
     publish_period_s: 0.10
-    # map->odom short TF horizon; avoids Nav2 future-extrapolation failures
-    # caused by normal scheduling jitter between the controller and corrector.
-    tf_future_tolerance_s: 0.10
     # Heading/fix 各自最多排队 10 个，老样本阻塞时丢弃新到样本。
     observation_fifo_capacity: 10
     max_pending_observation_s: 0.30
@@ -266,12 +258,6 @@
     # At a stop or crawl, reject NARROW_FLOAT heading because it is prone to
     # antenna-heading drift and mode switching.
     low_speed_heading_strict_mps: 0.10
-    # Reject a dual-antenna heading jump when timestamp-matched FAST-LIO did
-    # not rotate. A rejection requires a new stable NARROW_INT run.
-    heading_lio_crosscheck_enabled: true
-    heading_lio_crosscheck_max_interval_s: 0.30
-    heading_lio_crosscheck_gnss_jump_deg: 8.0
-    heading_lio_crosscheck_lio_turn_deg: 3.0
     rtk_min_satellites: 10
     rtk_max_hdop: 2.0
     rtk_max_rtcm_age_s: 3.0

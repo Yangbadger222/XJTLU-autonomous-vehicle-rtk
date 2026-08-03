@@ -433,11 +433,6 @@ local_costmap:
       # intentionally a circle so rotation is not allowed to clip either side
       # of a narrow passage.
       robot_radius: 0.45
-      # Required by MPPI CostCritic.consider_footprint. The URDF body is
-      # approximately 0.50 m x 0.45 m; this footprint adds about 8 cm of
-      # clearance so trajectory collision checking uses the chassis shape
-      # instead of an empty footprint.
-      footprint: "[[0.33, 0.305], [0.33, -0.305], [-0.33, -0.305], [-0.33, 0.305]]"
       # 代价地图层列表；决定当前 costmap 会叠加哪些地图层。
       # 增删地图层：会直接改变障碍信息来源和代价图行为。
       # P4（FRC）：frc_layer 放 denoise 之后（风险不被去噪层抹掉）、

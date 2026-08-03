@@ -4,8 +4,8 @@ Interactive helper for on-vehicle nav-gps testing.
 
 Default behavior:
 1. Launch nav-gps stack
-2. Wait until the active localization authority allows motion and FollowPath is online
-3. Show numbered destination menu from current scene_points.yaml
+2. Show numbered destination menu from current scene_points.yaml
+3. Wait for localization authority only when a destination is selected
 4. Publish goto_name requests by numeric selection
 
 Testing behavior:
@@ -256,6 +256,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip launching nav-gps. Useful for smoke tests against an already-running stack.",
     )
+    parser.add_argument(
+        "--wait-before-menu",
+        action="store_true",
+        help="Wait for motion authority before showing destinations. Default shows the menu first.",
+    )
     return parser.parse_args()
 
 
@@ -292,8 +297,30 @@ def main() -> int:
             launch_proc = launch_nav_gps(repo_root)
             time.sleep(2.0)
 
-        print("[nav_gps_menu] Waiting for localization motion authority ...")
-        node.wait_for_nav_ready(args.ready_timeout, launch_proc=launch_proc)
+        if args.wait_before_menu:
+            print("[nav_gps_menu] Waiting for localization motion authority ...")
+            node.wait_for_nav_ready(args.ready_timeout, launch_proc=launch_proc)
+        else:
+            print("[nav_gps_menu] Checking nav-gps startup status ...")
+            startup_deadline = time.time() + 5.0
+            while time.time() < startup_deadline:
+                rclpy.spin_once(node, timeout_sec=0.2)
+                node.print_status_changes()
+                if launch_proc is not None and launch_proc.poll() is not None:
+                    raise RuntimeError(
+                        f"nav-gps launch exited early with code {launch_proc.returncode}"
+                    )
+                if node.localization_motion_allowed and node.action_servers_ready():
+                    print(
+                        "[nav_gps_menu] Motion authority is ready "
+                        f"({node.localization_authority_mode}) and FollowPath is online."
+                    )
+                    break
+            else:
+                print(
+                    "[nav_gps_menu] Menu is available; selecting a destination "
+                    "will wait for motion authority before sending the goal."
+                )
 
         while True:
             destinations = load_destinations(scene_points_file)
@@ -331,6 +358,9 @@ def main() -> int:
                 continue
 
             _, destination_name = destinations[selection - 1]
+            if not (node.localization_motion_allowed and node.action_servers_ready()):
+                print("[nav_gps_menu] Waiting for localization motion authority ...")
+                node.wait_for_nav_ready(args.ready_timeout, launch_proc=launch_proc)
             print(f"[nav_gps_menu] Sending goal: {destination_name}")
             node.goal_status = "GOAL_REQUESTED"
             node.publish_goto_name(destination_name)

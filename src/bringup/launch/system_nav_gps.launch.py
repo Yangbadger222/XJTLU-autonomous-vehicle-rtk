@@ -4,6 +4,7 @@ from datetime import datetime
 
 import yaml
 from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import PackageNotFoundError
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -73,6 +74,14 @@ def _nav_gps_bag_topics(profile):
     if normalized in {"debug", "full", "raw"}:
         topics.extend(_NAV_GPS_BAG_DEBUG_TOPICS)
     return topics
+
+
+def _ros_package_available(package_name):
+    try:
+        get_package_share_directory(package_name)
+    except PackageNotFoundError:
+        return False
+    return True
 
 
 def _make_nav_gps_rtk_nav2_params(
@@ -200,13 +209,22 @@ def generate_launch_description():
     pgo_nav_gps_override_file = os.path.join(bringup_share, "config", "pgo_corridor_no_gps.yaml")
     rtk_fgo_params_file = os.path.join(bringup_share, "config", "rtk_fgo.yaml")
     road_keepout_enabled = os.path.exists(default_road_keepout)
-    cuda_mppi_shadow_enabled = os.environ.get(
+    cuda_mppi_shadow_requested = os.environ.get(
         "FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"
     ).strip().lower() in {"1", "true", "yes", "on"}
-    cuda_mppi_authority_enabled = os.environ.get(
+    cuda_mppi_authority_requested = os.environ.get(
         "FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY", "false"
     ).strip().lower() in {"1", "true", "yes", "on"}
-    cuda_mppi_shadow_enabled = cuda_mppi_shadow_enabled or cuda_mppi_authority_enabled
+    cuda_mppi_packages_available = _ros_package_available(
+        "nav2_cuda_mppi_controller"
+    ) and _ros_package_available("mppi_cuda_backend")
+    cuda_mppi_authority_enabled = (
+        cuda_mppi_authority_requested and cuda_mppi_packages_available
+    )
+    cuda_mppi_shadow_enabled = (
+        (cuda_mppi_shadow_requested or cuda_mppi_authority_requested)
+        and cuda_mppi_packages_available
+    )
     nav_gps_rtk_nav2_params = _make_nav_gps_rtk_nav2_params(
         default_nav2_params,
         enable_road_keepout=road_keepout_enabled,
@@ -502,6 +520,14 @@ def generate_launch_description():
                     + ("enabled" if cuda_mppi_shadow_enabled else "disabled")
                     + "; authority: "
                     + ("enabled" if cuda_mppi_authority_enabled else "cpu")
+                    + (
+                        ""
+                        if (
+                            not (cuda_mppi_shadow_requested or cuda_mppi_authority_requested)
+                            or cuda_mppi_packages_available
+                        )
+                        else "; requested but CUDA MPPI packages are not installed"
+                    )
                 )
             ),
             LogInfo(

@@ -131,6 +131,10 @@ def test_nav_gps_cuda_mppi_shadow_is_explicit_and_non_authoritative_by_default()
 
     assert '"FYP_NAV_GPS_ENABLE_CUDA_MPPI_SHADOW", "false"' in text
     assert '"FYP_NAV_GPS_ENABLE_CUDA_MPPI_AUTHORITY", "false"' in text
+    assert 'get_package_share_directory(package_name)' in text
+    assert 'PackageNotFoundError' in text
+    assert 'cuda_mppi_packages_available' in text
+    assert 'requested but CUDA MPPI packages are not installed' in text
     assert '"nav2_cuda_mppi_controller::CudaMppiShadowController"' in text
     assert 'follow_path["cuda_shadow_batch_size"] = 4096' in text
     assert 'follow_path["cuda_mppi_authority_enabled"] = enable_cuda_mppi_authority' in text

@@ -296,8 +296,8 @@ controller_server:
       angular_dist_threshold: 0.65
       angular_disengage_threshold: 0.35
       forward_sampling_distance: 0.65
-      rotate_to_heading_angular_vel: 0.24
-      max_angular_accel: 0.65
+      rotate_to_heading_angular_vel: 1.0
+      max_angular_accel: 1.0
       simulate_ahead_time: 1.0
       rotate_to_goal_heading: false
       closed_loop: false
@@ -710,6 +710,8 @@ behavior_server:
       # 插件类名；决定当前参数块最终加载哪种 Nav2 实现。 (Plugin class name; determines which Nav2 implementation this parameter block ultimately loads.)
       # 改成不存在或不兼容的插件：对应功能块会加载失败。 (Incorrect or incompatible plugin: corresponding functional block will fail to load.)
       plugin: "nav2_behaviors/Spin"
+      max_rotational_vel: 1.0
+      rotational_accel: 1.0
     # BackUp 恢复行为参数块；负责后退脱困动作。 (BackUp recovery behavior parameter block; responsible for backward un-stuck action.)
     # 改错结构或参数：后退行为可能不可用。 (Incorrect structure or parameters: backward behavior may be unavailable.)
     backup:

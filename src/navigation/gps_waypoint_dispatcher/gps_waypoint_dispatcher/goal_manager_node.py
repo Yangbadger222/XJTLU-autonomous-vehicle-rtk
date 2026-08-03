@@ -402,6 +402,13 @@ class GPSGoalManager(Node):
         return "FAULT_HOLD" in self.authority_status or "FAULT_LATCHED" in self.authority_status
 
     def _authority_ready(self) -> bool:
+        """Require a locked RTK map pose before starting a new route."""
+        return self._authority_motion_permitted() and (
+            self.authority_mode == "RTK_AUTHORITATIVE"
+        )
+
+    def _authority_motion_permitted(self) -> bool:
+        """Return the corrector's fresh, fail-closed motion permission."""
         if self.motion_allowed_mono is None:
             return False
         age_s = time.monotonic() - self.motion_allowed_mono
@@ -409,11 +416,15 @@ class GPSGoalManager(Node):
             self.motion_allowed
             and 0.0 <= age_s <= self.motion_authority_max_age_s
             and not self._authority_faulted()
-            # Bridged and reacquiring poses may keep the low-level safety
-            # watchdog alive, but a new autonomous route needs a locked RTK
-            # map pose. Do not hand a FollowPath goal to Nav2 until then.
-            and self.authority_mode == "RTK_AUTHORITATIVE"
         )
+
+    def _authority_route_continuation_ready(self) -> bool:
+        """Allow an already-running route through an explicitly limited bridge."""
+        return self._authority_motion_permitted() and self.authority_mode in {
+            "RTK_AUTHORITATIVE",
+            "RTK_REACQUIRING",
+            "LIO_BRIDGE",
+        }
 
     def _lookup_current_pose(self) -> PoseStamped | None:
         try:
@@ -892,7 +903,7 @@ class GPSGoalManager(Node):
         self.follow_path_goal_handle = goal_handle
         if self.cancel_reason is not None:
             self._request_cancel()
-        elif not self._authority_ready():
+        elif not self._authority_route_continuation_ready():
             self.authority_loss_started_mono = (
                 self.authority_loss_started_mono or time.monotonic()
             )
@@ -1149,6 +1160,7 @@ class GPSGoalManager(Node):
             return
 
         ready = self._authority_ready()
+        continuation_ready = self._authority_route_continuation_ready()
         action_active = (
             self.follow_path_goal_handle is not None or self.goal_send_pending
         )
@@ -1195,7 +1207,7 @@ class GPSGoalManager(Node):
             self._finish_failure(self._authority_hold_timeout_detail())
             return
 
-        if action_active and not ready:
+        if action_active and not continuation_ready:
             self._publish_stop_override(True)
             if self.authority_loss_started_mono is None:
                 self.authority_loss_started_mono = now_mono

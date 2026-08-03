@@ -86,10 +86,7 @@ def _make_nav_gps_rtk_nav2_params(
     bt_params["default_server_timeout"] = 1000
 
     controller_params = data["controller_server"]["ros__parameters"]
-    # The vehicle CPU sustains the GPS MPPI controller at 5 Hz. Keep its
-    # prediction interval equal to that period so Nav2 does not shift an
-    # outdated control sequence or repeatedly request a future TF transform.
-    controller_params["controller_frequency"] = 5.0
+    controller_params["controller_frequency"] = 20.0
     controller_params["failure_tolerance"] = 1.5
     controller_params["progress_checker"]["plugin"] = (
         "nav2_controller::PoseProgressChecker"
@@ -100,12 +97,12 @@ def _make_nav_gps_rtk_nav2_params(
     controller_params["general_goal_checker"]["stateful"] = False
 
     follow_path = controller_params["FollowPath"]
-    follow_path["time_steps"] = 16
-    follow_path["model_dt"] = 0.2
-    follow_path["batch_size"] = 100
-    follow_path["vx_max"] = 0.75
+    follow_path["time_steps"] = 32
+    follow_path.pop("model_dt", None)
+    follow_path["batch_size"] = 200
     follow_path["vx_std"] = 0.20
     follow_path["wz_std"] = 0.15
+    follow_path["vx_max"] = 1.2
     follow_path["wz_max"] = 0.70
     follow_path["ax_max"] = 0.85
     follow_path["ax_min"] = -1.2
@@ -155,7 +152,7 @@ def _make_nav_gps_rtk_nav2_params(
 
     smoother_params = data["velocity_smoother"]["ros__parameters"]
     smoother_params["max_velocity"] = (
-        [0.75, 0.0, 0.50] if enable_cuda_mppi_authority else [0.75, 0.0, 0.70]
+        [1.2, 0.0, 0.50] if enable_cuda_mppi_authority else [1.2, 0.0, 0.70]
     )
     smoother_params["min_velocity"] = [0.0, 0.0, -0.70]
     smoother_params["max_accel"] = [0.85, 0.0, 1.4]

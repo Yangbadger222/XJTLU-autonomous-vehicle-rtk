@@ -50,10 +50,22 @@ def test_goal_manager_debounces_authority_loss_before_replan():
 
     assert 'self.declare_parameter("authority_loss_replan_delay_s", 2.0)' in text
     assert '"AUTHORITY_GRACE"' in text
-    assert "authority_loss_s >= self.authority_loss_replan_delay_s" in text
+    assert "authority_loss_s >= replan_delay_s" in text
     grace_index = text.index('"AUTHORITY_GRACE"')
     cancel_index = text.index('self.cancel_reason = "AUTHORITY_HOLD"', grace_index)
     assert grace_index < cancel_index
+
+
+def test_goal_manager_gives_heading_transitions_extra_grace_before_cancel():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert 'self.declare_parameter("heading_transition_grace_s", 8.0)' in text
+    assert "def _heading_transition_loss_active(self)" in text
+    assert "failure_class.startswith(\"HEADING_\")" in text
+    assert '"HEADING_TRANSITION_GRACE"' in text
+    assert "self._authority_loss_replan_delay()" in text
+    assert "self.heading_transition_grace_s" in text
+    assert '"NARROW" in solution' in text
 
 
 def test_goal_manager_starts_routes_only_after_rtk_authority_locks():

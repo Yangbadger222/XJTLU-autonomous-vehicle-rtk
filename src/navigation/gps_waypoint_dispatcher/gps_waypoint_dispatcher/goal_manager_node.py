@@ -82,6 +82,7 @@ class GPSGoalManager(Node):
         self.declare_parameter("motion_authority_max_age_s", 0.50)
         self.declare_parameter("authority_ready_confirmation_s", 1.0)
         self.declare_parameter("authority_loss_replan_delay_s", 2.0)
+        self.declare_parameter("heading_transition_grace_s", 8.0)
         self.declare_parameter("global_hold_timeout_s", 15.0)
         self.declare_parameter("blocked_retry_delay_s", 2.0)
         self.declare_parameter("blocked_wait_timeout_s", 60.0)
@@ -130,6 +131,10 @@ class GPSGoalManager(Node):
         self.authority_loss_replan_delay_s = max(
             0.0,
             float(self.get_parameter("authority_loss_replan_delay_s").value),
+        )
+        self.heading_transition_grace_s = max(
+            self.authority_loss_replan_delay_s,
+            float(self.get_parameter("heading_transition_grace_s").value),
         )
         self.global_hold_timeout_s = float(
             self.get_parameter("global_hold_timeout_s").value
@@ -386,6 +391,31 @@ class GPSGoalManager(Node):
             ("heading_reject_delta", diagnostics.get("heading_rejects_delta", "0")),
         )
         return "; ".join((timeout_class, *(f"{key}={value}" for key, value in keys)))
+
+    def _authority_loss_replan_delay(self) -> float:
+        if self._heading_transition_loss_active():
+            return self.heading_transition_grace_s
+        return self.authority_loss_replan_delay_s
+
+    def _heading_transition_loss_active(self) -> bool:
+        diagnostics = self.authority_diagnostics
+        failure_class = diagnostics.get("failure_class", "")
+        if failure_class.startswith("HEADING_"):
+            return True
+        if self.authority_mode in {"RTK_REACQUIRING", "LIO_BRIDGE"}:
+            return True
+        if self.authority_mode != "RTK_DEGRADED":
+            return False
+        try:
+            heading_age_s = float(diagnostics.get("heading_age_s", "nan"))
+        except ValueError:
+            heading_age_s = math.nan
+        solution = diagnostics.get("heading_solution_status", "")
+        return (
+            math.isfinite(heading_age_s)
+            and heading_age_s <= self.motion_authority_max_age_s
+            and "NARROW" in solution
+        )
 
     def _lio_odom_callback(self, msg: Odometry) -> None:
         stamp_s = float(msg.header.stamp.sec) + float(msg.header.stamp.nanosec) * 1e-9
@@ -1209,17 +1239,23 @@ class GPSGoalManager(Node):
 
         if action_active and not continuation_ready:
             self._publish_stop_override(True)
+            replan_delay_s = self._authority_loss_replan_delay()
             if self.authority_loss_started_mono is None:
                 self.authority_loss_started_mono = now_mono
+                status = (
+                    "HEADING_TRANSITION_GRACE"
+                    if replan_delay_s > self.authority_loss_replan_delay_s
+                    else "AUTHORITY_GRACE"
+                )
                 self._publish_status(
-                    "AUTHORITY_GRACE",
+                    status,
                     "motion_authority_not_ready; replan_after=%.2fs"
-                    % self.authority_loss_replan_delay_s,
+                    % replan_delay_s,
                 )
             authority_loss_s = now_mono - self.authority_loss_started_mono
             if (
                 self.cancel_reason is None
-                and authority_loss_s >= self.authority_loss_replan_delay_s
+                and authority_loss_s >= replan_delay_s
             ):
                 self.cancel_reason = "AUTHORITY_HOLD"
                 self.hold_started_mono = now_mono

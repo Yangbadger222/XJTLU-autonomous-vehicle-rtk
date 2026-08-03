@@ -276,7 +276,10 @@ def test_corridor_uses_rtk_authoritative_map_odom_owner():
     assert "position_recovery_diameter_m: 0.50" in master_params_text
     assert "gate_max_failures: 10" in master_params_text
     assert "gate_processable_timeout_s: 2.0" in master_params_text
-    assert "enable_local_odom_bridge: false" in master_params_text
+    assert "enable_local_odom_bridge: true" in master_params_text
+    assert "local_bridge_max_duration_s: 15.0" in master_params_text
+    assert "local_bridge_max_distance_m: 3.0" in master_params_text
+    assert "local_bridge_max_linear_speed_mps: 0.35" in master_params_text
     assert "backlog_translation_m: 0.50" in master_params_text
     assert "fault_translation_m: 2.0" in master_params_text
 
@@ -304,6 +307,7 @@ def test_corridor_guard_and_hold_defaults_match_safety_spec():
     params = yaml.safe_load(MASTER_PARAMS.read_text(encoding="utf-8"))
     guard = params["/corridor_cmd_vel_guard"]["ros__parameters"]
     runner = params["/gps_route_runner"]["ros__parameters"]
+    goal_manager = params["/gps_waypoint_dispatcher"]["ros__parameters"]
 
     assert guard["input_topic"] == "/cmd_vel"
     assert guard["output_topic"] == "/cmd_vel_guarded"
@@ -314,6 +318,8 @@ def test_corridor_guard_and_hold_defaults_match_safety_spec():
     assert runner["cancel_ack_timeout_s"] == 2.0
     assert runner["authority_ready_confirmation_s"] == 1.0
     assert runner["global_hold_timeout_s"] == 15.0
+    assert goal_manager["authority_loss_replan_delay_s"] == 2.0
+    assert goal_manager["heading_transition_grace_s"] == 8.0
 
 
 def test_runtime_cleanup_kills_rtk_authoritative_map_odom_owner():

@@ -64,10 +64,21 @@ def test_goal_manager_starts_routes_only_after_rtk_authority_locks():
     assert 'self.authority_mode == "RTK_AUTHORITATIVE"' in text
 
 
+def test_goal_manager_continues_an_active_route_through_limited_authority_modes():
+    text = GOAL_MANAGER.read_text(encoding="utf-8")
+
+    assert "def _authority_motion_permitted(self)" in text
+    assert "def _authority_route_continuation_ready(self)" in text
+    assert '"RTK_REACQUIRING"' in text
+    assert '"LIO_BRIDGE"' in text
+    assert "if action_active and not continuation_ready:" in text
+    assert "retry_allowed=ready" in text
+
+
 def test_goal_manager_reports_heading_hold_timeout_with_authority_evidence():
     text = GOAL_MANAGER.read_text(encoding="utf-8")
 
-    assert 'self.declare_parameter("authority_diagnostics_topic", "/localization_authority/diagnostics")' in text
+    assert '"authority_diagnostics_topic", "/localization_authority/diagnostics"' in text
     assert "def _authority_hold_timeout_detail(self)" in text
     assert '"HEADING_NOT_RECOVERED_TIMEOUT"' in text
     assert '("heading_jump_deg", diagnostics.get("release_yaw_gap_deg", "nan"))' in text

@@ -303,7 +303,7 @@ controller_server:
       closed_loop: false
       time_steps: 12
       model_dt: 0.1
-      batch_size: 128
+      batch_size: 2000 # 128
       vx_std: 0.28
       vy_std: 0.0
       wz_std: 0.22

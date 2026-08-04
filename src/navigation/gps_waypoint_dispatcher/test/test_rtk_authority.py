@@ -2815,20 +2815,6 @@ def test_rtk_map_odom_corrector_requires_narrow_int_before_authority_start():
     assert 'return "GNSS_HEADING_STABILIZING"' in node_text
 
 
-def test_authority_speed_recovery_ramp_limits_only_acceleration():
-    from gps_waypoint_dispatcher.rtk_map_odom_corrector_node import (
-        AuthoritySpeedRecoveryRamp,
-    )
-
-    ramp = AuthoritySpeedRecoveryRamp(0.20)
-
-    assert ramp.update(0.35, 10.0) == pytest.approx(0.0)
-    assert ramp.update(0.35, 11.0) == pytest.approx(0.20)
-    assert ramp.update(1.20, 12.0) == pytest.approx(0.40)
-    assert ramp.update(0.35, 12.1) == pytest.approx(0.35)
-    assert ramp.update(0.0, 12.2) == pytest.approx(0.0)
-
-
 def test_rtk_map_odom_corrector_keeps_narrow_float_at_reacquire_speed():
     node_text = (
         Path(__file__).resolve().parents[1]
@@ -2837,7 +2823,8 @@ def test_rtk_map_odom_corrector_keeps_narrow_float_at_reacquire_speed():
     ).read_text(encoding="utf-8")
 
     assert "or not health.heading_control_eligible" in node_text
-    assert "authority_speed_recovery_accel_mps2" in node_text
+    assert "AuthoritySpeedRecoveryRamp" not in node_text
+    assert "authority_speed_recovery_accel_mps2" not in node_text
 
 
 def test_rtk_map_odom_corrector_reports_low_speed_heading_and_failure_evidence():
@@ -2874,7 +2861,7 @@ def test_rtk_map_odom_corrector_rejects_gnss_heading_jumps_not_seen_by_lio():
     ).read_text(encoding="utf-8")
 
     assert 'self.declare_parameter("heading_lio_crosscheck_enabled", True)' in node_text
-    assert 'self.declare_parameter("heading_lio_crosscheck_gnss_jump_deg", 8.0)' in node_text
+    assert 'self.declare_parameter("heading_lio_crosscheck_gnss_jump_deg", 12.0)' in node_text
     assert 'self.declare_parameter("heading_lio_crosscheck_lio_turn_deg", 3.0)' in node_text
     assert "def _heading_lio_mismatch(" in node_text
     assert "PrerequisiteFailureKind.HEADING_LIO_MISMATCH" in node_text

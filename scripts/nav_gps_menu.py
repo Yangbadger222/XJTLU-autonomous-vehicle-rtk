@@ -66,9 +66,11 @@ class NavGPSMenu(Node):
         self.goal_status = "UNKNOWN"
         self.localization_authority_mode = "UNKNOWN"
         self.localization_motion_allowed = False
+        self.rtk_status_summary = "UNKNOWN"
         self._last_system_status_printed: str | None = None
         self._last_goal_status_printed: str | None = None
         self._last_localization_authority_printed: str | None = None
+        self._last_rtk_status_printed: str | None = None
 
         self.goto_pub = self.create_publisher(String, "/gps_waypoint_dispatcher/goto_name", 10)
         self.stop_pub = self.create_publisher(Empty, "/gps_waypoint_dispatcher/stop", 10)
@@ -89,6 +91,7 @@ class NavGPSMenu(Node):
             self._localization_motion_callback,
             10,
         )
+        self.create_subscription(String, "/rtk/status", self._rtk_status_callback, 10)
 
         self.follow_path_client = ActionClient(self, FollowPath, "follow_path")
 
@@ -104,6 +107,20 @@ class NavGPSMenu(Node):
     def _localization_motion_callback(self, msg: Bool) -> None:
         self.localization_motion_allowed = bool(msg.data)
 
+    def _rtk_status_callback(self, msg: String) -> None:
+        fields = {}
+        for part in msg.data.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                fields[key] = value
+        fix = msg.data.split(" q=", 1)[0].removeprefix("fix=").strip() or "UNKNOWN"
+        summary = (
+            f"fix={fix}; uniheading={fields.get('uniheading', 'UNKNOWN')}; "
+            f"rtcm_age={fields.get('rtcm_age_s', 'nan')}; "
+            f"sats={fields.get('sats', 'nan')}; hdop={fields.get('hdop', 'nan')}"
+        )
+        self.rtk_status_summary = summary
+
     def print_status_changes(self) -> None:
         if self.system_status != self._last_system_status_printed:
             print(f"[gps_system] {self.system_status}")
@@ -114,6 +131,9 @@ class NavGPSMenu(Node):
         if self.localization_authority_mode != self._last_localization_authority_printed:
             print(f"[localization_authority] {self.localization_authority_mode}")
             self._last_localization_authority_printed = self.localization_authority_mode
+        if self.rtk_status_summary != self._last_rtk_status_printed:
+            print(f"[rtk] {self.rtk_status_summary}")
+            self._last_rtk_status_printed = self.rtk_status_summary
 
     def action_servers_ready(self) -> bool:
         return self.follow_path_client.wait_for_server(timeout_sec=0.1)
@@ -158,6 +178,7 @@ class NavGPSMenu(Node):
             f"last gps_system={self.system_status}, "
             f"localization_authority={self.localization_authority_mode}, "
             f"motion_allowed={self.localization_motion_allowed}, "
+            f"rtk=({self.rtk_status_summary}), "
             f"goal_manager={self.goal_status}"
         )
         if self.system_status == "NO_FIX":

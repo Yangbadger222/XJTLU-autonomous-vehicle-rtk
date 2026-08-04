@@ -143,6 +143,11 @@ def test_nav_gps_menu_waits_for_authority_agnostic_motion_permission():
 
     assert "/localization_authority/mode" in text
     assert "/localization_authority/motion_allowed" in text
+    assert "/rtk/status" in text
+    assert "fix={fix}; uniheading=" in text
+    assert "rtcm_age=" in text
+    assert "sats=" in text
+    assert "hdop=" in text
     assert "self.localization_motion_allowed and self.action_servers_ready()" in text
     assert "ComputeRoute" not in text
     assert "navigate_to_pose_client" not in text

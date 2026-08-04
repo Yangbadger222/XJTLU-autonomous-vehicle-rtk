@@ -2806,7 +2806,7 @@ def test_rtk_map_odom_corrector_requires_narrow_int_before_authority_start():
     ).read()
 
     assert "class HeadingControlReadiness:" in node_text
-    assert 'self.declare_parameter("heading_control_stable_duration_s", 5.0)' in node_text
+    assert 'self.declare_parameter("heading_control_stable_duration_s", 2.0)' in node_text
     assert 'self.declare_parameter("heading_control_min_samples", 5)' in node_text
     assert "heading_control_eligible" in node_text
     assert 'health.heading_position_type == "NARROW_FLOAT"' in node_text

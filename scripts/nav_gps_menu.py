@@ -70,7 +70,6 @@ class NavGPSMenu(Node):
         self._last_system_status_printed: str | None = None
         self._last_goal_status_printed: str | None = None
         self._last_localization_authority_printed: str | None = None
-        self._last_rtk_status_printed: str | None = None
 
         self.goto_pub = self.create_publisher(String, "/gps_waypoint_dispatcher/goto_name", 10)
         self.stop_pub = self.create_publisher(Empty, "/gps_waypoint_dispatcher/stop", 10)
@@ -131,9 +130,6 @@ class NavGPSMenu(Node):
         if self.localization_authority_mode != self._last_localization_authority_printed:
             print(f"[localization_authority] {self.localization_authority_mode}")
             self._last_localization_authority_printed = self.localization_authority_mode
-        if self.rtk_status_summary != self._last_rtk_status_printed:
-            print(f"[rtk] {self.rtk_status_summary}")
-            self._last_rtk_status_printed = self.rtk_status_summary
 
     def action_servers_ready(self) -> bool:
         return self.follow_path_client.wait_for_server(timeout_sec=0.1)
@@ -210,7 +206,13 @@ class NavGPSMenu(Node):
             if self.goal_status.startswith(terminal_prefixes):
                 return
 
-        raise TimeoutError("Timed out waiting for goal result")
+        detail = (
+            f"last goal_manager={self.goal_status}, "
+            f"localization_authority={self.localization_authority_mode}, "
+            f"motion_allowed={self.localization_motion_allowed}, "
+            f"rtk=({self.rtk_status_summary})"
+        )
+        raise TimeoutError(f"Timed out waiting for goal result ({detail})")
 
 
 def launch_nav_gps(repo_root: Path) -> subprocess.Popen[str]:

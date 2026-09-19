@@ -1,4 +1,4 @@
-# XJTLU Autonomous Vehicle
+# Frogbot: Autonomous Vehicle
 
 ROS 2 Humble monorepo for the XJTLU autonomous vehicle platform. The repository contains the Jetson runtime workspace, sensor drivers, SLAM/localization, Nav2 navigation, GNSS tooling, engineering documentation, and the STM32 lower-controller firmware snapshot used by the current vehicle.
 

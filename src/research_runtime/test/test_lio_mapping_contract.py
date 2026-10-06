@@ -11,8 +11,12 @@ def test_lio_mapping_keeps_unresolved_semantics_fail_closed():
     assert payload["super_lio_commit"] == "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2"
     fields = {item["name"]: item for item in payload["fields"]}
     assert fields["imu_header_stamp"]["status"] == "EXACT_CARRY_OVER"
+    assert fields["imu_header_stamp"]["measurement_clock_status"] == "TARGET_RUNTIME_PENDING"
+    assert "cur_node_->now()" in fields["imu_header_stamp"]["vehicle_driver_source"]
     assert fields["imu_linear_acceleration_scale"]["status"] == "SEMANTIC_MISMATCH_PENDING"
+    assert fields["imu_linear_acceleration_scale"]["unit_status"] == "TARGET_RUNTIME_PENDING"
     assert fields["livox_offset_time"]["status"] == "SEMANTIC_MISMATCH_PENDING"
+    assert fields["livox_offset_time"]["source_unit_claim"].startswith("The driver preserves")
     assert fields["health"]["status"] == "UNKNOWN_BLOCKS_MOTION"
 
 

@@ -38,7 +38,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`20 passed`). The original
+The new transport-independent and contract suite passes (`22 passed`). The original
 `gps_waypoint_dispatcher` guard/authority tests run with the package path and
 recorded `191 passed, 3 failed`; the failures are baseline/environment evidence
 (two diagnostic-string expectations already absent at the pinned commit and one
@@ -66,11 +66,18 @@ frame/ground-separation wiring is still pending and is not represented as a
 software PASS.
 
 The LIO field mapping is now machine-readable at
-`audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records the exact source
-agreement for ROS stamps and gyro units, and marks acceleration scaling,
-Livox offset-time semantics, synchronization boundaries, height/obstacle cloud
-semantics, base extrinsics, covariance and health as unresolved where the
-sources disagree. The mapping test refuses an unqualified health equivalence.
+`audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records parser/source
+provenance for ROS stamps, IMU copies and Livox point offsets. The vehicle
+driver source explicitly assigns ROS 2 LiDAR and IMU headers from
+`cur_node_->now()` while the pinned Super-LIO parser consumes those headers
+directly; this makes the ROS encoding a carry-over but leaves the measurement
+clock and deskew relationship target-runtime pending. It also records that
+both parser paths copy IMU acceleration without scaling while the locked
+FAST-LIO2 callback applies an unexplained factor of `10.0`. Acceleration units,
+Livox hardware timebase, synchronization boundaries, height/obstacle cloud
+semantics, base extrinsics, covariance and health remain unresolved where the
+sources do not prove equivalence. The mapping test refuses an unqualified
+health equivalence and checks the new source provenance fields.
 
 The isolated build evidence has two deliberate boundaries. The raw
 `Ego-Planner-2D-ROS2@7f5be6d4cee34871e85aa1f15285cfaf17b23877` package builds and

@@ -9,7 +9,12 @@
       "vehicle_fastlio": "sec + 1e-9 * nanosec",
       "status": "EXACT_CARRY_OVER",
       "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449",
-      "runtime_evidence": "TARGET_RUNTIME_PENDING"
+      "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:570-603 and :758-780 assign ROS 2 header.stamp from cur_node_->now(); the commented path used pkg/imu hardware timestamps",
+      "super_lio_source": "Super-LIO ROSWrapper.cpp:347-349 consumes header.stamp directly through stampToSec()",
+      "encoding_status": "SOURCE_VERIFIED",
+      "measurement_clock_status": "TARGET_RUNTIME_PENDING",
+      "runtime_evidence": "TARGET_RUNTIME_PENDING",
+      "risk": "ROS stamp encoding is identical, but the vehicle driver source proves the stamp is system/arrival time rather than a verified hardware measurement time; deskew equivalence remains unproven"
     },
     {
       "name": "imu_linear_acceleration_scale",
@@ -17,14 +22,22 @@
       "vehicle_fastlio": "multiplied by 10.0 before buffering",
       "status": "SEMANTIC_MISMATCH_PENDING",
       "reason": "driver/bag unit contract is not proven; neither retaining nor removing the factor is safe",
-      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:441-449"
+      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:441-449",
+      "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:782-787 copies imu_data.acc_x/y/z directly into sensor_msgs/Imu.linear_acceleration",
+      "super_lio_source": "Super-LIO ROSWrapper.cpp:350-352 copies sensor_msgs/Imu.linear_acceleration directly into IMUData.acc",
+      "unit_status": "TARGET_RUNTIME_PENDING",
+      "risk": "Both parser/driver paths are raw copies, while the locked FAST-LIO2 callback applies an unexplained factor of 10.0; no source file proves whether the device values are m/s^2, scaled counts, or another convention"
     },
     {
       "name": "imu_angular_velocity",
       "super_lio": "copied as rad/s input",
       "vehicle_fastlio": "copied unchanged",
       "status": "EXACT_CARRY_OVER",
-      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449"
+      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449",
+      "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:782-784 copies imu_data.gyro_x/y/z directly",
+      "super_lio_source": "Super-LIO ROSWrapper.cpp:353-355 copies sensor_msgs/Imu.angular_velocity directly",
+      "unit_status": "TARGET_RUNTIME_PENDING",
+      "risk": "The copy path is source-verified, but ROS rad/s and the device's actual scale still require a stationary IMU/runtime or raw bag check"
     },
     {
       "name": "livox_offset_time",
@@ -32,7 +45,12 @@
       "vehicle_fastlio": "offset_time * 1e-6 stored as ms, then /1000 for cloud end",
       "status": "SEMANTIC_MISMATCH_PENDING",
       "reason": "both use driver arrival-time header; hardware timebase relationship is unverified",
-      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27; vehicle lio_node.cpp:482-513"
+      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27; vehicle lio_node.cpp:482-513",
+      "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:614-626 stores points[i].offset_time - pkg.base_time in uint32 CustomPoint.offset_time",
+      "super_lio_source": "Super-LIO ROSWrapper.cpp:426-439 multiplies CustomPoint.offset_time by 1e-9 and adds the last accepted offset to header.stamp",
+      "source_unit_claim": "The driver preserves an SDK offset delta in a uint32 field and Super-LIO consumes that field as nanoseconds; SDK/hardware clock and packet-unit proof are still required",
+      "runtime_status": "TARGET_RUNTIME_PENDING",
+      "risk": "The driver deliberately stamps the message with cur_node_->now() and rewrites timebase, so a numerically matching offset unit does not establish hardware-time deskew"
     },
     {
       "name": "livox_filter",

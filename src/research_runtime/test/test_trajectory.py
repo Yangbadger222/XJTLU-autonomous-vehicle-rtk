@@ -72,6 +72,24 @@ def test_expiry_map_version_and_frame_are_rejected():
     assert {"trajectory_expired", "map_version_mismatch", "unsupported_frame:map"} <= set(expired.reasons)
 
 
+def test_nonfinite_trajectory_metadata_is_rejected():
+    result = validate_trajectory(
+        TimedTrajectory.from_points("t", "m1", "odom", 0.0, float("nan"),
+                                    [TimedPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)]),
+        VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert "valid_until_non_finite" in result.reasons
+
+
+def test_unknown_map_metadata_is_rejected_even_without_expected_version():
+    result = validate_trajectory(
+        TimedTrajectory.from_points("t", "UNKNOWN", "odom", 0.0, 1.0,
+                                    [TimedPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)]),
+        VehicleLimits(), now=0.0)
+    assert not result.valid
+    assert "map_version_unknown" in result.reasons
+
+
 def test_time_rollback_is_rejected():
     result = validate_trajectory(traj([
         TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),

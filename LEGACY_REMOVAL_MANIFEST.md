@@ -20,4 +20,5 @@ vehicle simulator.
 | corridor command guard | retained | final stop and speed authority remains unchanged |
 | serial reader/twistctl | retained | final mock/STM32 command contract remains unchanged |
 | local ground/obstacle inputs | adapter boundary | `research_runtime.grid_map` provides the conservative odom-frame projection and unknown-as-occupied contract; Super-LIO output, existing height filters and target-side sensor/TF wiring require runtime audit |
+| active-road evidence ingest/policy | new research boundary | `active_road_evidence` accepts typed measured `RoadEvidence2D` and externally generated observation candidates; it does not replace the legacy route/task dispatchers or infer unobserved roads |
 | `rviz_car_sim/fake_sim_node` | replay only | it cannot own live TF or final command |

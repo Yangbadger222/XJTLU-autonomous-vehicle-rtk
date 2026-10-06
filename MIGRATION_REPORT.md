@@ -44,6 +44,13 @@ safety-blocking unknown. Target-side cloud frame/TF wiring remains pending.
 
 `active_road_map` now publishes a persisted map version only when an EvidenceStore loads successfully and relays only non-empty odom-frame road references; missing or corrupt evidence remains UNKNOWN and blocks EGO output.
 
+`active_road_evidence` is the typed ROS edge for the remaining research loop.
+It accepts only measured `RoadEvidence2D` geometry already expressed in `odom`,
+persists it atomically through the CRS-bound store, republishes observed
+geometry events, and selects only externally supplied candidates marked
+reachable, safe, pose-trustworthy and sensor-valid. It never supplies camera
+calibration, global transforms, simulator truth or an unobserved road segment.
+
 The timed trajectory no longer jumps directly from the first `TimedTrajectory2D`
 sample to `/cmd_vel`. `research_runtime.trajectory_tracker` interpolates the
 time-indexed plan against measured `/lio/odom_vehicle` pose, applies bounded

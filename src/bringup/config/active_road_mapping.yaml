@@ -5,4 +5,5 @@ active_road_map:
     map_version_topic: /research/map_version
     road_reference_input_topic: /research/road_reference_input
     road_reference_output_topic: /research/road_reference
-    reload_period_s: 1.0
+    # Must be shorter than the safety bridge's 0.50 s map freshness gate.
+    reload_period_s: 0.20

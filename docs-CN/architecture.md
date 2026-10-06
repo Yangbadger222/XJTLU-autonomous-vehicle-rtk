@@ -368,3 +368,9 @@ Super-LIO、源健康适配器和固定提交的 Ego-Planner-2D vehicle ROS edge
 
 物理串口额外需要 `execution_mode:=live enable_serial:=true`；replay/shadow
 不挂载生产串口。RTK authority、原 corridor guard 和人工停车优先级保持不变。
+
+shadow/live 还启动 `active_road_evidence`。它通过 typed
+`research_interfaces/msg/RoadEvidence2D` 接收已经在 `odom` 中表达的实测几何，
+要求持久化 CRS/地图版本有效后才做原子、UUID 幂等写入；观测几何只发布为
+`RoadEvent`，不会自动升级为已通过道路。外部候选必须同时标记可达、安全、位姿可信
+和传感器有效，才可能发布 `observation_goal`。地图或局部栅格缺失/过期时安全桥继续停车。

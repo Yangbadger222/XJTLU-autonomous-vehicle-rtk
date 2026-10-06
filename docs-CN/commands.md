@@ -904,6 +904,7 @@ shadow/live 的 EGO 输入合同是 `/lio/odom_vehicle`、
 `/research/map_version`，输出 `/research/ego_trajectory`。物理串口还必须显式
 设置 `enable_serial:=true`，并且只允许 `execution_mode:=live`。
 
-shadow/live 还会启动 `active_road_map` 和
+shadow/live 还会启动 `active_road_map`、`active_road_evidence` 和
 `research_local_obstacle_grid`。前者在 EvidenceStore 无法加载时发布
-`UNKNOWN`，后者在 cloud frame/地图版本不满足合同时不发布 OccupancyGrid。
+`UNKNOWN`，证据节点只接受已在 `odom` 中表达的 `RoadEvidence2D`，后者在
+cloud frame/地图版本不满足合同时不发布 OccupancyGrid。

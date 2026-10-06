@@ -28,6 +28,25 @@ from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
 from .grid_map import LocalObstacleGrid
 
 
+def _parameter_bool(value) -> bool:
+    """Parse ROS launch substitutions without treating ``\"false\"`` as true."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off", ""}:
+        return False
+    raise ValueError(f"invalid boolean parameter: {value!r}")
+
+
+def _valid_map_version(value: str) -> bool:
+    normalized = str(value).strip()
+    return bool(normalized and normalized.upper() != "UNKNOWN")
+
+
 if rclpy:
     class SafetyBridgeNode(Node):
         """Timed trajectory edge; authority and health are fail-closed."""
@@ -37,6 +56,17 @@ if rclpy:
             self.declare_parameter("actuator_enabled", False)
             self.declare_parameter("authority_timeout_s", 0.50)
             self.declare_parameter("health_timeout_s", 0.50)
+            self.declare_parameter("map_timeout_s", 0.50)
+            self.declare_parameter("grid_timeout_s", 0.50)
+            self.declare_parameter("max_speed_mps", 0.85)
+            self.declare_parameter("min_speed_mps", 0.0)
+            self.declare_parameter("max_yaw_rate_rps", 0.70)
+            self.declare_parameter("max_accel_mps2", 0.85)
+            self.declare_parameter("max_decel_mps2", 1.20)
+            self.declare_parameter("max_yaw_accel_rps2", 1.40)
+            self.declare_parameter("max_yaw_decel_rps2", 1.80)
+            self.declare_parameter("max_curvature_1pm", 0.0)
+            self.declare_parameter("max_lateral_speed_mps", 0.0)
             self.declare_parameter("health_topic", "/lio/vehicle_health")
             self.declare_parameter("odom_topic", "/lio/odom_vehicle")
             self.declare_parameter("obstacle_grid_topic", "/research/local_obstacle_grid")
@@ -46,11 +76,26 @@ if rclpy:
             self.declare_parameter("tracker_lateral_gain", 1.5)
             self.declare_parameter("tracker_heading_gain", 1.0)
             self._mode = str(self.get_parameter("mode").value)
-            self._actuator_enabled = bool(self.get_parameter("actuator_enabled").value)
+            self._actuator_enabled = _parameter_bool(self.get_parameter("actuator_enabled").value)
             self._gate = SafetyGate(float(self.get_parameter("authority_timeout_s").value))
             self._health_timeout_s = float(self.get_parameter("health_timeout_s").value)
+            self._map_timeout_s = float(self.get_parameter("map_timeout_s").value)
+            self._grid_timeout_s = float(self.get_parameter("grid_timeout_s").value)
+            max_curvature = float(self.get_parameter("max_curvature_1pm").value)
+            max_lateral = float(self.get_parameter("max_lateral_speed_mps").value)
+            self._limits_configured = (math.isfinite(max_curvature) and max_curvature > 0.0 and
+                                       math.isfinite(max_lateral) and max_lateral > 0.0)
             self._tracker = TimedTrajectoryTracker(
-                VehicleLimits(),
+                VehicleLimits(
+                    max_speed_mps=float(self.get_parameter("max_speed_mps").value),
+                    min_speed_mps=float(self.get_parameter("min_speed_mps").value),
+                    max_yaw_rate_rps=float(self.get_parameter("max_yaw_rate_rps").value),
+                    max_accel_mps2=float(self.get_parameter("max_accel_mps2").value),
+                    max_decel_mps2=float(self.get_parameter("max_decel_mps2").value),
+                    max_yaw_accel_rps2=float(self.get_parameter("max_yaw_accel_rps2").value),
+                    max_yaw_decel_rps2=float(self.get_parameter("max_yaw_decel_rps2").value),
+                    max_curvature_1pm=max_curvature if self._limits_configured else None,
+                    max_lateral_speed_mps=max_lateral),
                 longitudinal_gain=float(self.get_parameter("tracker_longitudinal_gain").value),
                 lateral_gain=float(self.get_parameter("tracker_lateral_gain").value),
                 heading_gain=float(self.get_parameter("tracker_heading_gain").value))
@@ -64,7 +109,9 @@ if rclpy:
             self._state = None
             self._state_stamp = 0.0
             self._map_version = ""
+            self._map_stamp = 0.0
             self._grid = None
+            self._grid_stamp = 0.0
             self._footprint = self._parse_footprint(self.get_parameter("footprint_xy").value)
             self._pub = self.create_publisher(Twist, "/cmd_vel", 10)
             self.create_subscription(Bool, "/localization_authority/motion_allowed", self._authority, 10)
@@ -92,6 +139,9 @@ if rclpy:
             if all(math.isfinite(float(value)) for value in values):
                 self._state = TrackerState(*values)
                 self._state_stamp = time.monotonic()
+            else:
+                self._state = None
+                self._state_stamp = 0.0
 
         @staticmethod
         def _parse_footprint(values):
@@ -104,11 +154,15 @@ if rclpy:
             return tuple((flat[index], flat[index + 1]) for index in range(0, len(flat), 2))
 
         def _map_version_cb(self, msg):
-            self._map_version = str(msg.data)
+            value = str(msg.data).strip()
+            self._map_version = value if _valid_map_version(value) else "UNKNOWN"
+            self._map_stamp = time.monotonic()
 
         def _grid_cb(self, msg):
+            self._grid = None
+            self._grid_stamp = 0.0
             try:
-                if msg.header.frame_id != "odom" or not self._map_version:
+                if msg.header.frame_id != "odom" or not _valid_map_version(self._map_version):
                     self._grid = None
                     return
                 origin_q = msg.info.origin.orientation
@@ -126,6 +180,7 @@ if rclpy:
                     origin_y_m=float(msg.info.origin.position.y),
                     width=int(msg.info.width), height=int(msg.info.height),
                     cells=cells, unknown_is_occupied=True)
+                self._grid_stamp = time.monotonic()
             except (TypeError, ValueError):
                 self._grid = None
 
@@ -151,9 +206,13 @@ if rclpy:
             now = time.monotonic()
             ros_now = self.get_clock().now().nanoseconds * 1e-9
             tracked = None
+            map_fresh = self._map_stamp > 0.0 and now - self._map_stamp <= self._map_timeout_s
+            grid_fresh = self._grid_stamp > 0.0 and now - self._grid_stamp <= self._grid_timeout_s
             grid_ready = bool(self._grid is not None and self._trajectory_contract is not None and
                               self._grid.map_version == self._map_version and
-                              self._map_version == self._trajectory_contract.map_version and self._footprint)
+                              _valid_map_version(self._map_version) and map_fresh and grid_fresh and
+                              self._map_version == self._trajectory_contract.map_version and
+                              self._footprint and self._limits_configured)
             if self._trajectory_contract is not None and self._state is not None and grid_ready:
                 tracked = self._tracker.command(
                     self._trajectory_contract, self._state, now=ros_now,

@@ -903,7 +903,8 @@ Shadow/live EGO inputs are `/lio/odom_vehicle`, `/research/road_reference`,
 typed `/research/ego_trajectory`. The physical serial sink additionally needs
 `enable_serial:=true` and `execution_mode:=live`.
 
-Shadow/live also starts `active_road_map` and
-`research_local_obstacle_grid`. The former publishes `UNKNOWN` when its
-EvidenceStore cannot be loaded; the latter withholds OccupancyGrid output when
-the cloud frame or map-version contract is not satisfied.
+Shadow/live also starts `active_road_map`, `active_road_evidence`, and
+`research_local_obstacle_grid`. The map node publishes `UNKNOWN` when its
+EvidenceStore cannot be loaded; the evidence node accepts only odom-frame
+`RoadEvidence2D`; the grid node withholds OccupancyGrid output when the cloud
+frame or map-version contract is not satisfied.

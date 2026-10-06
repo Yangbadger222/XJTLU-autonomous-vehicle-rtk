@@ -8,3 +8,7 @@ float64 score
 float64 cost
 float64 observable_fraction
 string reason
+bool reachable
+bool safe
+bool pose_trustworthy
+bool sensor_valid

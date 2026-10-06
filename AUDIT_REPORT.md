@@ -43,7 +43,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`47 passed`). The replay
+The new transport-independent and contract suite passes (`57 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -54,6 +54,13 @@ test importing unavailable `rclpy`). The existing corridor launch suite records
 `26 passed, 1 failed` because the pinned baseline lacks the expected
 `enable_local_odom_bridge: false` text. No protected file was modified to make
 these tests pass.
+
+The ROS safety bridge now parses `enable_serial` by value, rejects `UNKNOWN`
+map versions, and expires both the persisted map-version heartbeat and local
+obstacle grid after 0.50 s. It uses the locked corridor speed/acceleration/yaw
+limits and keeps curvature/lateral limits disabled until measured vehicle
+geometry is provided. The map publisher runs at 0.20 s to remain inside that
+freshness window. New contract tests cover these boundaries.
 
 The final mock sink fault matrix now includes RTK authority false/stale,
 unknown LIO health, invalid TF, invalid map, invalid/expired trajectory,
@@ -85,6 +92,13 @@ The active-road bringup manifest now declares every research runtime and safety
 edge it launches, including the pinned estimator/planner package names,
 research interfaces, Livox/RTK inputs, authority guard and serial bridge; a
 static contract test prevents future dependency omissions.
+
+The active-road research loop now has a typed `RoadEvidence2D` ROS ingest
+message and `active_road_evidence` node. The node requires a valid persisted
+map identity, accepts only finite odom-frame geometry, saves accepted UUIDs by
+atomic replace, emits observed-geometry events, and filters externally supplied
+observation candidates by reachability/safety/pose/sensor flags. The node does
+not infer camera parameters, TF, truth labels or traversability.
 
 The timed-trajectory safety edge now consumes `/lio/odom_vehicle` and the
 adapter's `/lio/vehicle_health`, interpolates the trajectory in time, applies
@@ -151,8 +165,10 @@ from turning copied IMU-frame covariance into a false base-frame contract.
 The `research_runtime` and `active_road_mapping` Python packages were built as
 wheels and inspected to contain the GridMap projector, safety bridge,
 trajectory validator, `research_local_obstacle_grid` and `active_road_map`
-entrypoints. This checks the installed-package path separately from the
-source-tree test run.
+and `active_road_evidence` entrypoints. This checks the installed-package path
+separately from the source-tree test run. The added ROS interface message still
+needs a current ROS/ARM64 message-package build; the last Docker retry stalled
+before container startup.
 
 The LIO field mapping is now machine-readable at
 `audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records parser/source

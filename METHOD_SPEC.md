@@ -20,6 +20,17 @@ repository contains the policy and evaluator-only synthetic harness; the policy
 does not receive simulator truth. Three policy labels are reserved for the
 future same-base comparison: `PASSIVE`, `PERIODIC_LOOK`, and `TASK_AWARE_LOOK`.
 
+The live ROS boundary is typed: `research_interfaces/msg/RoadEvidence2D`
+accepts measured odom-frame geometry, source/local-submap identity, pose
+uncertainty and a declared depth interval. `active_road_evidence` persists it
+only into a successfully loaded CRS/map-version `EvidenceStore`, using UUID
+idempotence and an atomic replace. It republishes observed geometry as a
+`RoadEvent` without upgrading it to `TRAVERSED`. Externally generated
+`ObservationGoal` candidates carry reachability, safety, pose-trust and sensor
+validity flags; the node chooses only the highest-scoring eligible candidate
+and publishes the selected goal. It cannot create candidates from truth or
+invent camera/TF calibration.
+
 The vehicle adapter consumes real `/lio/odom_vehicle` state, an odom-frame
 road reference and an odom-frame `OccupancyGrid` whose unknown cells are
 occupied. The second reproducible EGO patch calls the pinned planner and emits
@@ -38,6 +49,11 @@ unknown or stale state produces a stop. The ROS edge additionally requires a
 matching odom-frame `OccupancyGrid`, map-version message and explicit measured
 footprint before enabling the continuous collision oracle; unknown cells remain
 occupied.
+
+The command bridge parses launch booleans by value, rejects `UNKNOWN` map
+versions, and timestamps both map-version and local-grid inputs. The map
+publisher reload period is 0.20 s, below the 0.50 s freshness gate; invalid or
+stale inputs produce the existing zero-command path.
 
 The local grid producer is conservative: measured odom-frame points inside an
 explicit obstacle height window become occupied cells, while points outside

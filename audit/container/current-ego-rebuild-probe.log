@@ -20,3 +20,8 @@ Conclusion:
 - The current corrected EGO patch has exact sequential git apply-check evidence, but this environment did not start a container for a current-version compile.
 - The prior patched EGO compile log is retained as prior-revision evidence only.
 - No Jetson, Livox SDK/driver runtime, sensor bag, or live actuator evidence is inferred from this probe.
+
+Probe 3 (after typed RoadEvidence2D extension, 2026-10-07):
+  The current tree adds research_interfaces/msg/RoadEvidence2D and geometry_msgs dependency.
+  `docker info` was given a 30-second bounded wait and did not return a usable server response.
+  No current ROS/ARM64 message-package rebuild was claimed; see RUN_STATE.json.

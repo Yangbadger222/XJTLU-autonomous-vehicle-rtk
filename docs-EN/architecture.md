@@ -374,3 +374,12 @@ The physical serial sink additionally requires
 `execution_mode:=live enable_serial:=true`; replay/shadow never attach the
 production serial device. RTK authority, the original corridor guard, and
 manual stop priority remain unchanged.
+
+The shadow/live entry also starts `active_road_evidence`. Its typed
+`research_interfaces/msg/RoadEvidence2D` input accepts measured odom-frame
+geometry only. A valid persisted CRS/map identity is required before atomic,
+UUID-idempotent evidence writes; observed geometry becomes a `RoadEvent` and
+does not become traversed road. Externally generated observation candidates
+must carry reachable, safe, pose-trustworthy and sensor-valid flags before the
+node can publish an `observation_goal`. Missing or stale map/grid inputs keep
+the safety bridge stopped.

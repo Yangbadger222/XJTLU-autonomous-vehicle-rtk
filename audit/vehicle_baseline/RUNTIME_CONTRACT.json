@@ -87,6 +87,30 @@
       "type": "std_msgs/msg/String",
       "producer": "active_road_map persisted EvidenceStore",
       "policy": "missing version blocks trajectory"
+    },
+    "/research/road_evidence": {
+      "type": "research_interfaces/msg/RoadEvidence2D",
+      "frame": "odom",
+      "producer": "measured sensor/TF evidence adapter",
+      "consumer": "active_road_evidence; invalid or unknown store blocks persistence"
+    },
+    "/research/road_events": {
+      "type": "research_interfaces/msg/RoadEvent",
+      "frame": "odom",
+      "producer": "active_road_evidence",
+      "policy": "observed geometry is not promoted to traversed"
+    },
+    "/research/observation_candidate": {
+      "type": "research_interfaces/msg/ObservationGoal",
+      "frame": "odom",
+      "producer": "planner/perception candidate generator",
+      "consumer": "active_road_evidence hard-filtered policy"
+    },
+    "/research/observation_goal": {
+      "type": "research_interfaces/msg/ObservationGoal",
+      "frame": "odom",
+      "producer": "active_road_evidence",
+      "policy": "only externally marked reachable/safe/trusted/sensor-valid candidates are eligible"
     }
   },
   "serial": {

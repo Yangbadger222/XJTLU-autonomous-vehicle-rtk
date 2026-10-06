@@ -101,6 +101,16 @@ def validate_trajectory(
     point-only path cannot silently become a vehicle command.
     """
     result = ValidationResult(valid=True, checked_points=len(trajectory.points))
+    if not str(trajectory.trajectory_id):
+        result.fail("trajectory_id_missing")
+    if not str(trajectory.map_version).strip() or str(trajectory.map_version).strip().upper() == "UNKNOWN":
+        result.fail("map_version_unknown")
+    if not math.isfinite(float(trajectory.generated_at)):
+        result.fail("generated_at_non_finite")
+    if not math.isfinite(float(trajectory.valid_until)):
+        result.fail("valid_until_non_finite")
+    if now is not None and not math.isfinite(float(now)):
+        result.fail("now_non_finite")
     if resolution is not None and (not math.isfinite(float(resolution)) or resolution <= 0.0):
         result.fail("invalid_sweep_resolution")
         resolution = None

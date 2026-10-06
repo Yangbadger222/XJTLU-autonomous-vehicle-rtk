@@ -55,8 +55,8 @@
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json"
     ],
-    "reason": "current corrected patch passes exact sequential apply-check, source/contract tests and isolated ARM64 BuildKit compile; target ROS wiring, ordinary container startup and Jetson runtime remain pending",
-    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; current patched compile is PASS, target wiring/runtime remain pending"
+    "reason": "exact sequential patch apply-check, source/contract tests and prior isolated ARM64 BuildKit compile passed; the current tree adds the typed RoadEvidence2D/geometry_msgs interface after that compile, so a current ROS message package build plus target wiring/runtime remain pending",
+    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; safety and evidence interfaces are static/installed-package checked, current ROS/ARM64 rebuild and Jetson runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",
@@ -72,9 +72,11 @@
     "evidence": [
       "src/research_runtime/test/test_authority_and_serial.py",
       "src/research_runtime/test/test_launch_contract.py",
-      "runtime-data/research/active_road/replay_smoke.json"
+      "runtime-data/research/active_road/replay_smoke.json",
+      "src/research_runtime/test/test_safety_bridge_contract.py",
+      "src/bringup/config/research_safety_bridge.yaml"
     ],
-    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults, including timed-trajectory tracker and footprint/grid-version boundaries; physical e-stop pending"
+    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults, plus ROS-string boolean parsing, UNKNOWN-map rejection and 0.50 s map/grid freshness gates; physical e-stop pending"
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
     "status": "PASS",
@@ -89,9 +91,13 @@
       "src/bringup/config/research_local_grid.yaml",
       "src/active_road_mapping/active_road_mapping/map_node.py",
       "src/bringup/config/active_road_mapping.yaml",
-      "audit/research_wheel_build.log"
+      "audit/research_wheel_build.log",
+      "src/research_interfaces/msg/RoadEvidence2D.msg",
+      "src/active_road_mapping/active_road_mapping/evidence_node.py",
+      "src/bringup/config/active_road_evidence.yaml",
+      "audit/research_wheel_build_latest.log"
     ],
-    "scope": "synthetic CRS-bound, idempotent evidence store with explicit CRS/finite-geometry and schema/measurement validation; active_road_map now exposes persisted map version and relays only non-empty odom-frame references; local obstacle transport marks only measured cells; target sensor/TF and external road-reference wiring remain pending"
+    "scope": "synthetic CRS-bound, idempotent evidence store plus typed odom-frame RoadEvidence2D ingest and atomic persistence boundary; active_road_map exposes persisted map version, local obstacle transport marks only measured cells, and target sensor/TF/camera/reference wiring remains pending"
   },
   "ACTIVE_OBSERVATION_IMPLEMENTED": {
     "status": "PASS",
@@ -99,9 +105,13 @@
       "src/research_runtime/research_runtime/active_road.py",
       "METHOD_SPEC.md",
       "src/active_road_mapping/active_road_mapping/map_node.py",
-      "src/bringup/config/active_road_mapping.yaml"
+      "src/bringup/config/active_road_mapping.yaml",
+      "src/active_road_mapping/active_road_mapping/evidence_node.py",
+      "src/research_interfaces/msg/ObservationGoal.msg",
+      "src/research_interfaces/msg/RoadEvidence2D.msg",
+      "src/bringup/config/active_road_evidence.yaml"
     ],
-    "scope": "bounded heuristic candidate selection plus fail-closed persisted map/reference ROS boundary; real camera, evidence ingestion and target runtime remain pending"
+    "scope": "bounded heuristic candidate selection with hard safety flags, typed measured-evidence ingest, atomic UUID-idempotent persistence and fail-closed persisted map/reference ROS boundaries; real camera/TF/evidence source and target runtime remain pending"
   },
   "POLICY_EFFECT_SIMULATION": {
     "status": "PASS",

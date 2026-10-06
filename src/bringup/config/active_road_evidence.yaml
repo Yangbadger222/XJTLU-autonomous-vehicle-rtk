@@ -1,0 +1,8 @@
+active_road_evidence:
+  ros__parameters:
+    evidence_store_path: runtime-data/research/active_road/evidence.json
+    evidence_topic: /research/road_evidence
+    candidate_topic: /research/observation_candidate
+    event_topic: /research/road_events
+    goal_topic: /research/observation_goal
+    reload_period_s: 0.20

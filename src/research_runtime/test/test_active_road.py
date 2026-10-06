@@ -89,3 +89,15 @@ def test_persisted_evidence_rejects_bad_schema_and_invalid_measurements(tmp_path
                                 "evidence": []}))
     with pytest.raises(ValueError, match="schema"):
         EvidenceStore.load(path)
+
+
+def test_evidence_store_rejects_unknown_map_identity():
+    with pytest.raises(ValueError, match="map version"):
+        EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0, 0, 1, 1), "UNKNOWN")
+
+
+def test_evidence_store_rejects_uncontrolled_state():
+    store = EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0, 0, 1, 1), "v1")
+    with pytest.raises(ValueError, match="controlled vocabulary"):
+        store.add(RoadEvidence("bad-state", [(0, 0), (1, 0)], "FREE", 1.0,
+                               "lidar", "s1", 0.1, 1.0))

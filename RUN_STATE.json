@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "49 tests"
+      "evidence": "57 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -26,13 +26,13 @@
       "command": "python3 -m pip wheel --no-deps --wheel-dir <temporary-dir> src/research_runtime src/active_road_mapping",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/research_wheel_build.log; wheels contain local_obstacle_grid_node.py, map_node.py and console entry_points"
+      "evidence": "audit/research_wheel_build_latest.log; wheels contain active_road_evidence.py, evidence/map entry_points and research runtime safety/trajectory modules"
     },
     {
       "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "launch and adapter Python syntax"
+      "evidence": "launch, adapter and new evidence/safety Python syntax"
     },
     {
       "command": "sha256sum -c audit/vehicle_baseline/PROTECTED_FILES.sha256",
@@ -82,6 +82,13 @@
       "command": "system_active_road_research.launch.py execution_mode:=shadow",
       "status": "NOT_RUN",
       "evidence": "Jetson-only runtime dependencies and hardware unavailable; isolated compile does not prove target runtime"
+    },
+    {
+      "command": "docker ARM64 current research_interfaces rebuild after RoadEvidence2D extension",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "evidence": "audit/container/current-ego-rebuild-probe.log; docker info bounded wait produced no usable server response",
+      "scope": "current typed ROS interface compile remains pending; no runtime claim"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

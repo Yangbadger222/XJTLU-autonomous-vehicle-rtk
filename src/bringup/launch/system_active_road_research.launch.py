@@ -20,6 +20,9 @@ def generate_launch_description():
     bringup_share = get_package_share_directory("bringup")
     master = os.path.join(bringup_share, "config", "master_params.yaml")
     super_config = os.path.join(bringup_share, "config", "super_lio_vehicle.yaml")
+    safety_config = os.path.join(bringup_share, "config", "research_safety_bridge.yaml")
+    active_road_evidence_config = os.path.join(
+        bringup_share, "config", "active_road_evidence.yaml")
     mode = DeclareLaunchArgument("execution_mode", default_value="replay",
                                  description="replay | shadow | live; replay is actuator-free")
     enable_super = DeclareLaunchArgument("enable_super_lio", default_value="true",
@@ -54,6 +57,12 @@ def generate_launch_description():
                            condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
                                                                     "' != 'replay'"])),
                            parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml")])
+    active_road_evidence = Node(
+        package="active_road_mapping", executable="active_road_evidence",
+        name="active_road_evidence", output="screen",
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                 "' != 'replay'"])),
+        parameters=[active_road_evidence_config])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
@@ -73,7 +82,7 @@ def generate_launch_description():
                   parameters=[master], remappings=[("/cmd_vel", "/cmd_vel_guarded")])
     research = Node(package="research_runtime", executable="research_safety_bridge",
                     name="research_safety_bridge", output="screen",
-                    parameters=[{"mode": LaunchConfiguration("execution_mode"),
+                    parameters=[safety_config, {"mode": LaunchConfiguration("execution_mode"),
                                  "actuator_enabled": LaunchConfiguration("enable_serial"),
                                  "health_topic": "/lio/vehicle_health",
                                  "odom_topic": "/lio/odom_vehicle",
@@ -93,5 +102,6 @@ def generate_launch_description():
     return LaunchDescription([mode, enable_super, enable_serial,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               livox, rtk,
-                              super_lio, adapter, active_road_map, local_grid, ego_vehicle,
+                              super_lio, adapter, active_road_map, active_road_evidence,
+                              local_grid, ego_vehicle,
                               authority, cmd_guard, serial, research])

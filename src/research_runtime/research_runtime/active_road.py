@@ -165,8 +165,10 @@ class ObservationCandidate:
 
 class EvidenceStore:
     def __init__(self, transform: GeoTransform, map_version: str):
+        if not str(map_version).strip() or str(map_version).strip().upper() == "UNKNOWN":
+            raise ValueError("a persisted map version must be known")
         self.transform = transform
-        self.map_version = map_version
+        self.map_version = str(map_version).strip()
         self._evidence: dict[str, RoadEvidence] = {}
 
     def add(self, evidence: RoadEvidence) -> bool:
@@ -181,6 +183,8 @@ class EvidenceStore:
     def _validate_evidence(evidence: RoadEvidence) -> None:
         if not evidence.evidence_id or not evidence.source or not evidence.local_submap_id:
             raise ValueError("evidence id, source and local_submap_id are required")
+        if not isinstance(evidence.state, EvidenceState):
+            raise ValueError("evidence state must use the controlled vocabulary")
         if len(evidence.geometry_xy) < 2:
             raise ValueError("evidence geometry requires at least two points")
         if any(len(point) != 2 or not all(math.isfinite(float(value)) for value in point)

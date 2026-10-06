@@ -20,10 +20,19 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert 'research_local_grid.yaml' in source
     assert 'executable="active_road_map"' in source
     assert 'active_road_mapping.yaml' in source
+    assert 'executable="active_road_evidence"' in source
+    assert 'active_road_evidence.yaml' in source
+    assert 'research_safety_bridge.yaml' in source
+    active_road_config = (Path(__file__).parents[3] / "src" / "bringup" / "config" /
+                          "active_road_mapping.yaml").read_text()
+    assert "reload_period_s: 0.20" in active_road_config
     bridge = (Path(__file__).parents[3] / "src" / "research_runtime" /
               "research_runtime" / "safety_bridge.py").read_text()
     assert "health_timeout_s" in bridge
     assert "health_fresh" in bridge
+    assert "_parameter_bool" in bridge
+    assert "_valid_map_version" in bridge
+    assert "_limits_configured" in bridge
 
 
 def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():
@@ -47,6 +56,22 @@ def test_safety_bridge_declares_its_odom_message_dependency():
     package = (Path(__file__).parents[3] / "src" / "research_runtime" / "package.xml").read_text()
     assert "<exec_depend>nav_msgs</exec_depend>" in package
     assert "<exec_depend>sensor_msgs_py</exec_depend>" in package
+
+
+def test_active_road_evidence_package_exposes_typed_ingest_boundary():
+    package = (Path(__file__).parents[3] / "src" / "active_road_mapping" /
+               "package.xml").read_text()
+    setup = (Path(__file__).parents[3] / "src" / "active_road_mapping" /
+             "setup.py").read_text()
+    interface = (Path(__file__).parents[3] / "src" / "research_interfaces" /
+                 "msg" / "RoadEvidence2D.msg").read_text()
+    assert "<exec_depend>research_interfaces</exec_depend>" in package
+    assert "active_road_evidence = active_road_mapping.evidence_node:main" in setup
+    assert "geometry_msgs/Point[] geometry" in interface
+    evidence_node = (Path(__file__).parents[3] / "src" / "active_road_mapping" /
+                     "active_road_mapping" / "evidence_node.py").read_text()
+    assert 'candidate must already be in odom' in evidence_node
+    assert 'candidate values must be finite' in evidence_node
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():

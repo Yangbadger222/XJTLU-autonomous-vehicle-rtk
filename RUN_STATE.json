@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "e56b152",
+  "tip_commit_at_report": "eb962be",
   "active_processes": [],
   "commands": [
     {
@@ -108,6 +108,12 @@
       "exit_code": null,
       "evidence": "audit/container/current-ego-rebuild-probe-latest.log; Docker server did not respond within bound",
       "scope": "current three-patch ROS/ARM64 rebuild remains pending; no runtime claim"
+    },
+    {
+      "command": "python3 scripts/verify_research_delivery.py --output /tmp/research-delivery-after-local-grid-bool.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "overall_static_status=PASS after local-grid boolean parsing and 62-test suite"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

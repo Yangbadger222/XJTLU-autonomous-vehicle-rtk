@@ -40,10 +40,12 @@ separate explicit gate `execution_mode:=live enable_serial:=true`; never attach 
 production serial device to replay or shadow. `live` remains blocked until the
 acceptance checklist is completed by a human operator.
 
-The current patched EGO ARM64 compile evidence is reproducible with the
-recorded temporary recipe `audit/container/ego-current-build.Dockerfile`; its
-completed BuildKit log is `audit/container/ego-current-build.log`. That recipe
-proves compilation only and does not replace Jetson shadow or live acceptance.
+The recorded ARM64 compile evidence for EGO patches 0001+0002 is reproducible
+with `audit/container/ego-current-build.Dockerfile`; its completed BuildKit log
+is `audit/container/ego-current-build.log`. Patch 0003 is included in the
+exact sparse-checkout apply audit, but the current three-patch rebuild is still
+pending. The recipe proves compilation only and does not replace Jetson shadow
+or live acceptance.
 
 The current Python package install path can be checked without ROS:
 

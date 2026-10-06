@@ -48,9 +48,14 @@ def main() -> int:
 
     branch = run("git", "rev-parse", "--abbrev-ref", "HEAD")
     tip = run("git", "rev-parse", "HEAD")
-    check("branch_and_base", branch == BRANCH and bool(run("git", "merge-base", BASE, tip)),
-          ["git rev-parse --abbrev-ref HEAD", "audit/vehicle_baseline/SOURCE_IDENTITY.json"],
-          f"branch={branch}, tip={tip}, base={BASE}")
+    ancestry = subprocess.run(["git", "merge-base", "--is-ancestor", BASE, tip]).returncode == 0
+    identity = json.loads(Path("audit/vehicle_baseline/SOURCE_IDENTITY.json").read_text())
+    identity_matches = (identity.get("vehicle_baseline_commit") == BASE and
+                        identity.get("research_base_commit") == BASE and
+                        identity.get("research_branch") == BRANCH)
+    check("branch_and_base", branch == BRANCH and ancestry and identity_matches,
+          ["git merge-base --is-ancestor", "audit/vehicle_baseline/SOURCE_IDENTITY.json"],
+          f"branch={branch}, tip={tip}, base={BASE}, ancestry={ancestry}, identity_matches={identity_matches}")
 
     deps_text = Path("dependencies.research.repos").read_text()
     super_pin = re.search(r"super_lio:.*?\n(?:.*\n)*?\s+version:\s*([^\s]+)", deps_text)

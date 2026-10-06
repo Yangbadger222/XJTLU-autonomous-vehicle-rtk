@@ -39,9 +39,10 @@
       "audit/ego_patch_check_latest.log",
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json",
-      "audit/container/ego-current-build.Dockerfile"
+      "audit/container/ego-current-build.Dockerfile",
+      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch"
     ],
-    "scope": "raw pinned motion_plan build/start passed in isolation; current corrected patches pass sequential apply-check and current patched ARM64 BuildKit compile passed; ordinary container startup, RViz interaction and vehicle runtime remain pending"
+    "scope": "raw pinned motion_plan build/start passed in isolation; patches 0001+0002 have current ARM64 BuildKit compile evidence and all three patches pass sequential apply-check; the current three-patch ROS rebuild, ordinary container startup, RViz interaction and vehicle runtime remain pending"
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
     "status": "PENDING",
@@ -54,7 +55,8 @@
       "audit/container/current-ego-rebuild-probe.log",
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json",
-      "audit/ego_patch_check_current.log"
+      "audit/ego_patch_check_current.log",
+      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch"
     ],
     "reason": "three sequential patches (including stale-plan clearing after failed replan) apply cleanly at the exact upstream commit; source/contract tests pass; existing ARM64 compile evidence covers 0001+0002 only, while the current three-patch ROS rebuild and target wiring/runtime remain pending",
     "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; safety and evidence interfaces are static/installed-package checked, current ROS/ARM64 rebuild and Jetson runtime remain pending"

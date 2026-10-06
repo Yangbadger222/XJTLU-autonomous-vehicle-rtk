@@ -39,6 +39,8 @@ rejects missing measured state, unknown map versions, unconfigured footprint
 inflation/curvature bounds, footprint collisions, speed/acceleration,
 discrete body-lateral-speed and curvature/yaw-rate inconsistencies. It never
 clips an infeasible trajectory.
+The third EGO patch clears stale planner results before each replan, so a
+failed optimizer cannot republish an earlier trajectory.
 
 The command edge uses `TimedTrajectoryTracker`: it interpolates the trajectory
 at the current ROS time, computes longitudinal/lateral/heading errors from

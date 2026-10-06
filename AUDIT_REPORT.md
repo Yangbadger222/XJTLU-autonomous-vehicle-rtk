@@ -8,13 +8,13 @@
 - `scripts/audit_vehicle_baseline.py` was run successfully and emitted
   `audit/vehicle_baseline/PARAMETER_LAYERS.json`; the third layer remains
   `PENDING_JETSON` rather than being inferred.
-- Both pinned upstream adaptation patches pass `git apply --check`. The raw
+- All three pinned upstream adaptation patches pass `git apply --check`. The raw
   pinned EGO node was built and started under a bounded timeout, and a prior
   vehicle-patch revision plus the Super-LIO core compiled in an isolated ARM64
-  ROS 2 Humble container. The current corrected EGO patch has a fresh exact apply-check and a current
-  isolated ARM64 BuildKit compile pass recorded in
-  `audit/container/ego-current-build.log`; the old patched log remains clearly
-  labeled prior revision. Docker ordinary container startup and Jetson runtime
+  ROS 2 Humble container. Patches 0001+0002 have an isolated ARM64 BuildKit compile pass recorded in
+  `audit/container/ego-current-build.log`; patch 0003 has an exact sequential
+  apply-check in `audit/ego_patch_check_current.log` and needs a fresh rebuild.
+  The old patched log remains clearly labeled prior revision. Docker ordinary container startup and Jetson runtime
   acceptance remain pending. Accordingly, `RESULTS.json` keeps the relevant
   runtime gates pending.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
@@ -137,9 +137,9 @@ The exact three-patch apply check passes in `audit/ego_patch_check_current.log`.
 The existing ARM64 BuildKit compile predates this third patch, so the current
 three-patch ROS rebuild remains pending.
 
-After that formula change, a fresh temporary checkout at the exact upstream
-commit reapplied patch 0001 and passed `git apply --check` for patch 0002;
-the command and current hashes are recorded in `audit/ego_patch_check_latest.log`.
+After that formula change, a fresh sparse checkout at the exact upstream
+commit applied patches 0001, 0002 and 0003; the command and current hashes are
+recorded in `audit/ego_patch_check_current.log`.
 
 The same post-check now rejects a scalar speed that disagrees with the
 trajectory tangent magnitude, so the ROS timed samples cannot carry a
@@ -147,9 +147,9 @@ world-vector/scalar-speed mismatch into the tracker.
 
 ## Follow-up implementation evidence
 
-The pinned EGO source now has a second sequential project patch that replaces its
-interactive demo edge with a vehicle ROS edge. A fresh checkout at the exact
-commit accepted both patches with `git apply --check`. The edge refuses output
+The pinned EGO source now has sequential project patches that replaces its
+interactive demo edge with a vehicle ROS edge. A fresh sparse checkout at the exact commit accepted all three patches with
+`git apply --check`. The edge refuses output
 when map resolution, inflation/footprint radius, curvature, lateral-speed
 limits, map version, measured odom state, or local obstacle grid are absent.
 It emits `TimedTrajectory2D`; the visual `nav_msgs/Path` is not consumed by the
@@ -202,10 +202,10 @@ health equivalence and checks the new source provenance fields.
 
 The isolated build evidence has two deliberate boundaries. The raw
 `Ego-Planner-2D-ROS2@7f5be6d4cee34871e85aa1f15285cfaf17b23877` package builds and
-`motion_plan` starts until a five-second timeout. The patched package then builds
-with the project interface and feasibility patches at the prior recorded
-revision; the current corrected patch has exact sequential apply-check and
-current ARM64 BuildKit compile evidence. Super-LIO
+`motion_plan` starts until a five-second timeout. The patched package with patches 0001+0002 builds with the project interface
+and feasibility changes at the recorded ARM64 revision; patch 0003 has exact
+sequential apply-check, while the current three-patch ARM64 rebuild remains
+pending. Super-LIO
 `f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2` also builds its C++ core and ROS
 interfaces; the container supplies only a compile-only `livox_ros_driver2`
 message contract because the physical Livox SDK is absent. No sensor runtime,

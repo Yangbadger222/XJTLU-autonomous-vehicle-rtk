@@ -22,3 +22,9 @@ cells are occupied. It calls the patched upstream `PlannerInterface`, publishes
 `nav_msgs/Path` only for visualization. It refuses output until a measured
 footprint-derived inflation radius, curvature bound, lateral-speed bound and
 map version are configured.
+
+`0003-clear-stale-plan-on-failure.patch` is applied third. It clears the
+planner's previous timed-result and A* buffers before each replan, so an
+optimizer failure or missing measured state cannot republish an older plan.
+The current ARM64 compile log predates this safety patch; its exact sequential
+apply-check is recorded separately.

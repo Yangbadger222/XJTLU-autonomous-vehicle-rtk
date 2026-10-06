@@ -26,7 +26,8 @@ not attach production serial.
 
 The reproducible source patches are
 `patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch` followed by
-`0002-vehicle-ros-timed-trajectory.patch`. They apply only at the pinned EGO
+`0002-vehicle-ros-timed-trajectory.patch` and
+`0003-clear-stale-plan-on-failure.patch`. They apply only at the pinned EGO
 commit, and their sequential check is enforced by
 `scripts/apply_ego_vehicle_patch.sh`; a fresh checkout was verified with
 `git apply --check`. The raw EGO node and a prior patched EGO revision, plus

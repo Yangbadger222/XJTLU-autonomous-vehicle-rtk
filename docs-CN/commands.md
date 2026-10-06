@@ -881,3 +881,19 @@ colcon test-result --verbose
 ```
 
 实车验收前还必须单独部署串口分支、刷写 STM32，并在电机失能条件下完成 500 ms command-loss bench。运行时检查 `/localization_authority/motion_allowed`、`/gps_corridor/stop_override`、`/cmd_vel_nav` 与 guard 后的 `/cmd_vel`。
+# 研究闭环命令
+
+本地无 ROS 依赖时仅运行执行器隔离的 replay：
+
+```bash
+PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test
+PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
+  --output runtime-data/research/active_road/replay_smoke.json
+```
+
+Jetson 需在干净 worktree 中使用 `colcon build --parallel-workers 1`，再以
+`execution_mode:=shadow` 启动 `system_active_road_research.launch.py`。默认
+入口是 replay；不要把真实串口挂载到 replay，live 需要人工现场验收。
+
+锁定前两层参数并保留第三层待车端 dump：
+`python3 scripts/audit_vehicle_baseline.py`。

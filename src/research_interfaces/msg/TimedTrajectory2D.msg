@@ -1,0 +1,12 @@
+std_msgs/Header header
+string trajectory_id
+string map_version
+builtin_interfaces/Time generated_at
+builtin_interfaces/Time valid_until
+uint8 STATUS_OK=0
+uint8 STATUS_INFEASIBLE=1
+uint8 STATUS_STALE=2
+uint8 STATUS_UNKNOWN_MAP=3
+uint8 status
+string failure_reason
+TimedTrajectoryPoint2D[] points

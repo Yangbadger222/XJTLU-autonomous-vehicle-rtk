@@ -1,0 +1,22 @@
+{
+  "vehicle_repository": "Yangbadger222/XJTLU-autonomous-vehicle-rtk",
+  "vehicle_branch": "corridor-authority-stability",
+  "vehicle_baseline_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "research_branch": "codex/superlio-ego-active-road",
+  "research_base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "external_dependencies": {
+    "super_lio": {
+      "repository": "Liansheng-Wang/Super-LIO",
+      "branch": "ros2",
+      "commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2"
+    },
+    "ego_planner_2d_ros2": {
+      "repository": "JackJu-HIT/Ego-Planner-2D-ROS2",
+      "branch": "develop",
+      "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877"
+    }
+  },
+  "local_workspace": "vehicle-research",
+  "vehicle_deployment_state": "NOT_READ_NO_JETSON_ACCESS",
+  "local_uncommitted_baseline_changes": false
+}

@@ -1,0 +1,9 @@
+repositories:
+  super_lio:
+    type: git
+    url: https://github.com/Liansheng-Wang/Super-LIO.git
+    version: f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2
+  ego_planner_2d_ros2:
+    type: git
+    url: https://github.com/JackJu-HIT/Ego-Planner-2D-ROS2.git
+    version: 7f5be6d4cee34871e85aa1f15285cfaf17b23877

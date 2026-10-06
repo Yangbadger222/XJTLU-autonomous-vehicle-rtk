@@ -1,0 +1,36 @@
+{
+  "denied_reason": "rtk_authority_false",
+  "evidence_count": 1,
+  "policy_comparison": {
+    "policies": {
+      "PASSIVE": {
+        "correct_evaluator_labels": 0,
+        "cost": 0,
+        "observations": 0,
+        "resolved_geometry": 0
+      },
+      "PERIODIC_LOOK": {
+        "correct_evaluator_labels": 2,
+        "cost": 7.0,
+        "observations": 2,
+        "resolved_geometry": 0
+      },
+      "TASK_AWARE_LOOK": {
+        "correct_evaluator_labels": 2,
+        "cost": 3.5,
+        "observations": 2,
+        "resolved_geometry": 2
+      }
+    },
+    "truth_is_evaluator_only": true
+  },
+  "selected_candidate": "view-safe",
+  "selected_score": 0.6999996500001749,
+  "serial_allowed": "vcx=0.2,wc=0\n",
+  "serial_denied": "vcx=0,wc=0\n",
+  "trajectory": {
+    "reasons": [],
+    "valid": true
+  },
+  "truth_access": false
+}

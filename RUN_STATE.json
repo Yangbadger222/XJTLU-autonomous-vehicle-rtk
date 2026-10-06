@@ -1,0 +1,16 @@
+{
+  "branch": "codex/superlio-ego-active-road",
+  "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "active_processes": [],
+  "commands": [
+    {"command":"PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test","status":"PASS","exit_code":0,"evidence":"10 tests"},
+    {"command":"PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json","status":"PASS","exit_code":0,"evidence":"trajectory, policy comparison and final mock serial stop"},
+    {"command":"python3 -m py_compile ...","status":"PASS","exit_code":0,"evidence":"launch and adapter Python syntax"},
+    {"command":"colcon build --parallel-workers 1","status":"NOT_RUN","evidence":"ROS 2 Humble/colcon unavailable on macOS host"},
+    {"command":"ros2 bag play <vehicle bag>","status":"NOT_RUN","evidence":"ROS 2 bag tooling unavailable; bag metadata inventory recorded"},
+    {"command":"system_active_road_research.launch.py execution_mode:=shadow","status":"NOT_RUN","evidence":"Jetson-only runtime dependencies and hardware unavailable"}
+  ],
+  "runtime_data_root":"runtime-data/research/active_road",
+  "actuator_mode":"never_connected",
+  "physical_motion":"not_performed"
+}

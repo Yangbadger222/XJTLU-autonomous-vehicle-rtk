@@ -1,0 +1,45 @@
+/**:
+  ros__parameters:
+    # This is a vehicle parameterized config, not the upstream livox_360.yaml.
+    # Values shared with FAST-LIO2 are copied only where the source semantics
+    # have been audited. Sensor/parser equivalence remains a build gate.
+    lio.map.save_map: false
+    lio.map.if_filter: true
+    lio.map.save_map_dir: "runtime-data/research/active_road/super_lio"
+    lio.map.map_name: "super_lio_local.pcd"
+    lio.map.ds_size: 0.25
+    lio.map.save_interval: 500
+    lio.ros.lidar_topic: "/livox/lidar"
+    lio.ros.imu_topic: "/livox/imu"
+    lio.sensor.lidar_type: 1
+    # Carry-over range and packet stride from the locked corridor FAST-LIO2
+    # config; never use the upstream 2m/60m example defaults.
+    lio.sensor.blind: 0.5
+    lio.sensor.maxrange: 25.0
+    lio.sensor.filter_rate: 4
+    lio.sensor.enable_downsample: false
+    lio.sensor.gravity_norm: 9.7946
+    lio.sensor.imu_type: 1
+    lio.sensor.imu_na: 0.01
+    lio.sensor.imu_ng: 0.01
+    lio.sensor.imu_nba: 0.0001
+    lio.sensor.imu_nbg: 0.0001
+    lio.extrinsic.lidar_imu: [-0.011, -0.02329, 0.04412, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+    # Keep the upstream output in its measured/reference frame. The vehicle
+    # adapter refuses motion until an independent IMU->base measurement exists.
+    lio.extrinsic.odom_robo: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    lio.hash_map.hash_capacity: 2000000
+    lio.hash_map.vox_resolution: 0.5
+    lio.kf.kf_type: 0
+    lio.kf.kf_max_iterations: 4
+    lio.kf.kf_align_gravity: true
+    lio.kf.kf_quit_eps: 0.001
+    lio.output.robot: true
+    lio.output.plan_env_world: true
+    lio.output.plan_env_body: true
+    lio.output.ml_map: false
+    lio.output.planner: false
+    lio.output.map: true
+    lio.output.dense: true
+    lio.output.pub_step: 1
+    lio.eva.timer: true

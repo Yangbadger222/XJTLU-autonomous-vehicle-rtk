@@ -1,0 +1,10 @@
+std_msgs/Header header
+string goal_id
+string event_id
+float64 x
+float64 y
+float64 yaw
+float64 score
+float64 cost
+float64 observable_fraction
+string reason

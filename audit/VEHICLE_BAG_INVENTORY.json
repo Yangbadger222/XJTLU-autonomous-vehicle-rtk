@@ -1,0 +1,106 @@
+{
+  "available_metadata_count_at_least": 90,
+  "sample": [
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-11-33-28/bag/metadata.yaml",
+      "bytes": 7218,
+      "sha256": "e332627e70ac5a8d87ce3db3f991be3af35d27aa7674b87ae7f2dbef663e1a1a"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-11-35-07/bag/metadata.yaml",
+      "bytes": 5706,
+      "sha256": "9aec0858c8d90ea3c208ec9bd30580f482102d8e07120ab1bc2892f047d0ffd6"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-12-19-01/bag/metadata.yaml",
+      "bytes": 6011,
+      "sha256": "86ea6a8aae800bd99d5719ac8b9bd4c59cd7b438650dcccbe63013d60b8ee80c"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-12-22-08/bag/metadata.yaml",
+      "bytes": 5102,
+      "sha256": "a55e1bcdfa60b328142454477d8d23cfc1b37258e11b02dd1b3fb4e93b61052c"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-12-28-03/bag/metadata.yaml",
+      "bytes": 5410,
+      "sha256": "afaa38ac52edb0eaa7ffb850eaceb38ac12b78e3b8b3e890a676a11f0b10a26b"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-12-44-14/bag/metadata.yaml",
+      "bytes": 5713,
+      "sha256": "870ee253f1652b50d388c9a82759df0420ef3ecc4fc3abcde6217d22cb3cdb43"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-05-00/bag/metadata.yaml",
+      "bytes": 5421,
+      "sha256": "dcb84e345f332e7c93c61c01048dd407a8e98af491f6fa01feb7c817efcb101c"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-09-35/bag/metadata.yaml",
+      "bytes": 6313,
+      "sha256": "93528eee2283b6466c5364fca5e21f153698330530fee72f106dadca4b548f43"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-33-44/bag/metadata.yaml",
+      "bytes": 6198,
+      "sha256": "5ea6c0cfea256471eded7c1f310494b9181abd985e6e9ff348d7527f86009228"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-35-27/bag/metadata.yaml",
+      "bytes": 5597,
+      "sha256": "74e371251ee9e31cb70157270e40e5070902f67864f5e6cb7bbbdb0536ebda6c"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-37-00/bag/metadata.yaml",
+      "bytes": 5294,
+      "sha256": "e516f77d2e2276c52c41fe761008038177c71bac3de4eccba3713adbe63e09de"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-47-50/bag/metadata.yaml",
+      "bytes": 6500,
+      "sha256": "192f69af475d2070b5382dc982a625b09549c06a21b66a260170df305f10ccf4"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-13-50-16/bag/metadata.yaml",
+      "bytes": 6500,
+      "sha256": "c933a825dcd0ce484c1919a87017b065c936010199d39365cc89afd60b4faa82"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-06-16/bag/metadata.yaml",
+      "bytes": 4165,
+      "sha256": "351a336b9fe32c8177f5f0985d5a88a4af8958175693bddb93fcaa07a617428e"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-10-18/bag/metadata.yaml",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-19-50/bag/metadata.yaml",
+      "bytes": 5595,
+      "sha256": "0ebdc1ed39fcbcf4d808140cdedd09985729be48794492c13e8c2952ecbb55e6"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-20-17/bag/metadata.yaml",
+      "bytes": 6197,
+      "sha256": "c02e2004584255051e3092de22977041ad5441286ef4dc398a16094850565f3e"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-33-36/bag/metadata.yaml",
+      "bytes": 6505,
+      "sha256": "e60492d9739fc99ef2b757128ccd270d23ec2a2360eb0cd41b699ac65633eb63"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-14-34-33/bag/metadata.yaml",
+      "bytes": 6808,
+      "sha256": "78f6163bd44827dab95e76f0d6144dd7c76c3c5378e4484438d79281105db7f3"
+    },
+    {
+      "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-22-15-12-05/bag/metadata.yaml",
+      "bytes": 6505,
+      "sha256": "e3ca72366dbd14b97de5dd7967bb90c1c1d3359c6df5d5d58e865b05b9d5b9cd"
+    }
+  ],
+  "replay_status": "NOT_RUN_ROS2_TOOLING_UNAVAILABLE"
+}

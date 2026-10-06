@@ -342,3 +342,20 @@ gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corr
 ```
 
 The corrector is the only corridor `map->odom` owner. The runner owns stop intent and action retry, but never Twist. Its global-correction watchdog compares old and new `map->odom` at the same current `odom->base` pose, measuring only the correction applied to the vehicle rather than origin-dependent raw `map->odom` translation. The guard is the only corridor `/cmd_vel_guarded` publisher and is a required launch process. In guarded mode serial subscribes only to that topic; missing either 10 Hz Bool heartbeat for 0.50 s stops output. Explore and other modes continue to use Nav2 `/cmd_vel` directly.
+# Active-road research entry (2026-10-07)
+
+The research branch `codex/superlio-ego-active-road` is based on vehicle commit
+`e54c6afbcb5a58db22d7c468085a87d658b0b932` and pins Super-LIO and
+Ego-Planner-2D-ROS2 as exact external commits. `system_active_road_research.launch.py`
+does not include Nav2/MPPI, SLAM Toolbox, legacy task dispatch, PGO/FGO, or the
+fake simulator. Livox, RTK authority, the original command guard, serial bridge,
+and logging remain required foundations. Loss of RTK authority still stops the
+vehicle; LIO cannot grant motion permission.
+
+Planning uses the typed `research_interfaces/TimedTrajectory2D` contract;
+`nav_msgs/Path` is visualization only. The adapter injects measured initial
+velocity/acceleration and validates time, dynamic limits, curvature/yaw-rate,
+footprint sweep, map version, and expiry. Unknown map space or an unverified
+Super-LIO IMU-to-base transform blocks motion. Evidence persistence binds CRS,
+time, submap, and observation UUID; the active-observation score is a bounded
+heuristic and is not a claim of novelty or real-vehicle benefit.

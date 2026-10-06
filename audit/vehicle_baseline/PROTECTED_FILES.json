@@ -1,0 +1,40 @@
+{
+  "baseline_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "files": [
+    {
+      "path": "src/bringup/config/master_params.yaml",
+      "sha256": "a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758",
+      "bytes": 28621
+    },
+    {
+      "path": "src/bringup/launch/system_gps_corridor.launch.py",
+      "sha256": "2f8b1f6f0678942d19af40ed9c699b1954f9d9428807d0f5e470adccabe03167",
+      "bytes": 11673
+    },
+    {
+      "path": "src/bringup/launch/system_nav_gps.launch.py",
+      "sha256": "513c857695c420d91db058fdd72f9dace03f85f6f94bad6fcb78144cb6a9b9d9",
+      "bytes": 19567
+    },
+    {
+      "path": "src/perception/fastlio2/src/lio_node.cpp",
+      "sha256": "dd6a1154bec5ef7fbd41ca99b3b08f1b5ebbc13d22a148ddaae86afd58ef6366",
+      "bytes": 39420
+    },
+    {
+      "path": "src/sensor_drivers/serial_twistctl/src/serial_twistctl_node.cpp",
+      "sha256": "14d7cd49db91045809d4a62ebc5129bf50c0dcdbe70c36fea2b97c3ce1215a2d",
+      "bytes": 12688
+    },
+    {
+      "path": "src/sensor_drivers/serial_twistctl/include/serial_twistctl/twist_command.hpp",
+      "sha256": "5c585722a578182108129bc51abd7efa8f678164e5bdbb9b9dbc1f42584dd8df",
+      "bytes": 453
+    },
+    {
+      "path": "src/firmware/rm_c_board/README.md",
+      "sha256": "a58724880c92b18f77c499cd590b03b708d50e4129428d619d9aa5bbac4259e9",
+      "bytes": 1907
+    }
+  ]
+}

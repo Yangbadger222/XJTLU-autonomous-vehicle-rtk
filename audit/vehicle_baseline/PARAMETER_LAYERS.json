@@ -1,0 +1,62 @@
+{
+  "corridor_launch_override_layer": {
+    "max_accel": [
+      0.85,
+      0.0,
+      1.4
+    ],
+    "max_decel": [
+      -1.2,
+      0.0,
+      -1.8
+    ],
+    "max_velocity": [
+      0.85,
+      0.0,
+      0.7
+    ],
+    "min_velocity": [
+      0.0,
+      0.0,
+      -0.7
+    ]
+  },
+  "parsed_layer": {
+    "esti_il": "bool",
+    "imu_topic": "str",
+    "lidar_max_range": "float",
+    "lidar_min_range": "float",
+    "lidar_topic": "str",
+    "map_resolution": "float",
+    "r_il": "list",
+    "t_il": "list"
+  },
+  "runtime_layer": {
+    "command": "ros2 param dump /fastlio2/lio_node and /corridor_cmd_vel_guard",
+    "status": "PENDING_JETSON"
+  },
+  "source_layer": {
+    "esti_il": false,
+    "imu_topic": "/livox/imu",
+    "lidar_max_range": 25.0,
+    "lidar_min_range": 0.5,
+    "lidar_topic": "/livox/lidar",
+    "map_resolution": 0.3,
+    "r_il": [
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "t_il": [
+      -0.011,
+      -0.02329,
+      0.04412
+    ]
+  }
+}

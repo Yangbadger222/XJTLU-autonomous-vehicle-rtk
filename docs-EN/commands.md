@@ -879,3 +879,20 @@ colcon test-result --verbose
 ```
 
 Before vehicle acceptance, separately deploy the serial branch, flash the STM32, and perform the motor-disabled 500 ms command-loss bench. During runtime monitor `/localization_authority/motion_allowed`, `/gps_corridor/stop_override`, `/cmd_vel_nav`, and guarded `/cmd_vel`.
+# Research loop commands
+
+On a host without ROS dependencies, run only the actuator-isolated replay:
+
+```bash
+PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test
+PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
+  --output runtime-data/research/active_road/replay_smoke.json
+```
+
+On Jetson, use a clean worktree and `colcon build --parallel-workers 1`, then
+launch `system_active_road_research.launch.py` with `execution_mode:=shadow`.
+The default is replay; never attach a production serial device to replay. Live
+requires the human acceptance checklist.
+
+Extract the source and launch layers while leaving the runtime dump explicit:
+`python3 scripts/audit_vehicle_baseline.py`.

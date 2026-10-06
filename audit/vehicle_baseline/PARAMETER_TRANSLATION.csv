@@ -1,0 +1,13 @@
+source_name,vehicle_field,research_field,classification,units_or_equation,evidence,status
+lio.imu_topic,/livox/imu,/super_lio/imu_topic,EXACT_CARRY_OVER,ROS topic,master_params.yaml,PENDING_RUNTIME
+lio.lidar_topic,/livox/lidar,/super_lio/lidar_topic,EXACT_CARRY_OVER,ROS topic,master_params.yaml,PENDING_RUNTIME
+lio.t_il,[-0.011 -0.02329 0.04412],super_lio.extrinsic_translation,EXACT_CARRY_OVER,m; direction must follow parser source,FAST-LIO2 lio_node.cpp,PENDING_SUPERLIO_REVIEW
+lio.r_il,I3,super_lio.extrinsic_rotation,EXACT_CARRY_OVER,rotation matrix; no online estimation,master_params.yaml,PENDING_SUPERLIO_REVIEW
+cloud.publish_height_window,[-0.33 0.30],research_cloud_filter,EXACT_CARRY_OVER,relative z along gravity,FAST-LIO2 lio_node.cpp,PENDING_ADAPTER
+cloud.nav2_obstacle_height_window,[0.08 1.20],research_obstacle_filter,EXACT_CARRY_OVER,relative z along gravity,FAST-LIO2 lio_node.cpp,PENDING_ADAPTER
+corridor.smoother.max_velocity,[0.85 0 0.70],trajectory.v_w_max/w_max,SEMANTIC_CONVERSION,world/body transform then v and yaw-rate checks,system_gps_corridor.launch.py,PENDING_FOOTPRINT
+corridor.smoother.max_accel,[0.85 0 1.4],trajectory.a_w_max/alpha_max,SEMANTIC_CONVERSION,body longitudinal acceleration and angular acceleration,system_gps_corridor.launch.py,PENDING_FOOTPRINT
+corridor.smoother.max_decel,[-1.2 0 -1.8],trajectory.a_min/alpha_min,SEMANTIC_CONVERSION,stop authority remains original,system_gps_corridor.launch.py,PENDING_FOOTPRINT
+nav2 FollowPath.*,,ego_planner_2d,LEGACY_ALGORITHM_NOT_APPLICABLE,MPPI fields are not copied into EGO,nav2_corridor_rtk.yaml,INTENTIONALLY_NOT_USED
+EGO demo max_vel=2.0,,ego_vehicle_adapter,NEW_ALGORITHM_SETTING,never a vehicle limit; must be explicitly configured,upstream source,PENDING_CONFIG
+EGO demo map_resolution=0.1,,ego_vehicle_adapter,NEW_ALGORITHM_SETTING,never a vehicle measurement; configured research setting,upstream source,PENDING_CONFIG

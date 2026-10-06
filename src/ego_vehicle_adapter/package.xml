@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ego_vehicle_adapter</name>
+  <version>0.1.0</version>
+  <description>Vehicle-facing contracts around the pinned Ego-Planner-2D-ROS2 implementation.</description>
+  <maintainer email="research@xjtlu.invalid">XJTLU research</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>python3</exec_depend>
+  <exec_depend>research_runtime</exec_depend>
+  <exec_depend>research_interfaces</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

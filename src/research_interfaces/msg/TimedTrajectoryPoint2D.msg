@@ -1,0 +1,9 @@
+float64 t
+float64 x
+float64 y
+float64 yaw
+float64 v
+float64 w
+float64 a
+float64 alpha
+float64 curvature

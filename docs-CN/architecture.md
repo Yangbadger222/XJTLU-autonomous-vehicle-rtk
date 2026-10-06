@@ -342,3 +342,17 @@ gps_route_runner -> /gps_corridor/stop_override ------------------------+-> corr
 ```
 
 corrector 是 corridor 唯一 `map→odom` owner。runner 只拥有 stop intent 与 action retry，不发布 Twist。runner 的全局校正 watchdog 在同一当前 `odom→base` 位姿上比较前后 `map→odom`，只测量实际施加到车辆的校正步长；它不再直接使用原点相关的 raw `map→odom` 平移速率。guard 是 corridor 唯一 `/cmd_vel_guarded` publisher，也是 required launch process；guarded 模式下 serial 只订阅该话题，任一 10 Hz Bool heartbeat 超过 0.50 秒缺失都会输出停车。Explore 与其他模式仍直接使用 Nav2 的 `/cmd_vel`。
+# Active-road research entry (2026-10-07)
+
+研究分支 `codex/superlio-ego-active-road` 固定车辆基线
+`e54c6afbcb5a58db22d7c468085a87d658b0b932`，并把 Super-LIO 与
+Ego-Planner-2D-ROS2 作为外部精确提交依赖。新入口
+`system_active_road_research.launch.py` 不包含 Nav2/MPPI、SLAM Toolbox、旧
+任务调度、PGO/FGO 或 fake simulator；Livox、RTK authority、原命令 guard、
+串口和日志仍是必要基础。RTK authority 失效仍产生停止，LIO 不可接管权限。
+
+EGO 规划结果使用 `research_interfaces/TimedTrajectory2D`，而
+`nav_msgs/Path` 只用于可视化。适配层从实际状态提供起始速度/加速度，检查
+时间、动态限值、曲率/yaw-rate、车体 footprint、地图版本和有效期；未知地图
+或未验证的 Super-LIO IMU→车体外参会阻止运动。地图证据通过 CRS/时间/子图/观测
+UUID 持久化，主动观察评分是有限启发式，不代表论文创新或实车收益。

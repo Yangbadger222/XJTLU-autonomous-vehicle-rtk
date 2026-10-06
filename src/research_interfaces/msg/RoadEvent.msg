@@ -1,0 +1,10 @@
+std_msgs/Header header
+string event_id
+string kind
+float64 x
+float64 y
+float64 observed_length_m
+float64 unknown_length_m
+string state
+float64 impact
+string source

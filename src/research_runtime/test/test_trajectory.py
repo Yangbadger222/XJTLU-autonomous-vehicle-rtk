@@ -1,0 +1,44 @@
+import math
+
+from research_runtime.trajectory import TimedPoint, TimedTrajectory, VehicleLimits, validate_trajectory
+
+
+def traj(points):
+    return TimedTrajectory.from_points("t", "m1", "odom", 0.0, 10.0, points)
+
+
+def test_real_start_velocity_is_preserved_and_validated():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.12, 0.0),
+        TimedPoint(1.0, 0.12, 0.0, 0.0, 0.12, 0.0),
+    ]), VehicleLimits(), now=1.0, expected_map_version="m1")
+    assert result.valid
+
+
+def test_world_component_speed_is_not_enough_for_curvature():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.5, 0.0, curvature=2.0),
+        TimedPoint(1.0, 0.5, 0.0, 0.0, 0.5, 0.0, curvature=2.0),
+    ]), VehicleLimits(max_curvature_1pm=1.0), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert any("curvature_limit" in reason for reason in result.reasons)
+
+
+def test_unknown_or_obstacle_footprint_rejects_path():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),
+        TimedPoint(1.0, 0.2, 0.0, 0.0, 0.2, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1",
+    footprint=[(-0.5, -0.3), (-0.5, 0.3), (0.5, -0.3), (0.5, 0.3)],
+    occupied=lambda x, y: x > 0.4)
+    assert not result.valid
+    assert "footprint_collision_or_unknown" in result.reasons
+
+
+def test_dynamic_limits_reject_without_clipping():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0, a=0.0),
+        TimedPoint(1.0, 0.2, 0.0, 0.0, 0.2, 0.0, a=2.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert any("accel_limit" in reason for reason in result.reasons)

@@ -31,6 +31,15 @@ class GeoTransform:
     pixel_size_y_m: float
     axis_order: str = "x_east_y_north"
 
+    def __post_init__(self) -> None:
+        if not self.crs or not self.datum or not self.axis_order:
+            raise ValueError("CRS, datum and axis order are required")
+        values = (self.origin_x_m, self.origin_y_m, self.pixel_size_x_m, self.pixel_size_y_m)
+        if not all(math.isfinite(float(value)) for value in values):
+            raise ValueError("geotransform values must be finite")
+        if self.pixel_size_x_m == 0.0 or self.pixel_size_y_m == 0.0:
+            raise ValueError("pixel size must be non-zero")
+
     def pixel_to_local(self, col: float, row: float) -> tuple[float, float]:
         return (self.origin_x_m + (col + 0.5) * self.pixel_size_x_m,
                 self.origin_y_m - (row + 0.5) * self.pixel_size_y_m)
@@ -81,9 +90,13 @@ class MaGRoadPrior:
     @classmethod
     def load_geojson(cls, path: str | Path, *, expected_crs: str, model_version: str) -> "MaGRoadPrior":
         payload = json.loads(Path(path).read_text())
-        declared = payload.get("crs", {}).get("properties", {}).get("name", expected_crs)
+        declared = payload.get("crs", {}).get("properties", {}).get("name")
+        if not declared:
+            raise ValueError("MaGRoad CRS is required; refusing to infer CRS")
         if declared != expected_crs:
             raise ValueError(f"MaGRoad CRS mismatch: {declared} != {expected_crs}")
+        if not model_version:
+            raise ValueError("MaGRoad model version is required")
         edges = []
         for feature in payload.get("features", []):
             if feature.get("geometry", {}).get("type") != "LineString":
@@ -91,6 +104,9 @@ class MaGRoadPrior:
             coords = feature["geometry"].get("coordinates", [])
             if len(coords) < 2:
                 continue
+            if any(len(point) < 2 or not all(math.isfinite(float(value)) for value in point[:2])
+                   for point in coords):
+                raise ValueError("MaGRoad coordinates must be finite XY points")
             edges.append({"id": str(feature.get("properties", {}).get("id", len(edges))),
                           "coordinates": [tuple(point[:2]) for point in coords],
                           "properties": feature.get("properties", {})})

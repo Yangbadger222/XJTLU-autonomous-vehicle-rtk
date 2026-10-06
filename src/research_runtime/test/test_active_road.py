@@ -51,6 +51,29 @@ def test_magroad_prior_requires_crs_and_keeps_model_version(tmp_path):
     assert prior.edges[0]["id"] == "r1"
 
 
+def test_magroad_prior_rejects_missing_crs_and_invalid_geometry(tmp_path):
+    with pytest.raises(ValueError, match="CRS"):
+        GeoTransform("", "WGS84", 0, 0, 1, 1)
+
+    missing_crs = tmp_path / "missing-crs.geojson"
+    missing_crs.write_text(json.dumps({
+        "type": "FeatureCollection",
+        "features": [],
+    }))
+    with pytest.raises(ValueError, match="CRS"):
+        MaGRoadPrior.load_geojson(missing_crs, expected_crs="EPSG:32651", model_version="magr-v1")
+
+    invalid_geometry = tmp_path / "invalid-geometry.geojson"
+    invalid_geometry.write_text(json.dumps({
+        "type": "FeatureCollection",
+        "crs": {"properties": {"name": "EPSG:32651"}},
+        "features": [{"type": "Feature", "geometry": {
+            "type": "LineString", "coordinates": [[0, 0], ["NaN", 1]]}},
+    ]}))
+    with pytest.raises(ValueError, match="finite"):
+        MaGRoadPrior.load_geojson(invalid_geometry, expected_crs="EPSG:32651", model_version="magr-v1")
+
+
 def test_persisted_evidence_rejects_bad_schema_and_invalid_measurements(tmp_path):
     store = EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0, 0, 1, 1), "v1")
     with pytest.raises(ValueError):

@@ -78,7 +78,7 @@
       "src/research_runtime/test/test_active_road.py",
       "src/research_runtime/test/test_grid_map.py"
     ],
-    "scope": "synthetic CRS-bound, idempotent evidence store with schema/measurement validation plus conservative odom-frame obstacle-grid projection; target sensor/TF wiring remains pending"
+    "scope": "synthetic CRS-bound, idempotent evidence store with explicit CRS/finite-geometry and schema/measurement validation plus conservative odom-frame obstacle-grid projection; target sensor/TF wiring remains pending"
   },
   "ACTIVE_OBSERVATION_IMPLEMENTED": {
     "status": "PASS",

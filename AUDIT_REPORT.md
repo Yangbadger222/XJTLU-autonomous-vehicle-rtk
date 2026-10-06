@@ -41,7 +41,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`41 passed`). The replay
+The new transport-independent and contract suite passes (`42 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -75,7 +75,9 @@ Active-observation candidates now hard-filter negative/non-finite cost,
 impact and observability inputs before scoring; the test suite covers those
 invalid heuristic inputs separately from reachability and safety filters. The
 evidence store also rejects unsupported schemas and malformed measurements
-before they can be persisted or replayed.
+before they can be persisted or replayed. MaGRoad GeoJSON now requires an
+explicit CRS and finite geometry; GeoTransform rejects missing or non-finite
+metadata instead of inferring a coordinate convention.
 
 ## Follow-up implementation evidence
 

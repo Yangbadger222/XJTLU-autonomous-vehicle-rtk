@@ -29,6 +29,6 @@
 
 ## 仍需现场或目标环境完成的门槛
 
-`RESULTS.json` 已逐项区分软件 PASS、研究合成 PASS 与实车 PENDING：真实 LiDAR/IMU bag 回放、IMU→base 外参与协方差/健康等价性、运行时有效参数 dump、Jetson shadow、物理急停最终串口字节、RTK authority holdover 和 live motion acceptance 均未冒充完成。已完成的 bag 回放只覆盖旧 odom/costmap/cmd topic。RTK 失 authority 时仍由既有保护停车；Super-LIO 健康不能绕过该停车条件。
+`RESULTS.json` 已逐项区分软件 PASS、研究合成 PASS 与实车 PENDING：Super-LIO 的核心/消息合同编译已通过，但合并的 build/runtime 项保持 PENDING；真实 LiDAR/IMU bag 回放、IMU→base 外参与协方差/健康等价性、运行时有效参数 dump、Jetson shadow、物理急停最终串口字节、RTK authority holdover 和 live motion acceptance 均未冒充完成。已完成的 bag 回放只覆盖旧 odom/costmap/cmd topic。RTK 失 authority 时仍由既有保护停车；Super-LIO 健康不能绕过该停车条件。
 
 详细证据见仓库中的 `RESULTS.json`、`AUDIT_REPORT.md`、`audit/UPSTREAM_PATCH_VERIFICATION.json`、`audit/VEHICLE_BAG_REPLAY_INPUT.json` 和 `LIVE_ACCEPTANCE_CHECKLIST.md`。

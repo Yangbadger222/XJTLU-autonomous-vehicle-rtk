@@ -11,13 +11,14 @@
     "scope": "source and static launch layers; runtime dump pending"
   },
   "SUPER_LIO_BUILD_AND_RUNTIME": {
-    "status": "PASS",
+    "status": "PENDING",
     "evidence": [
       "dependencies.research.repos",
       "audit/UPSTREAM_PATCH_VERIFICATION.json",
       "audit/container/super-lio-build-message-only.log"
     ],
-    "scope": "isolated ARM64 ROS 2 Humble core build passed with a compile-only livox_ros_driver2 message contract; physical Livox SDK/driver, Jetson runtime and sensor bag replay remain pending"
+    "scope": "isolated ARM64 ROS 2 Humble core build passed with a compile-only livox_ros_driver2 message contract; physical Livox SDK/driver, Jetson runtime and sensor bag replay remain pending",
+    "reason": "The build/provenance gate passed, but the requested runtime gate has no physical driver, sensor input or Jetson execution evidence"
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PENDING",

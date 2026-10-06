@@ -13,7 +13,8 @@
   EGO vehicle edge compiled, and the Super-LIO core compiled in an isolated
   ARM64 ROS 2 Humble container. The logs are retained under
   `audit/container/`; these are build/provenance results, not Jetson runtime
-  acceptance.
+  acceptance. Accordingly, `RESULTS.json` keeps the combined Super-LIO
+  build/runtime item `PENDING` while preserving the compile evidence.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
 - Dynamic feasibility, real start state, curvature/yaw-rate consistency, map version, expiry and footprint checks have replay tests.
 - Evidence persistence is CRS-bound and idempotent by observation UUID.

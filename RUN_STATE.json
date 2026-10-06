@@ -4,7 +4,7 @@
   "tip_commit_at_report": "verify with git rev-parse HEAD",
   "active_processes": [],
   "commands": [
-    {"command":"PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test","status":"PASS","exit_code":0,"evidence":"10 tests"},
+    {"command":"PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test","status":"PASS","exit_code":0,"evidence":"11 tests"},
     {"command":"PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json","status":"PASS","exit_code":0,"evidence":"trajectory, policy comparison and final mock serial stop"},
     {"command":"python3 -m py_compile ...","status":"PASS","exit_code":0,"evidence":"launch and adapter Python syntax"},
     {"command":"colcon build --parallel-workers 1","status":"NOT_RUN","evidence":"ROS 2 Humble/colcon unavailable on macOS host"},

@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "cc76a3349ef0304259ef5f3900136071c16cbacc",
+  "tip_commit_at_report": "0d75609",
   "active_processes": [],
   "commands": [
     {

@@ -12,11 +12,14 @@ from __future__ import annotations
 
 try:
     import rclpy
+    from rclpy.duration import Duration
     from nav_msgs.msg import Odometry
     from std_msgs.msg import String
     from rclpy.node import Node
+    from tf2_ros import Buffer, TransformException, TransformListener
 except ImportError:  # allows static linting on the developer laptop
     rclpy = None
+    Duration = Buffer = TransformException = TransformListener = object
 
 
 def _qmul(a, b):
@@ -72,6 +75,41 @@ def _normalize_quaternion(q):
     return tuple(float(value) / norm for value in q)
 
 
+def _rotate_covariance(covariance, quaternion):
+    """Rotate a 6x6 pose covariance by a source->target quaternion.
+
+    Odometry pose covariance is ordered as xyz/rpy. The same 3x3 rotation is
+    applied to both blocks; this keeps the covariance contract honest when a
+    stamped ``world -> odom`` transform has a non-zero yaw. Twist covariance is
+    left in the child frame because the measured IMU->base transform is gated
+    to the identity whenever covariance checking is enabled.
+    """
+    import math
+    if len(covariance) != 36:
+        return None
+    q = _normalize_quaternion(quaternion)
+    if q is None or not _finite(covariance):
+        return None
+    x, y, z, w = q
+    rotation = (
+        (1.0 - 2.0 * (y * y + z * z), 2.0 * (x * y - z * w), 2.0 * (x * z + y * w)),
+        (2.0 * (x * y + z * w), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - x * w)),
+        (2.0 * (x * z - y * w), 2.0 * (y * z + x * w), 1.0 - 2.0 * (x * x + y * y)),
+    )
+    matrix = [list(float(value) for value in covariance[row * 6:(row + 1) * 6])
+              for row in range(6)]
+    output = [[0.0] * 6 for _ in range(6)]
+    for block_row in (0, 1):
+        for block_col in (0, 1):
+            for row in range(3):
+                for col in range(3):
+                    output[3 * block_row + row][3 * block_col + col] = sum(
+                        rotation[row][i] * matrix[3 * block_row + i][3 * block_col + j] *
+                        rotation[col][j]
+                        for i in range(3) for j in range(3))
+    return tuple(value for row in output for value in row)
+
+
 class SuperLioVehicleAdapter(Node if rclpy else object):
     def __init__(self):
         super().__init__("super_lio_vehicle_adapter")
@@ -82,6 +120,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self.declare_parameter("source_frame", "world")
         self.declare_parameter("world_frame", "odom")
         self.declare_parameter("base_frame", "base_footprint")
+        self.declare_parameter("source_child_frame", "imu")
+        self.declare_parameter("tf_timeout_s", 0.05)
         self.declare_parameter("imu_to_base_extrinsic_verified", False)
         self.declare_parameter("imu_to_base_translation_m", [0.0, 0.0, 0.0])
         self.declare_parameter("imu_to_base_quaternion_xyzw", [0.0, 0.0, 0.0, 1.0])
@@ -91,12 +131,16 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             self.get_parameter("imu_to_base_extrinsic_verified").value)
         self._source_frame = str(self.get_parameter("source_frame").value)
         self._target_frame = str(self.get_parameter("world_frame").value)
+        self._source_child_frame = str(self.get_parameter("source_child_frame").value)
+        self._tf_timeout_s = max(0.0, float(self.get_parameter("tf_timeout_s").value))
         self._translation = tuple(float(x) for x in self.get_parameter("imu_to_base_translation_m").value)
         self._rotation = tuple(float(x) for x in self.get_parameter("imu_to_base_quaternion_xyzw").value)
         self._require_source_health_ok = _parameter_bool(
             self.get_parameter("require_source_health_ok").value)
         self._require_covariance = _parameter_bool(
             self.get_parameter("require_covariance").value)
+        self._buffer = Buffer()
+        self._listener = TransformListener(self._buffer, self)
         self._source_health_ok = False
         self._health = self.create_publisher(String, str(self.get_parameter("health_topic").value), 10)
         self._odom = self.create_publisher(Odometry, str(self.get_parameter("vehicle_odom_topic").value), 10)
@@ -113,6 +157,31 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
     def _reject(self, reason: str):
         self._publish_health("UNKNOWN: " + reason)
 
+    def _source_to_target_transform(self, stamp):
+        """Return the stamped target<-source transform, or ``None``.
+
+        A differing source frame needs timestamped TF; a static frame-id
+        relabel is never accepted.
+        """
+        if self._source_frame == self._target_frame:
+            return ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))
+        try:
+            transform = self._buffer.lookup_transform(
+                self._target_frame, self._source_frame, stamp,
+                timeout=Duration(seconds=self._tf_timeout_s))
+        except (TransformException, TypeError, ValueError, RuntimeError) as exc:
+            self._reject(f"stamped TF unavailable: {exc}")
+            return None
+        translation = transform.transform.translation
+        rotation = _normalize_quaternion((transform.transform.rotation.x,
+                                          transform.transform.rotation.y,
+                                          transform.transform.rotation.z,
+                                          transform.transform.rotation.w))
+        if rotation is None or not _finite((translation.x, translation.y, translation.z)):
+            self._reject("stamped TF contained a non-finite transform")
+            return None
+        return ((float(translation.x), float(translation.y), float(translation.z)), rotation)
+
     def _callback(self, msg: Odometry):
         if not _stamp_is_set(msg.header.stamp):
             self._reject("source odometry has no acquisition timestamp")
@@ -120,10 +189,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if str(msg.header.frame_id) != self._source_frame:
             self._reject(f"source frame {msg.header.frame_id!r} != {self._source_frame!r}")
             return
-        if self._source_frame != self._target_frame:
-            self._reject(
-                f"source frame {self._source_frame!r} needs timestamped TF to "
-                f"{self._target_frame!r}; refusing frame relabel")
+        if str(msg.child_frame_id) != self._source_child_frame:
+            self._reject(f"source child frame {msg.child_frame_id!r} != {self._source_child_frame!r}")
             return
         if not self._verified:
             self._reject("missing measured IMU-to-base extrinsic")
@@ -159,8 +226,13 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             if any(abs(value) > 1e-9 for value in q_ib[:3]):
                 self._reject("non-identity IMU-to-base covariance transform is not verified")
                 return
-        q_wb = _qmul(q_wi, q_ib)
-        if not _finite(q_wi + q_wb):
+        source_to_target = self._source_to_target_transform(msg.header.stamp)
+        if source_to_target is None:
+            return
+        tf_translation, q_ts = source_to_target
+        q_target_imu = _qmul(q_ts, q_wi)
+        q_target_base = _qmul(q_target_imu, q_ib)
+        if not _finite(q_wi + q_target_base + q_ts):
             self._reject("non-finite Super-LIO pose")
             return
         output = Odometry()
@@ -168,17 +240,26 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.header.frame_id = self._target_frame
         output.child_frame_id = str(self.get_parameter("base_frame").value)
         output.pose = msg.pose
-        output.pose.pose.position.x += _qrotate(q_wi, self._translation)[0]
-        output.pose.pose.position.y += _qrotate(q_wi, self._translation)[1]
-        output.pose.pose.position.z += _qrotate(q_wi, self._translation)[2]
-        output.pose.pose.orientation.x, output.pose.pose.orientation.y = q_wb[0], q_wb[1]
-        output.pose.pose.orientation.z, output.pose.pose.orientation.w = q_wb[2], q_wb[3]
+        lever_arm_source = _qrotate(q_wi, self._translation)
+        target_position = _qrotate(q_ts, (
+            msg.pose.pose.position.x + lever_arm_source[0],
+            msg.pose.pose.position.y + lever_arm_source[1],
+            msg.pose.pose.position.z + lever_arm_source[2]))
+        output.pose.pose.position.x = target_position[0] + tf_translation[0]
+        output.pose.pose.position.y = target_position[1] + tf_translation[1]
+        output.pose.pose.position.z = target_position[2] + tf_translation[2]
+        output.pose.pose.orientation.x, output.pose.pose.orientation.y = q_target_base[0], q_target_base[1]
+        output.pose.pose.orientation.z, output.pose.pose.orientation.w = q_target_base[2], q_target_base[3]
+        rotated_pose_covariance = _rotate_covariance(msg.pose.covariance, q_ts)
+        if rotated_pose_covariance is None:
+            self._reject("source pose covariance could not be rotated into target frame")
+            return
+        output.pose.covariance = list(rotated_pose_covariance)
         output.twist = msg.twist
-        q_bw = _qconj(q_wb)
-        body_velocity = _qrotate(q_bw, (msg.twist.twist.linear.x,
+        body_velocity = _qrotate(q_ib, (msg.twist.twist.linear.x,
                                         msg.twist.twist.linear.y,
                                         msg.twist.twist.linear.z))
-        body_angular = _qrotate(q_bw, (msg.twist.twist.angular.x,
+        body_angular = _qrotate(q_ib, (msg.twist.twist.angular.x,
                                        msg.twist.twist.angular.y,
                                        msg.twist.twist.angular.z))
         output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = body_velocity

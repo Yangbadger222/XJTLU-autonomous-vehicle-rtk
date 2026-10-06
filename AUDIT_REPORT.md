@@ -44,7 +44,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`65 passed`). The replay
+The new transport-independent and contract suite passes (`67 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -59,10 +59,11 @@ these tests pass.
 The Super-LIO output boundary is frame-audited: `/lio/odom` and
 `/lio/cloud_world` remain in the pinned source `world` frame, while the local
 grid consumes only `/lio/cloud_odom` produced by a timestamped TF lookup. The
-cloud adapter never assigns a target `frame_id`; the odometry adapter rejects a
-`world`→`odom` mismatch until a real source-frame TF path is implemented and
-verified. Therefore no source message is presented as vehicle odometry or a
-body cloud by string relabeling.
+cloud adapter never assigns a target `frame_id`; the odometry adapter now uses
+the same acquisition-time `world`→`odom` lookup, rotates pose covariance with
+that transform, and still refuses missing TF, unverified lever arms, unknown
+health or an unexpected source child frame. Therefore no source message is
+presented as vehicle odometry or a body cloud by string relabeling.
 
 The ROS safety bridge now parses `enable_serial` by value, rejects `UNKNOWN`
 map versions, and expires both the persisted map-version heartbeat and local
@@ -177,9 +178,11 @@ and does not infer free space from absent returns; the boundary, unknown-space
 and launch-wiring tests are included in the suite.
 
 The Super-LIO vehicle adapter now also rejects non-unit source/extrinsic
-quaternions, non-finite covariance and non-identity IMU-to-base rotations while
-covariance rotation is unimplemented. This prevents a future verified flag
-from turning copied IMU-frame covariance into a false base-frame contract.
+quaternions, non-finite covariance and non-identity IMU-to-base rotations when
+the covariance contract requires identity. Pose covariance is explicitly
+rotated into the stamped target frame; non-zero unverified lever arms remain a
+motion-blocking condition rather than being copied into a false base-frame
+contract.
 
 The `research_runtime` and `active_road_mapping` Python packages were built as
 wheels and inspected to contain the GridMap projector, safety bridge,

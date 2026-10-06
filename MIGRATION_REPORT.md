@@ -4,11 +4,13 @@ The research branch starts at vehicle baseline `e54c6afbcb5a58db22d7c468085a87d6
 
 Super-LIO is configured with the audited Livox topics and the locked FAST-LIO2
 range/stride/extrinsic values. Its upstream `world→imu` result is not relabeled
-as `odom→base_footprint`; `super_lio_vehicle_adapter` rejects source-frame
-mismatch and refuses a `world`→`odom` string rewrite. A timestamped source-frame
-TF, measured IMU→base transform, covariance handling and health equivalence are
-required before vehicle odometry can publish. This is a real algorithm
-replacement boundary, but target-side build and runtime proof is pending.
+as `odom→base_footprint`; `super_lio_vehicle_adapter` now looks up a
+source-time `world→odom` TF, rotates the pose covariance into `odom`, and
+requires the measured IMU→base transform, covariance handling and source health
+to pass before vehicle odometry can publish. Missing/stale TF, non-zero
+unverified lever arms or unknown health remain fail-closed. This is a real
+algorithm replacement boundary, but target-side build and runtime proof is
+pending.
 
 The reproducible Super-LIO patch is
 `patches/super_lio/0001-publish-source-aware-odom-health.patch`. It preserves

@@ -4,7 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from super_lio_vehicle_adapter.adapter_node import (  # noqa: E402
-    _normalize_quaternion, _parameter_bool, _qrotate, _stamp_is_set,
+    _normalize_quaternion, _parameter_bool, _qrotate, _rotate_covariance,
+    _stamp_is_set,
 )
 from super_lio_vehicle_adapter.cloud_frame_node import _stamp_is_set as _cloud_stamp_is_set
 
@@ -24,6 +25,33 @@ def test_quaternion_rotation_is_explicit():
 def test_non_unit_quaternion_is_normalized_before_use():
     assert _normalize_quaternion((0.0, 0.0, 0.0, 2.0)) == (0.0, 0.0, 0.0, 1.0)
     assert _normalize_quaternion((0.0, 0.0, 0.0, 0.0)) is None
+
+
+def test_pose_covariance_rotates_with_stamped_world_to_odom_tf():
+    covariance = [0.0] * 36
+    covariance[0] = 1.0
+    covariance[7] = 4.0
+    covariance[14] = 9.0
+    covariance[21] = 16.0
+    covariance[28] = 25.0
+    covariance[35] = 36.0
+    q = (0.0, 0.0, math.sin(math.pi / 4), math.cos(math.pi / 4))
+    rotated = _rotate_covariance(covariance, q)
+    assert rotated is not None
+    # A 90-degree yaw swaps x/y variances in each 3x3 pose block.
+    assert math.isclose(rotated[0], 4.0, abs_tol=1e-9)
+    assert math.isclose(rotated[7], 1.0, abs_tol=1e-9)
+    assert math.isclose(rotated[14], 9.0, abs_tol=1e-9)
+    assert math.isclose(rotated[21], 25.0, abs_tol=1e-9)
+    assert math.isclose(rotated[28], 16.0, abs_tol=1e-9)
+    assert math.isclose(rotated[35], 36.0, abs_tol=1e-9)
+
+
+def test_pose_covariance_rejects_wrong_shape_or_nonfinite_values():
+    assert _rotate_covariance([0.0] * 35, (0.0, 0.0, 0.0, 1.0)) is None
+    covariance = [0.0] * 36
+    covariance[0] = float("nan")
+    assert _rotate_covariance(covariance, (0.0, 0.0, 0.0, 1.0)) is None
 
 
 def test_string_false_cannot_enable_verified_extrinsic():

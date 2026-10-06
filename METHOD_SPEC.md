@@ -31,7 +31,10 @@ validity flags; the node chooses only the highest-scoring eligible candidate
 and publishes the selected goal. It cannot create candidates from truth or
 invent camera/TF calibration.
 
-The vehicle adapter consumes real `/lio/odom_vehicle` state, an odom-frame
+The Super-LIO vehicle adapter consumes source `world→imu` odometry only after
+an acquisition-time `world→odom` TF lookup, explicit source-child validation,
+pose-covariance rotation and the measured IMU→base/health gates. It publishes
+`/lio/odom_vehicle` only after those checks. The vehicle adapter then consumes real `/lio/odom_vehicle` state, an odom-frame
 road reference and an odom-frame `OccupancyGrid` whose unknown cells are
 occupied. The second reproducible EGO patch calls the pinned planner and emits
 `TimedTrajectory2D`; `nav_msgs/Path` remains visualization/reference only. It

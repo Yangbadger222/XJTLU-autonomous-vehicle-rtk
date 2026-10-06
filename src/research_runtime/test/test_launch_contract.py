@@ -15,6 +15,7 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert '"/lio/vehicle_health"' in source
     assert '"/lio/odom_vehicle"' in source
     assert '"source_frame": "world", "world_frame": "odom"' in source
+    assert '"source_child_frame": "imu", "tf_timeout_s": 0.05' in source
     assert '"/research/local_obstacle_grid"' in source
     assert '"/research/map_version"' in source
     assert 'executable="research_local_obstacle_grid"' in source

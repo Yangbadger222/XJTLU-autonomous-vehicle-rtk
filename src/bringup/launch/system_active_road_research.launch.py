@@ -49,6 +49,7 @@ def generate_launch_description():
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
                                 "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
                                 "source_frame": "world", "world_frame": "odom",
+                                "source_child_frame": "imu", "tf_timeout_s": 0.05,
                                 "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
     cloud_frame = Node(
         package="super_lio_vehicle_adapter", executable="super_lio_cloud_frame_adapter",

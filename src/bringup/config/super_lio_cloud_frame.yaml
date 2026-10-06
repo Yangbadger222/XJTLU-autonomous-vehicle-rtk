@@ -1,0 +1,7 @@
+super_lio_cloud_frame_adapter:
+  ros__parameters:
+    input_topic: /lio/cloud_world
+    output_topic: /lio/cloud_odom
+    source_frame: world
+    target_frame: odom
+    tf_timeout_s: 0.05

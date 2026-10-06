@@ -2,7 +2,9 @@ research_local_obstacle_grid:
   ros__parameters:
     # The map resolution is the locked corridor value; window size/origin are
     # research settings and do not redefine vehicle geometry.
-    input_topic: /lio/cloud_world
+    # Super-LIO's source cloud is world-frame; the stamped TF adapter is the
+    # only producer allowed to make the odom-frame input consumed here.
+    input_topic: /lio/cloud_odom
     output_topic: /research/local_obstacle_grid
     map_version_topic: /research/map_version
     target_frame: odom

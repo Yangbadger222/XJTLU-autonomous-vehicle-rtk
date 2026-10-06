@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "57 tests"
+      "evidence": "58 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -29,10 +29,10 @@
       "evidence": "audit/research_wheel_build_latest.log; wheels contain active_road_evidence.py, evidence/map entry_points and research runtime safety/trajectory modules"
     },
     {
-      "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",
+      "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "launch, adapter and new evidence/safety Python syntax"
+      "evidence": "launch, vehicle odometry adapter, cloud-frame adapter and evidence/safety Python syntax"
     },
     {
       "command": "sha256sum -c audit/vehicle_baseline/PROTECTED_FILES.sha256",
@@ -89,6 +89,12 @@
       "exit_code": null,
       "evidence": "audit/container/current-ego-rebuild-probe.log; docker info bounded wait produced no usable server response",
       "scope": "current typed ROS interface compile remains pending; no runtime claim"
+    },
+    {
+      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "overall_static_status=PASS; branch/base, pins, patch hashes, protected files, launch allowlist, serial gate, cloud TF boundary, typed interfaces, required deliverables and report copy"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

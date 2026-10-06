@@ -31,8 +31,9 @@ PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=["research_safe
 On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,
 build with one worker, and run the new launch with `execution_mode:=shadow`.
 Shadow/live starts the pinned Super-LIO node, the patched EGO vehicle ROS edge,
-the source-aware adapter, `active_road_map`, the typed `active_road_evidence`
-ingest/policy boundary, and the fail-closed local obstacle grid node; replay
+the source-aware odometry adapter, the timestamped cloud-frame adapter,
+`active_road_map`, the typed `active_road_evidence` ingest/policy boundary,
+and the fail-closed local obstacle grid node; replay
 intentionally does not start sensor,
 authority, planner or serial processes. The physical serial sink requires the
 separate explicit gate `execution_mode:=live enable_serial:=true`; never attach a

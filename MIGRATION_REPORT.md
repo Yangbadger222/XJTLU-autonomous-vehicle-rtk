@@ -4,10 +4,11 @@ The research branch starts at vehicle baseline `e54c6afbcb5a58db22d7c468085a87d6
 
 Super-LIO is configured with the audited Livox topics and the locked FAST-LIO2
 range/stride/extrinsic values. Its upstream `world→imu` result is not relabeled
-as `base_footprint`; `super_lio_vehicle_adapter` reports UNKNOWN and blocks
-vehicle odometry until a measured IMU→base transform and health equivalence are
-provided. This is a real algorithm replacement boundary, but target-side build
-and runtime proof is pending.
+as `odom→base_footprint`; `super_lio_vehicle_adapter` rejects source-frame
+mismatch and refuses a `world`→`odom` string rewrite. A timestamped source-frame
+TF, measured IMU→base transform, covariance handling and health equivalence are
+required before vehicle odometry can publish. This is a real algorithm
+replacement boundary, but target-side build and runtime proof is pending.
 
 The reproducible Super-LIO patch is
 `patches/super_lio/0001-publish-source-aware-odom-health.patch`. It preserves
@@ -40,7 +41,10 @@ The local obstacle boundary is implemented in
 `research_local_obstacle_grid`: it accepts only odom-frame points, requires a
 non-UNKNOWN map version, applies the explicit height-window inputs, marks
 measured cells occupied, and preserves every unobserved cell as
-safety-blocking unknown. Target-side cloud frame/TF wiring remains pending.
+safety-blocking unknown. Super-LIO's `world` cloud is passed through the strict
+`super_lio_cloud_frame_adapter`, which uses the point-cloud timestamp for a
+`world`→`odom` TF lookup and withholds on missing TF; target-side TF and cloud
+runtime evidence remain pending.
 
 `active_road_map` now publishes a persisted map version only when an EvidenceStore loads successfully and relays only non-empty odom-frame road references; missing or corrupt evidence remains UNKNOWN and blocks EGO output.
 

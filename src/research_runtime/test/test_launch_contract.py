@@ -14,6 +14,7 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "package=\"serial_twistctl\"" in source
     assert '"/lio/vehicle_health"' in source
     assert '"/lio/odom_vehicle"' in source
+    assert '"source_frame": "world", "world_frame": "odom"' in source
     assert '"/research/local_obstacle_grid"' in source
     assert '"/research/map_version"' in source
     assert 'executable="research_local_obstacle_grid"' in source
@@ -23,6 +24,8 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert 'executable="active_road_evidence"' in source
     assert 'active_road_evidence.yaml' in source
     assert 'research_safety_bridge.yaml' in source
+    assert 'executable="super_lio_cloud_frame_adapter"' in source
+    assert 'super_lio_cloud_frame.yaml' in source
     active_road_config = (Path(__file__).parents[3] / "src" / "bringup" / "config" /
                           "active_road_mapping.yaml").read_text()
     assert "reload_period_s: 0.20" in active_road_config
@@ -72,6 +75,15 @@ def test_active_road_evidence_package_exposes_typed_ingest_boundary():
                      "active_road_mapping" / "evidence_node.py").read_text()
     assert 'candidate must already be in odom' in evidence_node
     assert 'candidate values must be finite' in evidence_node
+    cloud_adapter = (Path(__file__).parents[3] / "src" / "super_lio_vehicle_adapter" /
+                     "super_lio_vehicle_adapter" / "cloud_frame_node.py").read_text()
+    assert "lookup_transform" in cloud_adapter
+    assert "refusing frame relabel" in cloud_adapter
+    vehicle_adapter = (Path(__file__).parents[3] / "src" / "super_lio_vehicle_adapter" /
+                       "super_lio_vehicle_adapter" / "adapter_node.py").read_text()
+    assert 'declare_parameter("source_frame", "world")' in vehicle_adapter
+    assert "needs timestamped TF" in vehicle_adapter
+    assert "_parameter_bool" in vehicle_adapter
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():

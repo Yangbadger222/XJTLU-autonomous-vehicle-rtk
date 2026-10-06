@@ -21,6 +21,8 @@ def generate_launch_description():
     master = os.path.join(bringup_share, "config", "master_params.yaml")
     super_config = os.path.join(bringup_share, "config", "super_lio_vehicle.yaml")
     safety_config = os.path.join(bringup_share, "config", "research_safety_bridge.yaml")
+    cloud_frame_config = os.path.join(
+        bringup_share, "config", "super_lio_cloud_frame.yaml")
     active_road_evidence_config = os.path.join(
         bringup_share, "config", "active_road_evidence.yaml")
     mode = DeclareLaunchArgument("execution_mode", default_value="replay",
@@ -46,7 +48,14 @@ def generate_launch_description():
                                                             "' != 'replay'"])),
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
                                 "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
+                                "source_frame": "world", "world_frame": "odom",
                                 "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
+    cloud_frame = Node(
+        package="super_lio_vehicle_adapter", executable="super_lio_cloud_frame_adapter",
+        name="super_lio_cloud_frame_adapter", output="screen",
+        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                 "' != 'replay'"])),
+        parameters=[cloud_frame_config])
     local_grid = Node(package="research_runtime", executable="research_local_obstacle_grid",
                       name="research_local_obstacle_grid", output="screen",
                       condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
@@ -102,6 +111,6 @@ def generate_launch_description():
     return LaunchDescription([mode, enable_super, enable_serial,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               livox, rtk,
-                              super_lio, adapter, active_road_map, active_road_evidence,
+                              super_lio, adapter, cloud_frame, active_road_map, active_road_evidence,
                               local_grid, ego_vehicle,
                               authority, cmd_guard, serial, research])

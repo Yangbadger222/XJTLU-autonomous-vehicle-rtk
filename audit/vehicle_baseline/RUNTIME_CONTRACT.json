@@ -8,20 +8,22 @@
   "live_actuator_enabled_by_default": false,
   "tf_owners": {
     "map_to_odom": "rtk_map_odom_corrector (RTK authority only)",
-    "odom_to_base_footprint": "Super-LIO vehicle adapter (single owner)",
+    "odom_to_base_footprint": "Super-LIO vehicle adapter (only after timestamped source-frame TF, measured extrinsic and covariance checks)",
     "fake_simulator": "replay/sim only; forbidden in live"
   },
   "topics": {
     "/lio/cloud_body": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "base_footprint",
-      "producer": "patched Super-LIO cloud output; vehicle cloud adapter pending",
-      "frequency_hz": "PENDING_RUNTIME"
+      "producer": "not published by pinned Super-LIO; no body-frame cloud is synthesized",
+      "frequency_hz": "PENDING_RUNTIME",
+      "policy": "requires a measured vehicle-frame adapter; direct frame relabel is forbidden"
     },
     "/lio/cloud_world": {
       "type": "sensor_msgs/msg/PointCloud2",
-      "frame": "odom",
-      "producer": "patched Super-LIO cloud output; local grid node accepts only verified odom frame",
+      "frame": "world",
+      "producer": "patched Super-LIO source cloud output",
+      "policy": "source frame is never relabeled; stamped TF adapter required",
       "frequency_hz": "PENDING_RUNTIME"
     },
     "/lio/health": {
@@ -58,17 +60,17 @@
     },
     "/lio/odom": {
       "type": "nav_msgs/msg/Odometry",
-      "frame": "odom",
+      "frame": "world",
       "child_frame": "imu (source frame; not vehicle output)",
-      "producer": "patched Super-LIO",
+      "producer": "patched Super-LIO source output",
       "consumer": "super_lio_vehicle_adapter"
     },
     "/lio/odom_vehicle": {
       "type": "nav_msgs/msg/Odometry",
       "frame": "odom",
       "child_frame": "base_footprint",
-      "producer": "super_lio_vehicle_adapter",
-      "policy": "published only after measured extrinsic, source health and covariance checks"
+      "producer": "super_lio_vehicle_adapter after timestamped world->odom TF and measured IMU->base checks",
+      "policy": "source frame mismatch, missing TF, missing measured extrinsic, unknown health or covariance withholds output"
     },
     "/research/road_reference": {
       "type": "nav_msgs/msg/Path",
@@ -80,7 +82,7 @@
     "/research/local_obstacle_grid": {
       "type": "nav_msgs/msg/OccupancyGrid",
       "frame": "odom",
-      "producer": "research_local_obstacle_grid node from /lio/cloud_world (target TF/cloud frame audit pending)",
+      "producer": "research_local_obstacle_grid node from /lio/cloud_odom (timestamped TF adapter required)",
       "unknown_policy": "occupied"
     },
     "/research/map_version": {
@@ -111,6 +113,12 @@
       "frame": "odom",
       "producer": "active_road_evidence",
       "policy": "only externally marked reachable/safe/trusted/sensor-valid candidates are eligible"
+    },
+    "/lio/cloud_odom": {
+      "type": "sensor_msgs/msg/PointCloud2",
+      "frame": "odom",
+      "producer": "super_lio_cloud_frame_adapter via timestamped world->odom TF",
+      "consumer": "research_local_obstacle_grid; missing TF withholds cloud"
     }
   },
   "serial": {

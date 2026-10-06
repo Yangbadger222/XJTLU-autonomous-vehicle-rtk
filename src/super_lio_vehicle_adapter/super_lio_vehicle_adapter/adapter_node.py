@@ -1,9 +1,11 @@
 """Adapt Super-LIO's world->IMU output without inventing vehicle geometry.
 
 At the pinned upstream commit Super-LIO publishes an odometry message whose
-child is not the vehicle base and has no covariance/health equivalent. Until a
-measured IMU->base transform and source health are supplied, this node publishes
-source-aware UNKNOWN health and intentionally does not publish vehicle odometry.
+world frame is ``world`` and whose child is ``imu``.  It is not the vehicle
+``odom -> base_footprint`` contract.  Until a timestamped source-frame TF, a
+measured IMU->base transform, and source health are supplied, this node
+publishes source-aware UNKNOWN health and intentionally does not publish
+vehicle odometry.
 This keeps the original RTK authority stop policy fail-closed.
 """
 from __future__ import annotations
@@ -39,6 +41,12 @@ def _finite(values):
     return all(math.isfinite(float(value)) for value in values)
 
 
+def _parameter_bool(value):
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _normalize_quaternion(q):
     import math
     if len(q) != 4 or not _finite(q):
@@ -56,6 +64,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self.declare_parameter("vehicle_odom_topic", "/lio/odom_vehicle")
         self.declare_parameter("source_health_topic", "/lio/health")
         self.declare_parameter("health_topic", "/lio/vehicle_health")
+        self.declare_parameter("source_frame", "world")
         self.declare_parameter("world_frame", "odom")
         self.declare_parameter("base_frame", "base_footprint")
         self.declare_parameter("imu_to_base_extrinsic_verified", False)
@@ -63,11 +72,16 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self.declare_parameter("imu_to_base_quaternion_xyzw", [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter("require_source_health_ok", True)
         self.declare_parameter("require_covariance", True)
-        self._verified = bool(self.get_parameter("imu_to_base_extrinsic_verified").value)
+        self._verified = _parameter_bool(
+            self.get_parameter("imu_to_base_extrinsic_verified").value)
+        self._source_frame = str(self.get_parameter("source_frame").value)
+        self._target_frame = str(self.get_parameter("world_frame").value)
         self._translation = tuple(float(x) for x in self.get_parameter("imu_to_base_translation_m").value)
         self._rotation = tuple(float(x) for x in self.get_parameter("imu_to_base_quaternion_xyzw").value)
-        self._require_source_health_ok = bool(self.get_parameter("require_source_health_ok").value)
-        self._require_covariance = bool(self.get_parameter("require_covariance").value)
+        self._require_source_health_ok = _parameter_bool(
+            self.get_parameter("require_source_health_ok").value)
+        self._require_covariance = _parameter_bool(
+            self.get_parameter("require_covariance").value)
         self._source_health_ok = False
         self._health = self.create_publisher(String, str(self.get_parameter("health_topic").value), 10)
         self._odom = self.create_publisher(Odometry, str(self.get_parameter("vehicle_odom_topic").value), 10)
@@ -85,6 +99,14 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._publish_health("UNKNOWN: " + reason)
 
     def _callback(self, msg: Odometry):
+        if str(msg.header.frame_id) != self._source_frame:
+            self._reject(f"source frame {msg.header.frame_id!r} != {self._source_frame!r}")
+            return
+        if self._source_frame != self._target_frame:
+            self._reject(
+                f"source frame {self._source_frame!r} needs timestamped TF to "
+                f"{self._target_frame!r}; refusing frame relabel")
+            return
         if not self._verified:
             self._reject("missing measured IMU-to-base extrinsic")
             return
@@ -125,7 +147,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             return
         output = Odometry()
         output.header = msg.header
-        output.header.frame_id = str(self.get_parameter("world_frame").value)
+        output.header.frame_id = self._target_frame
         output.child_frame_id = str(self.get_parameter("base_frame").value)
         output.pose = msg.pose
         output.pose.pose.position.x += _qrotate(q_wi, self._translation)[0]

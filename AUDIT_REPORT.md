@@ -43,7 +43,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`57 passed`). The replay
+The new transport-independent and contract suite passes (`58 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -54,6 +54,14 @@ test importing unavailable `rclpy`). The existing corridor launch suite records
 `26 passed, 1 failed` because the pinned baseline lacks the expected
 `enable_local_odom_bridge: false` text. No protected file was modified to make
 these tests pass.
+
+The Super-LIO output boundary is frame-audited: `/lio/odom` and
+`/lio/cloud_world` remain in the pinned source `world` frame, while the local
+grid consumes only `/lio/cloud_odom` produced by a timestamped TF lookup. The
+cloud adapter never assigns a target `frame_id`; the odometry adapter rejects a
+`world`→`odom` mismatch until a real source-frame TF path is implemented and
+verified. Therefore no source message is presented as vehicle odometry or a
+body cloud by string relabeling.
 
 The ROS safety bridge now parses `enable_serial` by value, rejects `UNKNOWN`
 map versions, and expires both the persisted map-version heartbeat and local

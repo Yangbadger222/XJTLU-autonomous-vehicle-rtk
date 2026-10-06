@@ -4,4 +4,7 @@ setup(name="super_lio_vehicle_adapter", version="0.1.0",
       data_files=[("share/ament_index/resource_index/packages", ["resource/super_lio_vehicle_adapter"]),
                   ("share/super_lio_vehicle_adapter", ["package.xml"])],
       install_requires=["setuptools"],
-      entry_points={"console_scripts": ["super_lio_vehicle_adapter = super_lio_vehicle_adapter.adapter_node:main"]})
+      entry_points={"console_scripts": [
+          "super_lio_vehicle_adapter = super_lio_vehicle_adapter.adapter_node:main",
+          "super_lio_cloud_frame_adapter = super_lio_vehicle_adapter.cloud_frame_node:main",
+      ]})

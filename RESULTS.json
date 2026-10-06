@@ -72,8 +72,10 @@
     "evidence": [
       "src/research_runtime/research_runtime/geometry.py",
       "src/research_runtime/research_runtime/active_road.py",
+      "src/research_runtime/research_runtime/grid_map.py",
       "src/research_runtime/test/test_geometry.py",
-      "src/research_runtime/test/test_active_road.py"
+      "src/research_runtime/test/test_active_road.py",
+      "src/research_runtime/test/test_grid_map.py"
     ],
     "scope": "synthetic CRS-bound, idempotent evidence store plus conservative odom-frame obstacle-grid projection; target sensor/TF wiring remains pending"
   },

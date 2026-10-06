@@ -158,9 +158,9 @@ class ObservationCandidate:
         if not all(math.isfinite(float(value)) for value in
                    (self.impact, self.observable_fraction, self.cost)):
             return float("-inf")
-        if self.cost < 0.0:
+        if self.impact < 0.0 or not 0.0 <= self.observable_fraction <= 1.0 or self.cost < 0.0:
             return float("-inf")
-        return self.impact * max(0.0, min(1.0, self.observable_fraction)) / max(self.cost, 1e-6)
+        return self.impact * self.observable_fraction / max(self.cost, 1e-6)
 
 
 class EvidenceStore:

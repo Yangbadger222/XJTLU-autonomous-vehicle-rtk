@@ -31,6 +31,8 @@ def test_unsafe_high_score_candidate_is_filtered():
 def test_invalid_observation_cost_and_nonfinite_score_inputs_are_filtered():
     selected = choose_observation([
         ObservationCandidate("negative-cost", "e", True, True, True, True, 1, 1, -1),
+        ObservationCandidate("negative-impact", "e", True, True, True, True, -1, 1, 1),
+        ObservationCandidate("over-coverage", "e", True, True, True, True, 100, 1.1, 1),
         ObservationCandidate("nan-impact", "e", True, True, True, True, float("nan"), 1, 1),
         ObservationCandidate("valid", "e", True, True, True, True, 1, 0.5, 1),
     ])

@@ -92,6 +92,11 @@ trajectory sample directly to `/cmd_vel`; expired, invalid or stale state still
 reaches the mock sink as a stop, and a health message older than the explicit
 0.50 s timeout is treated as UNKNOWN.
 
+The deterministic replay harness now drives its allowed command through the
+same tracker using a synthetic measured pose before injecting RTK authority
+loss; the resulting evidence contains both the bounded tracked command and
+the final zero serial bytes.
+
 ## Follow-up implementation evidence
 
 The pinned EGO source now has a second sequential project patch that replaces its

@@ -14,7 +14,7 @@
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "trajectory, policy comparison and final mock serial stop"
+      "evidence": "timed-trajectory tracker, policy comparison and final mock serial stop"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=[\\\"research_safety_bridge\\\",\\\"--mode\\\",\\\"replay\\\",\\\"--output\\\",\\\"/tmp/research-safety-bridge-replay.json\\\"]; from research_runtime.safety_bridge import main; raise SystemExit(main())'",

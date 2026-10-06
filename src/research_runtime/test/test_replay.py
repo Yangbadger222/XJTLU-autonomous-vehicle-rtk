@@ -7,6 +7,7 @@ from research_runtime.replay_sim import run
 def test_replay_closed_loop_smoke_has_stop_evidence():
     result = run()
     assert result["trajectory"]["valid"]
+    assert result["tracker"]["valid"]
     assert result["serial_denied"] == "vcx=0,wc=0\n"
     assert result["truth_access"] is False
     assert result["selected_candidate"] == "view-safe"

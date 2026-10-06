@@ -94,7 +94,7 @@
       "runtime-data/research/active_road/replay_smoke.json",
       "src/research_runtime/research_runtime/replay_sim.py"
     ],
-    "scope": "truth-blind policy and evaluator-only synthetic comparison; no claim of research gain"
+    "scope": "truth-blind policy and evaluator-only synthetic comparison driven through the timed-trajectory tracker; no claim of research gain"
   },
   "VEHICLE_BAG_REPLAY": {
     "status": "PASS",

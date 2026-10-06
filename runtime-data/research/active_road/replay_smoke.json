@@ -26,8 +26,13 @@
   },
   "selected_candidate": "view-safe",
   "selected_score": 0.7,
-  "serial_allowed": "vcx=0.2,wc=0\n",
+  "serial_allowed": "vcx=0.28,wc=0\n",
   "serial_denied": "vcx=0,wc=0\n",
+  "tracker": {
+    "angular_z": 0.0,
+    "linear_x": 0.28,
+    "valid": true
+  },
   "trajectory": {
     "reasons": [],
     "valid": true

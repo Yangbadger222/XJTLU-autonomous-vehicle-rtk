@@ -9,6 +9,7 @@ from .active_road import (EvidenceState, EvidenceStore, GeoTransform, Observatio
                           RoadEvent, RoadEvidence, choose_observation)
 from .authority import AuthorityState, SafetyGate, format_serial
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits, validate_trajectory
+from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
 
 
 def compare_policies() -> dict:
@@ -60,8 +61,15 @@ def run() -> dict:
                                      footprint=[(-0.5, -0.3), (-0.5, 0.3), (0.5, -0.3), (0.5, 0.3)],
                                      occupied=lambda x, y: False, resolution=0.1)
     gate = SafetyGate(0.50)
-    allowed = gate.command(0.2, 0.0, AuthorityState(True, 1.0, 1.1, "OK"))
-    denied = gate.command(0.2, 0.0, AuthorityState(False, 1.0, 1.1, "OK"))
+    tracker = TimedTrajectoryTracker(limits)
+    tracked = tracker.command(trajectory, TrackerState(0.1, 0.0, 0.0), now=1.0,
+                              expected_map_version="synthetic-v1")
+    allowed = gate.command(tracked.linear_x if tracked else 0.0,
+                           tracked.angular_z if tracked else 0.0,
+                           AuthorityState(True, 1.0, 1.1, "OK", trajectory_ok=tracked is not None))
+    denied = gate.command(tracked.linear_x if tracked else 0.0,
+                          tracked.angular_z if tracked else 0.0,
+                          AuthorityState(False, 1.0, 1.1, "OK", trajectory_ok=tracked is not None))
     store = EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0.0, 0.0, 0.2, 0.2), "synthetic-v1")
     event = RoadEvent("entry-1", "prior_gap", (2.0, 0.0), 0.8, 1.2, EvidenceState.UNOBSERVED, 2.0)
     store.add(RoadEvidence("obs-1", [(1.6, 0.0), (2.4, 0.0)], EvidenceState.OBSERVED_GEOMETRY,
@@ -71,6 +79,9 @@ def run() -> dict:
         ObservationCandidate("view-unsafe", event.event_id, True, False, True, True, event.impact, 1.0, 0.1),
     ])
     return {"trajectory": {"valid": validation.valid, "reasons": validation.reasons},
+            "tracker": {"valid": tracked is not None,
+                        "linear_x": tracked.linear_x if tracked else 0.0,
+                        "angular_z": tracked.angular_z if tracked else 0.0},
             "serial_allowed": format_serial(allowed).decode(),
             "serial_denied": format_serial(denied).decode(),
             "denied_reason": denied.reason,

@@ -18,7 +18,7 @@
 
 ## 已执行验证
 
-- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`22 passed`。
+- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`23 passed`；`research_safety_bridge --mode replay` 入口也实际执行并写出回放 JSON。
 - 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；顺序补丁后的 EGO 车辆边界完成编译；Super-LIO C++ 核心和 ROS 接口完成编译。Super-LIO 构建使用仅含 `livox_ros_driver2` 消息的编译合同，真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - launch 与适配器 Python 语法编译通过。
 - 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；原始与 patched EGO 的隔离 Humble 编译日志见 `audit/container/`。

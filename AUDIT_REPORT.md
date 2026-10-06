@@ -38,7 +38,10 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`22 passed`). The original
+The new transport-independent and contract suite passes (`23 passed`). The replay
+entry point was also executed through `research_safety_bridge --mode replay`; it
+accepted the mode flag, wrote the deterministic replay JSON, and retained the
+final mock stop bytes. The original
 `gps_waypoint_dispatcher` guard/authority tests run with the package path and
 recorded `191 passed, 3 failed`; the failures are baseline/environment evidence
 (two diagnostic-string expectations already absent at the pinned commit and one

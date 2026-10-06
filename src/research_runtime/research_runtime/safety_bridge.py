@@ -6,6 +6,7 @@ available. This avoids silently publishing commands from a developer laptop.
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 from .replay_sim import main as replay_main
 from .authority import AuthorityState, SafetyGate
@@ -83,8 +84,19 @@ def main() -> int:
             rclpy.shutdown()
         return 0
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--mode", default="replay")
+    parser.add_argument("--mode", choices=("replay",), default="replay")
+    parser.add_argument("--output")
     args, _ = parser.parse_known_args()
     if args.mode != "replay":
         raise SystemExit("research_safety_bridge only permits --mode replay outside ROS/Jetson")
-    return replay_main()
+    # replay_sim owns the deterministic harness and its output formatting. It
+    # parses only --output, so strip --mode before delegating rather than
+    # letting the mode flag reach the second parser and fail the entry point.
+    original_argv = sys.argv
+    sys.argv = [original_argv[0]]
+    if args.output:
+        sys.argv.extend(["--output", args.output])
+    try:
+        return replay_main()
+    finally:
+        sys.argv = original_argv

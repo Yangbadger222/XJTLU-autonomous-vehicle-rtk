@@ -8,13 +8,19 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "22 tests"
+      "evidence": "23 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
       "status": "PASS",
       "exit_code": 0,
       "evidence": "trajectory, policy comparison and final mock serial stop"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=[\\\"research_safety_bridge\\\",\\\"--mode\\\",\\\"replay\\\",\\\"--output\\\",\\\"/tmp/research-safety-bridge-replay.json\\\"]; from research_runtime.safety_bridge import main; raise SystemExit(main())'",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "replay entry accepted mode flag, wrote JSON and retained vcx=0,wc=0\\n mock stop"
     },
     {
       "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",

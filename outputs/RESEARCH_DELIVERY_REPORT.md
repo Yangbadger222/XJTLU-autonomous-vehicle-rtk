@@ -11,6 +11,7 @@
 - 固定 Super-LIO ROS2 `f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2`，提供可复现补丁、源健康/协方差输出和失效关闭的车体适配器。未把 `world→imu` 冒充 `base_footprint`。
 - 固定 JackJu-HIT/Ego-Planner-2D-ROS2 `develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877`。两个顺序补丁现在将真实 odom、odom-frame road reference、OccupancyGrid（unknown=occupied）接入上游 `PlannerInterface`，并输出 typed `TimedTrajectory2D`；`nav_msgs/Path` 只用于可视化。
 - 轨迹检查补充了动态导数、实际切向速度、body 横向速度、曲率/yaw-rate、footprint 和地图版本拒绝；不可行轨迹不 clip。
+- 新增保守的局部障碍 GridMap 投影合同：只接受 odom 帧、显式高度窗和地图版本，未知栅格保持阻塞，不把无回波当 free；目标机传感器/TF wiring 仍待现场接入。
 - 新入口排除 Nav2/MPPI/SLAM/旧实验旁路，只保留传感器、RTK authority、安全命令、研究桥。replay 不启动传感器、authority、规划器或串口；shadow/live 才启动规划链。物理串口还必须显式 `execution_mode:=live enable_serial:=true`。
 - 实现 CRS 绑定的 GeoTIFF/MaGRoad 证据接口、像素+深度→相机→车体→odom 几何合同、局部证据持久化、待观察入口、主动观察候选评分和 evaluator-only 策略对照。
 - 已把 Super-LIO/FAST-LIO2 的时间、单位、同步、云过滤和健康差异固化到 `audit/vehicle_baseline/LIO_FIELD_MAPPING.json`；未解析项保持 fail-closed。
@@ -18,7 +19,7 @@
 
 ## 已执行验证
 
-- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`24 passed`；`research_safety_bridge --mode replay` 入口也实际执行并写出回放 JSON。适配器现在对非单位四元数、非有限协方差和未实现协方差旋转的非恒等外参保持停车。
+- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`26 passed`；`research_safety_bridge --mode replay` 入口也实际执行并写出回放 JSON。适配器现在对非单位四元数、非有限协方差和未实现协方差旋转的非恒等外参保持停车。
 - 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；顺序补丁后的 EGO 车辆边界完成编译；Super-LIO C++ 核心和 ROS 接口完成编译。Super-LIO 构建使用仅含 `livox_ros_driver2` 消息的编译合同，真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - launch 与适配器 Python 语法编译通过。
 - 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；原始与 patched EGO 的隔离 Humble 编译日志见 `audit/container/`。

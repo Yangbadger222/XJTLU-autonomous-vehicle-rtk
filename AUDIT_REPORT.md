@@ -38,7 +38,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`24 passed`). The replay
+The new transport-independent and contract suite passes (`26 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -67,6 +67,13 @@ obstacle-grid and road-reference producers are absent. Their ROS contracts are
 locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
 frame/ground-separation wiring is still pending and is not represented as a
 software PASS.
+
+The transport-independent local-grid adapter in
+`src/research_runtime/research_runtime/grid_map.py` now projects only measured
+odom-frame points inside the explicit obstacle height window. It preserves
+unknown cells as blocked, rejects invalid frame/map/resolution contracts, and
+does not infer free space from absent returns; its boundary and unknown-space
+tests are included in the suite.
 
 The Super-LIO vehicle adapter now also rejects non-unit source/extrinsic
 quaternions, non-finite covariance and non-identity IMU-to-base rotations while

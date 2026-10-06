@@ -9,7 +9,7 @@
 
 - 锁定车辆源参数、解析后的 launch 覆盖和保护文件哈希；运行时参数 dump 仍需目标机证据。
 - 固定 Super-LIO ROS2 `f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2`，提供可复现补丁、源健康/协方差输出和失效关闭的车体适配器。`/lio/odom` 与 `/lio/cloud_world` 保持上游 `world` frame；车体里程计适配器拒绝 `world→odom` 字符串改名，点云适配器只用采样时间的 TF 生成 `/lio/cloud_odom`，未把源数据冒充 `base_footprint`。
-- 固定 JackJu-HIT/Ego-Planner-2D-ROS2 `develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877`。三个顺序补丁现在将真实 odom、odom-frame road reference、OccupancyGrid（unknown=occupied）接入上游 `PlannerInterface`，并输出 typed `TimedTrajectory2D`；第三个补丁在每次重规划前清空旧结果，防止失败后复发旧轨迹；`nav_msgs/Path` 只用于可视化。
+- 固定 JackJu-HIT/Ego-Planner-2D-ROS2 `develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877`。三个顺序补丁现在将真实 odom、odom-frame road reference、OccupancyGrid（unknown=occupied）接入上游 `PlannerInterface`，并输出 typed `TimedTrajectory2D`；第三个补丁在每次重规划前清空旧结果，防止失败后复发旧轨迹；`nav_msgs/Path` 只用于可视化。地图版本变化时还会清空旧 ESDF 状态，要求下一张匹配 GridMap 重新初始化。
 - 轨迹检查补充了动态导数、实际切向速度、body 横向速度、曲率/yaw-rate、footprint 和地图版本拒绝；不可行轨迹不 clip。安全桥配置同时携带基线 corridor local-costmap 的精确 footprint 多边形；其目标机运行时确认仍未完成。
 - 新增保守的局部障碍 GridMap ROS 适配器：只接受 odom 帧、显式高度窗和非 UNKNOWN 地图版本，未知栅格保持阻塞，不把无回波当 free；Super-LIO 的 `world` 点云经严格的时间戳 TF adapter 才能进入 `/lio/cloud_odom`，缺 TF 时保持 unknown/停车。`active_road_map` 只在 EvidenceStore 成功加载时发布地图版本，并只转发 odom 帧道路参考。新增 typed `RoadEvidence2D` 与 `active_road_evidence` 节点，接受已测 odom 几何、做 CRS/地图版本校验、UUID 幂等原子持久化，并发布观察事件/筛选后的观察候选。证据消息还必须带非零采样时间，零时间戳不进入持久化。目标机传感器/TF、相机证据源和外部道路参考 wiring 仍待现场接入。
 - 新入口排除 Nav2/MPPI/SLAM/旧实验旁路，只保留传感器、RTK authority、安全命令、研究桥。replay 不启动传感器、authority、规划器或串口；shadow/live 才启动规划链。物理串口还必须显式 `execution_mode:=live enable_serial:=true`。

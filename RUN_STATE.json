@@ -50,7 +50,7 @@
       "command": "fresh sparse checkout; sequential git apply --check for EGO patches 0001+0002+0003",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "0001 + 0002 + 0003 sequential apply-check at exact EGO commit in audit/ego_patch_check_current.log; 0003 clears stale results after failed replan; raw and two-patch ARM64 ROS 2 Humble build evidence in audit/container; current three-patch rebuild pending"
+      "evidence": "0001 + 0002 + 0003 sequential apply-check at exact EGO commit in audit/ego_patch_check_current.log; 0002 resets ESDF state on map-version change; 0003 clears stale results after failed replan; current three-patch ROS rebuild pending"
     },
     {
       "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
@@ -139,6 +139,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "overall_static_status=PASS after nonzero RoadEvidence2D timestamp enforcement"
+    },
+    {
+      "command": "fresh exact-commit source; sequential git apply --check for EGO patches 0001+0002+0003 after map-version reset change",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/ego_patch_check_current.log; exact source files fetched from pinned commit; no source conflicts"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

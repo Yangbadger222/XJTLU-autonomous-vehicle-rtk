@@ -19,7 +19,7 @@
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
     "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch + 0003-clear-stale-plan-on-failure.patch",
-    "patch_sha256": "97d387a44911bcf40963e4b72055bec76c2c814200c4d0e77173ce0b4a03b588",
+    "patch_sha256": "2252a5a992e30927f6fd30758f531b77b6a4546067e1203674870cb538afd8de",
     "apply_check": "PASS_SEQUENTIAL",
     "files": [
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
@@ -41,7 +41,7 @@
       },
       {
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-        "sha256": "8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1",
+        "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
         "apply_check": "PASS_AFTER_0001"
       },
       {

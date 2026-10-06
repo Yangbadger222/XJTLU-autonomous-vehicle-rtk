@@ -282,7 +282,7 @@ diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-R
 index a2befd4..53270ed 100644
 --- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 +++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
-@@ -1,681 +1,433 @@
+@@ -1,681 +1,441 @@
  /*
 - * @Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
 - * @Create by: juchunyu@qq.com
@@ -832,7 +832,15 @@ index a2befd4..53270ed 100644
 -
 -    global_path_pub_->publish(visual_path);
 +  std::lock_guard<std::mutex> lock(data_mutex_);
-+  map_version_ = msg->data.empty() ? "UNKNOWN" : msg->data;
++  const std::string next_version = msg->data.empty() ? "UNKNOWN" : msg->data;
++  if (next_version != map_version_) {
++    // A persisted-map change invalidates the old ESDF origin and obstacle set.
++    // The next matching grid must rebuild them before planning resumes.
++    grid_valid_ = false;
++    planner_initialized_ = false;
++    map_resolution_ = 0.0;
++  }
++  map_version_ = next_version;
  }
  
 -void TrajectoryAndObstaclesPublisher::publish_a_star_path()

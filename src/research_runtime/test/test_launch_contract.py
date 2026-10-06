@@ -119,6 +119,8 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
     assert "sample.curvature = speed > kEpsilon ? yaw_rate / speed" in active_additions
     assert "(vx * point.ay - vy * point.ax) / (speed * speed)" in active_additions
     assert "const double curvature = speed > kEpsilon ? yaw_rate / speed" in active_additions
+    assert "planner_initialized_ = false" in active_additions
+    assert "next_version != map_version_" in active_additions
     assert "const double speed_tolerance = std::max(0.05, 0.25 * std::max(std::abs(static_cast<double>(point.v)), 0.1));" in active_additions
     assert "std::abs(point.v - speed) > speed_tolerance" in active_additions
     assert "sample.curvature = speed > kEpsilon ? yaw_rate / (speed * speed)" not in active_additions

@@ -1,4 +1,6 @@
 exact upstream commit: 7f5be6d4cee34871e85aa1f15285cfaf17b23877
+source acquisition: GitHub raw files for exact commit (disk-constrained recheck)
 sequential patches: 0001, 0002, 0003
+0002 includes map-version ESDF reset; 0003 clears stale plan after failed replan
 git apply --check and apply: PASS
-working tree: sparse checkout, no source conflicts
+working tree: extracted exact-commit source, no source conflicts

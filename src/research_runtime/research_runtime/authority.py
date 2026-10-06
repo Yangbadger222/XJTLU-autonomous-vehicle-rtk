@@ -32,13 +32,17 @@ class SafetyGate:
     """Apply stop-first policy before any command reaches the original guard."""
 
     def __init__(self, authority_timeout_s: float = 0.50):
-        self.authority_timeout_s = authority_timeout_s
+        if not math.isfinite(float(authority_timeout_s)) or authority_timeout_s < 0.0:
+            raise ValueError("authority timeout must be finite and non-negative")
+        self.authority_timeout_s = float(authority_timeout_s)
 
     def command(self, requested_linear_x: float, requested_angular_z: float, state: AuthorityState) -> SafetyCommand:
         reasons: list[str] = []
         if not state.motion_allowed:
             reasons.append("rtk_authority_false")
-        if state.now - state.authority_stamp > self.authority_timeout_s or state.now < state.authority_stamp:
+        if not math.isfinite(float(state.now)) or not math.isfinite(float(state.authority_stamp)):
+            reasons.append("authority_time_non_finite")
+        elif state.now - state.authority_stamp > self.authority_timeout_s or state.now < state.authority_stamp:
             reasons.append("authority_stale")
         if state.health.upper() != "OK":
             reasons.append("lio_health_not_ok")

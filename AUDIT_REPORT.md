@@ -44,7 +44,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`69 passed`). The replay
+The new transport-independent and contract suite passes (`72 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -72,7 +72,7 @@ limits and consumes the exact corridor source footprint polygon. Curvature/later
 limits remain disabled until the target runtime confirms the vehicle geometry. The map publisher runs at 0.20 s to remain inside that
 freshness window. New contract tests cover these boundaries.
 
-The final mock sink fault matrix now includes RTK authority false/stale,
+The final mock sink fault matrix now includes RTK authority false/stale, non-finite authority timestamps and invalid timeout configuration,
 unknown LIO health, invalid TF, invalid map, invalid/expired trajectory,
 stop-override, manual stop and non-finite command inputs; each asserts the
 exact `vcx=0,wc=0\\n` output.

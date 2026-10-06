@@ -227,7 +227,13 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "69 tests including source-tree checks for all research config and Livox/UM982 launch assets"
+      "evidence": "72 tests including source-tree checks and non-finite authority-time fail-closed cases"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "72 tests including authority timestamp finite/timeout validation and final mock serial stop bytes"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

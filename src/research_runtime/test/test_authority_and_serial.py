@@ -41,3 +41,19 @@ def test_nonfinite_command_reaches_final_mock_serial_sink():
     assert not command.allowed
     assert "non_finite_command" in command.reason
     assert format_serial(command) == b"vcx=0,wc=0\n"
+
+
+@pytest.mark.parametrize("authority_stamp, now", [(float("nan"), 1.0), (1.0, float("inf"))])
+def test_nonfinite_authority_time_reaches_final_mock_serial_sink(authority_stamp, now):
+    command = SafetyGate().command(0.4, 0.2,
+                                   AuthorityState(True, authority_stamp, now))
+    assert not command.allowed
+    assert "authority_time_non_finite" in command.reason
+    assert format_serial(command) == b"vcx=0,wc=0\n"
+
+
+def test_invalid_authority_timeout_is_rejected_before_commands():
+    with pytest.raises(ValueError):
+        SafetyGate(float("nan"))
+    with pytest.raises(ValueError):
+        SafetyGate(-0.1)

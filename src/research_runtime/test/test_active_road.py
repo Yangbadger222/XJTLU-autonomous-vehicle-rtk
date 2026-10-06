@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from research_runtime.active_road import (EvidenceState, EvidenceStore, GeoTransform, MaGRoadPrior,
                                            ObservationCandidate, RoadEvidence, choose_observation)
 
@@ -47,3 +49,18 @@ def test_magroad_prior_requires_crs_and_keeps_model_version(tmp_path):
     prior = MaGRoadPrior.load_geojson(path, expected_crs="EPSG:32651", model_version="magr-v1")
     assert prior.model_version == "magr-v1"
     assert prior.edges[0]["id"] == "r1"
+
+
+def test_persisted_evidence_rejects_bad_schema_and_invalid_measurements(tmp_path):
+    store = EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0, 0, 1, 1), "v1")
+    with pytest.raises(ValueError):
+        store.add(RoadEvidence("bad", [(0, 0)], EvidenceState.OBSERVED_GEOMETRY,
+                               1.0, "lidar", "s1", -0.1, 1.0))
+    path = tmp_path / "bad-map.json"
+    path.write_text(json.dumps({"schema": 99, "map_version": "v1",
+                                "transform": {"crs": "EPSG:32651", "datum": "WGS84",
+                                               "origin_x_m": 0, "origin_y_m": 0,
+                                               "pixel_size_x_m": 1, "pixel_size_y_m": 1},
+                                "evidence": []}))
+    with pytest.raises(ValueError, match="schema"):
+        EvidenceStore.load(path)

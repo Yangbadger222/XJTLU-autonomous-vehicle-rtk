@@ -17,7 +17,9 @@
   build/runtime item `PENDING` while preserving the compile evidence.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
 - Dynamic feasibility, real start state, curvature/yaw-rate consistency, map version, expiry and footprint checks have replay tests.
-- Evidence persistence is CRS-bound and idempotent by observation UUID.
+- Evidence persistence is CRS-bound and idempotent by observation UUID; schema,
+  duplicate-ID, geometry, uncertainty, length and depth-interval validation
+  rejects malformed persisted or newly ingested observations.
 
 ## Pending or blocked by environment
 
@@ -39,7 +41,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`40 passed`). The replay
+The new transport-independent and contract suite passes (`41 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -71,7 +73,9 @@ jerk, resolution or inflation.
 
 Active-observation candidates now hard-filter negative/non-finite cost,
 impact and observability inputs before scoring; the test suite covers those
-invalid heuristic inputs separately from reachability and safety filters.
+invalid heuristic inputs separately from reachability and safety filters. The
+evidence store also rejects unsupported schemas and malformed measurements
+before they can be persisted or replayed.
 
 ## Follow-up implementation evidence
 

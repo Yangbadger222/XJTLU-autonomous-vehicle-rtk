@@ -155,10 +155,33 @@ class EvidenceStore:
 
     def add(self, evidence: RoadEvidence) -> bool:
         """Add once by UUID; replaying the same observation is idempotent."""
+        self._validate_evidence(evidence)
         if evidence.evidence_id in self._evidence:
             return False
         self._evidence[evidence.evidence_id] = evidence
         return True
+
+    @staticmethod
+    def _validate_evidence(evidence: RoadEvidence) -> None:
+        if not evidence.evidence_id or not evidence.source or not evidence.local_submap_id:
+            raise ValueError("evidence id, source and local_submap_id are required")
+        if len(evidence.geometry_xy) < 2:
+            raise ValueError("evidence geometry requires at least two points")
+        if any(len(point) != 2 or not all(math.isfinite(float(value)) for value in point)
+               for point in evidence.geometry_xy):
+            raise ValueError("evidence geometry must be finite XY points")
+        if not math.isfinite(evidence.stamp):
+            raise ValueError("evidence stamp must be finite")
+        if not math.isfinite(evidence.pose_uncertainty_m) or evidence.pose_uncertainty_m < 0.0:
+            raise ValueError("pose uncertainty must be finite and non-negative")
+        if not math.isfinite(evidence.observed_length_m) or evidence.observed_length_m < 0.0:
+            raise ValueError("observed length must be finite and non-negative")
+        if evidence.valid_depth_m is not None:
+            if (len(evidence.valid_depth_m) != 2 or
+                    not all(math.isfinite(float(value)) for value in evidence.valid_depth_m) or
+                    evidence.valid_depth_m[0] <= 0.0 or
+                    evidence.valid_depth_m[0] > evidence.valid_depth_m[1]):
+                raise ValueError("valid depth interval must be positive, finite and ordered")
 
     def evidence(self) -> list[RoadEvidence]:
         return list(self._evidence.values())
@@ -171,11 +194,16 @@ class EvidenceStore:
     @classmethod
     def load(cls, path: str | Path) -> "EvidenceStore":
         payload = json.loads(Path(path).read_text())
+        if payload.get("schema") != 1:
+            raise ValueError("unsupported evidence store schema")
+        if not isinstance(payload.get("evidence"), list):
+            raise ValueError("evidence store list is required")
         store = cls(GeoTransform(**payload["transform"]), payload["map_version"])
         for item in payload["evidence"]:
             item["state"] = EvidenceState(item["state"])
             item["geometry_xy"] = [tuple(p) for p in item["geometry_xy"]]
-            store.add(RoadEvidence(**item))
+            if not store.add(RoadEvidence(**item)):
+                raise ValueError("duplicate evidence_id in persisted store")
         return store
 
 

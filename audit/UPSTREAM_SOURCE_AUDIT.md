@@ -197,5 +197,6 @@ world-frame velocity/acceleration and publishes `research_interfaces/TimedTrajec
 The old `nav_msgs/Path` publisher remains visualization-only. Unknown occupancy
 cells, missing map version, zero/unmeasured curvature/footprint limits and stale
 state produce a typed failure and no executable trajectory. This patch was
-applied sequentially after `0001` on a fresh checkout; target ROS compilation
-remains pending because ROS 2 Humble is unavailable here.
+applied sequentially after `0001` on a fresh checkout and compiled in the
+isolated ARM64 ROS 2 Humble build; Jetson target wiring, runtime parameters and
+sensor-backed execution remain pending.

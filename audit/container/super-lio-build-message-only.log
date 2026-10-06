@@ -1,0 +1,741 @@
+debconf: delaying package configuration, since apt-utils is not installed
+Starting >>> basic
+-- The CXX compiler identification is GNU 11.4.0
+-- The C compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found rclcpp: 16.0.18 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Checking for module 'eigen3'
+--   Found eigen3, version 3.4.0
+-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") 
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- Found Boost: /usr/lib/aarch64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found suitable version "1.74.0", minimum required is "1.65.0") found components: system filesystem date_time iostreams serialization 
+-- Checking for module 'flann'
+--   Found flann, version 1.9.1
+-- Found FLANN: /usr/lib/aarch64-linux-gnu/libflann_cpp.so  
+-- FLANN found (include: /usr/include, lib: /usr/lib/aarch64-linux-gnu/libflann_cpp.so)
+-- Found GLEW: /usr/lib/aarch64-linux-gnu/libGLEW.so  
+-- Found OpenGL: /usr/lib/aarch64-linux-gnu/libOpenGL.so  found components: OpenGL GLX 
+-- Found MPI_C: /usr/lib/aarch64-linux-gnu/libmpi.so (found version "3.1") 
+-- Found MPI: TRUE (found version "3.1") found components: C 
+-- Found JsonCpp: /usr/lib/aarch64-linux-gnu/libjsoncpp.so (found suitable version "1.9.5", minimum required is "0.7.0") 
+-- Found ZLIB: /usr/lib/aarch64-linux-gnu/libz.so (found version "1.2.11") 
+-- Found PNG: /usr/lib/aarch64-linux-gnu/libpng.so (found version "1.6.37") 
+-- Found Eigen3: /usr/include/eigen3 (found version "3.4.0") 
+-- Found X11: /usr/include   
+-- Looking for XOpenDisplay in /usr/lib/aarch64-linux-gnu/libX11.so;/usr/lib/aarch64-linux-gnu/libXext.so
+-- Looking for XOpenDisplay in /usr/lib/aarch64-linux-gnu/libX11.so;/usr/lib/aarch64-linux-gnu/libXext.so - found
+-- Looking for gethostbyname
+-- Looking for gethostbyname - found
+-- Looking for connect
+-- Looking for connect - found
+-- Looking for remove
+-- Looking for remove - found
+-- Looking for shmat
+-- Looking for shmat - found
+-- Looking for IceConnectionNumber in ICE
+-- Looking for IceConnectionNumber in ICE - found
+-- Found EXPAT: /usr/lib/aarch64-linux-gnu/libexpat.so (found version "2.4.7") 
+-- Found double-conversion: /usr/lib/aarch64-linux-gnu/libdouble-conversion.so  
+-- Found LZ4: /usr/lib/aarch64-linux-gnu/liblz4.so (found version "1.9.3") 
+-- Found LZMA: /usr/lib/aarch64-linux-gnu/liblzma.so (found version "5.2.5") 
+-- Found JPEG: /usr/lib/aarch64-linux-gnu/libjpeg.so (found version "80") 
+-- Found TIFF: /usr/lib/aarch64-linux-gnu/libtiff.so (found version "4.3.0")  
+-- Found Freetype: /usr/lib/aarch64-linux-gnu/libfreetype.so (found version "2.11.1") 
+-- Found utf8cpp: /usr/include/utf8cpp  
+-- Checking for module 'libusb-1.0'
+--   Found libusb-1.0, version 1.0.25
+-- Found libusb: /usr/lib/aarch64-linux-gnu/libusb-1.0.so  
+-- Found OpenNI: /usr/lib/libOpenNI.so;libusb::libusb (found version "1.5.4.0") 
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- Found OpenNI2: /usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb (found version "2.2.0.33") 
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb)
+** WARNING ** io features related to pcap will be disabled
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb)
+-- Found Qhull version 8.0.2
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- looking for PCL_COMMON
+-- Found PCL_COMMON: /usr/lib/aarch64-linux-gnu/libpcl_common.so  
+-- looking for PCL_KDTREE
+-- Found PCL_KDTREE: /usr/lib/aarch64-linux-gnu/libpcl_kdtree.so  
+-- looking for PCL_OCTREE
+-- Found PCL_OCTREE: /usr/lib/aarch64-linux-gnu/libpcl_octree.so  
+-- looking for PCL_SEARCH
+-- Found PCL_SEARCH: /usr/lib/aarch64-linux-gnu/libpcl_search.so  
+-- looking for PCL_SAMPLE_CONSENSUS
+-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/aarch64-linux-gnu/libpcl_sample_consensus.so  
+-- looking for PCL_FILTERS
+-- Found PCL_FILTERS: /usr/lib/aarch64-linux-gnu/libpcl_filters.so  
+-- looking for PCL_2D
+-- Found PCL_2D: /usr/include/pcl-1.12  
+-- looking for PCL_GEOMETRY
+-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  
+-- looking for PCL_IO
+-- Found PCL_IO: /usr/lib/aarch64-linux-gnu/libpcl_io.so  
+-- looking for PCL_FEATURES
+-- Found PCL_FEATURES: /usr/lib/aarch64-linux-gnu/libpcl_features.so  
+-- looking for PCL_ML
+-- Found PCL_ML: /usr/lib/aarch64-linux-gnu/libpcl_ml.so  
+-- looking for PCL_SEGMENTATION
+-- Found PCL_SEGMENTATION: /usr/lib/aarch64-linux-gnu/libpcl_segmentation.so  
+-- looking for PCL_VISUALIZATION
+-- Found PCL_VISUALIZATION: /usr/lib/aarch64-linux-gnu/libpcl_visualization.so  
+-- looking for PCL_SURFACE
+-- Found PCL_SURFACE: /usr/lib/aarch64-linux-gnu/libpcl_surface.so  
+-- looking for PCL_REGISTRATION
+-- Found PCL_REGISTRATION: /usr/lib/aarch64-linux-gnu/libpcl_registration.so  
+-- looking for PCL_KEYPOINTS
+-- Found PCL_KEYPOINTS: /usr/lib/aarch64-linux-gnu/libpcl_keypoints.so  
+-- looking for PCL_TRACKING
+-- Found PCL_TRACKING: /usr/lib/aarch64-linux-gnu/libpcl_tracking.so  
+-- looking for PCL_RECOGNITION
+-- Found PCL_RECOGNITION: /usr/lib/aarch64-linux-gnu/libpcl_recognition.so  
+-- looking for PCL_STEREO
+-- Found PCL_STEREO: /usr/lib/aarch64-linux-gnu/libpcl_stereo.so  
+-- looking for PCL_APPS
+-- Found PCL_APPS: /usr/lib/aarch64-linux-gnu/libpcl_apps.so  
+-- looking for PCL_IN_HAND_SCANNER
+-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  
+-- looking for PCL_MODELER
+-- Found PCL_MODELER: /usr/include/pcl-1.12  
+-- looking for PCL_POINT_CLOUD_EDITOR
+-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  
+-- looking for PCL_OUTOFCORE
+-- Found PCL_OUTOFCORE: /usr/lib/aarch64-linux-gnu/libpcl_outofcore.so  
+-- looking for PCL_PEOPLE
+-- Found PCL_PEOPLE: /usr/lib/aarch64-linux-gnu/libpcl_people.so  
+-- Found PCL: pcl_common;pcl_kdtree;pcl_octree;pcl_search;pcl_sample_consensus;pcl_filters;pcl_io;pcl_features;pcl_ml;pcl_segmentation;pcl_visualization;pcl_surface;pcl_registration;pcl_keypoints;pcl_tracking;pcl_recognition;pcl_stereo;pcl_apps;pcl_outofcore;pcl_people;Boost::system;Boost::filesystem;Boost::date_time;Boost::iostreams;Boost::serialization;/usr/lib/libOpenNI.so;libusb::libusb;/usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb;VTK::ChartsCore;VTK::CommonColor;VTK::CommonComputationalGeometry;VTK::CommonCore;VTK::CommonDataModel;VTK::CommonExecutionModel;VTK::CommonMath;VTK::CommonMisc;VTK::CommonTransforms;VTK::FiltersCore;VTK::FiltersExtraction;VTK::FiltersGeneral;VTK::FiltersGeometry;VTK::FiltersModeling;VTK::FiltersSources;VTK::ImagingCore;VTK::ImagingSources;VTK::InteractionImage;VTK::InteractionStyle;VTK::InteractionWidgets;VTK::IOCore;VTK::IOGeometry;VTK::IOImage;VTK::IOLegacy;VTK::IOPLY;VTK::RenderingAnnotation;VTK::RenderingCore;VTK::RenderingContext2D;VTK::RenderingLOD;VTK::RenderingFreeType;VTK::ViewsCore;VTK::ViewsContext2D;VTK::RenderingOpenGL2;VTK::GUISupportQt;FLANN::FLANN;QHULL::QHULL  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/ws/build/basic
+[ 33%] Building CXX object CMakeFiles/basic.dir/src/Manifold.cpp.o
+[ 66%] Building CXX object CMakeFiles/basic.dir/src/logs.cpp.o
+[100%] Linking CXX shared library libbasic.so
+[100%] Built target basic
+-- Install configuration: "Release"
+-- Execute custom install script
+-- Symlinking: /tmp/ws/install/basic/include/basic/Manifold.h
+-- Symlinking: /tmp/ws/install/basic/include/basic/alias.h
+-- Symlinking: /tmp/ws/install/basic/include/basic/buffer/LatestOnlyBuffer.hpp
+-- Symlinking: /tmp/ws/install/basic/include/basic/buffer/MultiSourceLatestBuffer.hpp
+-- Symlinking: /tmp/ws/install/basic/include/basic/buffer/RingBuffer.hpp
+-- Symlinking: /tmp/ws/install/basic/include/basic/ds.h
+-- Symlinking: /tmp/ws/install/basic/include/basic/logs.h
+-- Symlinking: /tmp/ws/install/basic/include/basic/math.h
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/library_path.sh
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/library_path.dsv
+-- Symlinking: /tmp/ws/install/basic/share/ament_index/resource_index/package_run_dependencies/basic
+-- Symlinking: /tmp/ws/install/basic/share/ament_index/resource_index/parent_prefix_path/basic
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/ament_prefix_path.sh
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/ament_prefix_path.dsv
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/path.sh
+-- Symlinking: /tmp/ws/install/basic/share/basic/environment/path.dsv
+-- Symlinking: /tmp/ws/install/basic/share/basic/local_setup.bash
+-- Symlinking: /tmp/ws/install/basic/share/basic/local_setup.sh
+-- Symlinking: /tmp/ws/install/basic/share/basic/local_setup.zsh
+-- Symlinking: /tmp/ws/install/basic/share/basic/local_setup.dsv
+-- Symlinking: /tmp/ws/install/basic/share/basic/package.dsv
+-- Symlinking: /tmp/ws/install/basic/share/ament_index/resource_index/packages/basic
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/ament_cmake_export_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/ament_cmake_export_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/basicConfig.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/cmake/basicConfig-version.cmake
+-- Symlinking: /tmp/ws/install/basic/share/basic/package.xml
+-- Installing: /tmp/ws/install/basic/lib/libbasic.so
+-- Set runtime path of "/tmp/ws/install/basic/lib/libbasic.so" to ""
+-- Installing: /tmp/ws/install/basic/share/basic/cmake/export_basicExport.cmake
+-- Installing: /tmp/ws/install/basic/share/basic/cmake/export_basicExport-release.cmake
+Finished <<< basic [7.83s]
+--- stderr: basic
+** WARNING ** io features related to pcap will be disabled
+---
+Starting >>> livox_ros_driver2
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found std_msgs: 4.9.1 (/opt/ros/humble/share/std_msgs/cmake)
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/ws/build/livox_ros_driver2
+[  2%] Generating C code for ROS interfaces
+[  5%] Generating C++ code for ROS interfaces
+[  5%] Built target ament_cmake_python_symlink_livox_ros_driver2
+running egg_info
+creating livox_ros_driver2.egg-info
+writing livox_ros_driver2.egg-info/PKG-INFO
+writing dependency_links to livox_ros_driver2.egg-info/dependency_links.txt
+writing top-level names to livox_ros_driver2.egg-info/top_level.txt
+writing manifest file 'livox_ros_driver2.egg-info/SOURCES.txt'
+reading manifest file 'livox_ros_driver2.egg-info/SOURCES.txt'
+writing manifest file 'livox_ros_driver2.egg-info/SOURCES.txt'
+[  5%] Built target ament_cmake_python_build_livox_ros_driver2_egg
+[  5%] Built target livox_ros_driver2__cpp
+[  7%] Generating C++ type support for eProsima Fast-RTPS
+[ 10%] Generating C++ introspection for ROS interfaces
+[ 12%] Generating C++ type support dispatch for ROS interfaces
+[ 15%] Building C object CMakeFiles/livox_ros_driver2__rosidl_generator_c.dir/rosidl_generator_c/livox_ros_driver2/msg/detail/custom_point__functions.c.o
+[ 17%] Building C object CMakeFiles/livox_ros_driver2__rosidl_generator_c.dir/rosidl_generator_c/livox_ros_driver2/msg/detail/custom_msg__functions.c.o
+[ 20%] Linking C shared library liblivox_ros_driver2__rosidl_generator_c.so
+[ 20%] Built target livox_ros_driver2__rosidl_generator_c
+[ 25%] Generating C introspection for ROS interfaces
+[ 25%] Generating C type support for eProsima Fast-RTPS
+[ 28%] Generating C type support dispatch for ROS interfaces
+[ 33%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/livox_ros_driver2/msg/custom_point__type_support.cpp.o
+[ 33%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/livox_ros_driver2/msg/custom_msg__type_support.cpp.o
+[ 38%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/livox_ros_driver2/msg/detail/custom_msg__type_support.cpp.o
+[ 38%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/livox_ros_driver2/msg/detail/custom_point__type_support.cpp.o
+[ 41%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/livox_ros_driver2/msg/detail/dds_fastrtps/custom_point__type_support.cpp.o
+[ 43%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/livox_ros_driver2/msg/detail/dds_fastrtps/custom_msg__type_support.cpp.o
+[ 46%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_c.dir/rosidl_typesupport_c/livox_ros_driver2/msg/custom_point__type_support.cpp.o
+[ 48%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_c.dir/rosidl_typesupport_c/livox_ros_driver2/msg/custom_msg__type_support.cpp.o
+[ 51%] Linking CXX shared library liblivox_ros_driver2__rosidl_typesupport_c.so
+[ 53%] Building C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/livox_ros_driver2/msg/detail/custom_point__type_support.c.o
+[ 56%] Building C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/livox_ros_driver2/msg/detail/custom_msg__type_support.c.o
+[ 58%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/livox_ros_driver2/msg/detail/custom_point__type_support_c.cpp.o
+[ 58%] Built target livox_ros_driver2__rosidl_typesupport_c
+[ 61%] Building CXX object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/livox_ros_driver2/msg/detail/custom_msg__type_support_c.cpp.o
+[ 64%] Linking C shared library liblivox_ros_driver2__rosidl_typesupport_introspection_c.so
+[ 64%] Built target livox_ros_driver2__rosidl_typesupport_introspection_c
+[ 66%] Linking CXX shared library liblivox_ros_driver2__rosidl_typesupport_cpp.so
+[ 66%] Built target livox_ros_driver2__rosidl_typesupport_cpp
+[ 69%] Linking CXX shared library liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so
+[ 71%] Linking CXX shared library liblivox_ros_driver2__rosidl_typesupport_fastrtps_cpp.so
+[ 74%] Linking CXX shared library liblivox_ros_driver2__rosidl_typesupport_fastrtps_c.so
+[ 74%] Built target livox_ros_driver2__rosidl_typesupport_introspection_cpp
+[ 74%] Built target livox_ros_driver2__rosidl_typesupport_fastrtps_cpp
+[ 74%] Built target livox_ros_driver2__rosidl_typesupport_fastrtps_c
+[ 74%] Built target livox_ros_driver2
+[ 76%] Generating Python code for ROS interfaces
+[ 76%] Built target livox_ros_driver2__py
+[ 79%] Building C object CMakeFiles/livox_ros_driver2__rosidl_generator_py.dir/rosidl_generator_py/livox_ros_driver2/msg/_custom_point_s.c.o
+[ 82%] Building C object CMakeFiles/livox_ros_driver2__rosidl_generator_py.dir/rosidl_generator_py/livox_ros_driver2/msg/_custom_msg_s.c.o
+[ 84%] Linking C shared library rosidl_generator_py/livox_ros_driver2/liblivox_ros_driver2__rosidl_generator_py.so
+[ 84%] Built target livox_ros_driver2__rosidl_generator_py
+[ 87%] Building C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 89%] Building C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c.o
+[ 92%] Building C object CMakeFiles/livox_ros_driver2__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 94%] Linking C shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+[ 97%] Linking C shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+[100%] Linking C shared library rosidl_generator_py/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+[100%] Built target livox_ros_driver2__rosidl_typesupport_introspection_c__pyext
+[100%] Built target livox_ros_driver2__rosidl_typesupport_fastrtps_c__pyext
+[100%] Built target livox_ros_driver2__rosidl_typesupport_c__pyext
+-- Install configuration: ""
+-- Execute custom install script
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/ament_index/resource_index/rosidl_interfaces/livox_ros_driver2
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/custom_msg.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/custom_point.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__functions.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__struct.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__type_support.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__functions.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__struct.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__type_support.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/rosidl_generator_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/library_path.sh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/library_path.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/custom_msg.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/custom_point.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__builder.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__struct.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__traits.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__type_support.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__builder.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__struct.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__traits.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__type_support.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_msg__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/include/livox_ros_driver2/livox_ros_driver2/msg/detail/custom_point__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/pythonpath.sh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/pythonpath.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2-0.0.0-py3.10.egg-info/PKG-INFO
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2-0.0.0-py3.10.egg-info/top_level.txt
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/__init__.py
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_c.c
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/_livox_ros_driver2_s.ep.rosidl_typesupport_introspection_c.c
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/liblivox_ros_driver2__rosidl_generator_py.so
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/__init__.py
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_msg.py
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_msg_s.c
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_point.py
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_point_s.c
+-- Up-to-date symlink: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/livox_ros_driver2_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomPoint.idl
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomMsg.idl
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomPoint.msg
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/msg/CustomMsg.msg
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/ament_index/resource_index/package_run_dependencies/livox_ros_driver2
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/ament_index/resource_index/parent_prefix_path/livox_ros_driver2
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/ament_prefix_path.sh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/ament_prefix_path.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/path.sh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/environment/path.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.bash
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.sh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.zsh
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/local_setup.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/package.dsv
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/ament_index/resource_index/packages/livox_ros_driver2
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/ament_cmake_export_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2Config.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2Config-version.cmake
+-- Symlinking: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/package.xml
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_c.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_c.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_c.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_c.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_c.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_cpp.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_typesupport_cpp.so" to ""
+Listing '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2'...
+Compiling '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/__init__.py'...
+Listing '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg'...
+Compiling '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/__init__.py'...
+Compiling '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_msg.py'...
+Compiling '/tmp/ws/install/livox_ros_driver2/local/lib/python3.10/dist-packages/livox_ros_driver2/msg/_custom_point.py'...
+-- Installing: /tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_py.so
+-- Set runtime path of "/tmp/ws/install/livox_ros_driver2/lib/liblivox_ros_driver2__rosidl_generator_py.so" to ""
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_generator_cExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_generator_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_cExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_generator_cppExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_cppExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/livox_ros_driver2__rosidl_typesupport_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_generator_pyExport.cmake
+-- Installing: /tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake/export_livox_ros_driver2__rosidl_generator_pyExport-noconfig.cmake
+Finished <<< livox_ros_driver2 [3.44s]
+Starting >>> super_lio
+-- The CXX compiler identification is GNU 11.4.0
+-- The C compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rclcpp: 16.0.18 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found geometry_msgs: 4.9.1 (/opt/ros/humble/share/geometry_msgs/cmake)
+-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)
+-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found pcl_ros: 2.4.5 (/opt/ros/humble/share/pcl_ros/cmake)
+-- Checking for module 'eigen3'
+--   Found eigen3, version 3.4.0
+-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") 
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- Checking for module 'flann'
+--   Found flann, version 1.9.1
+-- Found FLANN: /usr/lib/aarch64-linux-gnu/libflann_cpp.so  
+-- FLANN found (include: /usr/include, lib: /usr/lib/aarch64-linux-gnu/libflann_cpp.so)
+-- Checking for module 'libusb-1.0'
+--   Found libusb-1.0, version 1.0.25
+-- Found libusb: /usr/lib/aarch64-linux-gnu/libusb-1.0.so  
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb)
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/aarch64-linux-gnu/libOpenNI2.so;libusb::libusb)
+-- Found Qhull version 8.0.2
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- Found PCL_COMMON: /usr/lib/aarch64-linux-gnu/libpcl_common.so  
+-- Found PCL_KDTREE: /usr/lib/aarch64-linux-gnu/libpcl_kdtree.so  
+-- Found PCL_OCTREE: /usr/lib/aarch64-linux-gnu/libpcl_octree.so  
+-- Found PCL_SEARCH: /usr/lib/aarch64-linux-gnu/libpcl_search.so  
+-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/aarch64-linux-gnu/libpcl_sample_consensus.so  
+-- Found PCL_FILTERS: /usr/lib/aarch64-linux-gnu/libpcl_filters.so  
+-- Found PCL_2D: /usr/include/pcl-1.12  
+-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  
+-- Found PCL_IO: /usr/lib/aarch64-linux-gnu/libpcl_io.so  
+-- Found PCL_FEATURES: /usr/lib/aarch64-linux-gnu/libpcl_features.so  
+-- Found PCL_ML: /usr/lib/aarch64-linux-gnu/libpcl_ml.so  
+-- Found PCL_SEGMENTATION: /usr/lib/aarch64-linux-gnu/libpcl_segmentation.so  
+-- Found PCL_VISUALIZATION: /usr/lib/aarch64-linux-gnu/libpcl_visualization.so  
+-- Found PCL_SURFACE: /usr/lib/aarch64-linux-gnu/libpcl_surface.so  
+-- Found PCL_REGISTRATION: /usr/lib/aarch64-linux-gnu/libpcl_registration.so  
+-- Found PCL_KEYPOINTS: /usr/lib/aarch64-linux-gnu/libpcl_keypoints.so  
+-- Found PCL_TRACKING: /usr/lib/aarch64-linux-gnu/libpcl_tracking.so  
+-- Found PCL_RECOGNITION: /usr/lib/aarch64-linux-gnu/libpcl_recognition.so  
+-- Found PCL_STEREO: /usr/lib/aarch64-linux-gnu/libpcl_stereo.so  
+-- Found PCL_APPS: /usr/lib/aarch64-linux-gnu/libpcl_apps.so  
+-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  
+-- Found PCL_MODELER: /usr/include/pcl-1.12  
+-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  
+-- Found PCL_OUTOFCORE: /usr/lib/aarch64-linux-gnu/libpcl_outofcore.so  
+-- Found PCL_PEOPLE: /usr/lib/aarch64-linux-gnu/libpcl_people.so  
+-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+-- Found Eigen3: TRUE (found version "3.4.0") 
+-- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+-- Found livox_ros_driver2: 0.0.0 (/tmp/ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake)
+-- Found basic: 2.0.0 (/tmp/ws/install/basic/share/basic/cmake)
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/ws/build/super_lio
+[  2%] Generating C code for ROS interfaces
+[  4%] Generating C++ code for ROS interfaces
+[  4%] Built target ament_cmake_python_symlink_super_lio
+running egg_info
+creating super_lio.egg-info
+writing super_lio.egg-info/PKG-INFO
+writing dependency_links to super_lio.egg-info/dependency_links.txt
+writing top-level names to super_lio.egg-info/top_level.txt
+writing manifest file 'super_lio.egg-info/SOURCES.txt'
+reading manifest file 'super_lio.egg-info/SOURCES.txt'
+writing manifest file 'super_lio.egg-info/SOURCES.txt'
+[  4%] Built target ament_cmake_python_build_super_lio_egg
+[  4%] Built target super_lio__cpp
+[  6%] Building C object CMakeFiles/super_lio__rosidl_generator_c.dir/rosidl_generator_c/super_lio/msg/detail/cloud_pose__functions.c.o
+[  8%] Building C object CMakeFiles/super_lio__rosidl_generator_c.dir/rosidl_generator_c/super_lio/msg/detail/cloud_pose2__functions.c.o
+[ 10%] Generating C++ type support dispatch for ROS interfaces
+[ 12%] Generating C++ type support for eProsima Fast-RTPS
+[ 14%] Generating C++ introspection for ROS interfaces
+[ 16%] Linking C shared library libsuper_lio__rosidl_generator_c.so
+[ 16%] Built target super_lio__rosidl_generator_c
+[ 20%] Generating C type support for eProsima Fast-RTPS
+[ 20%] Generating C introspection for ROS interfaces
+[ 22%] Generating C type support dispatch for ROS interfaces
+[ 26%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/super_lio/msg/cloud_pose__type_support.cpp.o
+[ 26%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/super_lio/msg/cloud_pose2__type_support.cpp.o
+[ 28%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/super_lio/msg/detail/cloud_pose__type_support.cpp.o
+[ 30%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/super_lio/msg/detail/cloud_pose2__type_support.cpp.o
+[ 32%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/super_lio/msg/detail/dds_fastrtps/cloud_pose__type_support.cpp.o
+[ 34%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/super_lio/msg/detail/dds_fastrtps/cloud_pose2__type_support.cpp.o
+[ 36%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_c.dir/rosidl_typesupport_c/super_lio/msg/cloud_pose__type_support.cpp.o
+[ 38%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_c.dir/rosidl_typesupport_c/super_lio/msg/cloud_pose2__type_support.cpp.o
+[ 40%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/super_lio/msg/detail/cloud_pose__type_support_c.cpp.o
+[ 42%] Building C object CMakeFiles/super_lio__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/super_lio/msg/detail/cloud_pose__type_support.c.o
+[ 44%] Building CXX object CMakeFiles/super_lio__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/super_lio/msg/detail/cloud_pose2__type_support_c.cpp.o
+[ 46%] Linking CXX shared library libsuper_lio__rosidl_typesupport_c.so
+[ 48%] Building C object CMakeFiles/super_lio__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/super_lio/msg/detail/cloud_pose2__type_support.c.o
+[ 51%] Linking CXX shared library libsuper_lio__rosidl_typesupport_cpp.so
+[ 53%] Linking C shared library libsuper_lio__rosidl_typesupport_introspection_c.so
+[ 53%] Built target super_lio__rosidl_typesupport_introspection_c
+[ 53%] Built target super_lio__rosidl_typesupport_c
+[ 53%] Built target super_lio__rosidl_typesupport_cpp
+[ 55%] Building CXX object CMakeFiles/lio.dir/src/lio/params.cpp.o
+[ 59%] Building CXX object CMakeFiles/lio.dir/src/lio/super_lio.cpp.o
+[ 59%] Building CXX object CMakeFiles/lio.dir/src/lio/ESKF.cpp.o
+[ 61%] Building CXX object CMakeFiles/lio.dir/src/lio/super_lio_reloc.cpp.o
+[ 63%] Building CXX object CMakeFiles/lio.dir/src/ros/ROSWrapper.cpp.o
+[ 65%] Linking CXX shared library libsuper_lio__rosidl_typesupport_introspection_cpp.so
+[ 67%] Linking CXX shared library libsuper_lio__rosidl_typesupport_fastrtps_cpp.so
+[ 69%] Linking CXX shared library libsuper_lio__rosidl_typesupport_fastrtps_c.so
+[ 69%] Built target super_lio__rosidl_typesupport_introspection_cpp
+[ 69%] Built target super_lio__rosidl_typesupport_fastrtps_cpp
+[ 69%] Built target super_lio__rosidl_typesupport_fastrtps_c
+[ 69%] Built target super_lio
+[ 71%] Generating Python code for ROS interfaces
+[ 71%] Built target super_lio__py
+[ 75%] Building C object CMakeFiles/super_lio__rosidl_generator_py.dir/rosidl_generator_py/super_lio/msg/_cloud_pose2_s.c.o
+[ 75%] Building C object CMakeFiles/super_lio__rosidl_generator_py.dir/rosidl_generator_py/super_lio/msg/_cloud_pose_s.c.o
+[ 77%] Linking C shared library rosidl_generator_py/super_lio/libsuper_lio__rosidl_generator_py.so
+[ 77%] Built target super_lio__rosidl_generator_py
+[ 79%] Building C object CMakeFiles/super_lio__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/super_lio/_super_lio_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 81%] Building C object CMakeFiles/super_lio__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/super_lio/_super_lio_s.ep.rosidl_typesupport_c.c.o
+[ 83%] Building C object CMakeFiles/super_lio__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/super_lio/_super_lio_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 85%] Linking C shared library rosidl_generator_py/super_lio/super_lio_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+[ 87%] Linking C shared library rosidl_generator_py/super_lio/super_lio_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+[ 89%] Linking C shared library rosidl_generator_py/super_lio/super_lio_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+[ 89%] Built target super_lio__rosidl_typesupport_introspection_c__pyext
+[ 89%] Built target super_lio__rosidl_typesupport_c__pyext
+[ 89%] Built target super_lio__rosidl_typesupport_fastrtps_c__pyext
+[ 91%] Linking CXX shared library liblio.so
+[Processing: super_lio]
+[ 91%] Built target lio
+[ 93%] Building CXX object CMakeFiles/relocation_node.dir/src/apps/relocation_node.cpp.o
+[ 95%] Building CXX object CMakeFiles/super_lio_node.dir/src/apps/super_lio_node.cpp.o
+[ 97%] Linking CXX executable super_lio_node
+[100%] Linking CXX executable relocation_node
+[100%] Built target super_lio_node
+[100%] Built target relocation_node
+-- Install configuration: "Release"
+-- Execute custom install script
+-- Symlinking: /tmp/ws/install/super_lio/share/ament_index/resource_index/rosidl_interfaces/super_lio
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/cloud_pose.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/cloud_pose2.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__functions.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__struct.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__type_support.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__functions.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__struct.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__type_support.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/rosidl_generator_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/library_path.sh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/library_path.dsv
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/cloud_pose.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/cloud_pose2.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__builder.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__struct.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__traits.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__type_support.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__builder.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__struct.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__traits.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__type_support.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose2__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/super_lio/msg/detail/cloud_pose__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/pythonpath.sh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/pythonpath.dsv
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio-2.0.0-py3.10.egg-info/PKG-INFO
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio-2.0.0-py3.10.egg-info/SOURCES.txt
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio-2.0.0-py3.10.egg-info/dependency_links.txt
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio-2.0.0-py3.10.egg-info/top_level.txt
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/__init__.py
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/_super_lio_s.ep.rosidl_typesupport_c.c
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/_super_lio_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/_super_lio_s.ep.rosidl_typesupport_introspection_c.c
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/libsuper_lio__rosidl_generator_py.so
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/__init__.py
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose.py
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose2.py
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose2_s.c
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose_s.c
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/super_lio_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/msg/CloudPose.idl
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/msg/CloudPose2.idl
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/msg/CloudPose.msg
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/msg/CloudPose2.msg
+-- Symlinking: /tmp/ws/install/super_lio/lib/liblio.so
+-- Symlinking: /tmp/ws/install/super_lio/lib/super_lio/super_lio_node
+-- Symlinking: /tmp/ws/install/super_lio/lib/super_lio/relocation_node
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/HKNN_list60_gem.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/OctVoxMap.hpp
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/VoxelGridFilter.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/output/.gitignore
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/tsl/robin_growth_policy.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/tsl/robin_hash.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/tsl/robin_hood.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/tsl/robin_map.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/OctVoxMap/tsl/robin_set.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/common/ds.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/common/timer.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/lio/ESKF.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/lio/params.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/lio/super_lio.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/lio/super_lio_reloc.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/ros/ROSWrapper.h
+-- Symlinking: /tmp/ws/install/super_lio/include/super_lio/.gitkeep
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/Livox_mid360.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/M2DGR.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/MCD_ATH.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/NCLT.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/NTU.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/hesai.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/r3live.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/launch/relocation.py
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/M2DGR.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/MCD_ATH.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/NCLT.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/NTU.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/hesai.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/livox_360.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/r3live.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/config/relocation.yaml
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/rviz/lio.rviz
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/rviz/relocation.rviz
+-- Symlinking: /tmp/ws/install/super_lio/share/ament_index/resource_index/package_run_dependencies/super_lio
+-- Symlinking: /tmp/ws/install/super_lio/share/ament_index/resource_index/parent_prefix_path/super_lio
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/ament_prefix_path.sh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/ament_prefix_path.dsv
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/path.sh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/environment/path.dsv
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/local_setup.bash
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/local_setup.sh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/local_setup.zsh
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/local_setup.dsv
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/package.dsv
+-- Symlinking: /tmp/ws/install/super_lio/share/ament_index/resource_index/packages/super_lio
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/rosidl_cmake-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/ament_cmake_export_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/ament_cmake_export_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lioConfig.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lioConfig-version.cmake
+-- Symlinking: /tmp/ws/install/super_lio/share/super_lio/package.xml
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_generator_c.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_generator_c.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_fastrtps_c.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_c.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_c.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_cpp.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_typesupport_cpp.so" to ""
+Listing '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio'...
+Compiling '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/__init__.py'...
+Listing '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg'...
+Compiling '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/__init__.py'...
+Compiling '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose.py'...
+Compiling '/tmp/ws/install/super_lio/local/lib/python3.10/dist-packages/super_lio/msg/_cloud_pose2.py'...
+-- Installing: /tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_generator_py.so
+-- Set runtime path of "/tmp/ws/install/super_lio/lib/libsuper_lio__rosidl_generator_py.so" to ""
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_generator_cExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_generator_cExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_typesupport_fastrtps_cExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_introspection_cExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_cExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_cExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_generator_cppExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_typesupport_fastrtps_cppExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_introspection_cppExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_cppExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/super_lio__rosidl_typesupport_cppExport-release.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_generator_pyExport.cmake
+-- Installing: /tmp/ws/install/super_lio/share/super_lio/cmake/export_super_lio__rosidl_generator_pyExport-release.cmake
+Finished <<< super_lio [55.9s]
+
+Summary: 3 packages finished [1min 7s]
+  1 package had stderr output: basic

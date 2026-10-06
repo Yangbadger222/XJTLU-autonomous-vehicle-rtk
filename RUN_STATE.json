@@ -1,14 +1,14 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "verify with git rev-parse HEAD",
+  "tip_commit_at_report": "e820c86279d56f6945ff013b69002cf8e53254f7",
   "active_processes": [],
   "commands": [
     {
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "22 tests"
+      "evidence": "20 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -32,7 +32,7 @@
       "command": "scripts/apply_ego_vehicle_patch.sh (fresh checkout; sequential git apply --check)",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "0001 + 0002 applied at exact EGO commit; target ROS build pending"
+      "evidence": "0001 + 0002 applied at exact EGO commit; raw and patched ARM64 ROS 2 Humble build evidence in audit/container"
     },
     {
       "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
@@ -41,19 +41,20 @@
       "evidence": "source-audited LIO field mapping; unresolved semantics fail closed"
     },
     {
-      "command": "colcon build --parallel-workers 1",
-      "status": "NOT_RUN",
-      "evidence": "ROS 2 Humble/colcon unavailable on macOS host"
+      "command": "docker ARM64 ROS 2 Humble isolated builds (raw EGO, patched EGO, Super-LIO core)",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/container/ego-raw-build-and-start.log; audit/container/ego-build-pass-2.log; audit/container/super-lio-build-message-only.log"
     },
     {
       "command": "ros2 bag play <vehicle bag>",
-      "status": "NOT_RUN",
-      "evidence": "ROS 2 bag tooling unavailable; audited bag has no raw Livox/IMU"
+      "status": "PENDING",
+      "evidence": "ROS 2 bag tooling/container replay not performed; audited bag has no raw Livox/IMU"
     },
     {
       "command": "system_active_road_research.launch.py execution_mode:=shadow",
       "status": "NOT_RUN",
-      "evidence": "Jetson-only runtime dependencies and hardware unavailable"
+      "evidence": "Jetson-only runtime dependencies and hardware unavailable; isolated compile does not prove target runtime"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

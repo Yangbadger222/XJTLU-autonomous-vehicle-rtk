@@ -18,14 +18,15 @@
 
 ## 已执行验证
 
-- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`22 passed`。
+- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`20 passed`。
+- 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；顺序补丁后的 EGO 车辆边界完成编译；Super-LIO C++ 核心和 ROS 接口完成编译。Super-LIO 构建使用仅含 `livox_ros_driver2` 消息的编译合同，真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - launch 与适配器 Python 语法编译通过。
-- 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；目标 ROS/Humble 编译仍待 Jetson。
+- 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；原始与 patched EGO 的隔离 Humble 编译日志见 `audit/container/`。
 - 研究回放 smoke 输出包含轨迹可行性、策略对照和最终 mock 串口停车字节。
 - 保护的原始车辆文件未修改；未刷固件、未改标定/串口协议/运动限值/安全权限、未自动开车、未 force-push。
 
 ## 仍需现场或目标环境完成的门槛
 
-`RESULTS.json` 已逐项区分软件 PASS、研究合成 PASS 与实车 PENDING：ROS2 Humble/Jetson 编译与运行、真实 LiDAR/IMU bag 回放、IMU→base 外参与协方差/健康等价性、运行时有效参数 dump、Jetson shadow、物理急停最终串口字节、RTK authority holdover 和 live motion acceptance 均未冒充完成。RTK 失 authority 时仍由既有保护停车；Super-LIO 健康不能绕过该停车条件。
+`RESULTS.json` 已逐项区分软件 PASS、研究合成 PASS 与实车 PENDING：真实 LiDAR/IMU bag 回放、IMU→base 外参与协方差/健康等价性、运行时有效参数 dump、Jetson shadow、物理急停最终串口字节、RTK authority holdover 和 live motion acceptance 均未冒充完成。RTK 失 authority 时仍由既有保护停车；Super-LIO 健康不能绕过该停车条件。
 
 详细证据见仓库中的 `RESULTS.json`、`AUDIT_REPORT.md`、`audit/UPSTREAM_PATCH_VERIFICATION.json`、`audit/VEHICLE_BAG_REPLAY_INPUT.json` 和 `LIVE_ACCEPTANCE_CHECKLIST.md`。

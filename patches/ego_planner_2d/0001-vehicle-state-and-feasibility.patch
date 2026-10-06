@@ -132,7 +132,7 @@ index ed0b593..d213ee0 100644
              void getObstacles(std::vector<ObstacleInfo> &obstacle);
 +
 +        private:
-+            bool checkVehicleFeasibility(const UniformBspline& position_traj) const;
++            bool checkVehicleFeasibility(UniformBspline position_traj);
      };
  
  
@@ -252,10 +252,10 @@ index 12c08b3..9648f57 100644
  
 -}
 \ No newline at end of file
-+    bool PlannerInterface::checkVehicleFeasibility(const UniformBspline& position_traj) const
++    bool PlannerInterface::checkVehicleFeasibility(UniformBspline position_traj)
 +    {
-+        const auto velocity_traj = position_traj.getDerivative();
-+        const auto acceleration_traj = velocity_traj.getDerivative();
++        auto velocity_traj = position_traj.getDerivative();
++        auto acceleration_traj = velocity_traj.getDerivative();
 +        const double duration = position_traj.getTimeSum();
 +        for (double t = 0.0; t <= duration + 1e-6; t += 0.05)
 +        {
@@ -264,8 +264,8 @@ index 12c08b3..9648f57 100644
 +            const double speed = std::hypot(vel(0), vel(1));
 +            if (speed < 1e-3)
 +                continue;
-+            const double yaw_rate = (vel(0) * acc(1) - vel(1) * acc(0)) / speed;
-+            const double curvature = yaw_rate / (speed * speed);
++            const double yaw_rate = (vel(0) * acc(1) - vel(1) * acc(0)) / (speed * speed);
++            const double curvature = yaw_rate / speed;
 +            if (pp_.max_yaw_rate_ > 0.0 && std::abs(yaw_rate) > pp_.max_yaw_rate_ + 1e-6)
 +                return false;
 +            if (pp_.max_curvature_ > 0.0 && std::abs(curvature) > pp_.max_curvature_ + 1e-6)

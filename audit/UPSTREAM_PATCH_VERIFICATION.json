@@ -8,12 +8,18 @@
       "src/super_lio/include/ros/ROSWrapper.h",
       "src/super_lio/src/ros/ROSWrapper.cpp"
     ],
-    "ros_build": "PENDING_NO_HUMBLE_ON_DEVELOPER_HOST"
+    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CORE_WITH_MESSAGE_ONLY_LIVOX_CONTRACT",
+    "build_evidence": [
+      "audit/container/super-lio-build-message-only.log",
+      "audit/container/super-lio-build-message-only.exit",
+      "source commit f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2; source-aware patch applied",
+      "core build uses a compile-only livox_ros_driver2 message package; physical SDK/driver and sensor runtime remain unverified"
+    ]
   },
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
     "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch",
-    "patch_sha256": "33533face6c997c409bf5835b5cbe78434cc6aa96d6c55b1d3d57d9f31046e41",
+    "patch_sha256": "9655078a8a65c8adc171c55ec83c4c8575f9ec551a58667ee6d58449437b570c",
     "apply_check": "PASS_SEQUENTIAL",
     "files": [
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
@@ -26,18 +32,31 @@
       "src/EgoPlanner-ROS2/CMakeLists.txt",
       "src/EgoPlanner-ROS2/package.xml"
     ],
-    "ros_build": "PENDING_NO_HUMBLE_ON_DEVELOPER_HOST",
+    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_PATCHED",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
-        "sha256": "33533face6c997c409bf5835b5cbe78434cc6aa96d6c55b1d3d57d9f31046e41",
+        "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
         "apply_check": "PASS"
       },
       {
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-        "sha256": "ecb24690f867c78eb57e4a7b1972c05668e82d59803088cb7463ffd143ca7176",
+        "sha256": "9ed727e5022dc866e10bb46a5431d490162039695ea16820ca6c41f48b098ae8",
         "apply_check": "PASS_AFTER_0001"
       }
+    ],
+    "raw_reproduction": {
+      "build": "PASS",
+      "startup": "PASS_TIMEOUT_EXPECTED",
+      "evidence": [
+        "audit/container/ego-raw-build-and-start.log",
+        "audit/container/ego-raw-build-and-start.exit"
+      ],
+      "details": "raw pinned ego_planner built and motion_plan started in isolated ROS 2 Humble until bounded 5 s timeout; no RViz/display or vehicle inputs"
+    },
+    "patched_build_evidence": [
+      "audit/container/ego-build-pass-2.log",
+      "audit/container/ego-build-pass-2.exit"
     ]
   }
 }

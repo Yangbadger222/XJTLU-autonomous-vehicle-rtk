@@ -11,13 +11,13 @@
     "scope": "source and static launch layers; runtime dump pending"
   },
   "SUPER_LIO_BUILD_AND_RUNTIME": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
       "dependencies.research.repos",
-      "src/bringup/config/super_lio_vehicle.yaml",
-      "audit/UPSTREAM_PATCH_VERIFICATION.json"
+      "audit/UPSTREAM_PATCH_VERIFICATION.json",
+      "audit/container/super-lio-build-message-only.log"
     ],
-    "reason": "pinned source patch applies, but ROS 2 Humble/Jetson build and sensor runtime are unavailable"
+    "scope": "isolated ARM64 ROS 2 Humble core build passed with a compile-only livox_ros_driver2 message contract; physical Livox SDK/driver, Jetson runtime and sensor bag replay remain pending"
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PENDING",
@@ -29,14 +29,15 @@
     "reason": "field mapping is source-audited, but acceleration scale, Livox timebase/synchronization, base extrinsic, covariance, cloud filters and health equivalence require bag and deployment evidence"
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
       "dependencies.research.repos",
       "audit/UPSTREAM_SOURCE_AUDIT.md",
       "audit/UPSTREAM_PATCH_VERIFICATION.json",
-      "patches/ego_planner_2d/README.md"
+      "audit/container/ego-raw-build-and-start.log",
+      "audit/container/ego-build-pass-2.log"
     ],
-    "reason": "pinned source and patch provenance verified, ROS build/reproduction not available"
+    "scope": "raw pinned motion_plan build/start and sequentially patched ARM64 ROS 2 Humble build passed in isolation; RViz interaction and vehicle runtime remain pending"
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
     "status": "PASS",
@@ -46,7 +47,7 @@
       "src/research_runtime/research_runtime/trajectory.py",
       "config/ego_vehicle_adapter.yaml"
     ],
-    "scope": "source-level ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D; target compile pending"
+    "scope": "patched ROS edge compiled in isolated ARM64 ROS 2 Humble; it consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D; target wiring and runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",

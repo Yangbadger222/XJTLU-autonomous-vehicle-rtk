@@ -8,20 +8,22 @@ diff --git a/src/EgoPlanner-ROS2/CMakeLists.txt b/src/EgoPlanner-ROS2/CMakeLists
 index 78c9989..cf49940 100644
 --- a/src/EgoPlanner-ROS2/CMakeLists.txt
 +++ b/src/EgoPlanner-ROS2/CMakeLists.txt
-@@ -8,6 +8,8 @@ find_package(ament_cmake REQUIRED)
+@@ -8,6 +8,9 @@ find_package(ament_cmake REQUIRED)
  find_package(rclcpp REQUIRED)
  find_package(nav_msgs REQUIRED)
  find_package(geometry_msgs REQUIRED)
 +find_package(std_msgs REQUIRED)
++find_package(builtin_interfaces REQUIRED)
 +find_package(research_interfaces REQUIRED)
  find_package(tf2 REQUIRED)
  find_package(tf2_ros REQUIRED)
  find_package(sensor_msgs REQUIRED)
-@@ -58,6 +60,8 @@ ament_target_dependencies(
+@@ -58,6 +60,9 @@ ament_target_dependencies(
    rclcpp
    nav_msgs
    geometry_msgs
 +  std_msgs
++  builtin_interfaces
 +  research_interfaces
    tf2
    tf2_ros
@@ -266,11 +268,12 @@ diff --git a/src/EgoPlanner-ROS2/package.xml b/src/EgoPlanner-ROS2/package.xml
 index cc2473c..2b1dad7 100644
 --- a/src/EgoPlanner-ROS2/package.xml
 +++ b/src/EgoPlanner-ROS2/package.xml
-@@ -12,6 +12,8 @@
+@@ -12,6 +12,9 @@
    <depend>rclcpp</depend>
    <depend>nav_msgs</depend>
    <depend>geometry_msgs</depend>
 +  <depend>std_msgs</depend>
++  <depend>builtin_interfaces</depend>
 +  <depend>research_interfaces</depend>
    <depend>tf2</depend>
    <depend>tf2_ros</depend>
@@ -279,7 +282,7 @@ diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-R
 index a2befd4..53270ed 100644
 --- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 +++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
-@@ -1,681 +1,415 @@
+@@ -1,681 +1,428 @@
  /*
 - * @Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
 - * @Create by: juchunyu@qq.com
@@ -353,6 +356,19 @@ index a2befd4..53270ed 100644
 +#include <limits>
 +#include <sstream>
 +#include <utility>
++#include "builtin_interfaces/msg/time.hpp"
++
++namespace
++{
++builtin_interfaces::msg::Time to_builtin_time(const rclcpp::Time & value)
++{
++  const int64_t nanoseconds = value.nanoseconds();
++  builtin_interfaces::msg::Time result;
++  result.sec = static_cast<int32_t>(nanoseconds / 1000000000LL);
++  result.nanosec = static_cast<uint32_t>(nanoseconds % 1000000000LL);
++  return result;
++}
++}
  
 -    // 5Hz 规划与发布循环
 -    timer_ = this->create_wall_timer(
@@ -878,7 +894,7 @@ index a2befd4..53270ed 100644
 -
 +  research_interfaces::msg::TimedTrajectory2D message;
 +  const rclcpp::Time generated = now();
-+  message.header.stamp = generated.to_msg();
++  message.header.stamp = to_builtin_time(generated);
 +  message.header.frame_id = "odom";
 +  message.trajectory_id = "ego-failure-" + std::to_string(++trajectory_id_);
 +  message.map_version = map_version_.empty() ? "UNKNOWN" : map_version_;
@@ -1162,12 +1178,12 @@ index a2befd4..53270ed 100644
 -    obs_local_pub_->publish(visual_obs);
 +  research_interfaces::msg::TimedTrajectory2D message;
 +  const rclcpp::Time generated = now();
-+  message.header.stamp = generated.to_msg();
++  message.header.stamp = to_builtin_time(generated);
 +  message.header.frame_id = "odom";
 +  message.trajectory_id = "ego-" + std::to_string(++trajectory_id_);
 +  message.map_version = map_version_;
 +  message.generated_at = message.header.stamp;
-+  message.valid_until = (generated + rclcpp::Duration::from_seconds(kTrajectoryValidity)).to_msg();
++  message.valid_until = to_builtin_time(generated + rclcpp::Duration::from_seconds(kTrajectoryValidity));
 +  message.status = research_interfaces::msg::TimedTrajectory2D::STATUS_OK;
 +  message.failure_reason.clear();
 +
@@ -1208,7 +1224,7 @@ index a2befd4..53270ed 100644
 +void TrajectoryAndObstaclesPublisher::publish_visual_trajectory(const std::vector<PathPoint> & points)
 +{
 +  nav_msgs::msg::Path visual;
-+  visual.header.stamp = now().to_msg();
++  visual.header.stamp = to_builtin_time(now());
 +  visual.header.frame_id = "odom";
 +  for (const auto & point : points) {
 +    geometry_msgs::msg::PoseStamped pose;

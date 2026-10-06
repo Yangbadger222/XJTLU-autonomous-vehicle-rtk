@@ -1,0 +1,13 @@
+debconf: delaying package configuration, since apt-utils is not installed
+Finished <<< ego_planner [44.5s]
+Summary: 1 package finished [44.6s]
+raw_node_exit=124
+x_size =50 y_size =50 z_size10
+resolution =0.1
+origin =0
+0
+0
+inflate_values =0.5
+[setInflateRadius] 成功更新默认膨胀半径：0.5m（原：0.5m）
+[INFO] [1791311663.318448264] [ego_planner_interactive_node]: Planner Ready. Waiting for global path points (/clicked_point)...
+[INFO] [1791311667.913817710] [rclcpp]: signal_handler(SIGINT/SIGTERM)

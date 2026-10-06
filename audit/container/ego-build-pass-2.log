@@ -1,0 +1,950 @@
+debconf: delaying package configuration, since apt-utils is not installed
+Starting >>> research_interfaces
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found builtin_interfaces: 1.2.2 (/opt/ros/humble/share/builtin_interfaces/cmake)
+-- Found std_msgs: 4.9.1 (/opt/ros/humble/share/std_msgs/cmake)
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/ws/build/research_interfaces
+[  1%] Generating C code for ROS interfaces
+[  3%] Generating C++ code for ROS interfaces
+[  3%] Built target ament_cmake_python_symlink_research_interfaces
+running egg_info
+creating research_interfaces.egg-info
+writing research_interfaces.egg-info/PKG-INFO
+writing dependency_links to research_interfaces.egg-info/dependency_links.txt
+writing top-level names to research_interfaces.egg-info/top_level.txt
+writing manifest file 'research_interfaces.egg-info/SOURCES.txt'
+reading manifest file 'research_interfaces.egg-info/SOURCES.txt'
+writing manifest file 'research_interfaces.egg-info/SOURCES.txt'
+[  3%] Built target ament_cmake_python_build_research_interfaces_egg
+[  3%] Built target research_interfaces__cpp
+[  4%] Building C object CMakeFiles/research_interfaces__rosidl_generator_c.dir/rosidl_generator_c/research_interfaces/msg/detail/timed_trajectory_point2_d__functions.c.o
+[  6%] Building C object CMakeFiles/research_interfaces__rosidl_generator_c.dir/rosidl_generator_c/research_interfaces/msg/detail/timed_trajectory2_d__functions.c.o
+[  7%] Building C object CMakeFiles/research_interfaces__rosidl_generator_c.dir/rosidl_generator_c/research_interfaces/msg/detail/observation_goal__functions.c.o
+[  9%] Building C object CMakeFiles/research_interfaces__rosidl_generator_c.dir/rosidl_generator_c/research_interfaces/msg/detail/road_event__functions.c.o
+[ 11%] Building C object CMakeFiles/research_interfaces__rosidl_generator_c.dir/rosidl_generator_c/research_interfaces/msg/detail/research_status__functions.c.o
+[ 12%] Generating C++ type support dispatch for ROS interfaces
+[ 14%] Generating C++ introspection for ROS interfaces
+[ 15%] Generating C++ type support for eProsima Fast-RTPS
+[ 17%] Linking C shared library libresearch_interfaces__rosidl_generator_c.so
+[ 17%] Built target research_interfaces__rosidl_generator_c
+[ 20%] Generating C introspection for ROS interfaces
+[ 20%] Generating C type support dispatch for ROS interfaces
+[ 22%] Generating C type support for eProsima Fast-RTPS
+[ 23%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/research_interfaces/msg/timed_trajectory2_d__type_support.cpp.o
+[ 25%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/research_interfaces/msg/timed_trajectory_point2_d__type_support.cpp.o
+[ 26%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/research_interfaces/msg/observation_goal__type_support.cpp.o
+[ 28%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/research_interfaces/msg/road_event__type_support.cpp.o
+[ 30%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/research_interfaces/msg/research_status__type_support.cpp.o
+[ 31%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/research_interfaces/msg/detail/timed_trajectory_point2_d__type_support.cpp.o
+[ 33%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/research_interfaces/msg/timed_trajectory_point2_d__type_support.cpp.o
+[ 34%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/research_interfaces/msg/timed_trajectory2_d__type_support.cpp.o
+[ 36%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/research_interfaces/msg/road_event__type_support.cpp.o
+[ 38%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/research_interfaces/msg/observation_goal__type_support.cpp.o
+[ 39%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/research_interfaces/msg/detail/dds_fastrtps/timed_trajectory_point2_d__type_support.cpp.o
+[ 41%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_c.dir/rosidl_typesupport_c/research_interfaces/msg/research_status__type_support.cpp.o
+[ 42%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/research_interfaces/msg/detail/timed_trajectory_point2_d__type_support.c.o
+[ 44%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/research_interfaces/msg/detail/timed_trajectory_point2_d__type_support_c.cpp.o
+[ 46%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/research_interfaces/msg/detail/dds_fastrtps/timed_trajectory2_d__type_support.cpp.o
+[ 47%] Linking CXX shared library libresearch_interfaces__rosidl_typesupport_c.so
+[ 49%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/research_interfaces/msg/detail/timed_trajectory2_d__type_support_c.cpp.o
+[ 50%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/research_interfaces/msg/detail/timed_trajectory2_d__type_support.c.o
+[ 52%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/research_interfaces/msg/detail/timed_trajectory2_d__type_support.cpp.o
+[ 53%] Linking CXX shared library libresearch_interfaces__rosidl_typesupport_cpp.so
+[ 55%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/research_interfaces/msg/detail/road_event__type_support.c.o
+[ 55%] Built target research_interfaces__rosidl_typesupport_c
+[ 55%] Built target research_interfaces__rosidl_typesupport_cpp
+[ 57%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/research_interfaces/msg/detail/dds_fastrtps/road_event__type_support.cpp.o
+[ 58%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/research_interfaces/msg/detail/observation_goal__type_support.c.o
+[ 60%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/research_interfaces/msg/detail/road_event__type_support.cpp.o
+[ 61%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/research_interfaces/msg/detail/dds_fastrtps/observation_goal__type_support.cpp.o
+[ 63%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/research_interfaces/msg/detail/research_status__type_support.c.o
+[ 65%] Linking C shared library libresearch_interfaces__rosidl_typesupport_introspection_c.so
+[ 65%] Built target research_interfaces__rosidl_typesupport_introspection_c
+[ 66%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/research_interfaces/msg/detail/dds_fastrtps/research_status__type_support.cpp.o
+[ 68%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/research_interfaces/msg/detail/road_event__type_support_c.cpp.o
+[ 69%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/research_interfaces/msg/detail/observation_goal__type_support.cpp.o
+[ 71%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/research_interfaces/msg/detail/research_status__type_support.cpp.o
+[ 73%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/research_interfaces/msg/detail/observation_goal__type_support_c.cpp.o
+[ 74%] Building CXX object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/research_interfaces/msg/detail/research_status__type_support_c.cpp.o
+[ 76%] Linking CXX shared library libresearch_interfaces__rosidl_typesupport_fastrtps_cpp.so
+[ 76%] Built target research_interfaces__rosidl_typesupport_fastrtps_cpp
+[ 77%] Linking CXX shared library libresearch_interfaces__rosidl_typesupport_introspection_cpp.so
+[ 79%] Linking CXX shared library libresearch_interfaces__rosidl_typesupport_fastrtps_c.so
+[ 79%] Built target research_interfaces__rosidl_typesupport_introspection_cpp
+[ 79%] Built target research_interfaces__rosidl_typesupport_fastrtps_c
+[ 79%] Built target research_interfaces
+[ 80%] Generating Python code for ROS interfaces
+[ 80%] Built target research_interfaces__py
+[ 82%] Building C object CMakeFiles/research_interfaces__rosidl_generator_py.dir/rosidl_generator_py/research_interfaces/msg/_timed_trajectory_point2_d_s.c.o
+[ 84%] Building C object CMakeFiles/research_interfaces__rosidl_generator_py.dir/rosidl_generator_py/research_interfaces/msg/_timed_trajectory2_d_s.c.o
+[ 85%] Building C object CMakeFiles/research_interfaces__rosidl_generator_py.dir/rosidl_generator_py/research_interfaces/msg/_road_event_s.c.o
+[ 87%] Building C object CMakeFiles/research_interfaces__rosidl_generator_py.dir/rosidl_generator_py/research_interfaces/msg/_observation_goal_s.c.o
+[ 88%] Building C object CMakeFiles/research_interfaces__rosidl_generator_py.dir/rosidl_generator_py/research_interfaces/msg/_research_status_s.c.o
+[ 90%] Linking C shared library rosidl_generator_py/research_interfaces/libresearch_interfaces__rosidl_generator_py.so
+[ 90%] Built target research_interfaces__rosidl_generator_py
+[ 92%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 93%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 95%] Building C object CMakeFiles/research_interfaces__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_c.c.o
+[ 98%] Linking C shared library rosidl_generator_py/research_interfaces/research_interfaces_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+[ 98%] Linking C shared library rosidl_generator_py/research_interfaces/research_interfaces_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+[100%] Linking C shared library rosidl_generator_py/research_interfaces/research_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+[100%] Built target research_interfaces__rosidl_typesupport_c__pyext
+[100%] Built target research_interfaces__rosidl_typesupport_introspection_c__pyext
+[100%] Built target research_interfaces__rosidl_typesupport_fastrtps_c__pyext
+-- Install configuration: ""
+-- Execute custom install script
+-- Symlinking: /tmp/ws/install/research_interfaces/share/ament_index/resource_index/rosidl_interfaces/research_interfaces
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__functions.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__struct.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__type_support.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__functions.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__struct.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__type_support.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__functions.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__struct.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__type_support.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__functions.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__struct.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__type_support.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__functions.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__struct.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__type_support.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/observation_goal.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/research_status.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/road_event.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/rosidl_generator_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/timed_trajectory2_d.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/timed_trajectory_point2_d.h
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/library_path.sh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/library_path.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__builder.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__struct.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__traits.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__type_support.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__builder.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__struct.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__traits.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__type_support.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__builder.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__struct.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__traits.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__type_support.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__builder.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__struct.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__traits.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__type_support.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__builder.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__struct.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__traits.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__type_support.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/observation_goal.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/research_status.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/road_event.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/timed_trajectory2_d.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/timed_trajectory_point2_d.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/observation_goal__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/research_status__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/road_event__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory2_d__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/include/research_interfaces/research_interfaces/msg/detail/timed_trajectory_point2_d__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/pythonpath.sh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/pythonpath.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces-0.1.0-py3.10.egg-info/PKG-INFO
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces-0.1.0-py3.10.egg-info/SOURCES.txt
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces-0.1.0-py3.10.egg-info/dependency_links.txt
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces-0.1.0-py3.10.egg-info/top_level.txt
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/__init__.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_c.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/_research_interfaces_s.ep.rosidl_typesupport_introspection_c.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/libresearch_interfaces__rosidl_generator_py.so
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/__init__.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_observation_goal.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_observation_goal_s.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_research_status.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_research_status_s.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_road_event.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_road_event_s.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory2_d.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory2_d_s.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory_point2_d.py
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory_point2_d_s.c
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/research_interfaces_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/TimedTrajectoryPoint2D.idl
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/TimedTrajectory2D.idl
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/RoadEvent.idl
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/ObservationGoal.idl
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/ResearchStatus.idl
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/TimedTrajectoryPoint2D.msg
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/TimedTrajectory2D.msg
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/RoadEvent.msg
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/ObservationGoal.msg
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/msg/ResearchStatus.msg
+-- Symlinking: /tmp/ws/install/research_interfaces/share/ament_index/resource_index/package_run_dependencies/research_interfaces
+-- Symlinking: /tmp/ws/install/research_interfaces/share/ament_index/resource_index/parent_prefix_path/research_interfaces
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/ament_prefix_path.sh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/ament_prefix_path.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/path.sh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/environment/path.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/local_setup.bash
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/local_setup.sh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/local_setup.zsh
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/local_setup.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/package.dsv
+-- Symlinking: /tmp/ws/install/research_interfaces/share/ament_index/resource_index/packages/research_interfaces
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/rosidl_cmake-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/ament_cmake_export_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/ament_cmake_export_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfacesConfig.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfacesConfig-version.cmake
+-- Symlinking: /tmp/ws/install/research_interfaces/share/research_interfaces/package.xml
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_generator_c.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_generator_c.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_fastrtps_c.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_c.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_c.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_cpp.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_typesupport_cpp.so" to ""
+Listing '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/__init__.py'...
+Listing '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/__init__.py'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_observation_goal.py'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_research_status.py'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_road_event.py'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory2_d.py'...
+Compiling '/tmp/ws/install/research_interfaces/local/lib/python3.10/dist-packages/research_interfaces/msg/_timed_trajectory_point2_d.py'...
+-- Installing: /tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_generator_py.so
+-- Set runtime path of "/tmp/ws/install/research_interfaces/lib/libresearch_interfaces__rosidl_generator_py.so" to ""
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_generator_cExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_generator_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_typesupport_fastrtps_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_introspection_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_cExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_cExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_generator_cppExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_typesupport_fastrtps_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_introspection_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_cppExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/research_interfaces__rosidl_typesupport_cppExport-noconfig.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_generator_pyExport.cmake
+-- Installing: /tmp/ws/install/research_interfaces/share/research_interfaces/cmake/export_research_interfaces__rosidl_generator_pyExport-noconfig.cmake
+Finished <<< research_interfaces [4.38s]
+Starting >>> ego_planner
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.13 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Override CMake install command with custom implementation using symlinks instead of copying resources
+-- Found rclcpp: 16.0.18 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.10 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/aarch64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found nav_msgs: 4.9.1 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found research_interfaces: 0.1.0 (/tmp/ws/install/research_interfaces/share/research_interfaces/cmake)
+-- Found tf2: 0.25.19 (/opt/ros/humble/share/tf2/cmake)
+-- Found tf2_ros: 0.25.19 (/opt/ros/humble/share/tf2_ros/cmake)
+-- Found sensor_msgs: 4.9.1 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found Boost: /usr/lib/aarch64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0")  
+-- Found visualization_msgs: 4.9.1 (/opt/ros/humble/share/visualization_msgs/cmake)
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+statusego_planner
+-- 包根目录：/tmp/ws/src/ego_planner_2d_ros2
+-- 检查msg文件：/tmp/ws/src/ego_planner_2d_ros2/msg/CurrentPose.msg
+-- ✅ msg文件存在！
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/aarch64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/aarch64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /tmp/ws/build/ego_planner
+[  2%] Generating C code for ROS interfaces
+[  4%] Generating C++ code for ROS interfaces
+[  6%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/uniform_bspline.cpp.o
+[  9%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/bspline_optimizer.cpp.o
+[ 13%] Building CXX object planner/GridMap2D/CMakeFiles/local_map.dir/src/grid_map.cpp.o
+[ 13%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/gradient_descent_optimizer.cpp.o
+[ 16%] Building CXX object planner/path_searching/CMakeFiles/path_searching.dir/src/dyn_a_star.cpp.o
+[ 16%] Built target ament_cmake_python_symlink_ego_planner
+running egg_info
+creating ego_planner.egg-info
+writing ego_planner.egg-info/PKG-INFO
+writing dependency_links to ego_planner.egg-info/dependency_links.txt
+writing top-level names to ego_planner.egg-info/top_level.txt
+writing manifest file 'ego_planner.egg-info/SOURCES.txt'
+reading manifest file 'ego_planner.egg-info/SOURCES.txt'
+writing manifest file 'ego_planner.egg-info/SOURCES.txt'
+[ 16%] Built target ament_cmake_python_build_ego_planner_egg
+[ 16%] Built target ego_planner__cpp
+[ 23%] Generating C++ type support dispatch for ROS interfaces
+[ 23%] Generating C++ type support for eProsima Fast-RTPS
+[ 23%] Generating C++ introspection for ROS interfaces
+[ 25%] Building C object CMakeFiles/ego_planner__rosidl_generator_c.dir/rosidl_generator_c/ego_planner/msg/detail/current_pose__functions.c.o
+[ 27%] Linking C shared library libego_planner__rosidl_generator_c.so
+[ 27%] Built target ego_planner__rosidl_generator_c
+[ 32%] Generating C type support for eProsima Fast-RTPS
+[ 32%] Generating C introspection for ROS interfaces
+[ 34%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/ego_planner/msg/detail/current_pose__type_support.cpp.o
+[ 37%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/ego_planner/msg/current_pose__type_support.cpp.o
+[ 39%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/ego_planner/msg/detail/dds_fastrtps/current_pose__type_support.cpp.o
+[ 41%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ego_planner/msg/detail/current_pose__type_support.c.o
+[ 44%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/ego_planner/msg/detail/current_pose__type_support_c.cpp.o
+[ 46%] Linking C shared library libego_planner__rosidl_typesupport_introspection_c.so
+[ 46%] Built target ego_planner__rosidl_typesupport_introspection_c
+[ 48%] Generating C type support dispatch for ROS interfaces
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+[ 51%] Linking CXX shared library libego_planner__rosidl_typesupport_cpp.so
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+[ 51%] Built target ego_planner__rosidl_typesupport_cpp
+[ 53%] Linking CXX shared library libego_planner__rosidl_typesupport_introspection_cpp.so
+[ 55%] Linking CXX shared library libego_planner__rosidl_typesupport_fastrtps_cpp.so
+[ 55%] Built target ego_planner__rosidl_typesupport_introspection_cpp
+[ 58%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_c.dir/rosidl_typesupport_c/ego_planner/msg/current_pose__type_support.cpp.o
+[ 60%] Linking CXX shared library libego_planner__rosidl_typesupport_c.so
+[ 60%] Built target ego_planner__rosidl_typesupport_c
+[ 60%] Built target ego_planner__rosidl_typesupport_fastrtps_cpp
+[ 62%] Linking CXX shared library libego_planner__rosidl_typesupport_fastrtps_c.so
+[ 62%] Built target ego_planner__rosidl_typesupport_fastrtps_c
+[ 62%] Built target ego_planner
+[ 65%] Generating Python code for ROS interfaces
+[ 65%] Built target ego_planner__py
+[ 67%] Building C object CMakeFiles/ego_planner__rosidl_generator_py.dir/rosidl_generator_py/ego_planner/msg/_current_pose_s.c.o
+[ 69%] Linking C shared library rosidl_generator_py/ego_planner/libego_planner__rosidl_generator_py.so
+[ 69%] Built target ego_planner__rosidl_generator_py
+[ 76%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_c.c.o
+[ 76%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 76%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 79%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+[ 83%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+[ 83%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+[ 83%] Built target ego_planner__rosidl_typesupport_introspection_c__pyext
+[ 83%] Built target ego_planner__rosidl_typesupport_c__pyext
+[ 83%] Built target ego_planner__rosidl_typesupport_fastrtps_c__pyext
+[ 86%] Linking CXX static library liblocal_map.a
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘void ego_planner::BsplineOptimizer::combineCostRebound(const double*, double*, double&, int)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:62: warning: unused variable ‘f_turn’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                              ^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:73: warning: unused variable ‘f_kappa’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                                         ^~~~~~~
+[ 86%] Built target local_map
+[ 88%] Linking CXX static library libpath_searching.a
+[ 88%] Built target path_searching
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxVel(double&, double&)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  334 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxAcc(double&, double&)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  360 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+[ 90%] Linking CXX static library libbspline_opt.a
+[ 90%] Built target bspline_opt
+[ 93%] Building CXX object planner/plan_manage/CMakeFiles/ego_planner_lib.dir/src/planner_interface.cpp.o
+In file included from /tmp/ws/src/ego_planner_2d_ros2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp:1:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+/tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp: In member function ‘void ego_planner::PlannerInterface::makePlan()’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp:206:52: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘std::chrono::duration<long int, std::ratio<1, 1000> >::rep’ {aka ‘long int’} [-Wformat=]
+  206 |         printf("MotionPlanner Total Running Time: %d  ms \n", elapsed.count());
+      |                                                   ~^          ~~~~~~~~~~~~~~~
+      |                                                    |                       |
+      |                                                    int                     std::chrono::duration<long int, std::ratio<1, 1000> >::rep {aka long int}
+      |                                                   %ld
+[ 95%] Linking CXX static library libego_planner_lib.a
+[ 95%] Built target ego_planner_lib
+[ 97%] Building CXX object CMakeFiles/motion_plan.dir/src/trajectory_publisher.cpp.o
+In file included from /tmp/ws/src/ego_planner_2d_ros2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /tmp/ws/src/ego_planner_2d_ros2/include/trajectory_obstacles_publisher.h:18,
+                 from /tmp/ws/src/ego_planner_2d_ros2/src/trajectory_publisher.cpp:10:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+[100%] Linking CXX executable motion_plan
+[Processing: ego_planner]
+[100%] Built target motion_plan
+-- Install configuration: "Release"
+-- Execute custom install script
+-- Symlinking: /tmp/ws/install/ego_planner/share/ament_index/resource_index/rosidl_interfaces/ego_planner
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/current_pose.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__functions.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__struct.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_generator_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/library_path.sh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/library_path.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_fastrtps_c.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/current_pose.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__builder.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__struct.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__traits.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_fastrtps_cpp.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_introspection_c.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Symlinking: /tmp/ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_introspection_cpp.hpp
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/pythonpath.sh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/pythonpath.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/PKG-INFO
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/top_level.txt
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/__init__.py
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_c.c
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_introspection_c.c
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/libego_planner__rosidl_generator_py.so
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/__init__.py
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose.py
+-- Symlinking: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose_s.c
+-- Up-to-date symlink: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-aarch64-linux-gnu.so
+-- Up-to-date symlink: /tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-aarch64-linux-gnu.so
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/msg/CurrentPose.idl
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/msg/CurrentPose.msg
+-- Symlinking: /tmp/ws/install/ego_planner/lib/ego_planner/motion_plan
+-- Symlinking: /tmp/ws/install/ego_planner/share/ament_index/resource_index/package_run_dependencies/ego_planner
+-- Symlinking: /tmp/ws/install/ego_planner/share/ament_index/resource_index/parent_prefix_path/ego_planner
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/ament_prefix_path.sh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/ament_prefix_path.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/path.sh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/environment/path.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/local_setup.bash
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/local_setup.sh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/local_setup.zsh
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/local_setup.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/package.dsv
+-- Symlinking: /tmp/ws/install/ego_planner/share/ament_index/resource_index/packages/ego_planner
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_plannerConfig.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_plannerConfig-version.cmake
+-- Symlinking: /tmp/ws/install/ego_planner/share/ego_planner/package.xml
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_generator_c.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_generator_c.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_c.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_c.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_c.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_cpp.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_cpp.so" to ""
+Listing '/tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner'...
+Compiling '/tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/__init__.py'...
+Listing '/tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg'...
+Compiling '/tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/__init__.py'...
+Compiling '/tmp/ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose.py'...
+-- Installing: /tmp/ws/install/ego_planner/lib/libego_planner__rosidl_generator_py.so
+-- Set runtime path of "/tmp/ws/install/ego_planner/lib/libego_planner__rosidl_generator_py.so" to ""
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cppExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cppExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cppExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cppExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cppExport-release.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_pyExport.cmake
+-- Installing: /tmp/ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_pyExport-release.cmake
+Finished <<< ego_planner [42.1s]
+--- stderr: ego_planner
+statusego_planner
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/path_searching/include/path_searching/dyn_a_star.h:5,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/path_searching/src/dyn_a_star.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/uniform_bspline.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/gradient_descent_optimizer.h:6,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/gradient_descent_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /usr/include/eigen3/Eigen/Eigen:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/./planner/bspline_opt/include/bspline_opt/bspline_optimizer.h:4,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::pload(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1671:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1671 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:214,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h: In function ‘Packet Eigen::internal::ploadu(const typename Eigen::internal::unpacket_traits<T>::type*) [with Packet = Eigen::internal::eigen_packet_wrapper<int, 2>; typename Eigen::internal::unpacket_traits<T>::type = signed char]’:
+/usr/include/eigen3/Eigen/src/Core/arch/NEON/PacketMath.h:1716:9: warning: ‘void* memcpy(void*, const void*, size_t)’ copying an object of non-trivial type ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} from an array of ‘const int8_t’ {aka ‘const signed char’} [-Wclass-memaccess]
+ 1716 |   memcpy(&res, from, sizeof(Packet4c));
+      |   ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/eigen3/Eigen/Core:172,
+                 from /usr/include/eigen3/Eigen/Dense:1,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/include/plan_env/grid_map.h:9,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/GridMap2D/src/grid_map.cpp:1:
+/usr/include/eigen3/Eigen/src/Core/GenericPacketMath.h:159:8: note: ‘Eigen::internal::Packet4c’ {aka ‘struct Eigen::internal::eigen_packet_wrapper<int, 2>’} declared here
+  159 | struct eigen_packet_wrapper
+      |        ^~~~~~~~~~~~~~~~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘void ego_planner::BsplineOptimizer::combineCostRebound(const double*, double*, double&, int)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:62: warning: unused variable ‘f_turn’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                              ^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:73: warning: unused variable ‘f_kappa’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                                         ^~~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxVel(double&, double&)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  334 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxAcc(double&, double&)’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  360 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/tmp/ws/src/ego_planner_2d_ros2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+In file included from /tmp/ws/src/ego_planner_2d_ros2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp:1:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+/tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp: In member function ‘void ego_planner::PlannerInterface::makePlan()’:
+/tmp/ws/src/ego_planner_2d_ros2/planner/plan_manage/src/planner_interface.cpp:206:52: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘std::chrono::duration<long int, std::ratio<1, 1000> >::rep’ {aka ‘long int’} [-Wformat=]
+  206 |         printf("MotionPlanner Total Running Time: %d  ms \n", elapsed.count());
+      |                                                   ~^          ~~~~~~~~~~~~~~~
+      |                                                    |                       |
+      |                                                    int                     std::chrono::duration<long int, std::ratio<1, 1000> >::rep {aka long int}
+      |                                                   %ld
+In file included from /tmp/ws/src/ego_planner_2d_ros2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /tmp/ws/src/ego_planner_2d_ros2/include/trajectory_obstacles_publisher.h:18,
+                 from /tmp/ws/src/ego_planner_2d_ros2/src/trajectory_publisher.cpp:10:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/tmp/ws/src/ego_planner_2d_ros2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+---
+
+Summary: 2 packages finished [46.6s]
+  1 package had stderr output: ego_planner

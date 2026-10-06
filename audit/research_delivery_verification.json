@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "codex/superlio-ego-active-road",
-  "tip": "dd282fed7b615c3c4a6cd04c4627b825f4ff8bea",
+  "tip": "301b1df7080a1d3ef769dfdc6d3f87b9fa6c5922",
   "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "checks": [
     {
@@ -11,7 +11,7 @@
         "git merge-base --is-ancestor",
         "audit/vehicle_baseline/SOURCE_IDENTITY.json"
       ],
-      "detail": "branch=codex/superlio-ego-active-road, tip=dd282fed7b615c3c4a6cd04c4627b825f4ff8bea, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
+      "detail": "branch=codex/superlio-ego-active-road, tip=301b1df7080a1d3ef769dfdc6d3f87b9fa6c5922, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
     },
     {
       "name": "external_pins",

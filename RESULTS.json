@@ -22,10 +22,11 @@
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PENDING",
     "evidence": [
+      "audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
       "audit/UPSTREAM_SOURCE_AUDIT.md",
       "src/super_lio_vehicle_adapter"
     ],
-    "reason": "timestamp/IMU unit, base extrinsic, covariance and health equivalence require bag and deployment evidence"
+    "reason": "field mapping is source-audited, but acceleration scale, Livox timebase/synchronization, base extrinsic, covariance, cloud filters and health equivalence require bag and deployment evidence"
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
     "status": "PENDING",

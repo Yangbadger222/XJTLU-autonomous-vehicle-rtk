@@ -13,11 +13,12 @@
 - 轨迹检查补充了动态导数、实际切向速度、body 横向速度、曲率/yaw-rate、footprint 和地图版本拒绝；不可行轨迹不 clip。
 - 新入口排除 Nav2/MPPI/SLAM/旧实验旁路，只保留传感器、RTK authority、安全命令、研究桥。replay 不启动传感器、authority、规划器或串口；shadow/live 才启动规划链。物理串口还必须显式 `execution_mode:=live enable_serial:=true`。
 - 实现 CRS 绑定的 GeoTIFF/MaGRoad 证据接口、像素+深度→相机→车体→odom 几何合同、局部证据持久化、待观察入口、主动观察候选评分和 evaluator-only 策略对照。
+- 已把 Super-LIO/FAST-LIO2 的时间、单位、同步、云过滤和健康差异固化到 `audit/vehicle_baseline/LIO_FIELD_MAPPING.json`；未解析项保持 fail-closed。
 - 已审计已有 bag：该 15.5 秒 bag 只有旧 `/fastlio2/lio_odom`、RTK、TF 和 costmap，没有 `/livox/lidar` 或 `/livox/imu`，因此不宣称 Super-LIO 回放通过。
 
 ## 已执行验证
 
-- 研究运行时、适配器和入口合同测试：`20 passed`。
+- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`22 passed`。
 - launch 与适配器 Python 语法编译通过。
 - 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；目标 ROS/Humble 编译仍待 Jetson。
 - 研究回放 smoke 输出包含轨迹可行性、策略对照和最终 mock 串口停车字节。

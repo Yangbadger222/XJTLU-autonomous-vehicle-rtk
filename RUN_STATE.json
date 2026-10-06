@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "20 tests"
+      "evidence": "22 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -33,6 +33,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "0001 + 0002 applied at exact EGO commit; target ROS build pending"
+    },
+    {
+      "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "source-audited LIO field mapping; unresolved semantics fail closed"
     },
     {
       "command": "colcon build --parallel-workers 1",

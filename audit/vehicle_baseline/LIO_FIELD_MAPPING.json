@@ -1,0 +1,78 @@
+{
+  "vehicle_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "super_lio_commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
+  "status_vocabulary": ["SOURCE_VERIFIED", "EXACT_CARRY_OVER", "SEMANTIC_MISMATCH_PENDING", "TARGET_RUNTIME_PENDING", "UNKNOWN_BLOCKS_MOTION"],
+  "fields": [
+    {
+      "name": "imu_header_stamp",
+      "super_lio": "sec + 1e-9 * nanosec",
+      "vehicle_fastlio": "sec + 1e-9 * nanosec",
+      "status": "EXACT_CARRY_OVER",
+      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449",
+      "runtime_evidence": "TARGET_RUNTIME_PENDING"
+    },
+    {
+      "name": "imu_linear_acceleration_scale",
+      "super_lio": "copied without scale",
+      "vehicle_fastlio": "multiplied by 10.0 before buffering",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "driver/bag unit contract is not proven; neither retaining nor removing the factor is safe",
+      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:441-449"
+    },
+    {
+      "name": "imu_angular_velocity",
+      "super_lio": "copied as rad/s input",
+      "vehicle_fastlio": "copied unchanged",
+      "status": "EXACT_CARRY_OVER",
+      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449"
+    },
+    {
+      "name": "livox_offset_time",
+      "super_lio": "offset_time * 1e-9 seconds",
+      "vehicle_fastlio": "offset_time * 1e-6 stored as ms, then /1000 for cloud end",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "both use driver arrival-time header; hardware timebase relationship is unverified",
+      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27; vehicle lio_node.cpp:482-513"
+    },
+    {
+      "name": "livox_filter",
+      "super_lio": "tag/range/filter_rate; no line<4 check",
+      "vehicle_fastlio": "tag/range/filter_rate plus line<4",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "vehicle packet-stride semantics need the actual MID360 stream or bag",
+      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27"
+    },
+    {
+      "name": "lidar_imu_synchronization",
+      "super_lio": "consumes imu_time <= lidar_end_time; no point sort before last offset",
+      "vehicle_fastlio": "sorts points; consumes imu_time < cloud_end_time",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "boundary and non-monotonic offset behavior require replay evidence",
+      "source": "Super-LIO ROSWrapper.cpp:532-565; vehicle lio_node.cpp:482-513"
+    },
+    {
+      "name": "odom_pose_and_twist",
+      "super_lio": "world frame, imu child, world velocity; patched angular velocity and source covariance",
+      "vehicle_fastlio": "world frame, base child, body velocity",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "measured IMU-to-base transform and lever-arm covariance are absent",
+      "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; vehicle lio_node.cpp:676-697"
+    },
+    {
+      "name": "height_and_obstacle_clouds",
+      "super_lio": "world cloud only; no equivalent vehicle height/obstacle filters",
+      "vehicle_fastlio": "body/world height window and separate obstacle window",
+      "status": "SEMANTIC_MISMATCH_PENDING",
+      "reason": "target local ground/obstacle adapter must preserve locked windows without guessing",
+      "source": "vehicle lio_node.cpp:526-607,609-673; master_params.yaml obstacle window"
+    },
+    {
+      "name": "health",
+      "super_lio": "UNKNOWN source health; no degeneracy equivalent",
+      "vehicle_fastlio": "degeneracy eigenvalue/condition metric and health aggregator",
+      "status": "UNKNOWN_BLOCKS_MOTION",
+      "reason": "Super-LIO cannot be mapped to FAST-LIO2 degeneracy without a validated formula",
+      "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; vehicle ieskf.cpp and health aggregator"
+    }
+  ]
+}

@@ -29,7 +29,7 @@
 
 ## Regression evidence
 
-The new transport-independent suite passes (`10 passed`). The original
+The new transport-independent and contract suite passes (`22 passed`). The original
 `gps_waypoint_dispatcher` guard/authority tests run with the package path and
 recorded `191 passed, 3 failed`; the failures are baseline/environment evidence
 (two diagnostic-string expectations already absent at the pinned commit and one
@@ -55,3 +55,10 @@ obstacle-grid and road-reference producers are absent. Their ROS contracts are
 locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
 frame/ground-separation wiring is still pending and is not represented as a
 software PASS.
+
+The LIO field mapping is now machine-readable at
+`audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records the exact source
+agreement for ROS stamps and gyro units, and marks acceleration scaling,
+Livox offset-time semantics, synchronization boundaries, height/obstacle cloud
+semantics, base extrinsics, covariance and health as unresolved where the
+sources disagree. The mapping test refuses an unqualified health equivalence.

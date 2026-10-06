@@ -49,6 +49,11 @@ def generate_launch_description():
                       condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
                                                                "' != 'replay'"])),
                       parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml")])
+    active_road_map = Node(package="active_road_mapping", executable="active_road_map",
+                           name="active_road_map", output="screen",
+                           condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                                    "' != 'replay'"])),
+                           parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml")])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
@@ -88,4 +93,5 @@ def generate_launch_description():
     return LaunchDescription([mode, enable_super, enable_serial,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               livox, rtk,
-                              super_lio, adapter, local_grid, ego_vehicle, authority, cmd_guard, serial, research])
+                              super_lio, adapter, active_road_map, local_grid, ego_vehicle,
+                              authority, cmd_guard, serial, research])

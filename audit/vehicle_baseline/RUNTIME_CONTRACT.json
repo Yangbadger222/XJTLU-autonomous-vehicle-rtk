@@ -73,7 +73,7 @@
     "/research/road_reference": {
       "type": "nav_msgs/msg/Path",
       "frame": "odom",
-      "producer": "active-road reference adapter (target wiring pending)",
+      "producer": "active_road_map persisted-version/path boundary (external reference input required)",
       "consumer": "patched Ego-Planner-2D vehicle ROS edge",
       "control_contract": false
     },
@@ -85,7 +85,7 @@
     },
     "/research/map_version": {
       "type": "std_msgs/msg/String",
-      "producer": "active-road map persistence",
+      "producer": "active_road_map persisted EvidenceStore",
       "policy": "missing version blocks trajectory"
     }
   },

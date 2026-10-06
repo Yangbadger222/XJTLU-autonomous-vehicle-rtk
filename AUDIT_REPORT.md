@@ -128,10 +128,13 @@ planner/authority/serial processes and that the physical serial sink requires
 both `live` and `enable_serial:=true`.
 
 The new EGO ROS edge is intentionally fail-closed when the target local
-obstacle-grid and road-reference producers are absent. Their ROS contracts are
-locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
-frame/ground-separation wiring is still pending and is not represented as a
-software PASS.
+obstacle-grid and road-reference producers are absent. The active-road launch now
+includes `research_local_obstacle_grid` and `active_road_map`: the former only
+marks measured odom-frame cells, while the latter publishes a persisted map
+version and relays only an external odom-frame reference. Their ROS contracts
+are locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`; target-side
+frame/ground-separation, evidence ingestion and runtime wiring remain pending
+and are not represented as a software PASS.
 
 The local-grid projector in `src/research_runtime/research_runtime/grid_map.py`
 and ROS transport node `local_obstacle_grid_node.py` project only measured

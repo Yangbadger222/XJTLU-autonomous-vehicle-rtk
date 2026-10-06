@@ -18,6 +18,8 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert '"/research/map_version"' in source
     assert 'executable="research_local_obstacle_grid"' in source
     assert 'research_local_grid.yaml' in source
+    assert 'executable="active_road_map"' in source
+    assert 'active_road_mapping.yaml' in source
     bridge = (Path(__file__).parents[3] / "src" / "research_runtime" /
               "research_runtime" / "safety_bridge.py").read_text()
     assert "health_timeout_s" in bridge

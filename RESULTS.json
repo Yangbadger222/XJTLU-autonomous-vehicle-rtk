@@ -9,7 +9,7 @@
   "GEOREFERENCED_EVIDENCE_UPDATE": {"status":"PASS", "evidence":["src/research_runtime/research_runtime/active_road.py","src/research_runtime/test/test_active_road.py"], "scope":"synthetic CRS-bound, idempotent evidence store"},
   "ACTIVE_OBSERVATION_IMPLEMENTED": {"status":"PASS", "evidence":["src/research_runtime/research_runtime/active_road.py","METHOD_SPEC.md"], "scope":"bounded heuristic candidate selection; real camera validation pending"},
   "POLICY_EFFECT_SIMULATION": {"status":"PASS", "evidence":["runtime-data/research/active_road/replay_smoke.json","src/research_runtime/research_runtime/replay_sim.py"], "scope":"truth-blind policy and evaluator-only synthetic comparison; no claim of research gain"},
-  "VEHICLE_BAG_REPLAY": {"status":"PENDING", "evidence":["audit/VEHICLE_BAG_INVENTORY.json"], "reason":"bag files exist but ROS 2 replay tooling and target dependencies unavailable"},
+  "VEHICLE_BAG_REPLAY": {"status":"PENDING", "evidence":["audit/VEHICLE_BAG_INVENTORY.json","audit/VEHICLE_BAG_REPLAY_INPUT.json"], "reason":"inventoried bag lacks raw /livox/lidar and /livox/imu; ROS 2 replay tooling and target dependencies unavailable"},
   "JETSON_SHADOW_VALIDATION": {"status":"PENDING", "reason":"no Jetson access in this session"},
   "LIVE_MOTION_ACCEPTANCE": {"status":"PENDING", "reason":"explicitly not performed; physical operator/e-stop required"},
   "RTK_HOLDOVER_MOTION_APPROVAL": {"status":"NOT_RUN", "reason":"never enabled; LIO health cannot override RTK stop"},

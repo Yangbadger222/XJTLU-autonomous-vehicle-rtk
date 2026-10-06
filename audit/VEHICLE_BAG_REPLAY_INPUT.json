@@ -1,0 +1,19 @@
+{
+  "bag": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-31-19-33-52/bag/bag_0.db3",
+  "metadata_sha256": "a9734745d69cefe15f253cf155460869b77febb89ab1374e7b932356f8cb5a25",
+  "bag_bytes": 1114112,
+  "duration_ns": 15538323164,
+  "message_count": 611,
+  "available_topics": {
+    "/fastlio2/lio_odom": {"type":"nav_msgs/msg/Odometry", "count":148},
+    "/fix": {"type":"sensor_msgs/msg/NavSatFix", "count":16},
+    "/gps_corridor/pgo_enu_to_map": {"type":"std_msgs/msg/Float64MultiArray", "count":147},
+    "/tf": {"type":"tf2_msgs/msg/TFMessage", "count":295},
+    "/local_costmap/costmap": {"type":"nav_msgs/msg/OccupancyGrid", "count":2},
+    "/global_costmap/costmap": {"type":"nav_msgs/msg/OccupancyGrid", "count":1}
+  },
+  "required_raw_inputs": ["/livox/lidar", "/livox/imu"],
+  "raw_inputs_present": false,
+  "replay_status": "NOT_RUN_NO_RAW_LIVOX_OR_IMU_AND_NO_ROS2_TOOLING",
+  "interpretation": "This bag can audit the old odom/authority/costmap topics but cannot be used to claim Super-LIO LiDAR/IMU replay."
+}

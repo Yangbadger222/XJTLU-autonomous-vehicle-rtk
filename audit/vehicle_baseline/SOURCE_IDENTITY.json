@@ -4,7 +4,7 @@
   "vehicle_baseline_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "research_branch": "codex/superlio-ego-active-road",
   "research_base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "research_tip_commit": "05de63c",
+  "research_tip_commit": "verify with git rev-parse HEAD (report metadata is intentionally non-self-referential)",
   "external_dependencies": {
     "super_lio": {
       "repository": "Liansheng-Wang/Super-LIO",

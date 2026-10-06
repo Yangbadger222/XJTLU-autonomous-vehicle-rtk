@@ -21,6 +21,15 @@ def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():
         assert forbidden not in source
 
 
+def test_bringup_declares_active_road_runtime_dependencies():
+    package = (Path(__file__).parents[3] / "src" / "bringup" / "package.xml").read_text()
+    for dependency in ("super_lio", "ego_planner", "research_interfaces",
+                       "research_runtime", "super_lio_vehicle_adapter",
+                       "livox_ros_driver2", "um982_rtk_driver",
+                       "gps_waypoint_dispatcher", "serial_twistctl"):
+        assert f"<exec_depend>{dependency}</exec_depend>" in package
+
+
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():
     config = (Path(__file__).parents[3] / "config" / "ego_vehicle_adapter.yaml").read_text()
     assert "max_speed_mps: 0.85" in config

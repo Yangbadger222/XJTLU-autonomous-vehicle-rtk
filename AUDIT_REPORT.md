@@ -41,7 +41,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`42 passed`). The replay
+The new transport-independent and contract suite passes (`43 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -78,6 +78,11 @@ evidence store also rejects unsupported schemas and malformed measurements
 before they can be persisted or replayed. MaGRoad GeoJSON now requires an
 explicit CRS and finite geometry; GeoTransform rejects missing or non-finite
 metadata instead of inferring a coordinate convention.
+
+The active-road bringup manifest now declares every research runtime and safety
+edge it launches, including the pinned estimator/planner package names,
+research interfaces, Livox/RTK inputs, authority guard and serial bridge; a
+static contract test prevents future dependency omissions.
 
 ## Follow-up implementation evidence
 

@@ -158,6 +158,13 @@
       "exit_code": null,
       "evidence": "developer host Docker CLI produced no stdout/stderr and timed out after 20 s; current three-patch ROS/ARM64 rebuild remains pending",
       "scope": "external Docker service probe only; no compile or runtime claim"
+    },
+    {
+      "command": "docker desktop start/stop plus docker --context orbstack info probes",
+      "status": "PENDING",
+      "exit_code": null,
+      "evidence": "official Docker Desktop CLI reported already running while desktop-linux and orbstack sockets remained unavailable; no current three-patch compile or runtime claim",
+      "scope": "external container-service recovery attempt only"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

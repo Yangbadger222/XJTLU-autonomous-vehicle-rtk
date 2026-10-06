@@ -47,9 +47,10 @@
       "audit/ego_patch_check_latest.log",
       "src/research_interfaces",
       "src/research_runtime/research_runtime/trajectory.py",
-      "config/ego_vehicle_adapter.yaml"
+      "config/ego_vehicle_adapter.yaml",
+      "audit/container/current-ego-rebuild-probe.log"
     ],
-    "reason": "current corrected patch passes exact sequential apply-check and source/contract tests, but the ARM64 patched rebuild could not be rerun because the local Docker runtime remains stuck in Created; the existing patched build log predates the current curvature/speed checks",
+    "reason": "current corrected patch passes exact sequential apply-check and source/contract tests, but the ARM64 patched rebuild could not be rerun because the local Docker runtime kept both normal and entrypoint-bypass probes in Created; the existing patched build log predates the current curvature/speed checks",
     "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback before the original guard; current patched compile, target wiring and runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {

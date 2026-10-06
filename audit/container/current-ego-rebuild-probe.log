@@ -1,0 +1,22 @@
+Current corrected EGO patch rebuild probe
+Date: 2026-10-07
+Purpose: determine whether the local isolated ARM64 ROS 2 Humble image can execute the current patched EGO rebuild.
+
+Observed Docker runtime:
+- docker server 29.2.1
+- server OS linux, architecture aarch64, CPUs 10
+- active context desktop-linux
+- buildx default and desktop-linux builders running with linux/arm64 support
+
+Probe 1:
+  docker run --rm --platform linux/arm64 ros2-go2:vehicle-source3 bash -lc 'echo container_ok; find /vehicle-research/src -maxdepth 2 -type d | head -20'
+Result: no container stdout; Docker process remained in Created for more than 25 minutes and was terminated. No compile result.
+
+Probe 2 (entrypoint bypass):
+  docker run --rm --platform linux/arm64 --entrypoint /bin/bash ros2-go2:vehicle-source3 -lc 'echo container_entrypoint_bypass_ok; test -d /vehicle-research/src; echo source_present'
+Result: no container stdout; Docker process remained in Created for more than 5 minutes and was terminated. No compile result.
+
+Conclusion:
+- The current corrected EGO patch has exact sequential git apply-check evidence, but this environment did not start a container for a current-version compile.
+- The prior patched EGO compile log is retained as prior-revision evidence only.
+- No Jetson, Livox SDK/driver runtime, sensor bag, or live actuator evidence is inferred from this probe.

@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-        "evidence": "47 tests"
+      "evidence": "47 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -67,7 +67,7 @@
     {
       "command": "docker ARM64 rebuild of current corrected EGO vehicle patch",
       "status": "PENDING",
-      "evidence": "docker run remains stuck in Created even with entrypoint bypass; current exact patch apply-check is PASS in audit/ego_patch_check_latest.log, but no current-version compile claim is made"
+      "evidence": "docker run remained in Created with and without entrypoint bypass; audit/container/current-ego-rebuild-probe.log; current exact patch apply-check is PASS in audit/ego_patch_check_latest.log, but no current-version compile claim is made"
     },
     {
       "command": "ros2 bag play <vehicle bag>",

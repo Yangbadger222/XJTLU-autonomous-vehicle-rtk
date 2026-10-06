@@ -63,6 +63,12 @@
       "status": "PASS_SEQUENTIAL",
       "checkout_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
       "evidence": "audit/ego_patch_check_latest.log"
+    },
+    "current_rebuild_probe": {
+      "status": "PENDING_DOCKER_CONTAINER_START",
+      "evidence": "audit/container/current-ego-rebuild-probe.log",
+      "observed": "Docker server 29.2.1 on linux/aarch64 with running linux/arm64 builders; both normal and entrypoint-bypass probes remained Created with no stdout and were terminated",
+      "conclusion": "No current-version patched compile claim"
     }
   }
 }

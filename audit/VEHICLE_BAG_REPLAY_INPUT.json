@@ -1,19 +1,60 @@
 {
-  "bag": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-31-19-33-52/bag/bag_0.db3",
-  "metadata_sha256": "a9734745d69cefe15f253cf155460869b77febb89ab1374e7b932356f8cb5a25",
-  "bag_bytes": 1114112,
-  "duration_ns": 15538323164,
-  "message_count": 611,
+  "bag": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-26-13-31-21/bag/bag_0.db3",
+  "metadata_sha256": null,
+  "bag_bytes": 117440512,
+  "duration_ns": 135106119910,
+  "message_count": 9765,
   "available_topics": {
-    "/fastlio2/lio_odom": {"type":"nav_msgs/msg/Odometry", "count":148},
-    "/fix": {"type":"sensor_msgs/msg/NavSatFix", "count":16},
-    "/gps_corridor/pgo_enu_to_map": {"type":"std_msgs/msg/Float64MultiArray", "count":147},
-    "/tf": {"type":"tf2_msgs/msg/TFMessage", "count":295},
-    "/local_costmap/costmap": {"type":"nav_msgs/msg/OccupancyGrid", "count":2},
-    "/global_costmap/costmap": {"type":"nav_msgs/msg/OccupancyGrid", "count":1}
+    "/cmd_vel": {
+      "type": "geometry_msgs/msg/Twist",
+      "count": 2118
+    },
+    "/fastlio2/lio_odom": {
+      "type": "nav_msgs/msg/Odometry",
+      "count": 1349
+    },
+    "/fix": {
+      "type": "sensor_msgs/msg/NavSatFix",
+      "count": 133
+    },
+    "/global_costmap/costmap": {
+      "type": "nav_msgs/msg/OccupancyGrid",
+      "count": 130
+    },
+    "/local_costmap/costmap": {
+      "type": "nav_msgs/msg/OccupancyGrid",
+      "count": 481
+    },
+    "/tf": {
+      "type": "tf2_msgs/msg/TFMessage",
+      "count": 2697
+    },
+    "/plan": {
+      "type": "nav_msgs/msg/Path",
+      "count": 98
+    }
   },
-  "required_raw_inputs": ["/livox/lidar", "/livox/imu"],
+  "required_raw_inputs": [
+    "/livox/lidar",
+    "/livox/imu"
+  ],
   "raw_inputs_present": false,
-  "replay_status": "NOT_RUN_NO_RAW_LIVOX_OR_IMU_AND_NO_ROS2_TOOLING",
-  "interpretation": "This bag can audit the old odom/authority/costmap topics but cannot be used to claim Super-LIO LiDAR/IMU replay."
+  "replay_status": "PASS_OLD_TOPICS_ONLY_RAW_SUPER_LIO_UNAVAILABLE",
+  "interpretation": "This is a real local bag replay of the legacy odom/costmap/cmd topics. It cannot support a Super-LIO LiDAR/IMU or LIO interface-equivalence claim.",
+  "bag_sha256": "debfddc53fe5fc787d82a5e33a0ef0f18ffa4fbf4a83012361e61e4313de56ce",
+  "metadata_status": "local metadata.yaml is dataless; ros2 bag reindex reconstructed metadata from the SQLite bag in the isolated container",
+  "filesystem_allocated_blocks": 229376,
+  "replay_evidence": [
+    "audit/container/vehicle-bag-replay-20260326.log",
+    "audit/container/vehicle-bag-replay-20260326.exit",
+    "audit/container/vehicle-bag-full-play-20260326.log",
+    "audit/container/vehicle-bag-full-play-20260326.exit"
+  ],
+  "replay_result": "ros2 bag reindex/info/full play and topic-counted play completed in isolated ROS 2 Humble ARM64 container; received 1347 /fastlio2/lio_odom, 481 local costmap, 130 global costmap and 2118 cmd_vel messages on the counted replay; no /livox/lidar or /livox/imu topic exists",
+  "previous_candidate_without_local_bytes": {
+    "bag": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-31-19-33-52/bag/bag_0.db3",
+    "logical_bytes": 1114112,
+    "filesystem_state": "compressed,dataless; st_blocks=0",
+    "status": "not_replayed"
+  }
 }

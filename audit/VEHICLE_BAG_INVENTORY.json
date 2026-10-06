@@ -102,5 +102,25 @@
       "sha256": "e3ca72366dbd14b97de5dd7967bb90c1c1d3359c6df5d5d58e865b05b9d5b9cd"
     }
   ],
-  "replay_status": "NOT_RUN_ROS2_TOOLING_UNAVAILABLE"
+  "replay_status": "PARTIAL_OLD_TOPICS_REPLAYED_RAW_LIVOX_IMU_UNAVAILABLE",
+  "replay_candidate": {
+    "path": "/Users/badger/Desktop/数据/其他原始数据/my_local_data/logs/2026-03-26-13-31-21/bag/bag_0.db3",
+    "bytes": 117440512,
+    "filesystem_allocated_blocks": 229376,
+    "topics": [
+      "/fastlio2/lio_odom",
+      "/fix",
+      "/tf",
+      "/local_costmap/costmap",
+      "/global_costmap/costmap",
+      "/cmd_vel"
+    ],
+    "raw_livox_topics_present": false,
+    "replay_evidence": [
+      "audit/container/vehicle-bag-replay-20260326.log",
+      "audit/container/vehicle-bag-replay-20260326.exit",
+      "audit/container/vehicle-bag-full-play-20260326.log",
+      "audit/container/vehicle-bag-full-play-20260326.exit"
+    ]
+  }
 }

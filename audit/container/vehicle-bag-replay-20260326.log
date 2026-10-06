@@ -1,0 +1,4 @@
+bag_replay_exit 0
+message_counts {'/fastlio2/lio_odom': 1347, '/local_costmap/costmap': 481, '/global_costmap/costmap': 130, '/cmd_vel': 2118}
+raw_livox_topics_present False
+super_lio_replay_claim False

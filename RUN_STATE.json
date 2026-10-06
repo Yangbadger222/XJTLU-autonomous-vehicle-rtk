@@ -48,8 +48,10 @@
     },
     {
       "command": "ros2 bag play <vehicle bag>",
-      "status": "PENDING",
-      "evidence": "ROS 2 bag tooling/container replay not performed; audited bag has no raw Livox/IMU"
+      "status": "PASS",
+      "evidence": "isolated ARM64 ROS 2 Humble reindex/info/play received 1347 legacy odom, 481 local costmap, 130 global costmap and 2118 cmd_vel messages; no raw Livox/IMU; full bag play exited 0 (audit/container/vehicle-bag-full-play-20260326.log)",
+      "exit_code": 0,
+      "scope": "legacy topic replay only; Super-LIO replay remains unverified"
     },
     {
       "command": "system_active_road_research.launch.py execution_mode:=shadow",

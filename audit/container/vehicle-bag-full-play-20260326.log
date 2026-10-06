@@ -1,0 +1,3 @@
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1791312253.308409422] [rosbag2_storage]: Opened database '/tmp/bag/bag_0.db3' for READ_ONLY.
+[INFO] [1791312253.308454881] [rosbag2_player]: Set rate to 20
+[INFO] [1791312253.317086172] [rosbag2_storage]: Opened database '/tmp/bag/bag_0.db3' for READ_ONLY.

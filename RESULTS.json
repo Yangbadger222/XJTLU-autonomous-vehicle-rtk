@@ -94,12 +94,14 @@
     "scope": "truth-blind policy and evaluator-only synthetic comparison; no claim of research gain"
   },
   "VEHICLE_BAG_REPLAY": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
       "audit/VEHICLE_BAG_INVENTORY.json",
-      "audit/VEHICLE_BAG_REPLAY_INPUT.json"
+      "audit/VEHICLE_BAG_REPLAY_INPUT.json",
+      "audit/container/vehicle-bag-replay-20260326.log",
+      "audit/container/vehicle-bag-full-play-20260326.log"
     ],
-    "reason": "inventoried bag lacks raw /livox/lidar and /livox/imu; ROS 2 replay tooling and target dependencies unavailable"
+    "scope": "real local ROS 2 bag reindex/info/play passed for legacy odom/costmap/cmd topics; raw /livox/lidar and /livox/imu are absent, so this is not a Super-LIO replay or equivalence result"
   },
   "JETSON_SHADOW_VALIDATION": {
     "status": "PENDING",

@@ -25,11 +25,15 @@
   sensors, serial device, TF tree or runtime parameter layer.
 - No verified vehicle IMU→base extrinsic, expanded URDF footprint/wheel geometry, camera intrinsics/extrinsics/depth stream or vehicle bag identity was supplied in this workspace.
 - Super-LIO parser output has no covariance/health equivalent at the pinned commit; adapter remains UNKNOWN and fails closed.
-- Existing bags were inventoried locally but cannot be replayed without ROS 2 bag tooling.
-- A concrete 15.5 s bag was inspected at SQLite topic level: it contains old
-  `/fastlio2/lio_odom`, RTK and costmap topics, but no raw `/livox/lidar` or
-  `/livox/imu`; it cannot support a Super-LIO replay claim. See
-  `audit/VEHICLE_BAG_REPLAY_INPUT.json`.
+- A local 135.1 s bag was reindexed, inspected and replayed in the isolated
+  ARM64 ROS 2 Humble container. The replay delivered 1347 legacy
+  `/fastlio2/lio_odom`, 481 local costmap, 130 global costmap and 2118
+  `/cmd_vel` messages. It contains no raw `/livox/lidar` or `/livox/imu`, so
+  it proves only legacy topic replay and cannot support a Super-LIO replay or
+  interface-equivalence claim. A second inspected candidate remains a
+  macOS `compressed,dataless` placeholder with zero allocated blocks. See
+  `audit/VEHICLE_BAG_REPLAY_INPUT.json` and
+  `audit/container/vehicle-bag-replay-20260326.log`.
 - Physical e-stop, STM32 behavior, Jetson shadow and live motion remain pending and were not simulated as passes.
 
 ## Regression evidence

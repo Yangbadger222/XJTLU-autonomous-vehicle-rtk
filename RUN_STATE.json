@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "e6cdc7e",
+  "tip_commit_at_report": "84a3548",
   "active_processes": [],
   "commands": [
     {
@@ -216,6 +216,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "68 tests after moving EGO vehicle config into the installed bringup config tree"
+    },
+    {
+      "command": "clean-install bringup launch dependency audit",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "bringup/package.xml explicitly declares ament_index_python, launch and launch_ros used by system_active_road_research.launch.py"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

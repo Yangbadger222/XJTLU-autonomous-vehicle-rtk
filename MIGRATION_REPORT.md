@@ -30,10 +30,10 @@ commit, and their sequential check is enforced by
 `scripts/apply_ego_vehicle_patch.sh`; a fresh checkout was verified with
 `git apply --check`. The raw EGO node and a prior patched EGO revision, plus
 Super-LIO core/ROS interfaces, were compiled in the isolated ARM64 ROS 2 Humble
-evidence environment. The current corrected EGO patch has exact apply-check but
-its rebuild is pending because the local Docker runtime cannot start a new
-container. The compile-only Livox message contract is deliberately recorded
-separately from the missing physical SDK/driver and Jetson runtime gates.
+evidence environment. The current corrected EGO patch has exact apply-check and an isolated ARM64
+BuildKit compile pass. The compile-only Livox message contract is deliberately
+recorded separately from the missing physical SDK/driver, ordinary container
+startup and Jetson runtime gates.
 
 The local obstacle boundary is implemented in
 `src/research_runtime/research_runtime/grid_map.py`: it accepts only odom-frame

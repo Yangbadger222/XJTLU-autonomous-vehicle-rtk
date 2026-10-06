@@ -1073,7 +1073,7 @@ index a2befd4..53270ed 100644
 +        (!allow_reverse_ && point.v < -1e-6)) {
 +      return false;
      }
-+    const double speed_tolerance = std::max(0.05, 0.25 * std::max(std::abs(point.v), 0.1));
++    const double speed_tolerance = std::max(0.05, 0.25 * std::max(std::abs(static_cast<double>(point.v)), 0.1));
 +    if (std::abs(point.v - speed) > speed_tolerance) {
 +      return false;
 +    }

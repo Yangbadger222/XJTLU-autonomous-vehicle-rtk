@@ -19,7 +19,7 @@
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
     "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch",
-    "patch_sha256": "7712fef4ca3925ec5cb9b4c0cc6fb9dab3450b0e3cbc0f30eb3b0168780df7e5",
+    "patch_sha256": "249a8268f2d503abc4b4557414cf549db23085cf2740356b5260839238ef45ca",
     "apply_check": "PASS_SEQUENTIAL",
     "files": [
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
@@ -32,7 +32,7 @@
       "src/EgoPlanner-ROS2/CMakeLists.txt",
       "src/EgoPlanner-ROS2/package.xml"
     ],
-    "ros_build": "PENDING_CURRENT_PATCH_REBUILD_PRIOR_REVISION_COMPILED",
+    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CURRENT_PATCH",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
@@ -41,7 +41,7 @@
       },
       {
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-        "sha256": "e46d4b401b4464f21a958bb3aee5e46e3c4ed6efb8d0f79e72d0e2dac2b42c53",
+        "sha256": "8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1",
         "apply_check": "PASS_AFTER_0001"
       }
     ],
@@ -65,10 +65,19 @@
       "evidence": "audit/ego_patch_check_latest.log"
     },
     "current_rebuild_probe": {
-      "status": "PENDING_DOCKER_CONTAINER_START",
-      "evidence": "audit/container/current-ego-rebuild-probe.log",
-      "observed": "Docker server 29.2.1 on linux/aarch64 with running linux/arm64 builders; both normal and entrypoint-bypass probes remained Created with no stdout and were terminated",
-      "conclusion": "No current-version patched compile claim"
-    }
+      "status": "PASS_BUILDKIT_CURRENT_PATCH_COMPILE_RUNTIME_PENDING",
+      "evidence": "audit/container/ego-current-build.log",
+      "exit_evidence": "audit/container/ego-current-build-result.json",
+      "observed": "BuildKit linux/arm64 completed research_interfaces and ego_planner with Summary: 2 packages finished and #13 DONE; Docker Desktop disconnected after image export, so no ordinary container-start claim is made",
+      "conclusion": "Current patched EGO compile PASS; container/Jetson runtime remains pending"
+    },
+    "patched_build_evidence_current": [
+      "audit/container/ego-current-build.log",
+      "audit/container/ego-current-build-result.json",
+      "audit/container/ego-current-build.Dockerfile",
+      "source commit 7f5be6d4cee34871e85aa1f15285cfaf17b23877; both project patches applied in BuildKit",
+      "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
+      "compile proof only; ordinary container startup and Jetson runtime remain pending"
+    ]
   }
 }

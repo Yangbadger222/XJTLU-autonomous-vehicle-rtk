@@ -1,6 +1,65 @@
-checkout=JackJu-HIT/Ego-Planner-2D-ROS2
-commit=7f5be6d4cee34871e85aa1f15285cfaf17b23877
-apply_order=0001-vehicle-state-and-feasibility.patch then 0002-vehicle-ros-timed-trajectory.patch
-apply_check=PASS
-patch_0001_sha256=ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f
-patch_0002_sha256=e46d4b401b4464f21a958bb3aee5e46e3c4ed6efb8d0f79e72d0e2dac2b42c53
+source_commit=7f5be6d4cee34871e85aa1f15285cfaf17b23877
+clone_exit=0
+dating files:  69% (72/103)
+Updating files:  70% (73/103)
+Updating files:  71% (74/103)
+Updating files:  72% (75/103)
+Updating files:  73% (76/103)
+Updating files:  74% (77/103)
+Updating files:  75% (78/103)
+Updating files:  76% (79/103)
+Updating files:  77% (80/103)
+Updating files:  78% (81/103)
+Updating files:  79% (82/103)
+Updating files:  80% (83/103)
+Updating files:  81% (84/103)
+Updating files:  82% (85/103)
+Updating files:  83% (86/103)
+Updating files:  84% (87/103)
+Updating files:  85% (88/103)
+Updating files:  86% (89/103)
+Updating files:  87% (90/103)
+Updating files:  88% (91/103)
+Updating files:  89% (92/103)
+Updating files:  90% (93/103)
+Updating files:  91% (94/103)
+Updating files:  92% (95/103)
+Updating files:  93% (96/103)
+Updating files:  94% (97/103)
+Updating files:  95% (98/103)
+Updating files:  96% (99/103)
+Updating files:  97% (100/103)
+Updating files:  98% (101/103)
+Updating files:  99% (102/103)
+Updating files: 100% (103/103)
+Updating files: 100% (103/103), done.
+
+checkout_exit=0
+Note: switching to '7f5be6d4cee34871e85aa1f15285cfaf17b23877'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at 7f5be6d Update README.md
+
+patch_0001_apply_check_exit=0
+
+patch_0001_apply_exit=0
+
+patch_0002_apply_check_after_0001_exit=0
+
+0001-vehicle-state-and-feasibility.patch_sha256=ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f
+0002-vehicle-ros-timed-trajectory.patch_sha256=8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1
+result=PASS_SEQUENTIAL

@@ -1,0 +1,40 @@
+{
+  "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "patches": [
+    {
+      "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+      "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
+      "apply_check": "PASS"
+    },
+    {
+      "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+      "sha256": "8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1",
+      "apply_check": "PASS_AFTER_0001"
+    }
+  ],
+  "platform": "linux/arm64",
+  "base_image": "ros2-go2:humble",
+  "base_image_digest": "sha256:6da9c1f6eb47c4413e5d28bfae51af5a7ef55a63088cdd4d66b023fc31a4b0e7",
+  "rmw_implementation": "rmw_fastrtps_cpp",
+  "colcon_compile": {
+    "status": "PASS",
+    "evidence": "ego-current-build.log",
+    "markers": [
+      "Finished <<< ego_planner [40.0s]",
+      "Summary: 2 packages finished [43.6s]",
+      "#12 DONE 44.2s"
+    ],
+    "packages": [
+      "research_interfaces",
+      "ego_planner"
+    ]
+  },
+  "image_export": {
+    "status": "PASS_LOG_ONLY",
+    "manifest_digest": "sha256:4f2338f5c47a8f8cf4c32b83253a497f5d8fc21cedac761044baca6a397b0bc1",
+    "independent_image_inspect": "PENDING_DOCKER_DAEMON_UNAVAILABLE"
+  },
+  "docker_cli_exit": null,
+  "docker_cli_exit_reason": "orchestrating session ended before a reliable final exit code was returned; successful compilation proven by completed BuildKit RUN stage only",
+  "current_binary_runtime": "PENDING"
+}

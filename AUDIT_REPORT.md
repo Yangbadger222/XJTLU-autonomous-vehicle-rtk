@@ -11,12 +11,12 @@
 - Both pinned upstream adaptation patches pass `git apply --check`. The raw
   pinned EGO node was built and started under a bounded timeout, and a prior
   vehicle-patch revision plus the Super-LIO core compiled in an isolated ARM64
-  ROS 2 Humble container. The current corrected EGO patch has a fresh exact
-  apply-check, but its rebuild is pending because the local Docker runtime
-  remains stuck in `Created`; the old patched log is not reused as current
-  compile evidence. These are build/provenance results, not Jetson runtime
-  acceptance. Accordingly, `RESULTS.json` keeps the relevant runtime and
-  current patched-build gates pending.
+  ROS 2 Humble container. The current corrected EGO patch has a fresh exact apply-check and a current
+  isolated ARM64 BuildKit compile pass recorded in
+  `audit/container/ego-current-build.log`; the old patched log remains clearly
+  labeled prior revision. Docker ordinary container startup and Jetson runtime
+  acceptance remain pending. Accordingly, `RESULTS.json` keeps the relevant
+  runtime gates pending.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
 - Dynamic feasibility, real start state, curvature/yaw-rate consistency, map version, expiry and footprint checks have replay tests.
 - Evidence persistence is CRS-bound and idempotent by observation UUID; schema,
@@ -167,8 +167,8 @@ The isolated build evidence has two deliberate boundaries. The raw
 `Ego-Planner-2D-ROS2@7f5be6d4cee34871e85aa1f15285cfaf17b23877` package builds and
 `motion_plan` starts until a five-second timeout. The patched package then builds
 with the project interface and feasibility patches at the prior recorded
-revision; the current corrected patch only has exact sequential apply-check
-evidence because the Docker runtime cannot start a new ARM64 build. Super-LIO
+revision; the current corrected patch has exact sequential apply-check and
+current ARM64 BuildKit compile evidence. Super-LIO
 `f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2` also builds its C++ core and ROS
 interfaces; the container supplies only a compile-only `livox_ros_driver2`
 message contract because the physical Livox SDK is absent. No sensor runtime,

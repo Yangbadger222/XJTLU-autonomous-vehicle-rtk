@@ -66,8 +66,10 @@
     },
     {
       "command": "docker ARM64 rebuild of current corrected EGO vehicle patch",
-      "status": "PENDING",
-      "evidence": "docker run remained in Created with and without entrypoint bypass; audit/container/current-ego-rebuild-probe.log; current exact patch apply-check is PASS in audit/ego_patch_check_latest.log, but no current-version compile claim is made"
+      "status": "PASS",
+      "evidence": "audit/container/ego-current-build.log; audit/container/ego-current-build-result.json; completed colcon compile RUN stage; no reliable final Docker CLI exit code captured",
+      "scope": "current corrected EGO source/patch compile only; ordinary container startup, target wiring, RViz interaction and Jetson runtime remain pending",
+      "docker_cli_exit": null
     },
     {
       "command": "ros2 bag play <vehicle bag>",

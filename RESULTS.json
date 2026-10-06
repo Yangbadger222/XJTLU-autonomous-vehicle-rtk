@@ -36,9 +36,12 @@
       "audit/UPSTREAM_SOURCE_AUDIT.md",
       "audit/UPSTREAM_PATCH_VERIFICATION.json",
       "audit/container/ego-raw-build-and-start.log",
-      "audit/ego_patch_check_latest.log"
+      "audit/ego_patch_check_latest.log",
+      "audit/container/ego-current-build.log",
+      "audit/container/ego-current-build-result.json",
+      "audit/container/ego-current-build.Dockerfile"
     ],
-    "scope": "raw pinned motion_plan build/start passed in isolation and current patches pass sequential apply-check; current corrected patched rebuild, RViz interaction and vehicle runtime remain pending"
+    "scope": "raw pinned motion_plan build/start passed in isolation; current corrected patches pass sequential apply-check and current patched ARM64 BuildKit compile passed; ordinary container startup, RViz interaction and vehicle runtime remain pending"
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
     "status": "PENDING",
@@ -48,10 +51,12 @@
       "src/research_interfaces",
       "src/research_runtime/research_runtime/trajectory.py",
       "config/ego_vehicle_adapter.yaml",
-      "audit/container/current-ego-rebuild-probe.log"
+      "audit/container/current-ego-rebuild-probe.log",
+      "audit/container/ego-current-build.log",
+      "audit/container/ego-current-build-result.json"
     ],
-    "reason": "current corrected patch passes exact sequential apply-check and source/contract tests, but the ARM64 patched rebuild could not be rerun because the local Docker runtime kept both normal and entrypoint-bypass probes in Created; the existing patched build log predates the current curvature/speed checks",
-    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback before the original guard; current patched compile, target wiring and runtime remain pending"
+    "reason": "current corrected patch passes exact sequential apply-check, source/contract tests and isolated ARM64 BuildKit compile; target ROS wiring, ordinary container startup and Jetson runtime remain pending",
+    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; current patched compile is PASS, target wiring/runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",

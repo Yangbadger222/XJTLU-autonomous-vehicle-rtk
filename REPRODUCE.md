@@ -47,6 +47,20 @@ exact sparse-checkout apply audit, but the current three-patch rebuild is still
 pending. The recipe proves compilation only and does not replace Jetson shadow
 or live acceptance.
 
+The complete current three-patch ARM64 recipe is
+`audit/container/ego-current-three-patch-build.Dockerfile`. When the Docker
+daemon is available, run it from the repository root with:
+
+```bash
+docker build --platform linux/arm64 \
+  -f audit/container/ego-current-three-patch-build.Dockerfile \
+  -t ego-current-three-patch:research .
+```
+
+It applies 0001, 0002 and 0003 at the pinned EGO commit before building
+`research_interfaces` and `ego_planner`; until that command produces a
+complete log, the current three-patch build remains pending.
+
 The current Python package install path can be checked without ROS:
 
 ```bash

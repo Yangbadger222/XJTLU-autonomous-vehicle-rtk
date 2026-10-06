@@ -92,6 +92,19 @@ def main() -> int:
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
           "requires exact-commit sequential apply evidence for all three patches")
 
+    three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
+    recipe_text = three_patch_recipe.read_text() if three_patch_recipe.is_file() else ""
+    recipe_tokens = [
+        "0001-vehicle-state-and-feasibility.patch",
+        "0002-vehicle-ros-timed-trajectory.patch",
+        "0003-clear-stale-plan-on-failure.patch",
+        "COPY src/research_interfaces /vehicle-research/src/research_interfaces",
+        "--packages-select research_interfaces ego_planner",
+    ]
+    check("ego_three_patch_build_recipe", all(token in recipe_text for token in recipe_tokens),
+          [str(three_patch_recipe)],
+          "recipe applies all three pinned EGO patches before the research_interfaces/ego_planner build")
+
     protected = subprocess.run(["sha256sum", "-c", "audit/vehicle_baseline/PROTECTED_FILES.sha256"],
                                text=True, capture_output=True)
     check("protected_vehicle_files", protected.returncode == 0,

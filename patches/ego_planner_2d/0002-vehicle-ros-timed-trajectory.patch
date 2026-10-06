@@ -282,7 +282,7 @@ diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-R
 index a2befd4..53270ed 100644
 --- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 +++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
-@@ -1,681 +1,428 @@
+@@ -1,681 +1,429 @@
  /*
 - * @Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
 - * @Create by: juchunyu@qq.com
@@ -1078,8 +1078,9 @@ index a2befd4..53270ed 100644
 -    obs_pub_->publish(visual_obs);
 +    const double yaw = speed > kEpsilon ? std::atan2(vy, vx) : previous_yaw;
 +    const double acceleration = speed > kEpsilon ? (vx * point.ax + vy * point.ay) / speed : 0.0;
-+    const double yaw_rate = speed > kEpsilon ? (vx * point.ay - vy * point.ax) / speed : 0.0;
-+    const double curvature = speed > kEpsilon ? yaw_rate / (speed * speed) : 0.0;
++    const double yaw_rate = speed > kEpsilon ?
++      (vx * point.ay - vy * point.ax) / (speed * speed) : 0.0;
++    const double curvature = speed > kEpsilon ? yaw_rate / speed : 0.0;
 +    if (std::abs(yaw_rate) > max_yaw_rate_rps_ + 1e-6 ||
 +        std::abs(curvature) > max_curvature_1pm_ + 1e-6 ||
 +        acceleration > max_accel_mps2_ + 0.05 ||

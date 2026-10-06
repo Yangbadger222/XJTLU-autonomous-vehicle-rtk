@@ -1,0 +1,24 @@
+{
+  "super_lio": {
+    "commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
+    "patch": "patches/super_lio/0001-publish-source-aware-odom-health.patch",
+    "patch_sha256": "f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1",
+    "apply_check": "PASS",
+    "files": ["src/super_lio/include/ros/ROSWrapper.h", "src/super_lio/src/ros/ROSWrapper.cpp"],
+    "ros_build": "PENDING_NO_HUMBLE_ON_DEVELOPER_HOST"
+  },
+  "ego_planner_2d_ros2": {
+    "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+    "patch_sha256": "33533face6c997c409bf5835b5cbe78434cc6aa96d6c55b1d3d57d9f31046e41",
+    "apply_check": "PASS",
+    "files": [
+      "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
+      "src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp",
+      "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp",
+      "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h",
+      "src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp"
+    ],
+    "ros_build": "PENDING_NO_HUMBLE_ON_DEVELOPER_HOST"
+  }
+}

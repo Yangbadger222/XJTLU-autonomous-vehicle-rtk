@@ -1,0 +1,277 @@
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+index 7bb4919..5602180 100644
+--- a/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+@@ -54,7 +54,9 @@ namespace ego_planner
+ 
+     /* main API */
+     void setEnvironment(const shared_ptr<GridMap2D> &env);
+-    void setParam();
++    // Vehicle adaptation supplies the physical limits; the old demo defaults
++    // remain available only for upstream reproduction.
++    void setParam(double max_vel = 1.0, double max_acc = 0.5);
+     Eigen::MatrixXd BsplineOptimizeTraj(const Eigen::MatrixXd &points, const double &ts,
+                                         const int &cost_function, int max_num_id, int max_time_id);
+ 
+@@ -167,4 +169,4 @@ namespace ego_planner
+   };
+ 
+ } // namespace ego_planner
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp b/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
+index eaa5652..326e2b1 100644
+--- a/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
+@@ -4,7 +4,7 @@
+ namespace ego_planner
+ {
+ 
+-void BsplineOptimizer::setParam()
++void BsplineOptimizer::setParam(double max_vel, double max_acc)
+ {
+ 
+     lambda1_ = 12.0;    // 平滑 - 关键
+@@ -15,8 +15,8 @@ void BsplineOptimizer::setParam()
+ 
+     dist0_   = 1.0;
+ 
+-    max_vel_ = 1.0;
+-    max_acc_ = 0.5;
++    max_vel_ = max_vel;
++    max_acc_ = max_acc;
+ 
+     order_   = 3;
+ 
+@@ -1248,4 +1248,3 @@ void BsplineOptimizer::combineCostRefine(const double *x, double *grad, double &
+ }
+ 
+ } // namespace ego_planner
+-
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp
+index 4ffc45f..db87805 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp
+@@ -15,6 +15,8 @@ namespace ego_planner
+   {
+     /* planning algorithm parameters */
+     double max_vel_, max_acc_, max_jerk_; // physical limits
++    double max_yaw_rate_ = 0.0;          // 0 means not configured by upstream demo
++    double max_curvature_ = 0.0;         // 0 means not configured by upstream demo
+     double ctrl_pt_dist;                  // distance between adjacient B-spline control points
+     double feasibility_tolerance_;        // permitted ratio of vel/acc exceeding limits
+     double planning_horizen_;
+@@ -39,4 +41,4 @@ namespace ego_planner
+ 
+ } // namespace ego_planner
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
+index ed0b593..d213ee0 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
+@@ -21,10 +21,15 @@ namespace  ego_planner
+ {
+     struct PathPoint
+     {
+-        float x;
+-        float y;
+-        float z;
+-        float v;
++        float x = 0.0F;
++        float y = 0.0F;
++        float z = 0.0F;
++        float v = 0.0F;
++        float vx = 0.0F;
++        float vy = 0.0F;
++        float ax = 0.0F;
++        float ay = 0.0F;
++        bool state_valid = false;
+     };
+ 
+     struct ObstacleInfo
+@@ -46,6 +51,9 @@ namespace  ego_planner
+             LocalTrajData local_data_;
+             shared_ptr<GridMap2D> grid_map_;
+             PathPoint  cur_pose_;
++            Eigen::Vector3d vehicle_start_vel_{Eigen::Vector3d::Zero()};
++            Eigen::Vector3d vehicle_start_acc_{Eigen::Vector3d::Zero()};
++            bool vehicle_state_valid_{false};
+ 
+         private:
+ 
+@@ -77,6 +85,11 @@ namespace  ego_planner
+ 
+             void initParam(double max_vel,double max_acc,double max_jerk);
+ 
++            // Vehicle adapter API. The upstream demo's unit yaw vectors are
++            // deliberately rejected when this state has not been supplied.
++            void initVehicleParam(double max_vel, double max_acc, double max_jerk,
++                                  double max_yaw_rate, double max_curvature);
++
+             void initEsdfMap(double x_size,double y_size,double z_size,double resolution, Eigen::Vector3d org,double inflate_values);
+ 
+             void setPathPoint(std::vector<PathPoint> &plan_traj);
+@@ -85,6 +98,10 @@ namespace  ego_planner
+ 
+             void setCurrentVehiclePos(PathPoint& cur_pose);
+ 
++            void setCurrentVehicleState(const PathPoint& cur_pose,
++                                        const Eigen::Vector3d& start_vel,
++                                        const Eigen::Vector3d& start_acc);
++
+             void makePlan();
+ 
+             void getLocalPlanTrajResults(std::vector<PathPoint> &plan_traj_results);  
+@@ -100,6 +117,9 @@ namespace  ego_planner
+             bool getInflateOccupancy(PathPoint& world_pos);
+ 
+             void getObstacles(std::vector<ObstacleInfo> &obstacle);
++
++        private:
++            bool checkVehicleFeasibility(const UniformBspline& position_traj) const;
+     };
+ 
+ 
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+index 12c08b3..9648f57 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+@@ -1,4 +1,7 @@
+ #include "planner_interface.h"
++#include <algorithm>
++#include <cmath>
++#include <iostream>
+ 
+ namespace ego_planner
+ {
+@@ -22,6 +25,14 @@ namespace ego_planner
+         pp_.ctrl_pt_dist = 0.4;
+         pp_.planning_horizen_ = 5.0;
+     }
++
++    void PlannerInterface::initVehicleParam(double max_vel, double max_acc, double max_jerk,
++                                             double max_yaw_rate, double max_curvature)
++    {
++        initParam(max_vel, max_acc, max_jerk);
++        pp_.max_yaw_rate_ = max_yaw_rate;
++        pp_.max_curvature_ = max_curvature;
++    }
+     
+     void PlannerInterface::initEsdfMap(double x_size,double y_size,double z_size,double resolution, Eigen::Vector3d origin,double inflate_values)
+     {
+@@ -35,7 +46,7 @@ namespace ego_planner
+         grid_map_->setInflateRadius(inflate_values);
+ 
+         bspline_optimizer_rebound_.reset(new BsplineOptimizer);
+-        bspline_optimizer_rebound_->setParam();
++        bspline_optimizer_rebound_->setParam(pp_.max_vel_, pp_.max_acc_);
+         bspline_optimizer_rebound_->setEnvironment(grid_map_);
+         bspline_optimizer_rebound_->a_star_.reset(new AStar);
+         bspline_optimizer_rebound_->a_star_->initGridMap(grid_map_, Eigen::Vector2i(100, 100));
+@@ -103,6 +114,16 @@ namespace ego_planner
+         // grid_map_->resetGrids();
+     }  
+ 
++    void PlannerInterface::setCurrentVehicleState(const PathPoint& cur_pose,
++                                                   const Eigen::Vector3d& start_vel,
++                                                   const Eigen::Vector3d& start_acc)
++    {
++        cur_pose_ = cur_pose;
++        vehicle_start_vel_ = start_vel;
++        vehicle_start_acc_ = start_acc;
++        vehicle_state_valid_ = start_vel.allFinite() && start_acc.allFinite();
++    }
++
+     void PlannerInterface::setGridMap(PathPoint& cur_pose)
+     {
+         grid_map_->setCurPose(cur_pose.x,cur_pose.y); // only once
+@@ -153,17 +174,18 @@ namespace ego_planner
+         local_target_pt[1] = _global_plan_traj_[_global_plan_traj_.size()-1].y;
+         local_target_pt[2] = 0;
+ 
+-        start_vel[0] = cos(cur_pose_.z);  //根据实际需求修改接入
+-        start_vel[1] = sin(cur_pose_.z);
+-        start_vel[2] = 0;
++        if (!vehicle_state_valid_)
++        {
++            std::cerr << "[makePlan] measured vehicle start velocity/acceleration is required" << std::endl;
++            return;
++        }
++        start_vel = vehicle_start_vel_;
+ 
+         local_target_vel[0] = 0;//根据实际需求修改接入
+         local_target_vel[1] = 0;
+         local_target_vel[2] = 0;
+ 
+-        start_acc[0] =  cos(cur_pose_.z);   //根据实际需求修改接入
+-        start_acc[1] =  sin(cur_pose_.z);
+-        start_acc[2] = 0;
++        start_acc = vehicle_start_acc_;
+ 
+ 
+         auto start = std::chrono::system_clock::now();
+@@ -239,7 +261,7 @@ namespace ego_planner
+ 
+         double ratio;
+         bool flag_step_2_success = true;
+-        if (false)  //(!pos.checkFeasibility(ratio, false))
++        if (!pos.checkFeasibility(ratio, false))
+         {
+             cout << "Need to reallocate time." << endl;
+ 
+@@ -249,6 +271,12 @@ namespace ego_planner
+                 pos = UniformBspline(optimal_control_points, 3, ts);
+         }
+ 
++        if (!flag_step_2_success || !pos.checkFeasibility(ratio, false) || !checkVehicleFeasibility(pos))
++        {
++            std::cerr << "[makePlan] trajectory failed final vehicle feasibility" << std::endl;
++            return false;
++        }
++
+         if (!flag_step_2_success)
+         {
+             printf("\033[34mThis refined trajectory hits obstacles. It doesn't matter if appeares occasionally. But if continously appearing, Increase parameter \"lambda_fitness\".\n\033[0m");
+@@ -375,8 +403,36 @@ namespace ego_planner
+             PathPoint tempPath;
+             tempPath.x = pos(0);
+             tempPath.y = pos(1);
++            tempPath.z = pos(2);
++            tempPath.v = std::hypot(vel(0), vel(1));
++            tempPath.vx = vel(0);
++            tempPath.vy = vel(1);
++            tempPath.ax = acc(0);
++            tempPath.ay = acc(1);
+             _plan_traj_results_.push_back(tempPath);
+         }
+     }
+ 
+-}
+\ No newline at end of file
++    bool PlannerInterface::checkVehicleFeasibility(const UniformBspline& position_traj) const
++    {
++        const auto velocity_traj = position_traj.getDerivative();
++        const auto acceleration_traj = velocity_traj.getDerivative();
++        const double duration = position_traj.getTimeSum();
++        for (double t = 0.0; t <= duration + 1e-6; t += 0.05)
++        {
++            const auto vel = velocity_traj.evaluateDeBoorT(std::min(t, duration));
++            const auto acc = acceleration_traj.evaluateDeBoorT(std::min(t, duration));
++            const double speed = std::hypot(vel(0), vel(1));
++            if (speed < 1e-3)
++                continue;
++            const double yaw_rate = (vel(0) * acc(1) - vel(1) * acc(0)) / speed;
++            const double curvature = yaw_rate / (speed * speed);
++            if (pp_.max_yaw_rate_ > 0.0 && std::abs(yaw_rate) > pp_.max_yaw_rate_ + 1e-6)
++                return false;
++            if (pp_.max_curvature_ > 0.0 && std::abs(curvature) > pp_.max_curvature_ + 1e-6)
++                return false;
++        }
++        return true;
++    }
++
++}

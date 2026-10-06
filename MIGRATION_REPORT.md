@@ -9,8 +9,19 @@ vehicle odometry until a measured IMU→base transform and health equivalence ar
 provided. This is a real algorithm replacement boundary, but target-side build
 and runtime proof is pending.
 
+The reproducible Super-LIO patch is
+`patches/super_lio/0001-publish-source-aware-odom-health.patch`. It preserves
+the estimator, exposes source covariance/angular state, and emits explicit
+UNKNOWN health rather than pretending to match FAST-LIO2 degeneracy.
+
 The pinned EGO2D source is treated as upstream code. The local boundary adds
 real state fields, typed timed trajectories, dynamic feasibility, nonholonomic
 curvature/yaw-rate checks and footprint rejection. It does not use Nav2 MPPI or
 the upstream fake simulator in the active-road entry. The original vehicle
 parameters and safety guard are preserved and hashed.
+
+The reproducible source patch is
+`patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch`. It applies
+only at the pinned EGO commit, and its check is enforced by
+`scripts/apply_ego_vehicle_patch.sh`; the developer checkout was verified with
+`git apply --check`. A full ROS/Humble compilation remains a target-side gate.

@@ -8,6 +8,8 @@
 - `scripts/audit_vehicle_baseline.py` was run successfully and emitted
   `audit/vehicle_baseline/PARAMETER_LAYERS.json`; the third layer remains
   `PENDING_JETSON` rather than being inferred.
+- Both pinned upstream adaptation patches pass `git apply --check`; their
+  target ROS builds remain pending because this host has no ROS 2 Humble.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
 - Dynamic feasibility, real start state, curvature/yaw-rate consistency, map version, expiry and footprint checks have replay tests.
 - Evidence persistence is CRS-bound and idempotent by observation UUID.

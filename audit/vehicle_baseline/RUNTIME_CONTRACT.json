@@ -11,6 +11,8 @@
     "/lio/odom": {"type":"nav_msgs/msg/Odometry", "frame":"odom", "child_frame":"base_footprint", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
     "/lio/cloud_body": {"type":"sensor_msgs/msg/PointCloud2", "frame":"base_footprint", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
     "/lio/cloud_world": {"type":"sensor_msgs/msg/PointCloud2", "frame":"odom", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
+    "/lio/health": {"type":"std_msgs/msg/String", "producer":"patched Super-LIO", "policy":"UNKNOWN blocks motion"},
+    "/lio/vehicle_health": {"type":"std_msgs/msg/String", "producer":"vehicle adapter", "policy":"OK requires verified transform, covariance and source health"},
     "/localization_authority/motion_allowed": {"type":"std_msgs/msg/Bool", "consumer":"safety bridge", "false_policy":"zero command and stop_override"},
     "/research/ego_trajectory": {"type":"research_interfaces/msg/TimedTrajectory2D", "consumer":"research motion tracker", "visual_path_not_control_contract":true},
     "/cmd_vel": {"type":"geometry_msgs/msg/Twist", "producer":"research tracker only in shadow/live", "final_guard":"original authority guard"},

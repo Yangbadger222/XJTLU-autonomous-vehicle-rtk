@@ -1,0 +1,88 @@
+diff --git a/src/super_lio/include/ros/ROSWrapper.h b/src/super_lio/include/ros/ROSWrapper.h
+index 2ba36fc..d0ffe51 100644
+--- a/src/super_lio/include/ros/ROSWrapper.h
++++ b/src/super_lio/include/ros/ROSWrapper.h
+@@ -20,6 +20,7 @@
+ #include <nav_msgs/msg/path.hpp>
+ #include <nav_msgs/msg/odometry.hpp>
+ #include <sensor_msgs/msg/point_cloud2.hpp>
++#include <std_msgs/msg/string.hpp>
+ #include <visualization_msgs/msg/marker.hpp>
+ #include <geometry_msgs/msg/point.hpp>
+ #include <geometry_msgs/msg/pose_stamped.hpp>
+@@ -118,10 +119,11 @@ private:
+   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odom_;       /// lidar fre --> IMU frame
+   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_imu_odom_;   /// IMU fre   --> IMU frame
+   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_robo_odom_;  /// IMU fre   --> Robot frame
++  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr pub_health_;
+   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_path_;
+   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_cloud_world_;
+ };
+ 
+ } // namespace END.
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/super_lio/src/ros/ROSWrapper.cpp b/src/super_lio/src/ros/ROSWrapper.cpp
+index 5e156b4..7745912 100644
+--- a/src/super_lio/src/ros/ROSWrapper.cpp
++++ b/src/super_lio/src/ros/ROSWrapper.cpp
+@@ -332,6 +332,9 @@ void ROSWrapper::setupIO(){
+   pub_robo_odom_ = this->create_publisher<nav_msgs::msg::Odometry>(
+       "/lio/robo/odom", 10);
+ 
++  pub_health_ = this->create_publisher<std_msgs::msg::String>(
++      "/lio/health", 10);
++
+   pub_path_ = this->create_publisher<nav_msgs::msg::Path>(
+       "/lio/path", 10);
+ 
+@@ -568,6 +571,7 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+ void ROSWrapper::pub_odom(const NavState& state){
+   nav_msgs::msg::Odometry odom;
+   odom.header.frame_id = "world";
++  odom.child_frame_id = "imu";
+ 
+   odom.header.stamp = toRosTime(state.timestamp);
+   odom.pose.pose.position.x = state.p[0];
+@@ -584,8 +588,32 @@ void ROSWrapper::pub_odom(const NavState& state){
+   odom.twist.twist.linear.y = state.v[1];
+   odom.twist.twist.linear.z = state.v[2];
+ 
++  if (eskf_ != nullptr) {
++    const auto dynamic = eskf_->GetDynamicState();
++    odom.twist.twist.angular.x = dynamic.w[0];
++    odom.twist.twist.angular.y = dynamic.w[1];
++    odom.twist.twist.angular.z = dynamic.w[2];
++
++    const auto covariance = eskf_->GetCov();
++    if (covariance.array().isFinite().all()) {
++      for (int row = 0; row < 3; ++row) {
++        for (int col = 0; col < 3; ++col) {
++          odom.pose.covariance[row * 6 + col] = covariance(row + 3, col + 3);
++          odom.pose.covariance[(row + 3) * 6 + col + 3] = covariance(row, col);
++          odom.twist.covariance[row * 6 + col] = covariance(row + 6, col + 6);
++        }
++      }
++    }
++  }
++
+   pub_odom_->publish(odom);    // imu frame -> lidar frequency
+ 
++  if (pub_health_) {
++    std_msgs::msg::String health;
++    health.data = "UNKNOWN: Super-LIO has no equivalent FAST-LIO2 degeneracy metric";
++    pub_health_->publish(health);
++  }
++
+   V3 robo_position = state.R.R_ * ( - g_odom_robo.R_ * g_odom_robo.t_) + state.p;
+ 
+   if(g_2_robot){
+@@ -791,4 +819,4 @@ void ROSWrapper::set_initial_data(BASIC::SE3& init_pose, bool& flg_get_init_gues
+ }
+ 
+ 
+-} // namespace END.
+\ No newline at end of file
++} // namespace END.

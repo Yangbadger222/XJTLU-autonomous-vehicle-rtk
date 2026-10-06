@@ -5,6 +5,8 @@ git clone https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk.git
 git switch --detach e54c6afbcb5a58db22d7c468085a87d658b0b932
 git switch -c codex/superlio-ego-active-road
 vcs import src < dependencies.research.repos
+scripts/apply_super_lio_patch.sh
+scripts/apply_ego_vehicle_patch.sh
 colcon build --symlink-install --parallel-workers 1
 source install/setup.bash
 ```
@@ -26,5 +28,6 @@ PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
 
 On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,
 build with one worker, and run the new launch with `execution_mode:=shadow`.
-Do not attach a production serial device to a replay container. `live` remains
+Shadow/live starts the pinned Super-LIO node; replay intentionally does not
+start sensor processes. Do not attach a production serial device to a replay container. `live` remains
 blocked until the acceptance checklist is completed by a human operator.

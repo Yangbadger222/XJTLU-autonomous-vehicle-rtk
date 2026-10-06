@@ -22,15 +22,19 @@ def generate_launch_description():
     super_config = os.path.join(bringup_share, "config", "super_lio_vehicle.yaml")
     mode = DeclareLaunchArgument("execution_mode", default_value="replay",
                                  description="replay | shadow | live; replay is actuator-free")
-    enable_super = DeclareLaunchArgument("enable_super_lio", default_value="false",
-                                         description="Enable pinned Super-LIO only after its config is built")
+    enable_super = DeclareLaunchArgument("enable_super_lio", default_value="true",
+                                         description="Enable pinned Super-LIO in shadow/live; replay remains actuator-free")
     super_lio = Node(package="super_lio", executable="super_lio_node", name="super_lio_node",
-                     output="screen", condition=IfCondition(LaunchConfiguration("enable_super_lio")),
+                     output="screen",
+                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                              "' != 'replay' and '",
+                                                              LaunchConfiguration("enable_super_lio"), "' == 'true'"])),
                      parameters=[super_config])
     adapter = Node(package="super_lio_vehicle_adapter", executable="super_lio_vehicle_adapter",
                    name="super_lio_vehicle_adapter", output="screen",
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
-                                "imu_to_base_extrinsic_verified": False}])
+                                "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
+                                "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
                      parameters=[master, {"lio_odom_topic": "/lio/odom_vehicle",

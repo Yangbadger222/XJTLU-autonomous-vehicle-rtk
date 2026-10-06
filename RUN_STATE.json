@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "62 tests"
+      "evidence": "64 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -114,6 +114,13 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "overall_static_status=PASS after local-grid boolean parsing and 62-test suite"
+    },
+    {
+      "command": "docker info --format \"{{.ServerVersion}} {{.Architecture}}\" (bounded 8s probe, continuation)",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "evidence": "Docker server again produced no response within the bound; current three-patch ROS/ARM64 rebuild remains pending",
+      "scope": "verified external-state probe only; no compile or runtime claim"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

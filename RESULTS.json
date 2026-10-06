@@ -56,7 +56,7 @@
       "audit/ego_patch_check_latest.log",
       "src/research_interfaces",
       "src/research_runtime/research_runtime/trajectory.py",
-      "config/ego_vehicle_adapter.yaml",
+      "src/bringup/config/ego_vehicle_adapter.yaml",
       "audit/container/current-ego-rebuild-probe.log",
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json",

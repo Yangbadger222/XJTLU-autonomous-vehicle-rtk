@@ -16,6 +16,7 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert '"/lio/odom_vehicle"' in source
     assert '"source_frame": "world", "world_frame": "odom"' in source
     assert '"source_child_frame": "imu", "tf_timeout_s": 0.05' in source
+    assert "ego_vehicle_adapter.yaml" in source
     assert '"/research/local_obstacle_grid"' in source
     assert '"/research/map_version"' in source
     assert 'executable="research_local_obstacle_grid"' in source
@@ -94,7 +95,7 @@ def test_active_road_evidence_package_exposes_typed_ingest_boundary():
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():
-    config = (Path(__file__).parents[3] / "config" / "ego_vehicle_adapter.yaml").read_text()
+    config = (Path(__file__).parents[3] / "src" / "bringup" / "config" / "ego_vehicle_adapter.yaml").read_text()
     assert "max_speed_mps: 0.85" in config
     assert "max_accel_mps2: 0.85" in config
     assert "max_yaw_rate_rps: 0.70" in config

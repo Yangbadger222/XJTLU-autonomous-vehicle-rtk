@@ -152,6 +152,12 @@ def main() -> int:
     check("serial_gate", "' == 'live' and '" in launch and
           'DeclareLaunchArgument("enable_serial", default_value="false"' in launch,
           ["src/bringup/launch/system_active_road_research.launch.py"])
+    ego_config = Path("src/bringup/config/ego_vehicle_adapter.yaml")
+    check("research_config_install_path",
+          ego_config.is_file() and "ego_vehicle_adapter.yaml" in launch,
+          [str(ego_config), "src/bringup/CMakeLists.txt",
+           "src/bringup/launch/system_active_road_research.launch.py"],
+          "vehicle EGO parameters are installed with bringup rather than left in a repository-only config directory")
 
     contract = json.loads(Path("audit/vehicle_baseline/RUNTIME_CONTRACT.json").read_text())
     topics = contract["topics"]

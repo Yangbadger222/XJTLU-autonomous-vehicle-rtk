@@ -102,6 +102,10 @@ The active-road bringup manifest now declares every research runtime and safety
 edge it launches, including the pinned estimator/planner package names,
 research interfaces, Livox/RTK inputs, authority guard and serial bridge; a
 static contract test prevents future dependency omissions.
+The vehicle EGO parameter file is installed under `src/bringup/config/` and is
+resolved through the bringup share directory used by the launch file; the
+previous repository-root-only path was removed so a clean install cannot fail
+before the planner node starts.
 
 The active-road research loop now has a typed `RoadEvidence2D` ROS ingest
 message and `active_road_evidence` node. The node requires a valid persisted

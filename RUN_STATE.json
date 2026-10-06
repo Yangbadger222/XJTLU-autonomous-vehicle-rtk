@@ -204,6 +204,18 @@
       "exit_code": null,
       "evidence": "desktop-linux socket unavailable; orbstack daemon timed out after 8 s",
       "scope": "external container service probe only; no target-image build or runtime claim"
+    },
+    {
+      "command": "clean-install config path audit for system_active_road_research.launch.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "src/bringup/config/ego_vehicle_adapter.yaml exists and bringup CMakeLists.txt installs config/; launch resolves it from bringup share"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "68 tests after moving EGO vehicle config into the installed bringup config tree"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

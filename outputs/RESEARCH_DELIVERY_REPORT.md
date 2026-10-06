@@ -23,7 +23,7 @@
 - `research_runtime` 与 `active_road_mapping` 已构建最新 wheel 并检查安装内容；GridMap 投影器、安全桥、轨迹检查器、`research_local_obstacle_grid`、`active_road_map` 和 `active_road_evidence` 均随包发布，证据见 `audit/research_wheel_build_latest.log`。
 - 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；当前三补丁（0001+0002+0003）在 OrbStack `linux/aarch64` 使用公开 `ros:humble` 基础镜像完成 `research_interfaces` 与 `ego_planner` 编译，`motion_plan` 隔离启动并等待真实 odom/road reference/obstacle grid/map version 后按 5 秒有界退出。该结果不代表原 Docker Desktop `ros2-go2:humble` 基础镜像，也不代表 Jetson/车端运行。Super-LIO C++ 核心和 ROS 接口完成编译；真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - 原 Docker Desktop `ros2-go2:humble` builder 曾卡在容器启动前；OrbStack alternate-base 的完整构建、镜像摘要和启动 smoke 证据见 `audit/container/ego-orbstack-ros-base-three-patch-*`，两种基础镜像的证据边界保持分开。
-- launch、车辆 odometry adapter 与 cloud-frame adapter Python 语法编译通过；OrbStack ARM64 ROS 2 构建同时验证了新增 `RoadEvidence2D`/`geometry_msgs` 接口和三补丁 EGO 编译，但目标机 wiring 与 Jetson runtime 仍未宣称通过。
+- launch、车辆 odometry adapter 与 cloud-frame adapter Python 语法编译通过；OrbStack ARM64 ROS 2 构建同时验证了新增 `RoadEvidence2D`/`geometry_msgs` 接口和三补丁 EGO 编译，但目标机 wiring 与 Jetson runtime 仍未宣称通过。 EGO 车辆配置已移入 `src/bringup/config/` 并由 bringup 安装目录提供，修复了干净安装时 launch 找不到参数文件的路径缺口。
 - 三个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；OrbStack public `ros:humble` build log 记录三补丁 `colcon` 编译和 `motion_plan` 等待输入的启动 smoke。
 - 研究回放 smoke 输出包含轨迹可行性、策略对照和最终 mock 串口停车字节；真实 bag 完整播放也在隔离容器中退出码 0。
 - 保护的原始车辆文件未修改；未刷固件、未改标定/串口协议/运动限值/安全权限、未自动开车、未 force-push。

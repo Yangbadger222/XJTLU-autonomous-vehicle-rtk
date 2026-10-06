@@ -59,10 +59,15 @@
       "evidence": "source-audited LIO field mapping; unresolved semantics fail closed"
     },
     {
-      "command": "docker ARM64 ROS 2 Humble isolated builds (raw EGO, patched EGO, Super-LIO core)",
+      "command": "docker ARM64 ROS 2 Humble isolated builds (raw EGO, prior patched EGO revision, Super-LIO core)",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/container/ego-raw-build-and-start.log; audit/container/ego-build-pass-2.log; audit/container/super-lio-build-message-only.log"
+      "evidence": "audit/container/ego-raw-build-and-start.log; audit/container/ego-build-pass-2.log (prior patch revision); audit/container/super-lio-build-message-only.log"
+    },
+    {
+      "command": "docker ARM64 rebuild of current corrected EGO vehicle patch",
+      "status": "PENDING",
+      "evidence": "docker run remains stuck in Created even with entrypoint bypass; current exact patch apply-check is PASS in audit/ego_patch_check_latest.log, but no current-version compile claim is made"
     },
     {
       "command": "ros2 bag play <vehicle bag>",

@@ -28,9 +28,11 @@ The reproducible source patches are
 `0002-vehicle-ros-timed-trajectory.patch`. They apply only at the pinned EGO
 commit, and their sequential check is enforced by
 `scripts/apply_ego_vehicle_patch.sh`; a fresh checkout was verified with
-`git apply --check`. The raw EGO node, patched EGO vehicle edge, and Super-LIO
-core/ROS interfaces were compiled in the isolated ARM64 ROS 2 Humble evidence
-environment. The compile-only Livox message contract is deliberately recorded
+`git apply --check`. The raw EGO node and a prior patched EGO revision, plus
+Super-LIO core/ROS interfaces, were compiled in the isolated ARM64 ROS 2 Humble
+evidence environment. The current corrected EGO patch has exact apply-check but
+its rebuild is pending because the local Docker runtime cannot start a new
+container. The compile-only Livox message contract is deliberately recorded
 separately from the missing physical SDK/driver and Jetson runtime gates.
 
 The local obstacle boundary is implemented in

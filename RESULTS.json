@@ -36,19 +36,21 @@
       "audit/UPSTREAM_SOURCE_AUDIT.md",
       "audit/UPSTREAM_PATCH_VERIFICATION.json",
       "audit/container/ego-raw-build-and-start.log",
-      "audit/container/ego-build-pass-2.log"
+      "audit/ego_patch_check_latest.log"
     ],
-    "scope": "raw pinned motion_plan build/start and sequentially patched ARM64 ROS 2 Humble build passed in isolation; RViz interaction and vehicle runtime remain pending"
+    "scope": "raw pinned motion_plan build/start passed in isolation and current patches pass sequential apply-check; current corrected patched rebuild, RViz interaction and vehicle runtime remain pending"
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
-    "status": "PASS",
+    "status": "PENDING",
     "evidence": [
       "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+      "audit/ego_patch_check_latest.log",
       "src/research_interfaces",
       "src/research_runtime/research_runtime/trajectory.py",
       "config/ego_vehicle_adapter.yaml"
     ],
-    "scope": "patched ROS edge compiled in isolated ARM64 ROS 2 Humble; it consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D, with a measured-odom feedback tracker before the original guard; target wiring and runtime remain pending"
+    "reason": "current corrected patch passes exact sequential apply-check and source/contract tests, but the ARM64 patched rebuild could not be rerun because the local Docker runtime remains stuck in Created; the existing patched build log predates the current curvature/speed checks",
+    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback before the original guard; current patched compile, target wiring and runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",

@@ -123,6 +123,8 @@ def validate_trajectory(
         result.fail("map_version_mismatch")
     if now is not None and trajectory.valid_until < now:
         result.fail("trajectory_expired")
+    if now is not None and trajectory.generated_at > now + 1e-6:
+        result.fail("trajectory_from_future")
     if trajectory.valid_until < trajectory.generated_at:
         result.fail("invalid_validity_interval")
 
@@ -134,6 +136,8 @@ def validate_trajectory(
         if not _finite(values):
             result.fail("non_finite_point")
             continue
+        if point.t < 0.0:
+            result.fail("negative_point_time")
         result.max_speed = max(result.max_speed, abs(point.v))
         result.max_yaw_rate = max(result.max_yaw_rate, abs(point.w))
         if point.curvature is not None:

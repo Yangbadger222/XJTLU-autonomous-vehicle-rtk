@@ -81,6 +81,15 @@ def test_nonfinite_trajectory_metadata_is_rejected():
     assert "valid_until_non_finite" in result.reasons
 
 
+def test_future_generation_and_negative_sample_time_are_rejected():
+    result = validate_trajectory(
+        TimedTrajectory.from_points("t", "m1", "odom", 2.0, 3.0,
+                                    [TimedPoint(-0.1, 0.0, 0.0, 0.0, 0.0, 0.0)]),
+        VehicleLimits(), now=1.0, expected_map_version="m1")
+    assert not result.valid
+    assert {"trajectory_from_future", "negative_point_time"} <= set(result.reasons)
+
+
 def test_unknown_map_metadata_is_rejected_even_without_expected_version():
     result = validate_trajectory(
         TimedTrajectory.from_points("t", "UNKNOWN", "odom", 0.0, 1.0,

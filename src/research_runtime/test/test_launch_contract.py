@@ -14,6 +14,10 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "package=\"serial_twistctl\"" in source
     assert '"/lio/vehicle_health"' in source
     assert '"/lio/odom_vehicle"' in source
+    bridge = (Path(__file__).parents[3] / "src" / "research_runtime" /
+              "research_runtime" / "safety_bridge.py").read_text()
+    assert "health_timeout_s" in bridge
+    assert "health_fresh" in bridge
 
 
 def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():

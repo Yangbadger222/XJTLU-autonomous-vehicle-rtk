@@ -34,6 +34,7 @@ if rclpy:
             self.declare_parameter("mode", "replay")
             self.declare_parameter("actuator_enabled", False)
             self.declare_parameter("authority_timeout_s", 0.50)
+            self.declare_parameter("health_timeout_s", 0.50)
             self.declare_parameter("health_topic", "/lio/vehicle_health")
             self.declare_parameter("odom_topic", "/lio/odom_vehicle")
             self.declare_parameter("tracker_longitudinal_gain", 0.8)
@@ -42,6 +43,7 @@ if rclpy:
             self._mode = str(self.get_parameter("mode").value)
             self._actuator_enabled = bool(self.get_parameter("actuator_enabled").value)
             self._gate = SafetyGate(float(self.get_parameter("authority_timeout_s").value))
+            self._health_timeout_s = float(self.get_parameter("health_timeout_s").value)
             self._tracker = TimedTrajectoryTracker(
                 VehicleLimits(),
                 longitudinal_gain=float(self.get_parameter("tracker_longitudinal_gain").value),
@@ -105,14 +107,16 @@ if rclpy:
             tracked = None
             if self._trajectory_contract is not None and self._state is not None:
                 tracked = self._tracker.command(self._trajectory_contract, self._state, now=ros_now)
+            health_fresh = self._health_stamp > 0.0 and now - self._health_stamp <= self._health_timeout_s
+            health_ok = health_fresh and self._health.startswith("OK")
             valid = bool(self._actuator_enabled and self._mode == "live"
-                         and tracked is not None and self._health.startswith("OK")
+                         and tracked is not None and health_ok
                          and (now - self._trajectory_stamp) <= 0.25
                          and (now - self._state_stamp) <= 0.25
                          and self._trajectory is not None
                          and self._trajectory.status == TimedTrajectory2D.STATUS_OK)
             state = AuthorityState(self._allowed, self._allowed_stamp, now,
-                                   "OK" if valid else "UNKNOWN",
+                                   "OK" if health_ok else "UNKNOWN",
                                    trajectory_ok=valid,
                                    map_ok=bool(self._trajectory and self._trajectory.map_version))
             command = self._gate.command(tracked.linear_x if tracked else 0.0,

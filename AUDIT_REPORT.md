@@ -89,7 +89,8 @@ adapter's `/lio/vehicle_health`, interpolates the trajectory in time, applies
 measured-pose longitudinal/lateral/heading feedback, and only then passes the
 request to the original authority/command guard. It no longer sends the first
 trajectory sample directly to `/cmd_vel`; expired, invalid or stale state still
-reaches the mock sink as a stop.
+reaches the mock sink as a stop, and a health message older than the explicit
+0.50 s timeout is treated as UNKNOWN.
 
 ## Follow-up implementation evidence
 

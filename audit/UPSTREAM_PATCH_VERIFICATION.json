@@ -32,7 +32,7 @@
       "src/EgoPlanner-ROS2/CMakeLists.txt",
       "src/EgoPlanner-ROS2/package.xml"
     ],
-    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_PATCHED",
+    "ros_build": "PENDING_CURRENT_PATCH_REBUILD_PRIOR_REVISION_COMPILED",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
@@ -54,9 +54,10 @@
       ],
       "details": "raw pinned ego_planner built and motion_plan started in isolated ROS 2 Humble until bounded 5 s timeout; no RViz/display or vehicle inputs"
     },
-    "patched_build_evidence": [
+    "patched_build_evidence_prior_revision": [
       "audit/container/ego-build-pass-2.log",
-      "audit/container/ego-build-pass-2.exit"
+      "audit/container/ego-build-pass-2.exit",
+      "prior patch revision; not evidence for current patch hash"
     ],
     "latest_recheck": {
       "status": "PASS_SEQUENTIAL",

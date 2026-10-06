@@ -23,7 +23,7 @@
 - `research_runtime` 已构建 wheel 并检查安装内容，GridMap 投影器、安全桥和轨迹检查器均随包发布。
 - 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；此前补丁版本的 EGO 车辆边界完成编译；Super-LIO C++ 核心和 ROS 接口完成编译。当前 EGO timed wrapper 的 yaw-rate/curvature 使用 `cross(v,a)/|v|^2` 与 `yaw-rate/|v|` 的量纲一致公式，并拒绝标量速度与切向速度不一致的样本；当前补丁已在精确 commit 上顺序 apply-check，但 Docker 无法启动新 ARM64 容器，因此当前版本重编译保持 PENDING。补丁 provenance hash 已刷新。Super-LIO 构建使用仅含 `livox_ros_driver2` 消息的编译合同，真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - launch 与适配器 Python 语法编译通过。
-- 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；原始与 patched EGO 的隔离 Humble 编译日志见 `audit/container/`。
+- 两个 EGO 补丁在精确提交的全新 checkout 上顺序 `git apply --check` 通过；`audit/container/` 中的 patched EGO 编译日志明确属于当前修正前的 prior revision，当前修正版重编译保持 PENDING。
 - 研究回放 smoke 输出包含轨迹可行性、策略对照和最终 mock 串口停车字节；真实 bag 完整播放也在隔离容器中退出码 0。
 - 保护的原始车辆文件未修改；未刷固件、未改标定/串口协议/运动限值/安全权限、未自动开车、未 force-push。
 

@@ -39,7 +39,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`39 passed`). The replay
+The new transport-independent and contract suite passes (`40 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -68,6 +68,10 @@ contains the locked corridor limits, keeps curvature/inflation at explicit
 fail-closed zero values until measured, treats unknown occupancy as blocked,
 and does not activate the upstream demo defaults for speed, acceleration,
 jerk, resolution or inflation.
+
+Active-observation candidates now hard-filter negative/non-finite cost,
+impact and observability inputs before scoring; the test suite covers those
+invalid heuristic inputs separately from reachability and safety filters.
 
 ## Follow-up implementation evidence
 

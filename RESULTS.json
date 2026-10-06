@@ -86,7 +86,7 @@
       "src/research_runtime/research_runtime/active_road.py",
       "METHOD_SPEC.md"
     ],
-    "scope": "bounded heuristic candidate selection; real camera validation pending"
+    "scope": "bounded heuristic candidate selection with reachability/safety/sensor and finite non-negative scoring-input filters; real camera validation pending"
   },
   "POLICY_EFFECT_SIMULATION": {
     "status": "PASS",

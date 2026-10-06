@@ -139,7 +139,12 @@ class ObservationCandidate:
     def score(self) -> float:
         if not (self.reachable and self.safe and self.pose_trustworthy and self.sensor_valid):
             return float("-inf")
-        return self.impact * max(0.0, min(1.0, self.observable_fraction)) / (self.cost + 1e-6)
+        if not all(math.isfinite(float(value)) for value in
+                   (self.impact, self.observable_fraction, self.cost)):
+            return float("-inf")
+        if self.cost < 0.0:
+            return float("-inf")
+        return self.impact * max(0.0, min(1.0, self.observable_fraction)) / max(self.cost, 1e-6)
 
 
 class EvidenceStore:

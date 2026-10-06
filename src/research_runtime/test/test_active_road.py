@@ -26,6 +26,16 @@ def test_unsafe_high_score_candidate_is_filtered():
     assert selected.candidate_id == "safe"
 
 
+def test_invalid_observation_cost_and_nonfinite_score_inputs_are_filtered():
+    selected = choose_observation([
+        ObservationCandidate("negative-cost", "e", True, True, True, True, 1, 1, -1),
+        ObservationCandidate("nan-impact", "e", True, True, True, True, float("nan"), 1, 1),
+        ObservationCandidate("valid", "e", True, True, True, True, 1, 0.5, 1),
+    ])
+    assert selected is not None
+    assert selected.candidate_id == "valid"
+
+
 def test_magroad_prior_requires_crs_and_keeps_model_version(tmp_path):
     path = tmp_path / "road.geojson"
     path.write_text(json.dumps({

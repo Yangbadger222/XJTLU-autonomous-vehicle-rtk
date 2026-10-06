@@ -102,6 +102,10 @@ The EGO ROS trajectory wrapper now derives yaw-rate as
 test rejects the previous dimensionally incorrect formula and the patch hash in
 `audit/UPSTREAM_PATCH_VERIFICATION.json` was refreshed.
 
+After that formula change, a fresh temporary checkout at the exact upstream
+commit reapplied patch 0001 and passed `git apply --check` for patch 0002;
+the command and current hashes are recorded in `audit/ego_patch_check_latest.log`.
+
 ## Follow-up implementation evidence
 
 The pinned EGO source now has a second sequential project patch that replaces its

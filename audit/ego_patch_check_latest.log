@@ -1,0 +1,6 @@
+checkout=JackJu-HIT/Ego-Planner-2D-ROS2
+commit=7f5be6d4cee34871e85aa1f15285cfaf17b23877
+apply_order=0001-vehicle-state-and-feasibility.patch then 0002-vehicle-ros-timed-trajectory.patch
+apply_check=PASS
+patch_0001_sha256=ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f
+patch_0002_sha256=19ed2fd09a9b28981a32a9788bc0650ac1bb576e2deebea20e0e0774b2fc5cc2

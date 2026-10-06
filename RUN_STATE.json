@@ -50,7 +50,7 @@
       "command": "scripts/apply_ego_vehicle_patch.sh (fresh checkout; sequential git apply --check)",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "0001 + 0002 applied at exact EGO commit; raw and patched ARM64 ROS 2 Humble build evidence in audit/container"
+      "evidence": "0001 + 0002 sequential apply-check at exact EGO commit; latest recheck in audit/ego_patch_check_latest.log; raw and patched ARM64 ROS 2 Humble build evidence in audit/container"
     },
     {
       "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",

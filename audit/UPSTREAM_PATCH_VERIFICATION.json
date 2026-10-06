@@ -57,6 +57,11 @@
     "patched_build_evidence": [
       "audit/container/ego-build-pass-2.log",
       "audit/container/ego-build-pass-2.exit"
-    ]
+    ],
+    "latest_recheck": {
+      "status": "PASS_SEQUENTIAL",
+      "checkout_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+      "evidence": "audit/ego_patch_check_latest.log"
+    }
   }
 }

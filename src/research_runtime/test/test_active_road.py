@@ -1,4 +1,6 @@
-from research_runtime.active_road import (EvidenceState, EvidenceStore, GeoTransform,
+import json
+
+from research_runtime.active_road import (EvidenceState, EvidenceStore, GeoTransform, MaGRoadPrior,
                                            ObservationCandidate, RoadEvidence, choose_observation)
 
 
@@ -22,3 +24,16 @@ def test_unsafe_high_score_candidate_is_filtered():
     ])
     assert selected is not None
     assert selected.candidate_id == "safe"
+
+
+def test_magroad_prior_requires_crs_and_keeps_model_version(tmp_path):
+    path = tmp_path / "road.geojson"
+    path.write_text(json.dumps({
+        "type": "FeatureCollection",
+        "crs": {"properties": {"name": "EPSG:32651"}},
+        "features": [{"type": "Feature", "properties": {"id": "r1"},
+                      "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 0]]}}],
+    }))
+    prior = MaGRoadPrior.load_geojson(path, expected_crs="EPSG:32651", model_version="magr-v1")
+    assert prior.model_version == "magr-v1"
+    assert prior.edges[0]["id"] == "r1"

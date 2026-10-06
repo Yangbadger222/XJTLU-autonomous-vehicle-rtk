@@ -8,6 +8,11 @@ is idempotent. Evidence states are `UNOBSERVED`, `OBSERVED_GEOMETRY`,
 `TRAVERSED`, `BLOCKED_EVIDENCE`, and `UNCERTAIN`; observing an entrance never
 promotes its unseen continuation to traversed.
 
+`MaGRoadPrior.load_geojson` is a read-only, CRS-checked road-graph input that
+preserves a model version. `GeoTiffPrior.load` uses rasterio only when present,
+requires a declared CRS, and exposes metadata without turning pixels into free
+space. Missing rasterio or CRS is an explicit unavailable/error state.
+
 Candidates are hard-filtered for reachability, safety, pose trust and sensor
 validity, then scored as `impact * observable_fraction / (cost + epsilon)`.
 This is an interpretable heuristic, not a proven information gain. The

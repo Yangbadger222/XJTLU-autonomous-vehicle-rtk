@@ -36,6 +36,57 @@ class GeoTransform:
                 self.origin_y_m - (row + 0.5) * self.pixel_size_y_m)
 
 
+@dataclass(frozen=True)
+class GeoTiffPrior:
+    """Read-only GeoTIFF metadata boundary; pixels never become evidence by themselves."""
+    path: str
+    crs: str
+    transform: tuple[float, float, float, float, float, float]
+    width: int
+    height: int
+
+    @classmethod
+    def load(cls, path: str | Path) -> "GeoTiffPrior":
+        try:
+            import rasterio
+        except ImportError as exc:
+            raise RuntimeError("rasterio is required to load GeoTIFF metadata; prior remains unavailable") from exc
+        with rasterio.open(path) as dataset:
+            if dataset.crs is None:
+                raise ValueError("GeoTIFF CRS is required; refusing axis/datum guessing")
+            transform = dataset.transform
+            return cls(str(path), dataset.crs.to_string(),
+                       (transform.a, transform.b, transform.c, transform.d, transform.e, transform.f),
+                       dataset.width, dataset.height)
+
+
+@dataclass(frozen=True)
+class MaGRoadPrior:
+    """Minimal source-grounded road graph loader (GeoJSON, read-only)."""
+    path: str
+    model_version: str
+    crs: str
+    edges: tuple[dict, ...]
+
+    @classmethod
+    def load_geojson(cls, path: str | Path, *, expected_crs: str, model_version: str) -> "MaGRoadPrior":
+        payload = json.loads(Path(path).read_text())
+        declared = payload.get("crs", {}).get("properties", {}).get("name", expected_crs)
+        if declared != expected_crs:
+            raise ValueError(f"MaGRoad CRS mismatch: {declared} != {expected_crs}")
+        edges = []
+        for feature in payload.get("features", []):
+            if feature.get("geometry", {}).get("type") != "LineString":
+                continue
+            coords = feature["geometry"].get("coordinates", [])
+            if len(coords) < 2:
+                continue
+            edges.append({"id": str(feature.get("properties", {}).get("id", len(edges))),
+                          "coordinates": [tuple(point[:2]) for point in coords],
+                          "properties": feature.get("properties", {})})
+        return cls(str(path), model_version, expected_crs, tuple(edges))
+
+
 @dataclass
 class RoadEvidence:
     evidence_id: str

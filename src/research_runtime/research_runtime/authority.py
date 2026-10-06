@@ -72,4 +72,9 @@ class SafetyGate:
 
 def format_serial(command: SafetyCommand, angular_z_scale: float = 1.0) -> bytes:
     """Mirror the locked serial contract, including the newline."""
+    if (not math.isfinite(float(angular_z_scale)) or
+            not math.isfinite(float(command.linear_x)) or
+            not math.isfinite(float(command.angular_z)) or
+            not command.allowed):
+        return b"vcx=0,wc=0\n"
     return f"vcx={command.linear_x:g},wc={command.angular_z * angular_z_scale:g}\n".encode("ascii")

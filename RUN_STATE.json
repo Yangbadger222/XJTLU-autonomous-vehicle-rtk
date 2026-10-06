@@ -239,7 +239,13 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "75 tests; invalid authority time and invalid linear speed overrides reach vcx=0,wc=0 mock bytes"
+      "evidence": "79 tests; invalid authority/speed/serial-format inputs reach vcx=0,wc=0 mock bytes"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "79 tests including defensive final serial formatter checks for non-finite command/scale"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

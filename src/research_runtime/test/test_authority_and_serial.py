@@ -1,6 +1,6 @@
 import pytest
 
-from research_runtime.authority import AuthorityState, SafetyGate, format_serial
+from research_runtime.authority import AuthorityState, SafetyCommand, SafetyGate, format_serial
 
 
 def test_rtk_authority_loss_reaches_final_mock_serial_sink():
@@ -66,4 +66,15 @@ def test_invalid_linear_speed_override_reaches_final_mock_serial_sink(speed_limi
                                                  max_linear_speed_mps=speed_limit))
     assert not command.allowed
     assert "invalid_linear_speed_limit" in command.reason
+    assert format_serial(command) == b"vcx=0,wc=0\n"
+
+
+@pytest.mark.parametrize("scale", [float("nan"), float("inf"), -float("inf")])
+def test_nonfinite_serial_scale_reaches_final_mock_serial_sink(scale):
+    command = SafetyGate().command(0.4, 0.2, AuthorityState(True, 1.0, 1.1))
+    assert format_serial(command, scale) == b"vcx=0,wc=0\n"
+
+
+def test_format_serial_defensively_rejects_nonfinite_allowed_command():
+    command = SafetyCommand(float("nan"), 0.2, True, "test")
     assert format_serial(command) == b"vcx=0,wc=0\n"

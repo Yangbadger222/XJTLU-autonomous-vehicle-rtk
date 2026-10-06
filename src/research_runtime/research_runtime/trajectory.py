@@ -101,6 +101,9 @@ def validate_trajectory(
     point-only path cannot silently become a vehicle command.
     """
     result = ValidationResult(valid=True, checked_points=len(trajectory.points))
+    if resolution is not None and (not math.isfinite(float(resolution)) or resolution <= 0.0):
+        result.fail("invalid_sweep_resolution")
+        resolution = None
     if not trajectory.points:
         result.fail("empty_trajectory")
         return result
@@ -177,11 +180,35 @@ def validate_trajectory(
                     result.fail("yaw_rate_curvature_inconsistent")
         previous = point
 
+    if footprint is not None and occupied is not None and resolution is None:
+        result.fail("footprint_sweep_resolution_missing")
+
+    sweep_points: list[TimedPoint] = list(trajectory.points)
+    if resolution is not None and len(trajectory.points) > 1:
+        sweep_points = [trajectory.points[0]]
+        for previous, point in zip(trajectory.points, trajectory.points[1:]):
+            distance = math.hypot(point.x - previous.x, point.y - previous.y)
+            steps = max(1, int(math.ceil(distance / resolution)))
+            for step in range(1, steps + 1):
+                fraction = step / steps
+                yaw = previous.yaw + _angle_delta(point.yaw, previous.yaw) * fraction
+                sweep_points.append(TimedPoint(
+                    previous.t + (point.t - previous.t) * fraction,
+                    previous.x + (point.x - previous.x) * fraction,
+                    previous.y + (point.y - previous.y) * fraction,
+                    yaw,
+                    previous.v + (point.v - previous.v) * fraction,
+                    previous.w + (point.w - previous.w) * fraction,
+                    previous.a + (point.a - previous.a) * fraction,
+                    previous.alpha + (point.alpha - previous.alpha) * fraction,
+                    point.curvature if fraction == 1.0 else previous.curvature,
+                ))
+
     if footprint is not None:
         if occupied is None:
             result.fail("footprint_oracle_missing")
         else:
-            for point in trajectory.points:
+            for point in sweep_points:
                 c, s = math.cos(point.yaw), math.sin(point.yaw)
                 for fx, fy in footprint:
                     wx = point.x + c * fx - s * fy
@@ -190,7 +217,7 @@ def validate_trajectory(
                         result.fail("footprint_collision_or_unknown")
                         break
     elif occupied is not None:
-        for point in trajectory.points:
+        for point in sweep_points:
             if occupied(point.x, point.y):
                 result.fail("center_collision_or_unknown")
                 break

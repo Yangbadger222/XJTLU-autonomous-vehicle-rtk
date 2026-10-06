@@ -39,7 +39,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`37 passed`). The replay
+The new transport-independent and contract suite passes (`39 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -59,6 +59,9 @@ exact `vcx=0,wc=0\\n` output.
 The shared trajectory validator also has explicit rejection cases for map and
 frame mismatch, expiry, time rollback, pose jumps, and curvature/yaw-rate
 inconsistency; these are separate from the upstream planner compile evidence.
+Footprint and centerline collision checks now sample every segment at the
+caller-supplied map resolution; a footprint oracle without a positive sweep
+resolution is rejected instead of being treated as a point-only proof.
 
 The launch-contract suite also asserts that the vehicle EGO configuration
 contains the locked corridor limits, keeps curvature/inflation at explicit

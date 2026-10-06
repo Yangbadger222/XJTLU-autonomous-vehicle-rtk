@@ -30,7 +30,7 @@ def test_unknown_or_obstacle_footprint_rejects_path():
         TimedPoint(1.0, 0.2, 0.0, 0.0, 0.2, 0.0),
     ]), VehicleLimits(), now=0.0, expected_map_version="m1",
     footprint=[(-0.5, -0.3), (-0.5, 0.3), (0.5, -0.3), (0.5, 0.3)],
-    occupied=lambda x, y: x > 0.4)
+    occupied=lambda x, y: x > 0.4, resolution=0.1)
     assert not result.valid
     assert "footprint_collision_or_unknown" in result.reasons
 
@@ -97,3 +97,24 @@ def test_pose_jump_is_rejected_by_discrete_speed_check():
     ]), VehicleLimits(), now=0.0, expected_map_version="m1")
     assert not result.valid
     assert "path_speed_mismatch" in result.reasons
+
+
+def test_footprint_sweep_catches_collision_between_trajectory_points():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),
+        TimedPoint(1.0, 1.0, 0.0, 0.0, 1.0, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1",
+    footprint=[(0.0, 0.0)], occupied=lambda x, y: 0.45 < x < 0.55,
+    resolution=0.1)
+    assert not result.valid
+    assert "footprint_collision_or_unknown" in result.reasons
+
+
+def test_footprint_collision_without_sweep_resolution_fails_closed():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),
+        TimedPoint(1.0, 0.2, 0.0, 0.0, 0.2, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1",
+    footprint=[(0.0, 0.0)], occupied=lambda x, y: False)
+    assert not result.valid
+    assert "footprint_sweep_resolution_missing" in result.reasons

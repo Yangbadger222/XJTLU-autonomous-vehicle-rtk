@@ -58,7 +58,7 @@ def run() -> dict:
         [TimedPoint(t, t * 0.2, 0.0, 0.0, 0.2, 0.0, 0.0, 0.0, 0.0) for t in (0.0, 1.0, 2.0, 3.0)])
     validation = validate_trajectory(trajectory, limits, now=1.0, expected_map_version="synthetic-v1",
                                      footprint=[(-0.5, -0.3), (-0.5, 0.3), (0.5, -0.3), (0.5, 0.3)],
-                                     occupied=lambda x, y: False)
+                                     occupied=lambda x, y: False, resolution=0.1)
     gate = SafetyGate(0.50)
     allowed = gate.command(0.2, 0.0, AuthorityState(True, 1.0, 1.1, "OK"))
     denied = gate.command(0.2, 0.0, AuthorityState(False, 1.0, 1.1, "OK"))

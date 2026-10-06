@@ -57,7 +57,7 @@
       "src/research_runtime/test/test_replay.py",
       "runtime-data/research/active_road/replay_smoke.json"
     ],
-    "scope": "synthetic validator including dynamic derivatives, body-lateral speed, curvature/yaw-rate and footprint rejection"
+    "scope": "synthetic validator including dynamic derivatives, body-lateral speed, curvature/yaw-rate and resolution-based continuous footprint/centerline sweep rejection"
   },
   "COMMAND_AUTHORITY_AND_STOP": {
     "status": "PASS",

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "codex/superlio-ego-active-road",
-  "tip": "85ea1d2f62e96a35a07fba7cea830f37894e9c2a",
+  "tip": "076457a87ab6a25f8bd82b7aaa352fee57b20243",
   "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "checks": [
     {
@@ -11,7 +11,7 @@
         "git merge-base --is-ancestor",
         "audit/vehicle_baseline/SOURCE_IDENTITY.json"
       ],
-      "detail": "branch=codex/superlio-ego-active-road, tip=85ea1d2f62e96a35a07fba7cea830f37894e9c2a, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
+      "detail": "branch=codex/superlio-ego-active-road, tip=076457a87ab6a25f8bd82b7aaa352fee57b20243, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
     },
     {
       "name": "external_pins",
@@ -31,6 +31,15 @@
         "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch"
       ],
       "detail": "{\"actual\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_three\": \"caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3\", \"ego_two\": \"793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}, \"expected\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_three\": \"caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3\", \"ego_two\": \"793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}}"
+    },
+    {
+      "name": "ego_patch_apply_audit",
+      "status": "PASS",
+      "evidence": [
+        "audit/UPSTREAM_PATCH_VERIFICATION.json",
+        "audit/ego_patch_check_current.log"
+      ],
+      "detail": "requires exact-commit sequential apply evidence for all three patches"
     },
     {
       "name": "protected_vehicle_files",

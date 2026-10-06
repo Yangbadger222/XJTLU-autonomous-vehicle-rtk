@@ -19,7 +19,7 @@
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
     "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch",
-    "patch_sha256": "a4b08b41ff315c1b57dafc4270df6221932a7f065d36e93145edf8b5709e3a9b",
+    "patch_sha256": "7712fef4ca3925ec5cb9b4c0cc6fb9dab3450b0e3cbc0f30eb3b0168780df7e5",
     "apply_check": "PASS_SEQUENTIAL",
     "files": [
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
@@ -41,7 +41,7 @@
       },
       {
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-        "sha256": "b730974cb48e415977047efff8d07b5cd053481f5a67cd3986bf265f76d69e93",
+        "sha256": "e46d4b401b4464f21a958bb3aee5e46e3c4ed6efb8d0f79e72d0e2dac2b42c53",
         "apply_check": "PASS_AFTER_0001"
       }
     ],

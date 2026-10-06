@@ -282,7 +282,7 @@ diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-R
 index a2befd4..53270ed 100644
 --- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 +++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
-@@ -1,681 +1,429 @@
+@@ -1,681 +1,433 @@
  /*
 - * @Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
 - * @Create by: juchunyu@qq.com
@@ -1073,6 +1073,10 @@ index a2befd4..53270ed 100644
 +        (!allow_reverse_ && point.v < -1e-6)) {
 +      return false;
      }
++    const double speed_tolerance = std::max(0.05, 0.25 * std::max(std::abs(point.v), 0.1));
++    if (std::abs(point.v - speed) > speed_tolerance) {
++      return false;
++    }
 -
 -    // 发布（不会再崩）
 -    obs_pub_->publish(visual_obs);

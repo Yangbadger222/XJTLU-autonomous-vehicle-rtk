@@ -106,6 +106,10 @@ After that formula change, a fresh temporary checkout at the exact upstream
 commit reapplied patch 0001 and passed `git apply --check` for patch 0002;
 the command and current hashes are recorded in `audit/ego_patch_check_latest.log`.
 
+The same post-check now rejects a scalar speed that disagrees with the
+trajectory tangent magnitude, so the ROS timed samples cannot carry a
+world-vector/scalar-speed mismatch into the tracker.
+
 ## Follow-up implementation evidence
 
 The pinned EGO source now has a second sequential project patch that replaces its

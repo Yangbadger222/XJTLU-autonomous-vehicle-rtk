@@ -23,6 +23,12 @@
       "evidence": "replay entry accepted mode flag, wrote JSON and retained vcx=0,wc=0\\n mock stop"
     },
     {
+      "command": "python3 -m pip wheel --no-deps --wheel-dir <temporary-dir> src/research_runtime",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "wheel contains research_runtime/grid_map.py, safety_bridge.py and trajectory.py"
+    },
+    {
       "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",
       "status": "PASS",
       "exit_code": 0,

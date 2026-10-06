@@ -80,6 +80,10 @@ quaternions, non-finite covariance and non-identity IMU-to-base rotations while
 covariance rotation is unimplemented. This prevents a future verified flag
 from turning copied IMU-frame covariance into a false base-frame contract.
 
+The `research_runtime` Python package was also built as a wheel and inspected
+to contain the GridMap projector, safety bridge and trajectory validator. This
+checks the installed-package path separately from the source-tree test run.
+
 The LIO field mapping is now machine-readable at
 `audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records parser/source
 provenance for ROS stamps, IMU copies and Livox point offsets. The vehicle

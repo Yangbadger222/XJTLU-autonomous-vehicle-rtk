@@ -11,9 +11,10 @@
 - All three pinned upstream adaptation patches pass `git apply --check`. The raw
   pinned EGO node was built and started under a bounded timeout, and a prior
   vehicle-patch revision plus the Super-LIO core compiled in an isolated ARM64
-  ROS 2 Humble container. Patches 0001+0002 have an isolated ARM64 BuildKit compile pass recorded in
-  `audit/container/ego-current-build.log`; patch 0003 has an exact sequential
-  apply-check in `audit/ego_patch_check_current.log` and needs a fresh rebuild.
+  ROS 2 Humble container. Patches 0001+0002 have an isolated ARM64 BuildKit
+  compile pass recorded in `audit/container/ego-current-build.log`; patch 0003
+  has an exact sequential apply-check in `audit/ego_patch_check_current.log`
+  and needs a fresh three-patch rebuild.
   The old patched log remains clearly labeled prior revision. Docker ordinary container startup and Jetson runtime
   acceptance remain pending. Accordingly, `RESULTS.json` keeps the relevant
   runtime gates pending.

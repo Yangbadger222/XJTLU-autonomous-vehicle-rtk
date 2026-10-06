@@ -65,10 +65,10 @@
       "evidence": "audit/container/ego-raw-build-and-start.log; audit/container/ego-build-pass-2.log (prior patch revision); audit/container/super-lio-build-message-only.log"
     },
     {
-      "command": "docker ARM64 rebuild of current corrected EGO vehicle patch",
+      "command": "docker ARM64 rebuild of current EGO vehicle patch set (0001+0002)",
       "status": "PASS",
-      "evidence": "audit/container/ego-current-build.log; audit/container/ego-current-build-result.json; completed colcon compile RUN stage; no reliable final Docker CLI exit code captured",
-      "scope": "current corrected EGO source/patch compile only; ordinary container startup, target wiring, RViz interaction and Jetson runtime remain pending",
+      "evidence": "audit/container/ego-current-build.log; audit/container/ego-current-build-result.json; completed colcon compile RUN stage for patches 0001+0002; no reliable final Docker CLI exit code captured",
+      "scope": "patches 0001+0002 source/patch compile only; patch 0003 has sequential apply-check evidence but is excluded from this compile result; ordinary container startup, target wiring, RViz interaction and Jetson runtime remain pending",
       "docker_cli_exit": null
     },
     {
@@ -151,6 +151,13 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "overall_static_status=PASS; current EGO map-reset patch hash and exact sequential apply-check provenance verified"
+    },
+    {
+      "command": "python3 subprocess probe: docker info --format '{{json .}}' (20 s bound)",
+      "status": "PENDING",
+      "exit_code": null,
+      "evidence": "developer host Docker CLI produced no stdout/stderr and timed out after 20 s; current three-patch ROS/ARM64 rebuild remains pending",
+      "scope": "external Docker service probe only; no compile or runtime claim"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

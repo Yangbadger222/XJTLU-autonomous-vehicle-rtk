@@ -16,6 +16,8 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert '"/lio/odom_vehicle"' in source
     assert '"/research/local_obstacle_grid"' in source
     assert '"/research/map_version"' in source
+    assert 'executable="research_local_obstacle_grid"' in source
+    assert 'research_local_grid.yaml' in source
     bridge = (Path(__file__).parents[3] / "src" / "research_runtime" /
               "research_runtime" / "safety_bridge.py").read_text()
     assert "health_timeout_s" in bridge
@@ -41,6 +43,7 @@ def test_bringup_declares_active_road_runtime_dependencies():
 def test_safety_bridge_declares_its_odom_message_dependency():
     package = (Path(__file__).parents[3] / "src" / "research_runtime" / "package.xml").read_text()
     assert "<exec_depend>nav_msgs</exec_depend>" in package
+    assert "<exec_depend>sensor_msgs_py</exec_depend>" in package
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():

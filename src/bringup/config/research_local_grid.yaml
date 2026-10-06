@@ -1,0 +1,17 @@
+research_local_obstacle_grid:
+  ros__parameters:
+    # The map resolution is the locked corridor value; window size/origin are
+    # research settings and do not redefine vehicle geometry.
+    input_topic: /lio/cloud_world
+    output_topic: /research/local_obstacle_grid
+    map_version_topic: /research/map_version
+    target_frame: odom
+    resolution_m: 0.30
+    origin_x_m: -15.0
+    origin_y_m: -15.0
+    width: 100
+    height: 100
+    # Carry-over obstacle height window from the audited FAST-LIO2 output.
+    obstacle_min_z_m: 0.08
+    obstacle_max_z_m: 1.20
+    unknown_is_occupied: true

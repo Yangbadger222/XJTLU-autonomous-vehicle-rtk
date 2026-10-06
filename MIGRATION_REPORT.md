@@ -36,11 +36,11 @@ recorded separately from the missing physical SDK/driver, ordinary container
 startup and Jetson runtime gates.
 
 The local obstacle boundary is implemented in
-`src/research_runtime/research_runtime/grid_map.py`: it accepts only odom-frame
-points, applies the explicit height-window inputs, marks measured cells
-occupied, and preserves every unobserved cell as safety-blocking unknown. It is
-a transport-independent producer contract; target-side sensor/TF wiring is
-still pending.
+`src/research_runtime/research_runtime/grid_map.py` and transported by
+`research_local_obstacle_grid`: it accepts only odom-frame points, requires a
+non-UNKNOWN map version, applies the explicit height-window inputs, marks
+measured cells occupied, and preserves every unobserved cell as
+safety-blocking unknown. Target-side cloud frame/TF wiring remains pending.
 
 The timed trajectory no longer jumps directly from the first `TimedTrajectory2D`
 sample to `/cmd_vel`. `research_runtime.trajectory_tracker` interpolates the

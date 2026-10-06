@@ -80,7 +80,7 @@
     "/research/local_obstacle_grid": {
       "type": "nav_msgs/msg/OccupancyGrid",
       "frame": "odom",
-      "producer": "target local ground/obstacle adapter (launch wiring pending target-side audit)",
+      "producer": "research_local_obstacle_grid node from /lio/cloud_world (target TF/cloud frame audit pending)",
       "unknown_policy": "occupied"
     },
     "/research/map_version": {

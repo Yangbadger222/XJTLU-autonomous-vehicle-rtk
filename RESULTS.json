@@ -84,9 +84,11 @@
       "src/research_runtime/research_runtime/grid_map.py",
       "src/research_runtime/test/test_geometry.py",
       "src/research_runtime/test/test_active_road.py",
-      "src/research_runtime/test/test_grid_map.py"
+      "src/research_runtime/test/test_grid_map.py",
+      "src/research_runtime/research_runtime/local_obstacle_grid_node.py",
+      "src/bringup/config/research_local_grid.yaml"
     ],
-    "scope": "synthetic CRS-bound, idempotent evidence store with explicit CRS/finite-geometry and schema/measurement validation plus conservative odom-frame obstacle-grid projection; target sensor/TF wiring remains pending"
+    "scope": "synthetic CRS-bound, idempotent evidence store with explicit CRS/finite-geometry and schema/measurement validation plus conservative odom-frame obstacle-grid projection; ROS local grid transport now rejects non-odom/unknown-version input and marks only measured cells; target sensor/TF wiring remains pending"
   },
   "ACTIVE_OBSERVATION_IMPLEMENTED": {
     "status": "PASS",

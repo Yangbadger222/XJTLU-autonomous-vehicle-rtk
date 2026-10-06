@@ -44,6 +44,11 @@ def generate_launch_description():
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
                                 "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
                                 "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
+    local_grid = Node(package="research_runtime", executable="research_local_obstacle_grid",
+                      name="research_local_obstacle_grid", output="screen",
+                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                               "' != 'replay'"])),
+                      parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml")])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
@@ -83,4 +88,4 @@ def generate_launch_description():
     return LaunchDescription([mode, enable_super, enable_serial,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               livox, rtk,
-                              super_lio, adapter, ego_vehicle, authority, cmd_guard, serial, research])
+                              super_lio, adapter, local_grid, ego_vehicle, authority, cmd_guard, serial, research])

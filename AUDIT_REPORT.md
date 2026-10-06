@@ -133,12 +133,12 @@ locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
 frame/ground-separation wiring is still pending and is not represented as a
 software PASS.
 
-The transport-independent local-grid adapter in
-`src/research_runtime/research_runtime/grid_map.py` now projects only measured
-odom-frame points inside the explicit obstacle height window. It preserves
-unknown cells as blocked, rejects invalid frame/map/resolution contracts, and
-does not infer free space from absent returns; its boundary and unknown-space
-tests are included in the suite.
+The local-grid projector in `src/research_runtime/research_runtime/grid_map.py`
+and ROS transport node `local_obstacle_grid_node.py` project only measured
+odom-frame points inside the explicit obstacle height window. The node refuses
+non-odom clouds and UNKNOWN map versions, preserves unknown cells as blocked,
+and does not infer free space from absent returns; the boundary, unknown-space
+and launch-wiring tests are included in the suite.
 
 The Super-LIO vehicle adapter now also rejects non-unit source/extrinsic
 quaternions, non-finite covariance and non-identity IMU-to-base rotations while

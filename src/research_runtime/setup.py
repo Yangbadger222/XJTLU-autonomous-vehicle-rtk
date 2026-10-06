@@ -9,5 +9,6 @@ setup(
     entry_points={"console_scripts": [
         "research_replay = research_runtime.replay_sim:main",
         "research_safety_bridge = research_runtime.safety_bridge:main",
+        "research_local_obstacle_grid = research_runtime.local_obstacle_grid_node:main",
     ]},
 )

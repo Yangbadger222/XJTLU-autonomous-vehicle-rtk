@@ -19,7 +19,7 @@
 
 ## 已执行验证
 
-- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`36 passed`；`research_safety_bridge --mode replay` 入口也实际执行并写出回放 JSON。最终 mock 串口故障矩阵覆盖 authority/health/TF/map/trajectory/stop_override/manual-stop/non-finite command，均输出 `vcx=0,wc=0\\n`；轨迹验证器另有地图/帧不匹配、过期、时间倒退、位姿突跳和曲率/yaw-rate 不一致反例。适配器现在对非单位四元数、非有限协方差和未实现协方差旋转的非恒等外参保持停车。
+- 研究运行时、适配器、入口合同和 LIO 字段映射测试：`37 passed`；launch 合同还验证车辆配置不会激活上游 demo 的速度/加速度/jerk/地图分辨率/膨胀默认值。`research_safety_bridge --mode replay` 入口也实际执行并写出回放 JSON。最终 mock 串口故障矩阵覆盖 authority/health/TF/map/trajectory/stop_override/manual-stop/non-finite command，均输出 `vcx=0,wc=0\\n`；轨迹验证器另有地图/帧不匹配、过期、时间倒退、位姿突跳和曲率/yaw-rate 不一致反例。适配器现在对非单位四元数、非有限协方差和未实现协方差旋转的非恒等外参保持停车。
 - `research_runtime` 已构建 wheel 并检查安装内容，GridMap 投影器、安全桥和轨迹检查器均随包发布。
 - 在隔离 ARM64 ROS 2 Humble 容器中，固定提交的原始 EGO `motion_plan` 完成编译并启动冒烟；顺序补丁后的 EGO 车辆边界完成编译；Super-LIO C++ 核心和 ROS 接口完成编译。Super-LIO 构建使用仅含 `livox_ros_driver2` 消息的编译合同，真实 Livox SDK/驱动、传感器运行和 Jetson 运行仍为 PENDING。
 - launch 与适配器 Python 语法编译通过。

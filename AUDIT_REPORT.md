@@ -41,7 +41,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`43 passed`). The replay
+The new transport-independent and contract suite passes (`47 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -83,6 +83,13 @@ The active-road bringup manifest now declares every research runtime and safety
 edge it launches, including the pinned estimator/planner package names,
 research interfaces, Livox/RTK inputs, authority guard and serial bridge; a
 static contract test prevents future dependency omissions.
+
+The timed-trajectory safety edge now consumes `/lio/odom_vehicle` and the
+adapter's `/lio/vehicle_health`, interpolates the trajectory in time, applies
+measured-pose longitudinal/lateral/heading feedback, and only then passes the
+request to the original authority/command guard. It no longer sends the first
+trajectory sample directly to `/cmd_vel`; expired, invalid or stale state still
+reaches the mock sink as a stop.
 
 ## Follow-up implementation evidence
 

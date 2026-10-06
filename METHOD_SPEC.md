@@ -29,6 +29,13 @@ inflation/curvature bounds, footprint collisions, speed/acceleration,
 discrete body-lateral-speed and curvature/yaw-rate inconsistencies. It never
 clips an infeasible trajectory.
 
+The command edge uses `TimedTrajectoryTracker`: it interpolates the trajectory
+at the current ROS time, computes longitudinal/lateral/heading errors from
+measured `/lio/odom_vehicle`, bounds the resulting forward-only `v,w` request,
+and then hands it to the unchanged authority/guard chain. Vehicle health is
+read from `/lio/vehicle_health`, which is the source-aware adapter output;
+unknown or stale state produces a stop.
+
 The local grid producer is conservative: measured odom-frame points inside an
 explicit obstacle height window become occupied cells, while points outside
 the window, invalid points and absent returns do not create free cells. Unknown

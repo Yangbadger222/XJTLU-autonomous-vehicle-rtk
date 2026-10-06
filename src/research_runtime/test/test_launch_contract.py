@@ -12,6 +12,8 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "' == 'live' and '" in source
     assert "LaunchConfiguration(\"enable_serial\")" in source
     assert "package=\"serial_twistctl\"" in source
+    assert '"/lio/vehicle_health"' in source
+    assert '"/lio/odom_vehicle"' in source
 
 
 def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():
@@ -28,6 +30,11 @@ def test_bringup_declares_active_road_runtime_dependencies():
                        "livox_ros_driver2", "um982_rtk_driver",
                        "gps_waypoint_dispatcher", "serial_twistctl"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package
+
+
+def test_safety_bridge_declares_its_odom_message_dependency():
+    package = (Path(__file__).parents[3] / "src" / "research_runtime" / "package.xml").read_text()
+    assert "<exec_depend>nav_msgs</exec_depend>" in package
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():

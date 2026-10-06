@@ -38,7 +38,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`23 passed`). The replay
+The new transport-independent and contract suite passes (`24 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -67,6 +67,11 @@ obstacle-grid and road-reference producers are absent. Their ROS contracts are
 locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
 frame/ground-separation wiring is still pending and is not represented as a
 software PASS.
+
+The Super-LIO vehicle adapter now also rejects non-unit source/extrinsic
+quaternions, non-finite covariance and non-identity IMU-to-base rotations while
+covariance rotation is unimplemented. This prevents a future verified flag
+from turning copied IMU-frame covariance into a false base-frame contract.
 
 The LIO field mapping is now machine-readable at
 `audit/vehicle_baseline/LIO_FIELD_MAPPING.json`. It records parser/source

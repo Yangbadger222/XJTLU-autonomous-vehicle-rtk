@@ -39,6 +39,16 @@ def _finite(values):
     return all(math.isfinite(float(value)) for value in values)
 
 
+def _normalize_quaternion(q):
+    import math
+    if len(q) != 4 or not _finite(q):
+        return None
+    norm = math.sqrt(sum(float(value) * float(value) for value in q))
+    if not math.isfinite(norm) or norm <= 1e-12:
+        return None
+    return tuple(float(value) / norm for value in q)
+
+
 class SuperLioVehicleAdapter(Node if rclpy else object):
     def __init__(self):
         super().__init__("super_lio_vehicle_adapter")
@@ -81,8 +91,16 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if self._require_source_health_ok and not self._source_health_ok:
             self._reject("Super-LIO source health is not OK")
             return
-        if len(self._translation) != 3 or len(self._rotation) != 4 or not _finite(self._translation + self._rotation):
+        if len(self._translation) != 3 or not _finite(self._translation):
             self._reject("invalid IMU-to-base transform")
+            return
+        q_wi = _normalize_quaternion((msg.pose.pose.orientation.x,
+                                      msg.pose.pose.orientation.y,
+                                      msg.pose.pose.orientation.z,
+                                      msg.pose.pose.orientation.w))
+        q_ib = _normalize_quaternion(self._rotation)
+        if q_wi is None or q_ib is None:
+            self._reject("invalid IMU-to-base or source pose quaternion")
             return
         # A non-zero lever arm requires a covariance/velocity transform that
         # includes angular-rate cross terms. Refuse until that measured path is
@@ -91,12 +109,17 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             self._reject("non-zero lever arm covariance transform is not verified")
             return
         covariance = tuple(msg.pose.covariance) + tuple(msg.twist.covariance)
-        if self._require_covariance and not any(abs(float(value)) > 0.0 for value in covariance):
-            self._reject("Super-LIO covariance is unavailable")
-            return
-        q_wi = (msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
-                msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
-        q_wb = _qmul(q_wi, self._rotation)
+        if self._require_covariance:
+            if not _finite(covariance) or not any(abs(float(value)) > 0.0 for value in covariance):
+                self._reject("Super-LIO covariance is unavailable or non-finite")
+                return
+            # The message covariance is still expressed in the IMU frame.
+            # No 6x6 rotation/adjoint transform is implemented here, so a
+            # non-identity verified rotation must remain motion-blocking.
+            if any(abs(value) > 1e-9 for value in q_ib[:3]):
+                self._reject("non-identity IMU-to-base covariance transform is not verified")
+                return
+        q_wb = _qmul(q_wi, q_ib)
         if not _finite(q_wi + q_wb):
             self._reject("non-finite Super-LIO pose")
             return

@@ -57,3 +57,13 @@ def test_invalid_authority_timeout_is_rejected_before_commands():
         SafetyGate(float("nan"))
     with pytest.raises(ValueError):
         SafetyGate(-0.1)
+
+
+@pytest.mark.parametrize("speed_limit", [float("nan"), float("inf"), -0.1])
+def test_invalid_linear_speed_override_reaches_final_mock_serial_sink(speed_limit):
+    command = SafetyGate().command(0.4, 0.2,
+                                   AuthorityState(True, 1.0, 1.1,
+                                                 max_linear_speed_mps=speed_limit))
+    assert not command.allowed
+    assert "invalid_linear_speed_limit" in command.reason
+    assert format_serial(command) == b"vcx=0,wc=0\n"

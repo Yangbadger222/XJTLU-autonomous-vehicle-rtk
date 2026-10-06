@@ -58,6 +58,10 @@ class SafetyGate:
             reasons.append("manual_stop")
         if not math.isfinite(requested_linear_x) or not math.isfinite(requested_angular_z):
             reasons.append("non_finite_command")
+        if state.max_linear_speed_mps is not None and (
+                not math.isfinite(float(state.max_linear_speed_mps)) or
+                state.max_linear_speed_mps < 0.0):
+            reasons.append("invalid_linear_speed_limit")
         if reasons:
             return SafetyCommand(0.0, 0.0, False, ";".join(reasons))
         linear_x = requested_linear_x

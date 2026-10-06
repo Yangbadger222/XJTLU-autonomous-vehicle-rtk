@@ -233,7 +233,13 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "72 tests including authority timestamp finite/timeout validation and final mock serial stop bytes"
+      "evidence": "75 tests including authority timestamps, timeout and linear speed override fail-closed cases"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "75 tests; invalid authority time and invalid linear speed overrides reach vcx=0,wc=0 mock bytes"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

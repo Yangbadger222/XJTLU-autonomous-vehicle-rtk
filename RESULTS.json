@@ -88,7 +88,8 @@
       "src/research_runtime/research_runtime/local_obstacle_grid_node.py",
       "src/bringup/config/research_local_grid.yaml",
       "src/active_road_mapping/active_road_mapping/map_node.py",
-      "src/bringup/config/active_road_mapping.yaml"
+      "src/bringup/config/active_road_mapping.yaml",
+      "audit/research_wheel_build.log"
     ],
     "scope": "synthetic CRS-bound, idempotent evidence store with explicit CRS/finite-geometry and schema/measurement validation; active_road_map now exposes persisted map version and relays only non-empty odom-frame references; local obstacle transport marks only measured cells; target sensor/TF and external road-reference wiring remain pending"
   },

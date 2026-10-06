@@ -1,0 +1,55 @@
+PACKAGE src/research_runtime
+EXIT 0
+Processing ./src/research_runtime
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: research_runtime
+  Building wheel for research_runtime (pyproject.toml): started
+  Building wheel for research_runtime (pyproject.toml): finished with status 'done'
+  Created wheel for research_runtime: filename=research_runtime-0.1.0-py3-none-any.whl size=21428 sha256=83317343bc98a6e4c96e16629610131559c3109403e532219437fad9e6be810d
+  Stored in directory: /private/var/folders/w9/l2kswtfn3fs2kslkvv5vg9sh0000gn/T/pip-ephem-wheel-cache-sayox21h/wheels/38/87/38/93c80b23c3479c3db9da9109d01cc8693557d4fa20cb8b997d
+Successfully built research_runtime
+
+
+
+PACKAGE src/active_road_mapping
+EXIT 0
+Processing ./src/active_road_mapping
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: active_road_mapping
+  Building wheel for active_road_mapping (pyproject.toml): started
+  Building wheel for active_road_mapping (pyproject.toml): finished with status 'done'
+  Created wheel for active_road_mapping: filename=active_road_mapping-0.1.0-py3-none-any.whl size=4143 sha256=44c838cf7a6f95824ee4176bcd21d2cb7fe370d88d9dd18829cf33539f7bf28b
+  Stored in directory: /private/var/folders/w9/l2kswtfn3fs2kslkvv5vg9sh0000gn/T/pip-ephem-wheel-cache-cbsnfkd6/wheels/b8/1e/1d/e379cf03c6db284327819f3b2a2ea85443814374e21423e0df
+Successfully built active_road_mapping
+
+
+
+active_road_mapping-0.1.0-py3-none-any.whl CONTENTS
+active_road_mapping/__init__.py
+active_road_mapping/map_node.py
+active_road_mapping-0.1.0.data/data/share/active_road_mapping/package.xml
+active_road_mapping-0.1.0.dist-info/entry_points.txt
+
+research_runtime-0.1.0-py3-none-any.whl CONTENTS
+research_runtime/__init__.py
+research_runtime/active_road.py
+research_runtime/authority.py
+research_runtime/geometry.py
+research_runtime/grid_map.py
+research_runtime/local_obstacle_grid_node.py
+research_runtime/replay_sim.py
+research_runtime/safety_bridge.py
+research_runtime/trajectory.py
+research_runtime/trajectory_tracker.py
+research_runtime-0.1.0.data/data/share/research_runtime/package.xml
+research_runtime-0.1.0.dist-info/entry_points.txt

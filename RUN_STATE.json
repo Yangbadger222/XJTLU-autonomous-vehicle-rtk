@@ -101,6 +101,13 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "three patch hashes and current report/result matrix verified; overall_static_status=PASS"
+    },
+    {
+      "command": "docker info --format \\\"{{.ServerVersion}} {{.Architecture}}\\\" (bounded 8s probe)",
+      "status": "NOT_RUN",
+      "exit_code": null,
+      "evidence": "audit/container/current-ego-rebuild-probe-latest.log; Docker server did not respond within bound",
+      "scope": "current three-patch ROS/ARM64 rebuild remains pending; no runtime claim"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

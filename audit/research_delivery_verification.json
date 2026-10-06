@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "codex/superlio-ego-active-road",
-  "tip": "1485b54f0b8e2e5668cdc63ced709afba87d3ad2",
+  "tip": "83341d5fb4bd358567725dc4c9615eef8e79263e",
   "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "checks": [
     {
@@ -11,7 +11,7 @@
         "git merge-base --is-ancestor",
         "audit/vehicle_baseline/SOURCE_IDENTITY.json"
       ],
-      "detail": "branch=codex/superlio-ego-active-road, tip=1485b54f0b8e2e5668cdc63ced709afba87d3ad2, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
+      "detail": "branch=codex/superlio-ego-active-road, tip=83341d5fb4bd358567725dc4c9615eef8e79263e, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
     },
     {
       "name": "external_pins",
@@ -40,6 +40,14 @@
         "audit/ego_patch_check_current.log"
       ],
       "detail": "requires exact-commit sequential apply evidence for all three patches"
+    },
+    {
+      "name": "ego_three_patch_build_recipe",
+      "status": "PASS",
+      "evidence": [
+        "audit/container/ego-current-three-patch-build.Dockerfile"
+      ],
+      "detail": "recipe applies all three pinned EGO patches before the research_interfaces/ego_planner build"
     },
     {
       "name": "protected_vehicle_files",

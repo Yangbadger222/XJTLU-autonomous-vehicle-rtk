@@ -21,6 +21,16 @@ except ImportError:  # permits ROS-free source tests on the workstation
     Node = object
 
 
+def _stamp_is_set(stamp) -> bool:
+    """Require a real cloud acquisition stamp before querying TF."""
+    try:
+        sec = int(stamp.sec)
+        nanosec = int(stamp.nanosec)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return sec >= 0 and 0 <= nanosec < 1_000_000_000 and (sec > 0 or nanosec > 0)
+
+
 class SuperLioCloudFrameNode(Node if rclpy else object):
     def __init__(self):
         super().__init__("super_lio_cloud_frame_adapter")
@@ -47,6 +57,9 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
             self._last_rejection = reason
 
     def _callback(self, msg: PointCloud2) -> None:
+        if not _stamp_is_set(msg.header.stamp):
+            self._reject("cloud has no acquisition timestamp; refusing latest-TF lookup")
+            return
         if str(msg.header.frame_id) != self._input_frame:
             self._reject(f"source frame {msg.header.frame_id!r} != {self._input_frame!r}")
             return
@@ -78,4 +91,3 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-

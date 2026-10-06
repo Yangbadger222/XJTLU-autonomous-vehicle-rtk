@@ -44,7 +44,22 @@ def _finite(values):
 def _parameter_bool(value):
     if isinstance(value, bool):
         return value
-    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off", ""}:
+        return False
+    raise ValueError(f"invalid boolean parameter: {value!r}")
+
+
+def _stamp_is_set(stamp) -> bool:
+    """Require a real acquisition stamp; zero must never mean latest TF."""
+    try:
+        sec = int(stamp.sec)
+        nanosec = int(stamp.nanosec)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return sec >= 0 and 0 <= nanosec < 1_000_000_000 and (sec > 0 or nanosec > 0)
 
 
 def _normalize_quaternion(q):
@@ -99,6 +114,9 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._publish_health("UNKNOWN: " + reason)
 
     def _callback(self, msg: Odometry):
+        if not _stamp_is_set(msg.header.stamp):
+            self._reject("source odometry has no acquisition timestamp")
+            return
         if str(msg.header.frame_id) != self._source_frame:
             self._reject(f"source frame {msg.header.frame_id!r} != {self._source_frame!r}")
             return

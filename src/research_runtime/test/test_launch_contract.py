@@ -88,6 +88,8 @@ def test_active_road_evidence_package_exposes_typed_ingest_boundary():
     assert 'declare_parameter("source_frame", "world")' in vehicle_adapter
     assert "needs timestamped TF" in vehicle_adapter
     assert "_parameter_bool" in vehicle_adapter
+    assert "source odometry has no acquisition timestamp" in vehicle_adapter
+    assert "refusing latest-TF lookup" in cloud_adapter
 
 
 def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_closed():

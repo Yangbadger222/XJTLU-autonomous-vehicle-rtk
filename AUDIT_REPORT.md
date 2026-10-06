@@ -43,7 +43,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`59 passed`). The replay
+The new transport-independent and contract suite passes (`65 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original

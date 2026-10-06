@@ -29,6 +29,12 @@ inflation/curvature bounds, footprint collisions, speed/acceleration,
 discrete body-lateral-speed and curvature/yaw-rate inconsistencies. It never
 clips an infeasible trajectory.
 
+The local grid producer is conservative: measured odom-frame points inside an
+explicit obstacle height window become occupied cells, while points outside
+the window, invalid points and absent returns do not create free cells. Unknown
+cells remain blocked, and invalid frame, map-version, resolution or
+height-window inputs are rejected before a grid can reach the planner.
+
 Active-road geometry now has an explicit pixel/depth contract: declared depth
 unit and optical-Z/ray-range convention, measured camera→base transform, and
 acquisition-time base→odom transform. Invalid/zero depth is rejected. The

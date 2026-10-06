@@ -21,9 +21,11 @@ python3 scripts/audit_vehicle_baseline.py
 The local actuator-free smoke test requires only Python:
 
 ```bash
-PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test
+PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter \
+  python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test
 PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
   --output runtime-data/research/active_road/replay_smoke.json
+PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=["research_safety_bridge","--mode","replay","--output","/tmp/research-safety-bridge-replay.json"]; from research_runtime.safety_bridge import main; raise SystemExit(main())'
 ```
 
 On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,

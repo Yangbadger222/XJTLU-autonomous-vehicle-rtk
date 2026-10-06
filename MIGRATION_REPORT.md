@@ -28,4 +28,14 @@ The reproducible source patches are
 `0002-vehicle-ros-timed-trajectory.patch`. They apply only at the pinned EGO
 commit, and their sequential check is enforced by
 `scripts/apply_ego_vehicle_patch.sh`; a fresh checkout was verified with
-`git apply --check`. A full ROS/Humble compilation remains a target-side gate.
+`git apply --check`. The raw EGO node, patched EGO vehicle edge, and Super-LIO
+core/ROS interfaces were compiled in the isolated ARM64 ROS 2 Humble evidence
+environment. The compile-only Livox message contract is deliberately recorded
+separately from the missing physical SDK/driver and Jetson runtime gates.
+
+The local obstacle boundary is implemented in
+`src/research_runtime/research_runtime/grid_map.py`: it accepts only odom-frame
+points, applies the explicit height-window inputs, marks measured cells
+occupied, and preserves every unobserved cell as safety-blocking unknown. It is
+a transport-independent producer contract; target-side sensor/TF wiring is
+still pending.

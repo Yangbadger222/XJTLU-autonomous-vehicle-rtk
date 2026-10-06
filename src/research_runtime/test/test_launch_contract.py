@@ -62,6 +62,22 @@ def test_bringup_declares_active_road_runtime_dependencies():
         assert f"<exec_depend>{dependency}</exec_depend>" in package
 
 
+def test_active_road_entry_assets_exist_in_source_tree():
+    root = Path(__file__).parents[3]
+    for relative in (
+            "src/bringup/config/master_params.yaml",
+            "src/bringup/config/super_lio_vehicle.yaml",
+            "src/bringup/config/super_lio_cloud_frame.yaml",
+            "src/bringup/config/research_safety_bridge.yaml",
+            "src/bringup/config/research_local_grid.yaml",
+            "src/bringup/config/active_road_mapping.yaml",
+            "src/bringup/config/active_road_evidence.yaml",
+            "src/bringup/config/ego_vehicle_adapter.yaml",
+            "src/sensor_drivers/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py",
+            "src/sensor_drivers/gnss/um982_rtk_driver/launch/um982_rtk.launch.py"):
+        assert (root / relative).is_file(), relative
+
+
 def test_safety_bridge_declares_its_odom_message_dependency():
     package = (Path(__file__).parents[3] / "src" / "research_runtime" / "package.xml").read_text()
     assert "<exec_depend>nav_msgs</exec_depend>" in package

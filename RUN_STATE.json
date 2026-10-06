@@ -215,13 +215,19 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "68 tests after moving EGO vehicle config into the installed bringup config tree"
+      "evidence": "69 tests after moving EGO vehicle config and adding entry-asset checks"
     },
     {
       "command": "clean-install bringup launch dependency audit",
       "status": "PASS",
       "exit_code": 0,
       "evidence": "bringup/package.xml explicitly declares ament_index_python, launch and launch_ros used by system_active_road_research.launch.py"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "69 tests including source-tree checks for all research config and Livox/UM982 launch assets"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

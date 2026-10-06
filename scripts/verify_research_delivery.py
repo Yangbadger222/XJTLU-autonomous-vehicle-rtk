@@ -164,6 +164,20 @@ def main() -> int:
               for dependency in ("ament_index_python", "launch", "launch_ros")),
           ["src/bringup/package.xml", "src/bringup/launch/system_active_road_research.launch.py"],
           "launch imports have explicit clean-install package dependencies")
+    entry_assets = [
+        "src/bringup/config/master_params.yaml",
+        "src/bringup/config/super_lio_vehicle.yaml",
+        "src/bringup/config/super_lio_cloud_frame.yaml",
+        "src/bringup/config/research_safety_bridge.yaml",
+        "src/bringup/config/research_local_grid.yaml",
+        "src/bringup/config/active_road_mapping.yaml",
+        "src/bringup/config/active_road_evidence.yaml",
+        "src/bringup/config/ego_vehicle_adapter.yaml",
+        "src/sensor_drivers/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py",
+        "src/sensor_drivers/gnss/um982_rtk_driver/launch/um982_rtk.launch.py",
+    ]
+    check("research_entry_assets", all(Path(path).is_file() for path in entry_assets),
+          entry_assets, "research launch config and sensor launch assets exist in the source/install inputs")
 
     contract = json.loads(Path("audit/vehicle_baseline/RUNTIME_CONTRACT.json").read_text())
     topics = contract["topics"]

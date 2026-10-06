@@ -44,7 +44,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`68 passed`). The replay
+The new transport-independent and contract suite passes (`69 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -108,7 +108,8 @@ previous repository-root-only path was removed so a clean install cannot fail
 before the planner node starts.
 The bringup manifest also declares `ament_index_python`, `launch`, and
 `launch_ros`, which are direct imports of the research launch file rather than
-transitive desktop dependencies.
+transitive desktop dependencies. The static entry audit also checks every bringup
+config and the Livox/UM982 launch asset referenced by the research entry.
 
 The active-road research loop now has a typed `RoadEvidence2D` ROS ingest
 message and `active_road_evidence` node. The node requires a valid persisted

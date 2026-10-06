@@ -36,6 +36,10 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "_parameter_bool" in bridge
     assert "_valid_map_version" in bridge
     assert "_limits_configured" in bridge
+    local_grid = (Path(__file__).parents[3] / "src" / "research_runtime" /
+                  "research_runtime" / "local_obstacle_grid_node.py").read_text()
+    assert "def _parameter_bool" in local_grid
+    assert "unknown_is_occupied must remain true" in local_grid
 
 
 def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():

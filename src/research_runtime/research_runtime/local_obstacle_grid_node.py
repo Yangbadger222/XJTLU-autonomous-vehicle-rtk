@@ -24,6 +24,20 @@ except ImportError:  # permits ROS-free contract tests on the developer laptop
 from .grid_map import project_obstacle_points
 
 
+def _parameter_bool(value) -> bool:
+    """Parse launch values by value; never treat the string ``false`` as true."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off", ""}:
+        return False
+    raise ValueError(f"invalid boolean parameter: {value!r}")
+
+
 def _valid_map_version(value: str) -> bool:
     return bool(value and value.strip() and value.strip().upper() != "UNKNOWN")
 
@@ -46,7 +60,7 @@ class LocalObstacleGridNode(Node if rclpy else object):
 
         self._target_frame = str(self.get_parameter("target_frame").value)
         self._map_version = "UNKNOWN"
-        if not bool(self.get_parameter("unknown_is_occupied").value):
+        if not _parameter_bool(self.get_parameter("unknown_is_occupied").value):
             raise ValueError("unknown_is_occupied must remain true")
         self._publisher = self.create_publisher(
             OccupancyGrid, str(self.get_parameter("output_topic").value), 10)
@@ -117,4 +131,3 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-

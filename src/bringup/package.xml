@@ -28,6 +28,7 @@
   <exec_depend>ego_planner</exec_depend>
   <exec_depend>research_interfaces</exec_depend>
   <exec_depend>research_runtime</exec_depend>
+  <exec_depend>active_road_mapping</exec_depend>
   <exec_depend>super_lio_vehicle_adapter</exec_depend>
   <exec_depend>livox_ros_driver2</exec_depend>
   <exec_depend>um982_rtk_driver</exec_depend>

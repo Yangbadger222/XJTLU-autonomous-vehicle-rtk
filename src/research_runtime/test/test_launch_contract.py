@@ -37,6 +37,7 @@ def test_bringup_declares_active_road_runtime_dependencies():
     package = (Path(__file__).parents[3] / "src" / "bringup" / "package.xml").read_text()
     for dependency in ("super_lio", "ego_planner", "research_interfaces",
                        "research_runtime", "super_lio_vehicle_adapter",
+                       "active_road_mapping",
                        "livox_ros_driver2", "um982_rtk_driver",
                        "gps_waypoint_dispatcher", "serial_twistctl"):
         assert f"<exec_depend>{dependency}</exec_depend>" in package

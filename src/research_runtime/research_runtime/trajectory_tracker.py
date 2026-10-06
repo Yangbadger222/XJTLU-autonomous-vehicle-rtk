@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from typing import Callable, Sequence
 
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits, validate_trajectory
 
@@ -69,12 +70,17 @@ class TimedTrajectoryTracker:
         self.heading_gain = float(heading_gain)
 
     def command(self, trajectory: TimedTrajectory, state: TrackerState, *, now: float,
-                expected_map_version: str | None = None) -> TrackerCommand | None:
+                expected_map_version: str | None = None,
+                footprint: Sequence[tuple[float, float]] | None = None,
+                occupied: Callable[[float, float], bool] | None = None,
+                resolution: float | None = None) -> TrackerCommand | None:
         if not all(math.isfinite(float(value)) for value in
                    (state.x, state.y, state.yaw, now)):
             return None
         checked = validate_trajectory(trajectory, self.limits, now=now,
-                                      expected_map_version=expected_map_version)
+                                      expected_map_version=expected_map_version,
+                                      footprint=footprint, occupied=occupied,
+                                      resolution=resolution)
         if not checked.valid:
             return None
         elapsed = now - trajectory.generated_at

@@ -14,6 +14,8 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "package=\"serial_twistctl\"" in source
     assert '"/lio/vehicle_health"' in source
     assert '"/lio/odom_vehicle"' in source
+    assert '"/research/local_obstacle_grid"' in source
+    assert '"/research/map_version"' in source
     bridge = (Path(__file__).parents[3] / "src" / "research_runtime" /
               "research_runtime" / "safety_bridge.py").read_text()
     assert "health_timeout_s" in bridge

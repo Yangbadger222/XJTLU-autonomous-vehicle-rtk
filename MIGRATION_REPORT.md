@@ -44,5 +44,6 @@ The timed trajectory no longer jumps directly from the first `TimedTrajectory2D`
 sample to `/cmd_vel`. `research_runtime.trajectory_tracker` interpolates the
 time-indexed plan against measured `/lio/odom_vehicle` pose, applies bounded
 nonholonomic feedback, and hands the request to the original authority and
-command guard. The bridge gates on `/lio/vehicle_health`; this remains a
-compile-and-contract result until the target ROS graph is run.
+command guard. The bridge gates on `/lio/vehicle_health` and a matching
+odom-frame obstacle grid/map version plus explicit measured footprint; this
+remains a compile-and-contract result until the target ROS graph is run.

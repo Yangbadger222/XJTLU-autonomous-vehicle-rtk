@@ -90,7 +90,10 @@ measured-pose longitudinal/lateral/heading feedback, and only then passes the
 request to the original authority/command guard. It no longer sends the first
 trajectory sample directly to `/cmd_vel`; expired, invalid or stale state still
 reaches the mock sink as a stop, and a health message older than the explicit
-0.50 s timeout is treated as UNKNOWN.
+0.50 s timeout is treated as UNKNOWN. The bridge also requires a matching
+odom-frame `/research/local_obstacle_grid`, `/research/map_version`, and
+explicit measured footprint before enabling its collision oracle; absent or
+stale map/footprint data remains a stop.
 
 The deterministic replay harness now drives its allowed command through the
 same tracker using a synthetic measured pose before injecting RTK authority

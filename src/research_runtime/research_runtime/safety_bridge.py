@@ -17,6 +17,7 @@ try:
     from rclpy.node import Node
     from geometry_msgs.msg import Twist
     from nav_msgs.msg import Odometry
+    from nav_msgs.msg import OccupancyGrid
     from std_msgs.msg import Bool, String
     from research_interfaces.msg import TimedTrajectory2D
 except ImportError:
@@ -24,6 +25,7 @@ except ImportError:
 
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits
 from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
+from .grid_map import LocalObstacleGrid
 
 
 if rclpy:
@@ -37,6 +39,9 @@ if rclpy:
             self.declare_parameter("health_timeout_s", 0.50)
             self.declare_parameter("health_topic", "/lio/vehicle_health")
             self.declare_parameter("odom_topic", "/lio/odom_vehicle")
+            self.declare_parameter("obstacle_grid_topic", "/research/local_obstacle_grid")
+            self.declare_parameter("map_version_topic", "/research/map_version")
+            self.declare_parameter("footprint_xy", [])
             self.declare_parameter("tracker_longitudinal_gain", 0.8)
             self.declare_parameter("tracker_lateral_gain", 1.5)
             self.declare_parameter("tracker_heading_gain", 1.0)
@@ -58,10 +63,15 @@ if rclpy:
             self._trajectory_stamp = 0.0
             self._state = None
             self._state_stamp = 0.0
+            self._map_version = ""
+            self._grid = None
+            self._footprint = self._parse_footprint(self.get_parameter("footprint_xy").value)
             self._pub = self.create_publisher(Twist, "/cmd_vel", 10)
             self.create_subscription(Bool, "/localization_authority/motion_allowed", self._authority, 10)
             self.create_subscription(String, str(self.get_parameter("health_topic").value), self._health_cb, 10)
             self.create_subscription(Odometry, str(self.get_parameter("odom_topic").value), self._odom_cb, 10)
+            self.create_subscription(OccupancyGrid, str(self.get_parameter("obstacle_grid_topic").value), self._grid_cb, 10)
+            self.create_subscription(String, str(self.get_parameter("map_version_topic").value), self._map_version_cb, 10)
             self.create_subscription(TimedTrajectory2D, "/research/ego_trajectory", self._trajectory_cb, 10)
             self.create_timer(0.05, self._tick)
 
@@ -82,6 +92,42 @@ if rclpy:
             if all(math.isfinite(float(value)) for value in values):
                 self._state = TrackerState(*values)
                 self._state_stamp = time.monotonic()
+
+        @staticmethod
+        def _parse_footprint(values):
+            try:
+                flat = [float(value) for value in values]
+            except (TypeError, ValueError):
+                return ()
+            if len(flat) < 6 or len(flat) % 2 or not all(math.isfinite(value) for value in flat):
+                return ()
+            return tuple((flat[index], flat[index + 1]) for index in range(0, len(flat), 2))
+
+        def _map_version_cb(self, msg):
+            self._map_version = str(msg.data)
+
+        def _grid_cb(self, msg):
+            try:
+                if msg.header.frame_id != "odom" or not self._map_version:
+                    self._grid = None
+                    return
+                origin_q = msg.info.origin.orientation
+                if (abs(float(origin_q.x)) > 1e-9 or abs(float(origin_q.y)) > 1e-9 or
+                        abs(float(origin_q.z)) > 1e-9 or abs(float(origin_q.w) - 1.0) > 1e-9):
+                    self._grid = None
+                    return
+                cells = tuple(-1 if int(value) < 0 else 100 if int(value) >= 50 else 0
+                              for value in msg.data)
+                self._grid = LocalObstacleGrid(
+                    frame_id=msg.header.frame_id,
+                    map_version=self._map_version,
+                    resolution_m=float(msg.info.resolution),
+                    origin_x_m=float(msg.info.origin.position.x),
+                    origin_y_m=float(msg.info.origin.position.y),
+                    width=int(msg.info.width), height=int(msg.info.height),
+                    cells=cells, unknown_is_occupied=True)
+            except (TypeError, ValueError):
+                self._grid = None
 
         @staticmethod
         def _time_seconds(stamp):
@@ -105,8 +151,15 @@ if rclpy:
             now = time.monotonic()
             ros_now = self.get_clock().now().nanoseconds * 1e-9
             tracked = None
-            if self._trajectory_contract is not None and self._state is not None:
-                tracked = self._tracker.command(self._trajectory_contract, self._state, now=ros_now)
+            grid_ready = bool(self._grid is not None and self._trajectory_contract is not None and
+                              self._grid.map_version == self._map_version and
+                              self._map_version == self._trajectory_contract.map_version and self._footprint)
+            if self._trajectory_contract is not None and self._state is not None and grid_ready:
+                tracked = self._tracker.command(
+                    self._trajectory_contract, self._state, now=ros_now,
+                    expected_map_version=self._map_version,
+                    footprint=self._footprint, occupied=self._grid.occupied,
+                    resolution=self._grid.resolution_m)
             health_fresh = self._health_stamp > 0.0 and now - self._health_stamp <= self._health_timeout_s
             health_ok = health_fresh and self._health.startswith("OK")
             valid = bool(self._actuator_enabled and self._mode == "live"
@@ -118,7 +171,7 @@ if rclpy:
             state = AuthorityState(self._allowed, self._allowed_stamp, now,
                                    "OK" if health_ok else "UNKNOWN",
                                    trajectory_ok=valid,
-                                   map_ok=bool(self._trajectory and self._trajectory.map_version))
+                                   map_ok=grid_ready)
             command = self._gate.command(tracked.linear_x if tracked else 0.0,
                                          tracked.angular_z if tracked else 0.0, state)
             output = Twist()

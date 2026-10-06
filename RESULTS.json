@@ -66,7 +66,7 @@
       "src/research_runtime/test/test_launch_contract.py",
       "runtime-data/research/active_road/replay_smoke.json"
     ],
-    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults, including the timed-trajectory tracker boundary; physical e-stop pending"
+    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults, including timed-trajectory tracker and footprint/grid-version boundaries; physical e-stop pending"
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
     "status": "PASS",

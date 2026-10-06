@@ -66,7 +66,9 @@ def generate_launch_description():
                     parameters=[{"mode": LaunchConfiguration("execution_mode"),
                                  "actuator_enabled": LaunchConfiguration("enable_serial"),
                                  "health_topic": "/lio/vehicle_health",
-                                 "odom_topic": "/lio/odom_vehicle"}])
+                                 "odom_topic": "/lio/odom_vehicle",
+                                 "obstacle_grid_topic": "/research/local_obstacle_grid",
+                                 "map_version_topic": "/research/map_version"}])
     livox = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("livox_ros_driver2"),
                                                               "launch_ROS2", "msg_MID360_launch.py"])]),

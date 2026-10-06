@@ -106,7 +106,7 @@ message and `active_road_evidence` node. The node requires a valid persisted
 map identity, accepts only finite odom-frame geometry, saves accepted UUIDs by
 atomic replace, emits observed-geometry events, and filters externally supplied
 observation candidates by reachability/safety/pose/sensor flags. The node does
-not infer camera parameters, TF, truth labels or traversability.
+not infer camera parameters, TF, truth labels or traversability. It also rejects zero or malformed acquisition timestamps before persistence.
 
 The timed-trajectory safety edge now consumes `/lio/odom_vehicle` and the
 adapter's `/lio/vehicle_health`, interpolates the trajectory in time, applies

@@ -886,7 +886,7 @@ colcon test-result --verbose
 本地无 ROS 依赖时仅运行执行器隔离的 replay：
 
 ```bash
-PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q \
+PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q \
   src/research_runtime/test src/super_lio_vehicle_adapter/test
 PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
   --output runtime-data/research/active_road/replay_smoke.json
@@ -903,3 +903,7 @@ shadow/live 的 EGO 输入合同是 `/lio/odom_vehicle`、
 `/research/road_reference`、`/research/local_obstacle_grid` 和
 `/research/map_version`，输出 `/research/ego_trajectory`。物理串口还必须显式
 设置 `enable_serial:=true`，并且只允许 `execution_mode:=live`。
+
+shadow/live 还会启动 `active_road_map` 和
+`research_local_obstacle_grid`。前者在 EvidenceStore 无法加载时发布
+`UNKNOWN`，后者在 cloud frame/地图版本不满足合同时不发布 OccupancyGrid。

@@ -21,7 +21,7 @@ python3 scripts/audit_vehicle_baseline.py
 The local actuator-free smoke test requires only Python:
 
 ```bash
-PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter \
+PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter \
   python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test
 PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
   --output runtime-data/research/active_road/replay_smoke.json
@@ -31,8 +31,14 @@ PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=["research_safe
 On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,
 build with one worker, and run the new launch with `execution_mode:=shadow`.
 Shadow/live starts the pinned Super-LIO node, the patched EGO vehicle ROS edge,
-and the source-aware adapter; replay intentionally does not start sensor,
+the source-aware adapter, `active_road_map`, and the fail-closed local obstacle
+grid node; replay intentionally does not start sensor,
 authority, planner or serial processes. The physical serial sink requires the
 separate explicit gate `execution_mode:=live enable_serial:=true`; never attach a
 production serial device to replay or shadow. `live` remains blocked until the
 acceptance checklist is completed by a human operator.
+
+The current patched EGO ARM64 compile evidence is reproducible with the
+recorded temporary recipe `audit/container/ego-current-build.Dockerfile`; its
+completed BuildKit log is `audit/container/ego-current-build.log`. That recipe
+proves compilation only and does not replace Jetson shadow or live acceptance.

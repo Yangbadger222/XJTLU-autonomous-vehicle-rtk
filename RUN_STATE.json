@@ -1,6 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "tip_commit_at_report": "d06cff9",
   "active_processes": [],
   "commands": [
     {"command":"PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test","status":"PASS","exit_code":0,"evidence":"10 tests"},

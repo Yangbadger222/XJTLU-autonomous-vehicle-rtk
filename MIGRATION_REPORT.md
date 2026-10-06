@@ -32,9 +32,12 @@ commit, and their sequential check is enforced by
 `scripts/apply_ego_vehicle_patch.sh`; a fresh checkout was verified with
 `git apply --check`. The raw EGO node and a prior patched EGO revision, plus
 Super-LIO core/ROS interfaces, were compiled in the isolated ARM64 ROS 2 Humble
-evidence environment. The current EGO patch set 0001+0002 has exact apply-check and an isolated ARM64
-BuildKit compile pass; patch 0003 has exact sequential apply-check but is not included in that compile result.
-The compile-only Livox message contract is deliberately
+evidence environment. The current EGO patch set 0001+0002 has the original
+`ros2-go2:humble` ARM64 compile pass; patch 0003 has exact sequential
+apply-check, and the complete 0001+0002+0003 stack now compiles and starts a
+bounded `motion_plan` smoke under OrbStack `linux/aarch64` with public
+`ros:humble`. The alternate base is recorded separately and does not replace
+the target-image or Jetson gates. The compile-only Livox message contract is deliberately
 recorded separately from the missing physical SDK/driver, ordinary container
 startup and Jetson runtime gates.
 

@@ -61,6 +61,17 @@ It applies 0001, 0002 and 0003 at the pinned EGO commit before building
 `research_interfaces` and `ego_planner`; until that command produces a
 complete log, the current three-patch build remains pending.
 
+An isolated ARM64 OrbStack run using the public `ros:humble` base has now
+completed this three-patch build and startup smoke. The reproducible recipe is
+`audit/container/ego-orbstack-ros-base-three-patch.Dockerfile`; evidence is in
+`audit/container/ego-orbstack-ros-base-three-patch-build.log`,
+`audit/container/ego-orbstack-ros-base-three-patch-build-summary.log`,
+`audit/container/ego-orbstack-ros-base-three-patch-run.log`, and the structured
+result JSON beside them. The node starts and waits for measured odom, road
+reference, obstacle grid and map version, then exits only at the five-second
+smoke timeout. This is an alternate-base compile/start result; it does not
+prove the unavailable `ros2-go2:humble` image or Jetson runtime.
+
 The current Python package install path can be checked without ROS:
 
 ```bash

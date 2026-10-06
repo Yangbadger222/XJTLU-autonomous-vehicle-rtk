@@ -105,6 +105,40 @@ def main() -> int:
           [str(three_patch_recipe)],
           "recipe applies all three pinned EGO patches before the research_interfaces/ego_planner build")
 
+    orbstack_result_path = Path("audit/container/ego-orbstack-ros-base-three-patch-result.json")
+    orbstack_recipe = Path("audit/container/ego-orbstack-ros-base-three-patch.Dockerfile")
+    orbstack_build_log = Path("audit/container/ego-orbstack-ros-base-three-patch-build.log")
+    orbstack_summary_log = Path("audit/container/ego-orbstack-ros-base-three-patch-build-summary.log")
+    orbstack_run_log = Path("audit/container/ego-orbstack-ros-base-three-patch-run.log")
+    orbstack_result = json.loads(orbstack_result_path.read_text()) if orbstack_result_path.is_file() else {}
+    orbstack_recipe_text = orbstack_recipe.read_text() if orbstack_recipe.is_file() else ""
+    orbstack_build_text = orbstack_build_log.read_text() if orbstack_build_log.is_file() else ""
+    orbstack_summary_text = orbstack_summary_log.read_text() if orbstack_summary_log.is_file() else ""
+    orbstack_run_text = orbstack_run_log.read_text() if orbstack_run_log.is_file() else ""
+    orbstack_ok = (
+        orbstack_result.get("executor") == "OrbStack" and
+        orbstack_result.get("server_architecture") == "aarch64" and
+        orbstack_result.get("platform") == "linux/arm64" and
+        orbstack_result.get("base_image") == "ros:humble" and
+        orbstack_result.get("source_commit") == EGO and
+        orbstack_result.get("patches") == [
+            "0001-vehicle-state-and-feasibility.patch",
+            "0002-vehicle-ros-timed-trajectory.patch",
+            "0003-clear-stale-plan-on-failure.patch",
+        ] and
+        orbstack_result.get("colcon_packages") == ["research_interfaces", "ego_planner"] and
+        orbstack_result.get("build_exit_code") == 0 and
+        "FROM ros:humble" in orbstack_recipe_text and
+        "0003-clear-stale-plan-on-failure.patch" in orbstack_recipe_text and
+        orbstack_result.get("runtime_smoke", {}).get("status") == "STARTED_WAITING_FOR_REQUIRED_INPUTS" and
+        "Finished <<< ego_planner" in orbstack_summary_text and
+        "Summary: 2 packages finished" in orbstack_summary_text and
+        "motion_plan_timeout_or_exit=124" in orbstack_run_text
+    )
+    check("ego_orbstack_three_patch_build", orbstack_ok,
+          [str(orbstack_recipe), str(orbstack_result_path), str(orbstack_build_log), str(orbstack_summary_log), str(orbstack_run_log)],
+          "public ros:humble ARM64 alternate-base build and bounded startup smoke; ros2-go2 and Jetson gates remain separate")
+
     protected = subprocess.run(["sha256sum", "-c", "audit/vehicle_baseline/PROTECTED_FILES.sha256"],
                                text=True, capture_output=True)
     check("protected_vehicle_files", protected.returncode == 0,

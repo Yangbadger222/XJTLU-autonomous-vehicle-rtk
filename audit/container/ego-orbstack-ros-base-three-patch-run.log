@@ -1,0 +1,6 @@
+/tmp/ws/install/research_interfaces
+/tmp/ws/install/ego_planner
+/tmp/ws/install/ego_planner/lib/ego_planner/motion_plan 55204088 bytes
+[INFO] [1791322388.756198238] [ego_vehicle_adapter]: Vehicle EGO adapter ready; waiting for measured odom, road reference, obstacle grid and map version
+[INFO] [1791322393.675289740] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+motion_plan_timeout_or_exit=124

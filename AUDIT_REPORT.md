@@ -11,13 +11,13 @@
 - All three pinned upstream adaptation patches pass `git apply --check`. The raw
   pinned EGO node was built and started under a bounded timeout, and a prior
   vehicle-patch revision plus the Super-LIO core compiled in an isolated ARM64
-  ROS 2 Humble container. Patches 0001+0002 have an isolated ARM64 BuildKit
-  compile pass recorded in `audit/container/ego-current-build.log`; patch 0003
-  has an exact sequential apply-check in `audit/ego_patch_check_current.log`
-  and needs a fresh three-patch rebuild.
-  The old patched log remains clearly labeled prior revision. Docker ordinary container startup and Jetson runtime
-  acceptance remain pending. Accordingly, `RESULTS.json` keeps the relevant
-  runtime gates pending.
+  ROS 2 Humble container. A current three-patch EGO build and bounded startup
+  smoke also passed in OrbStack `linux/aarch64` using the public `ros:humble`
+  base image; the exact command, image digest, compile markers and runtime
+  boundary are recorded in `audit/container/ego-orbstack-ros-base-three-patch-*`.
+  The original Docker Desktop `ros2-go2:humble` base-specific rebuild and
+  Jetson runtime acceptance remain pending. Accordingly, `RESULTS.json` keeps
+  those target gates separate from the alternate-base compile pass.
 - The serial contract is tested through the final mock sink: RTK authority false produces exactly `vcx=0,wc=0\\n`.
 - Dynamic feasibility, real start state, curvature/yaw-rate consistency, map version, expiry and footprint checks have replay tests.
 - Evidence persistence is CRS-bound and idempotent by observation UUID; schema,
@@ -135,8 +135,10 @@ A* result before every replan. A failed optimizer or missing measured state
 therefore cannot be followed by republishing an older feasible-looking plan;
 the ROS edge receives an empty result and publishes a failure/stop contract.
 The exact three-patch apply check passes in `audit/ego_patch_check_current.log`.
-The existing ARM64 BuildKit compile predates this third patch, so the current
-three-patch ROS rebuild remains pending.
+The existing `ros2-go2:humble` ARM64 BuildKit compile predates this third patch.
+The current three-patch ROS build now passes with the public `ros:humble` ARM64
+base under OrbStack; the original base-specific build and target runtime remain
+pending.
 
 After that formula change, a fresh sparse checkout at the exact upstream
 commit applied patches 0001, 0002 and 0003; the command and current hashes are
@@ -201,12 +203,13 @@ semantics, base extrinsics, covariance and health remain unresolved where the
 sources do not prove equivalence. The mapping test refuses an unqualified
 health equivalence and checks the new source provenance fields.
 
-The isolated build evidence has two deliberate boundaries. The raw
+The isolated build evidence has three deliberate boundaries. The raw
 `Ego-Planner-2D-ROS2@7f5be6d4cee34871e85aa1f15285cfaf17b23877` package builds and
-`motion_plan` starts until a five-second timeout. The patched package with patches 0001+0002 builds with the project interface
-and feasibility changes at the recorded ARM64 revision; patch 0003 has exact
-sequential apply-check, while the current three-patch ARM64 rebuild remains
-pending. Super-LIO
+`motion_plan` starts until a five-second timeout. The patched package with patches 0001+0002 has the original
+`ros2-go2:humble` compile evidence; the complete 0001+0002+0003 package and
+`research_interfaces` build and startup smoke pass with public `ros:humble`
+under OrbStack `linux/aarch64`. This alternate base does not prove the
+Docker Desktop image or Jetson behavior. Super-LIO
 `f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2` also builds its C++ core and ROS
 interfaces; the container supplies only a compile-only `livox_ros_driver2`
 message contract because the physical Livox SDK is absent. No sensor runtime,

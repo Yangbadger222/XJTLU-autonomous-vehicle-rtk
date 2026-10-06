@@ -40,9 +40,14 @@
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json",
       "audit/container/ego-current-build.Dockerfile",
-      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch"
+      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+      "audit/container/ego-orbstack-ros-base-three-patch.Dockerfile",
+      "audit/container/ego-orbstack-ros-base-three-patch-build.log",
+      "audit/container/ego-orbstack-ros-base-three-patch-build-summary.log",
+      "audit/container/ego-orbstack-ros-base-three-patch-run.log",
+      "audit/container/ego-orbstack-ros-base-three-patch-result.json"
     ],
-    "scope": "raw pinned motion_plan build/start passed in isolation; patches 0001+0002 have current ARM64 BuildKit compile evidence and all three patches pass sequential apply-check; the current three-patch ROS rebuild, ordinary container startup, RViz interaction and vehicle runtime remain pending"
+    "scope": "raw pinned motion_plan build/start passed in isolation; all three patches pass exact sequential apply-check and the current three-patch stack compiles and starts a bounded smoke in isolated OrbStack linux/aarch64 with public ros:humble; original ros2-go2:humble base-specific rebuild, target wiring, RViz interaction and Jetson runtime remain pending"
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
     "status": "PENDING",
@@ -56,10 +61,13 @@
       "audit/container/ego-current-build.log",
       "audit/container/ego-current-build-result.json",
       "audit/ego_patch_check_current.log",
-      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch"
+      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+      "audit/container/ego-orbstack-ros-base-three-patch-build.log",
+      "audit/container/ego-orbstack-ros-base-three-patch-run.log",
+      "audit/container/ego-orbstack-ros-base-three-patch-result.json"
     ],
-    "reason": "three sequential patches (including stale-plan clearing after failed replan) apply cleanly at the exact upstream commit; source/contract tests pass; existing ARM64 compile evidence covers 0001+0002 only, while the current three-patch ROS rebuild and target wiring/runtime remain pending",
-    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; safety and evidence interfaces are static/installed-package checked, current ROS/ARM64 rebuild and Jetson runtime remain pending"
+    "reason": "three sequential patches apply cleanly at the exact upstream commit; the current three-patch ROS edge and research_interfaces compile and bounded startup smoke pass with public ros:humble ARM64 base; original ros2-go2 image, target wiring, sensor feeds and Jetson runtime remain pending",
+    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; current three-patch compile/start smoke is proven on alternate ARM64 base, while target-image, sensor/TF wiring and Jetson runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",

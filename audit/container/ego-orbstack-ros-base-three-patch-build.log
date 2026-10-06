@@ -1,0 +1,46 @@
+#0 building with "orbstack" instance using docker driver
+
+#1 [internal] load build definition from ego-orbstack-ros-base-three-patch.Dockerfile
+#1 transferring dockerfile: 1.46kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/ros:humble
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/8] FROM docker.io/library/ros:humble
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 1.22kB done
+#5 DONE 0.0s
+
+#6 [6/8] RUN git --version && command -v colcon && test -f /opt/ros/humble/setup.bash
+#6 CACHED
+
+#7 [4/8] COPY src/research_interfaces /vehicle-research/src/research_interfaces
+#7 CACHED
+
+#8 [2/8] WORKDIR /tmp
+#8 CACHED
+
+#9 [3/8] COPY patches /vehicle-research/patches
+#9 CACHED
+
+#10 [5/8] RUN apt-get update  && apt-get install -y --no-install-recommends git libboost-all-dev libeigen3-dev  && rm -rf /var/lib/apt/lists/*
+#10 CACHED
+
+#11 [7/8] RUN git clone --filter=blob:none --branch develop https://github.com/JackJu-HIT/Ego-Planner-2D-ROS2.git /tmp/ego-source  && cd /tmp/ego-source  && git checkout 7f5be6d4cee34871e85aa1f15285cfaf17b23877  && git apply /vehicle-research/patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch  && git apply /vehicle-research/patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch  && git apply /vehicle-research/patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch
+#11 CACHED
+
+#12 [8/8] RUN mkdir -p /tmp/ws/src  && cp -a /tmp/ego-source/src/EgoPlanner-ROS2 /tmp/ws/src/EgoPlanner-ROS2  && cp -a /vehicle-research/src/research_interfaces /tmp/ws/src/research_interfaces  && source /opt/ros/humble/setup.bash  && colcon --log-base /tmp/ws/log build --base-paths /tmp/ws/src --build-base /tmp/ws/build --install-base /tmp/ws/install --packages-select research_interfaces ego_planner --event-handlers console_direct+ --parallel-workers 1
+#12 CACHED
+
+#13 exporting to image
+#13 exporting layers done
+#13 writing image sha256:ab02b765dec41b0551bc50d3eb5ae72a396f1ca62426ed76183de0e2dcf029ef done
+#13 naming to docker.io/library/ego-three-patch-ros-humble:research done
+#13 DONE 0.0s

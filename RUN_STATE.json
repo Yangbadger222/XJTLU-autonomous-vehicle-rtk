@@ -165,6 +165,20 @@
       "exit_code": null,
       "evidence": "official Docker Desktop CLI reported already running while desktop-linux and orbstack sockets remained unavailable; no current three-patch compile or runtime claim",
       "scope": "external container-service recovery attempt only"
+    },
+    {
+      "command": "docker --context orbstack build --platform linux/arm64 -f audit/container/ego-orbstack-ros-base-three-patch.Dockerfile -t ego-three-patch-ros-humble:research .",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/container/ego-orbstack-ros-base-three-patch-build.log; audit/container/ego-orbstack-ros-base-three-patch-build-summary.log; audit/container/ego-orbstack-ros-base-three-patch-result.json",
+      "scope": "all three EGO patches plus research_interfaces/ego_planner compile on OrbStack linux/aarch64 with public ros:humble; original ros2-go2 image remains a separate pending gate"
+    },
+    {
+      "command": "docker --context orbstack run --rm --platform linux/arm64 ego-three-patch-ros-humble:research motion_plan smoke",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/container/ego-orbstack-ros-base-three-patch-run.log; audit/container/ego-orbstack-ros-base-three-patch-result.json",
+      "scope": "isolated startup smoke reached vehicle EGO adapter and waited for measured odom, road reference, obstacle grid and map version; bounded timeout 124 is expected and does not prove target runtime"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

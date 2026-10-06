@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "executor": "OrbStack",
+  "context": "orbstack",
+  "server_architecture": "aarch64",
+  "platform": "linux/arm64",
+  "base_image": "ros:humble",
+  "base_image_id": "sha256:3a526e88ae55b5089962d6817f3d372767babd8e7154c841dc13646f2b88eb5c",
+  "base_architecture": "arm64",
+  "base_os": "linux",
+  "base_size_bytes": 729051867,
+  "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "patches": [
+    "0001-vehicle-state-and-feasibility.patch",
+    "0002-vehicle-ros-timed-trajectory.patch",
+    "0003-clear-stale-plan-on-failure.patch"
+  ],
+  "colcon_packages": [
+    "research_interfaces",
+    "ego_planner"
+  ],
+  "build_exit_code": 0,
+  "build_markers": [
+    "Finished <<< ego_planner [39.2s]",
+    "Summary: 2 packages finished [43.5s]",
+    "Built target motion_plan",
+    "#13 DONE 3.5s"
+  ],
+  "image_id": "sha256:ab02b765dec41b0551bc50d3eb5ae72a396f1ca62426ed76183de0e2dcf029ef",
+  "image_architecture": "arm64",
+  "image_os": "linux",
+  "image_size_bytes": 1544430938,
+  "build_log": "audit/container/ego-orbstack-ros-base-three-patch-build.log",
+  "runtime_log": "audit/container/ego-orbstack-ros-base-three-patch-run.log",
+  "runtime_smoke": {
+    "status": "STARTED_WAITING_FOR_REQUIRED_INPUTS",
+    "binary": "/tmp/ws/install/ego_planner/lib/ego_planner/motion_plan",
+    "exit_code": 124,
+    "timeout_seconds": 5,
+    "observed": "vehicle EGO adapter ready; waiting for measured odom, road reference, obstacle grid and map version"
+  },
+  "scope": "isolated build/run with public ros:humble base; not ros2-go2:humble and not Jetson or vehicle runtime"
+}

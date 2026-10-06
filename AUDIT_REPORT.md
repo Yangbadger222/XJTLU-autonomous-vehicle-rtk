@@ -44,7 +44,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`67 passed`). The replay
+The new transport-independent and contract suite passes (`68 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -178,8 +178,8 @@ and does not infer free space from absent returns; the boundary, unknown-space
 and launch-wiring tests are included in the suite.
 
 The Super-LIO vehicle adapter now also rejects non-unit source/extrinsic
-quaternions, non-finite covariance and non-identity IMU-to-base rotations when
-the covariance contract requires identity. Pose covariance is explicitly
+quaternions, non-finite or ROS-unknown covariance and non-identity IMU-to-base rotations
+when the covariance contract requires identity. Pose covariance is explicitly
 rotated into the stamped target frame; non-zero unverified lever arms remain a
 motion-blocking condition rather than being copied into a false base-frame
 contract.

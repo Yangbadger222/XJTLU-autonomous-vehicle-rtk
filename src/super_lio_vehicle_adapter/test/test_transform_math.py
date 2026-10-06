@@ -4,8 +4,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from super_lio_vehicle_adapter.adapter_node import (  # noqa: E402
-    _normalize_quaternion, _parameter_bool, _qrotate, _rotate_covariance,
-    _stamp_is_set,
+    _covariance_is_known, _normalize_quaternion, _parameter_bool, _qrotate,
+    _rotate_covariance, _stamp_is_set,
 )
 from super_lio_vehicle_adapter.cloud_frame_node import _stamp_is_set as _cloud_stamp_is_set
 
@@ -52,6 +52,16 @@ def test_pose_covariance_rejects_wrong_shape_or_nonfinite_values():
     covariance = [0.0] * 36
     covariance[0] = float("nan")
     assert _rotate_covariance(covariance, (0.0, 0.0, 0.0, 1.0)) is None
+
+
+def test_ros_unknown_covariance_sentinel_is_motion_blocking():
+    known = [0.0] * 72
+    known[0] = known[7] = known[14] = 1.0
+    known[36] = known[43] = known[50] = 1.0
+    assert _covariance_is_known(known)
+    unknown = list(known)
+    unknown[0] = -1.0
+    assert not _covariance_is_known(unknown)
 
 
 def test_string_false_cannot_enable_verified_extrinsic():

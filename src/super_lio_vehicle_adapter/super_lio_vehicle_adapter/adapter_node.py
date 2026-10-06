@@ -110,6 +110,19 @@ def _rotate_covariance(covariance, quaternion):
     return tuple(value for row in output for value in row)
 
 
+def _covariance_is_known(covariance):
+    """Reject ROS unknown-covariance sentinels and malformed matrices."""
+    if len(covariance) != 72 or not _finite(covariance):
+        return False
+    for offset in (0, 36):
+        diagonal = (covariance[offset], covariance[offset + 7],
+                    covariance[offset + 14], covariance[offset + 21],
+                    covariance[offset + 28], covariance[offset + 35])
+        if any(float(value) < 0.0 for value in diagonal):
+            return False
+    return any(abs(float(value)) > 0.0 for value in covariance)
+
+
 class SuperLioVehicleAdapter(Node if rclpy else object):
     def __init__(self):
         super().__init__("super_lio_vehicle_adapter")
@@ -217,7 +230,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             return
         covariance = tuple(msg.pose.covariance) + tuple(msg.twist.covariance)
         if self._require_covariance:
-            if not _finite(covariance) or not any(abs(float(value)) > 0.0 for value in covariance):
+            if not _covariance_is_known(covariance):
                 self._reject("Super-LIO covariance is unavailable or non-finite")
                 return
             # The message covariance is still expressed in the IMU frame.

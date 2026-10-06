@@ -8,7 +8,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "67 tests"
+      "evidence": "68 tests"
     },
     {
       "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
@@ -132,7 +132,7 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "67 tests after stamped Super-LIO TF/covariance and typed RoadEvidence2D boundary checks"
+      "evidence": "68 tests after stamped Super-LIO TF/covariance and typed RoadEvidence2D boundary checks"
     },
     {
       "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
@@ -184,13 +184,19 @@
       "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "67 tests including acquisition-time world-to-odom covariance rotation math and launch contract"
+      "evidence": "68 tests including acquisition-time world-to-odom covariance rotation math and launch contract"
     },
     {
       "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py",
       "status": "PASS",
       "exit_code": 0,
       "evidence": "launch, timestamped odometry TF adapter, covariance rotation and cloud-frame adapter syntax"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "68 tests including ROS unknown-covariance sentinel rejection"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

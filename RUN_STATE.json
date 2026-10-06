@@ -4,14 +4,53 @@
   "tip_commit_at_report": "verify with git rev-parse HEAD",
   "active_processes": [],
   "commands": [
-    {"command":"PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test","status":"PASS","exit_code":0,"evidence":"13 tests"},
-    {"command":"PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json","status":"PASS","exit_code":0,"evidence":"trajectory, policy comparison and final mock serial stop"},
-    {"command":"python3 -m py_compile ...","status":"PASS","exit_code":0,"evidence":"launch and adapter Python syntax"},
-    {"command":"colcon build --parallel-workers 1","status":"NOT_RUN","evidence":"ROS 2 Humble/colcon unavailable on macOS host"},
-    {"command":"ros2 bag play <vehicle bag>","status":"NOT_RUN","evidence":"ROS 2 bag tooling unavailable; bag metadata inventory recorded"},
-    {"command":"system_active_road_research.launch.py execution_mode:=shadow","status":"NOT_RUN","evidence":"Jetson-only runtime dependencies and hardware unavailable"}
+    {
+      "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "20 tests"
+    },
+    {
+      "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "trajectory, policy comparison and final mock serial stop"
+    },
+    {
+      "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "launch and adapter Python syntax"
+    },
+    {
+      "command": "sha256sum -c audit/vehicle_baseline/PROTECTED_FILES.sha256",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "all protected source hashes match"
+    },
+    {
+      "command": "scripts/apply_ego_vehicle_patch.sh (fresh checkout; sequential git apply --check)",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "0001 + 0002 applied at exact EGO commit; target ROS build pending"
+    },
+    {
+      "command": "colcon build --parallel-workers 1",
+      "status": "NOT_RUN",
+      "evidence": "ROS 2 Humble/colcon unavailable on macOS host"
+    },
+    {
+      "command": "ros2 bag play <vehicle bag>",
+      "status": "NOT_RUN",
+      "evidence": "ROS 2 bag tooling unavailable; audited bag has no raw Livox/IMU"
+    },
+    {
+      "command": "system_active_road_research.launch.py execution_mode:=shadow",
+      "status": "NOT_RUN",
+      "evidence": "Jetson-only runtime dependencies and hardware unavailable"
+    }
   ],
-  "runtime_data_root":"runtime-data/research/active_road",
-  "actuator_mode":"never_connected",
-  "physical_motion":"not_performed"
+  "runtime_data_root": "runtime-data/research/active_road",
+  "actuator_mode": "never_connected",
+  "physical_motion": "not_performed"
 }

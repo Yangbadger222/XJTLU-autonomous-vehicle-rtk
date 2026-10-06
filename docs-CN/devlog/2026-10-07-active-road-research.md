@@ -17,3 +17,7 @@
 
 #### 带来影响
 研究默认入口保持 replay/shadow；Super-LIO 的 IMU→车体映射未验证前报告 UNKNOWN 并停车。实车、Jetson、bag 和相机验收仍待现场证据。
+
+补充：本轮随后加入 EGO vehicle ROS edge、TimedTrajectory2D、动态/曲率/footprint/
+离散横向速度检查和像素深度几何合同。物理串口只在显式 `live + enable_serial`
+时可挂载；Super-LIO IMU→车体映射未验证前仍报告 UNKNOWN 并停车。

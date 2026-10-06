@@ -27,6 +27,8 @@ class VehicleLimits:
     max_yaw_accel_rps2: float = 1.40
     max_yaw_decel_rps2: float = 1.80
     max_curvature_1pm: Optional[float] = None
+    max_lateral_speed_mps: float = 0.05
+    derivative_tolerance: float = 0.05
 
 
 @dataclass(frozen=True)
@@ -149,6 +151,28 @@ def validate_trajectory(
                 # body lateral velocity must be near zero.
                 if abs(_angle_delta(tangent, point.yaw)) > 0.35 and distance > 1e-4:
                     result.fail("yaw_not_aligned_with_path_tangent")
+                if distance > 1e-9:
+                    vx, vy = dx / dt, dy / dt
+                    forward_speed = math.cos(point.yaw) * vx + math.sin(point.yaw) * vy
+                    lateral_speed = -math.sin(point.yaw) * vx + math.cos(point.yaw) * vy
+                    if abs(lateral_speed) > limits.max_lateral_speed_mps + limits.derivative_tolerance:
+                        result.fail(f"lateral_speed_limit:{lateral_speed:.6g}")
+                    speed_tolerance = max(limits.derivative_tolerance, 0.25 * max(abs(point.v), 0.1))
+                    if abs(forward_speed - point.v) > speed_tolerance:
+                        result.fail("path_speed_mismatch")
+                dv_dt = (point.v - previous.v) / dt
+                dw_dt = (point.w - previous.w) / dt
+                if dv_dt > limits.max_accel_mps2 + limits.derivative_tolerance:
+                    result.fail(f"speed_derivative_accel_limit:{dv_dt:.6g}")
+                if dv_dt < -limits.max_decel_mps2 - limits.derivative_tolerance:
+                    result.fail(f"speed_derivative_decel_limit:{dv_dt:.6g}")
+                if dw_dt > limits.max_yaw_accel_rps2 + limits.derivative_tolerance:
+                    result.fail(f"yaw_derivative_accel_limit:{dw_dt:.6g}")
+                if dw_dt < -limits.max_yaw_decel_rps2 - limits.derivative_tolerance:
+                    result.fail(f"yaw_derivative_decel_limit:{dw_dt:.6g}")
+                yaw_rate_from_path = _angle_delta(point.yaw, previous.yaw) / dt
+                if abs(yaw_rate_from_path - point.w) > max(limits.derivative_tolerance, 0.25 * max(abs(point.w), 0.1)):
+                    result.fail("yaw_rate_path_mismatch")
                 if point.curvature is not None and abs(point.w - point.v * point.curvature) > 0.08:
                     result.fail("yaw_rate_curvature_inconsistent")
         previous = point

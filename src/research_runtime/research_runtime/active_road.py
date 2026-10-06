@@ -35,6 +35,16 @@ class GeoTransform:
         return (self.origin_x_m + (col + 0.5) * self.pixel_size_x_m,
                 self.origin_y_m - (row + 0.5) * self.pixel_size_y_m)
 
+    def local_to_pixel(self, x_m: float, y_m: float) -> tuple[float, float]:
+        """Inverse pixel-center mapping; CRS metadata remains attached."""
+        if not all(math.isfinite(float(value)) for value in
+                   (x_m, y_m, self.pixel_size_x_m, self.pixel_size_y_m)):
+            raise ValueError("pixel transform requires finite values")
+        if self.pixel_size_x_m == 0.0 or self.pixel_size_y_m == 0.0:
+            raise ValueError("pixel size must be non-zero")
+        return ((x_m - self.origin_x_m) / self.pixel_size_x_m - 0.5,
+                (self.origin_y_m - y_m) / self.pixel_size_y_m - 0.5)
+
 
 @dataclass(frozen=True)
 class GeoTiffPrior:

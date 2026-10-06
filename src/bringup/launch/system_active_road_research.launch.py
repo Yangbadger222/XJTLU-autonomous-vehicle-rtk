@@ -24,29 +24,47 @@ def generate_launch_description():
                                  description="replay | shadow | live; replay is actuator-free")
     enable_super = DeclareLaunchArgument("enable_super_lio", default_value="true",
                                          description="Enable pinned Super-LIO in shadow/live; replay remains actuator-free")
+    enable_serial = DeclareLaunchArgument("enable_serial", default_value="false",
+                                         description="Require explicit true plus execution_mode:=live for the physical serial sink")
     super_lio = Node(package="super_lio", executable="super_lio_node", name="super_lio_node",
                      output="screen",
                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
                                                               "' != 'replay' and '",
                                                               LaunchConfiguration("enable_super_lio"), "' == 'true'"])),
                      parameters=[super_config])
+    ego_vehicle = Node(package="ego_planner", executable="motion_plan", name="ego_vehicle_adapter",
+                       output="screen",
+                       condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                                "' != 'replay'"])),
+                       parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml")])
     adapter = Node(package="super_lio_vehicle_adapter", executable="super_lio_vehicle_adapter",
                    name="super_lio_vehicle_adapter", output="screen",
+                   condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                            "' != 'replay'"])),
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
                                 "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
                                 "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
+                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                              "' != 'replay'"])),
                      parameters=[master, {"lio_odom_topic": "/lio/odom_vehicle",
                                           "base_frame": "base_footprint"}])
     cmd_guard = Node(package="gps_waypoint_dispatcher", executable="corridor_cmd_vel_guard_node",
-                     name="corridor_cmd_vel_guard", output="screen", parameters=[master])
+                     name="corridor_cmd_vel_guard", output="screen",
+                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                              "' != 'replay'"])),
+                     parameters=[master])
     serial = Node(package="serial_twistctl", executable="serial_twistctl_node",
                   name="serial_twistctl_node", output="screen",
+                  condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
+                                                           "' == 'live' and '",
+                                                           LaunchConfiguration("enable_serial"), "' == 'true'"])),
                   parameters=[master], remappings=[("/cmd_vel", "/cmd_vel_guarded")])
     research = Node(package="research_runtime", executable="research_safety_bridge",
                     name="research_safety_bridge", output="screen",
-                    parameters=[{"mode": LaunchConfiguration("execution_mode")}])
+                    parameters=[{"mode": LaunchConfiguration("execution_mode"),
+                                 "actuator_enabled": LaunchConfiguration("enable_serial")}])
     livox = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("livox_ros_driver2"),
                                                               "launch_ROS2", "msg_MID360_launch.py"])]),
@@ -58,6 +76,7 @@ def generate_launch_description():
         launch_arguments={"params_file": master}.items(),
         condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"), "' != 'replay'"]))
     )
-    return LaunchDescription([mode, enable_super, LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
+    return LaunchDescription([mode, enable_super, enable_serial,
+                              LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               livox, rtk,
-                              super_lio, adapter, authority, cmd_guard, serial, research])
+                              super_lio, adapter, ego_vehicle, authority, cmd_guard, serial, research])

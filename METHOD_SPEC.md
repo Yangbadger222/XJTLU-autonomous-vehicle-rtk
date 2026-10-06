@@ -20,9 +20,19 @@ repository contains the policy and evaluator-only synthetic harness; the policy
 does not receive simulator truth. Three policy labels are reserved for the
 future same-base comparison: `PASSIVE`, `PERIODIC_LOOK`, and `TASK_AWARE_LOOK`.
 
-The vehicle adapter consumes real odometry and a future typed local GridMap, and
-emits `TimedTrajectory2D`. It rejects stale map versions, expired trajectories,
-unknown cells, footprint collisions, speed/acceleration violations and
-curvature/yaw-rate inconsistencies. It never clips an infeasible trajectory.
+The vehicle adapter consumes real `/lio/odom_vehicle` state, an odom-frame
+road reference and an odom-frame `OccupancyGrid` whose unknown cells are
+occupied. The second reproducible EGO patch calls the pinned planner and emits
+`TimedTrajectory2D`; `nav_msgs/Path` remains visualization/reference only. It
+rejects missing measured state, unknown map versions, unconfigured footprint
+inflation/curvature bounds, footprint collisions, speed/acceleration,
+discrete body-lateral-speed and curvature/yaw-rate inconsistencies. It never
+clips an infeasible trajectory.
+
+Active-road geometry now has an explicit pixel/depth contract: declared depth
+unit and optical-Z/ray-range convention, measured camera→base transform, and
+acquisition-time base→odom transform. Invalid/zero depth is rejected. The
+repository has synthetic round-trip tests; camera intrinsics and extrinsics
+remain deployment inputs rather than guessed values.
 The current repository does not contain a measured wheel/track/footprint dump
 or camera calibration, so no live vehicle claim is made.

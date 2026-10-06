@@ -8,6 +8,13 @@ ego_vehicle_adapter:
     max_decel_mps2: 1.20
     max_yaw_accel_rps2: 1.40
     max_yaw_decel_rps2: 1.80
+    # These values are deliberately unconfigured until the locked footprint
+    # and deployment measurement are supplied; the planner refuses output at 0.
+    max_curvature_1pm: 0.0
+    max_lateral_speed_mps: 0.0
+    max_jerk_mps3: 0.0
+    inflate_radius_m: 0.0
+    initial_map_version: "UNKNOWN"
     map_resolution_m: 0.30
     grid_unknown_is_occupied: true
     footprint_source: "LOCKED_URDF_OR_DEPLOYMENT_DUMP_REQUIRED"

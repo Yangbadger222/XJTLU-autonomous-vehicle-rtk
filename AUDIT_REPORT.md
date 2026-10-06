@@ -37,3 +37,21 @@ test importing unavailable `rclpy`). The existing corridor launch suite records
 `26 passed, 1 failed` because the pinned baseline lacks the expected
 `enable_local_odom_bridge: false` text. No protected file was modified to make
 these tests pass.
+
+## Follow-up implementation evidence
+
+The pinned EGO source now has a second sequential project patch that replaces its
+interactive demo edge with a vehicle ROS edge. A fresh checkout at the exact
+commit accepted both patches with `git apply --check`. The edge refuses output
+when map resolution, inflation/footprint radius, curvature, lateral-speed
+limits, map version, measured odom state, or local obstacle grid are absent.
+It emits `TimedTrajectory2D`; the visual `nav_msgs/Path` is not consumed by the
+safety bridge. The active launch condition test also verifies that replay has no
+planner/authority/serial processes and that the physical serial sink requires
+both `live` and `enable_serial:=true`.
+
+The new EGO ROS edge is intentionally fail-closed when the target local
+obstacle-grid and road-reference producers are absent. Their ROS contracts are
+locked in `audit/vehicle_baseline/RUNTIME_CONTRACT.json`, but their target-side
+frame/ground-separation wiring is still pending and is not represented as a
+software PASS.

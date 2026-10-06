@@ -356,3 +356,15 @@ EGO 规划结果使用 `research_interfaces/TimedTrajectory2D`，而
 时间、动态限值、曲率/yaw-rate、车体 footprint、地图版本和有效期；未知地图
 或未验证的 Super-LIO IMU→车体外参会阻止运动。地图证据通过 CRS/时间/子图/观测
 UUID 持久化，主动观察评分是有限启发式，不代表论文创新或实车收益。
+
+## 5.5 Active-road 研究入口（2026-10-07）
+
+`system_active_road_research.launch.py` 默认是 `replay`。`shadow`/`live` 才启动
+Super-LIO、源健康适配器和固定提交的 Ego-Planner-2D vehicle ROS edge。EGO
+输入是 `/lio/odom_vehicle`、odom-frame `/research/road_reference` 和
+`/research/local_obstacle_grid`；控制合同是 typed
+`/research/ego_trajectory`，`nav_msgs/Path` 只做可视化。未知栅格按占用处理，
+缺地图版本、曲率/footprint 参数或实测状态时拒绝轨迹。
+
+物理串口额外需要 `execution_mode:=live enable_serial:=true`；replay/shadow
+不挂载生产串口。RTK authority、原 corridor guard 和人工停车优先级保持不变。

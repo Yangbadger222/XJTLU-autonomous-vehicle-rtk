@@ -884,7 +884,8 @@ Before vehicle acceptance, separately deploy the serial branch, flash the STM32,
 On a host without ROS dependencies, run only the actuator-isolated replay:
 
 ```bash
-PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test
+PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q \
+  src/research_runtime/test src/super_lio_vehicle_adapter/test
 PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
   --output runtime-data/research/active_road/replay_smoke.json
 ```
@@ -896,3 +897,8 @@ requires the human acceptance checklist.
 
 Extract the source and launch layers while leaving the runtime dump explicit:
 `python3 scripts/audit_vehicle_baseline.py`.
+
+Shadow/live EGO inputs are `/lio/odom_vehicle`, `/research/road_reference`,
+`/research/local_obstacle_grid`, and `/research/map_version`; output is the
+typed `/research/ego_trajectory`. The physical serial sink additionally needs
+`enable_serial:=true` and `execution_mode:=live`.

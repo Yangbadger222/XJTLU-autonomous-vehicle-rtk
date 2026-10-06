@@ -1,6 +1,10 @@
 {
   "mode_default": "replay",
-  "mode_values": ["replay", "shadow", "live"],
+  "mode_values": [
+    "replay",
+    "shadow",
+    "live"
+  ],
   "live_actuator_enabled_by_default": false,
   "tf_owners": {
     "map_to_odom": "rtk_map_odom_corrector (RTK authority only)",
@@ -8,16 +12,95 @@
     "fake_simulator": "replay/sim only; forbidden in live"
   },
   "topics": {
-    "/lio/odom": {"type":"nav_msgs/msg/Odometry", "frame":"odom", "child_frame":"base_footprint", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
-    "/lio/cloud_body": {"type":"sensor_msgs/msg/PointCloud2", "frame":"base_footprint", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
-    "/lio/cloud_world": {"type":"sensor_msgs/msg/PointCloud2", "frame":"odom", "producer":"Super-LIO adapter", "frequency_hz":"PENDING_RUNTIME"},
-    "/lio/health": {"type":"std_msgs/msg/String", "producer":"patched Super-LIO", "policy":"UNKNOWN blocks motion"},
-    "/lio/vehicle_health": {"type":"std_msgs/msg/String", "producer":"vehicle adapter", "policy":"OK requires verified transform, covariance and source health"},
-    "/localization_authority/motion_allowed": {"type":"std_msgs/msg/Bool", "consumer":"safety bridge", "false_policy":"zero command and stop_override"},
-    "/research/ego_trajectory": {"type":"research_interfaces/msg/TimedTrajectory2D", "consumer":"research motion tracker", "visual_path_not_control_contract":true},
-    "/cmd_vel": {"type":"geometry_msgs/msg/Twist", "producer":"research tracker only in shadow/live", "final_guard":"original authority guard"},
-    "/cmd_vel_guarded": {"type":"geometry_msgs/msg/Twist", "producer":"original corridor_cmd_vel_guard", "final_serial_sink":true}
+    "/lio/cloud_body": {
+      "type": "sensor_msgs/msg/PointCloud2",
+      "frame": "base_footprint",
+      "producer": "Super-LIO adapter",
+      "frequency_hz": "PENDING_RUNTIME"
+    },
+    "/lio/cloud_world": {
+      "type": "sensor_msgs/msg/PointCloud2",
+      "frame": "odom",
+      "producer": "Super-LIO adapter",
+      "frequency_hz": "PENDING_RUNTIME"
+    },
+    "/lio/health": {
+      "type": "std_msgs/msg/String",
+      "producer": "patched Super-LIO",
+      "policy": "UNKNOWN blocks motion"
+    },
+    "/lio/vehicle_health": {
+      "type": "std_msgs/msg/String",
+      "producer": "vehicle adapter",
+      "policy": "OK requires verified transform, covariance and source health"
+    },
+    "/localization_authority/motion_allowed": {
+      "type": "std_msgs/msg/Bool",
+      "consumer": "safety bridge",
+      "false_policy": "zero command and stop_override"
+    },
+    "/research/ego_trajectory": {
+      "type": "research_interfaces/msg/TimedTrajectory2D",
+      "frame": "odom",
+      "producer": "patched Ego-Planner-2D vehicle ROS edge",
+      "consumer": "research_safety_bridge",
+      "visual_path_not_control_contract": true
+    },
+    "/cmd_vel": {
+      "type": "geometry_msgs/msg/Twist",
+      "producer": "research tracker only in shadow/live",
+      "final_guard": "original authority guard"
+    },
+    "/cmd_vel_guarded": {
+      "type": "geometry_msgs/msg/Twist",
+      "producer": "original corridor_cmd_vel_guard",
+      "final_serial_sink": true
+    },
+    "/lio/odom": {
+      "type": "nav_msgs/msg/Odometry",
+      "frame": "odom",
+      "child_frame": "imu (source frame; not vehicle output)",
+      "producer": "patched Super-LIO",
+      "consumer": "super_lio_vehicle_adapter"
+    },
+    "/lio/odom_vehicle": {
+      "type": "nav_msgs/msg/Odometry",
+      "frame": "odom",
+      "child_frame": "base_footprint",
+      "producer": "super_lio_vehicle_adapter",
+      "policy": "published only after measured extrinsic, source health and covariance checks"
+    },
+    "/research/road_reference": {
+      "type": "nav_msgs/msg/Path",
+      "frame": "odom",
+      "producer": "active-road reference adapter (target wiring pending)",
+      "consumer": "patched Ego-Planner-2D vehicle ROS edge",
+      "control_contract": false
+    },
+    "/research/local_obstacle_grid": {
+      "type": "nav_msgs/msg/OccupancyGrid",
+      "frame": "odom",
+      "producer": "target local ground/obstacle adapter (launch wiring pending target-side audit)",
+      "unknown_policy": "occupied"
+    },
+    "/research/map_version": {
+      "type": "std_msgs/msg/String",
+      "producer": "active-road map persistence",
+      "policy": "missing version blocks trajectory"
+    }
   },
-  "serial": {"format":"vcx=<linear.x>,wc=<angular.z * angular_z_scale>\\n", "baud":115200, "scale":1.0, "final_mock_sink_required":true},
-  "health_policy": {"super_lio_health_unknown":"motion not allowed", "tf_missing":"stop", "trajectory_expired":"stop", "map_version_mismatch":"stop", "rtk_authority_false":"stop"}
+  "serial": {
+    "format": "vcx=<linear.x>,wc=<angular.z * angular_z_scale>\\n",
+    "baud": 115200,
+    "scale": 1.0,
+    "final_mock_sink_required": true,
+    "physical_sink_condition": "execution_mode:=live and enable_serial:=true; replay/shadow never attach production serial"
+  },
+  "health_policy": {
+    "super_lio_health_unknown": "motion not allowed",
+    "tf_missing": "stop",
+    "trajectory_expired": "stop",
+    "map_version_mismatch": "stop",
+    "rtk_authority_false": "stop"
+  }
 }

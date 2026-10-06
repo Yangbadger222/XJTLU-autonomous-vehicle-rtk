@@ -1,0 +1,1324 @@
+From d62bb8464ff41e1f004cd8fe8f13873480d832fc Mon Sep 17 00:00:00 2001
+From: yangbadger222 <yangbadger222@gmail.com>
+Date: Wed, 7 Oct 2026 01:41:13 +0800
+Subject: [PATCH] temporary complete timed trajectory ROS adaptation
+
+
+diff --git a/src/EgoPlanner-ROS2/CMakeLists.txt b/src/EgoPlanner-ROS2/CMakeLists.txt
+index 78c9989..cf49940 100644
+--- a/src/EgoPlanner-ROS2/CMakeLists.txt
++++ b/src/EgoPlanner-ROS2/CMakeLists.txt
+@@ -8,6 +8,8 @@ find_package(ament_cmake REQUIRED)
+ find_package(rclcpp REQUIRED)
+ find_package(nav_msgs REQUIRED)
+ find_package(geometry_msgs REQUIRED)
++find_package(std_msgs REQUIRED)
++find_package(research_interfaces REQUIRED)
+ find_package(tf2 REQUIRED)
+ find_package(tf2_ros REQUIRED)
+ find_package(sensor_msgs REQUIRED)
+@@ -58,6 +60,8 @@ ament_target_dependencies(
+   rclcpp
+   nav_msgs
+   geometry_msgs
++  std_msgs
++  research_interfaces
+   tf2
+   tf2_ros
+   sensor_msgs
+@@ -79,4 +83,4 @@ install(TARGETS
+   motion_plan
+   DESTINATION lib/${PROJECT_NAME})
+ 
+-ament_package()
+\ No newline at end of file
++ament_package()
+diff --git a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+index 2df2676..e39d2f4 100644
+--- a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
++++ b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+@@ -1,144 +1,98 @@
+ /*
+-MIT License
+-
+-Copyright (c) 2025 Chunyu Ju
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy
+-of this software and associated documentation files (the "Software"), to deal
+-in the Software without restriction, including without limitation the rights
+-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-copies of the Software, and to permit persons to whom the Software is
+-furnished to do so, subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-SOFTWARE.
+-@Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
+-@Create by: juchunyu@qq.com
+-@Date: 2025-11-01 18:58:01
+-*/
++ * Vehicle adaptation boundary for the pinned Ego-Planner-2D-ROS2 source.
++ * The upstream interactive/RViz inputs remain in the source history; this
++ * node consumes vehicle odometry, a road reference and a local OccupancyGrid.
++ */
+ #ifndef TRAJECTORY_OBSTACLES_PUBLISHER_H
+ #define TRAJECTORY_OBSTACLES_PUBLISHER_H
+ 
+ #include "rclcpp/rclcpp.hpp"
++#include "nav_msgs/msg/odometry.hpp"
++#include "nav_msgs/msg/occupancy_grid.hpp"
+ #include "nav_msgs/msg/path.hpp"
+-#include "geometry_msgs/msg/pose_stamped.hpp"
+-#include "geometry_msgs/msg/point_stamped.hpp"
+-#include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
+-#include "std_msgs/msg/bool.hpp"
+-#include "sensor_msgs/msg/point_cloud2.hpp"
+-#include "sensor_msgs/point_cloud2_iterator.hpp"
++#include "std_msgs/msg/string.hpp"
++#include "research_interfaces/msg/timed_trajectory2_d.hpp"
+ #include "tf2/LinearMath/Quaternion.h"
+-#include <visualization_msgs/msg/marker_array.hpp>
+-#include <cmath>
+-#include <vector>
+-#include <memory>
+-#include <mutex>
++#include "tf2/utils.h"
+ 
+-// Ego Planner相关头文件
+ #include "planner_interface.h"
+-#include "ego_planner/msg/current_pose.hpp"  // 自定义消息头文件
+ 
++#include <Eigen/Eigen>
++#include <cstdint>
++#include <functional>
++#include <chrono>
++#include <memory>
++#include <mutex>
++#include <string>
++#include <vector>
+ 
+-using namespace ego_planner;
++namespace ego_planner
++{
+ 
+ class TrajectoryAndObstaclesPublisher : public rclcpp::Node
+ {
+ public:
+-    TrajectoryAndObstaclesPublisher();
+-    ~TrajectoryAndObstaclesPublisher() = default;
++  TrajectoryAndObstaclesPublisher();
+ 
+ private:
+-    void init_ego_planner_base();
+-    void publish_and_plan();
+-    
+-    // 回调函数
+-    void rviz_global_path_callback(const nav_msgs::msg::Path::SharedPtr msg);
+-    void goal_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+-    void rviz_obstacles_callback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
+-    void rviz_point_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg);
+-    void pose_estimate_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+-    void trigger_plan_callback(const std_msgs::msg::Bool::SharedPtr msg);
+-    
+-    // 发布函数
+-    void publish_global_path();
+-    void publish_planned_trajectory();
+-    void publish_obstacles();
+-    void publish_a_star_path();
+-    void publish_local_obstacles();
+-
+-    // 辅助函数
+-    void generate_straight_path(const geometry_msgs::msg::PoseStamped& start, 
+-                               const geometry_msgs::msg::PoseStamped& goal);
+-    void add_obstacle_at_position(double x, double y);
+-
+-    void discretize_trajectory(const std::vector<PathPoint>& original_trajectory,
+-                           std::vector<PathPoint>& discrete_trajectory,
+-                           double interval = 0.1);
+-
+-    double distance(const PathPoint& p1, const PathPoint& p2);
+-
+-    void pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+-
+-    bool collisionDetection(std::vector<PathPoint>& planned_traj);
+-
+-    // ROS 2发布者/订阅者
+-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr global_path_pub_;
+-    rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr a_star_path_pub_;
+-    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr local_traj_pub_;
+-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr obs_pub_;
+-    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr obs_local_pub_;
+-    
+-    rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr rviz_global_path_sub_;
+-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
+-    rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr rviz_obstacles_sub_;
+-    rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr rviz_point_sub_;
+-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pose_estimate_sub_;
+-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr trigger_plan_sub_;
+-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr currPose_subscriber_;
+-    
+-    rclcpp::TimerBase::SharedPtr timer_;
+-
+-    // Ego Planner核心对象
+-    std::shared_ptr<PlannerInterface> ego_planner_;
+-
+-    // 数据存储
+-    std::vector<PathPoint> global_plan_traj_;
+-    std::vector<ObstacleInfo> obstacles_;
+-    std::mutex data_mutex_;
+-    bool has_valid_global_path_;
+-    bool has_obstacles_;
+-    bool should_plan_;
+-    bool needs_replan_;  // 新增：是否需要重新规划的标志
+-    bool flag_ = false;
+-    std::vector<PathPoint> planned_traj;
+-    std::vector<PathPoint> global_plan_traj_res_;
+-
+-    PathPoint  cur_pose_;
+-
+-    vector<vector<Eigen::Vector2d>> a_star_pathes_;
+-
+-    PathPoint local_pose;
+-
+-    // 参数
+-    double max_vel_ = 2.0;
+-    double max_acc_ = 3.0;
+-    double max_jerk_ = 4.0;
+-    double map_resolution_ = 0.1;
+-    double map_x_size_ = 50.0;
+-    double map_y_size_ = 50.0;
+-    double map_z_size_ = 10.0;
+-    Eigen::Vector3d map_origin_ = Eigen::Vector3d(0.0, 0.0, 0.0);
+-    double map_inflate_value_ = 0.5;//0.5;
+-
+-    double theta_ = 0.0;
++  void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
++  void road_reference_callback(const nav_msgs::msg::Path::SharedPtr msg);
++  void obstacle_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
++  void map_version_callback(const std_msgs::msg::String::SharedPtr msg);
++  void plan_timer_callback();
++
++  bool plan_once();
++  bool trajectory_is_feasible(const std::vector<PathPoint> & points) const;
++  void publish_failure(uint8_t status, const std::string & reason);
++  void publish_timed_trajectory(const std::vector<PathPoint> & points);
++  void publish_visual_trajectory(const std::vector<PathPoint> & points);
++
++  static double yaw_from_quaternion(const geometry_msgs::msg::Quaternion & q);
++  static double angle_delta(double lhs, double rhs);
++  static double finite_or_zero(double value);
++
++  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscriber_;
++  rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr road_reference_subscriber_;
++  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_subscriber_;
++  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr map_version_subscriber_;
++  rclcpp::Publisher<research_interfaces::msg::TimedTrajectory2D>::SharedPtr trajectory_publisher_;
++  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_trajectory_publisher_;
++  rclcpp::TimerBase::SharedPtr timer_;
++
++  std::shared_ptr<PlannerInterface> ego_planner_;
++  std::mutex data_mutex_;
++  PathPoint vehicle_state_;
++  Eigen::Vector3d start_velocity_{Eigen::Vector3d::Zero()};
++  Eigen::Vector3d start_acceleration_{Eigen::Vector3d::Zero()};
++  Eigen::Vector3d previous_world_velocity_{Eigen::Vector3d::Zero()};
++  rclcpp::Time previous_odom_stamp_{0, 0, RCL_ROS_TIME};
++  std::vector<PathPoint> road_reference_;
++  std::vector<ObstacleInfo> obstacles_;
++  std::string map_version_;
++  double map_resolution_{0.0};
++  bool have_previous_odom_{false};
++  bool state_valid_{false};
++  bool reference_valid_{false};
++  bool grid_valid_{false};
++  bool planner_initialized_{false};
++  uint64_t trajectory_id_{0};
++
++  double max_speed_mps_{0.0};
++  double max_accel_mps2_{0.0};
++  double max_decel_mps2_{0.0};
++  double max_yaw_rate_rps_{0.0};
++  double max_yaw_accel_rps2_{0.0};
++  double max_yaw_decel_rps2_{0.0};
++  double max_curvature_1pm_{0.0};
++  double max_lateral_speed_mps_{0.0};
++  double max_jerk_mps3_{0.0};
++  double inflate_radius_m_{0.0};
++  double configured_map_resolution_m_{0.0};
++  bool grid_unknown_is_occupied_{true};
++  bool allow_reverse_{false};
++  std::string output_topic_{"/research/ego_trajectory"};
+ };
+ 
+-#endif // TRAJECTORY_OBSTACLES_PUBLISHER_H
+\ No newline at end of file
++}  // namespace ego_planner
++
++#endif  // TRAJECTORY_OBSTACLES_PUBLISHER_H
+diff --git a/src/EgoPlanner-ROS2/package.xml b/src/EgoPlanner-ROS2/package.xml
+index cc2473c..2b1dad7 100644
+--- a/src/EgoPlanner-ROS2/package.xml
++++ b/src/EgoPlanner-ROS2/package.xml
+@@ -12,6 +12,8 @@
+   <depend>rclcpp</depend>
+   <depend>nav_msgs</depend>
+   <depend>geometry_msgs</depend>
++  <depend>std_msgs</depend>
++  <depend>research_interfaces</depend>
+   <depend>tf2</depend>
+   <depend>tf2_ros</depend>
+   <depend>sensor_msgs</depend>
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index a2befd4..53270ed 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -1,681 +1,415 @@
+ /*
+- * @Function: Ego Planner + RViz Interactive Input (Global Path + Obstacles)
+- * @Create by: juchunyu@qq.com
+- * @Date: 2025-11-01 18:58:01
++ * Vehicle adapter for the pinned Ego-Planner-2D-ROS2 implementation.
++ *
++ * The planner core remains the upstream 2-D B-spline/A* implementation with
++ * the project vehicle-feasibility patch. This ROS edge deliberately accepts
++ * only odom-frame measured state, an odom-frame road reference and a local
++ * OccupancyGrid. nav_msgs/Path is used for the reference and visualization;
++ * the control contract is research_interfaces/TimedTrajectory2D.
+  */
+ #include "trajectory_obstacles_publisher.h"
+-#include <tf2/utils.h>
+-#include "geometry_msgs/msg/quaternion.hpp"  // 确保包含四元数消息类型
+ 
+-TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher() 
+-    : Node("ego_planner_interactive_node"),
+-      has_valid_global_path_(false),
+-      has_obstacles_(false),
+-      should_plan_(true), // 默认允许规划，方便调试
+-      needs_replan_(false),
+-      flag_(false) // 初始化 flag_
+-{
+-    // 1. 创建发布者
+-    global_path_pub_ = this->create_publisher<nav_msgs::msg::Path>("visual_global_path", 10);
+-    a_star_path_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("trajectories", 10);
+-    local_traj_pub_ = this->create_publisher<nav_msgs::msg::Path>("visual_local_trajectory", 10);
+-    obs_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("visual_obstacles", 10);
+-    obs_local_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("visual_local_obstacles", 10);
+-
+-
+-    // 2. 接收来自仿真器/定位模块的当前位置
+-    currPose_subscriber_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+-            "current_pose",
+-            10,
+-            std::bind(&TrajectoryAndObstaclesPublisher::pose_callback, this, std::placeholders::_1)
+-        );
+-        
+-
+-    goal_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+-        "/goal_pose",
+-        10,
+-        std::bind(&TrajectoryAndObstaclesPublisher::goal_pose_callback, this, std::placeholders::_1)
+-    );
+-
+-    rviz_point_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
+-        "/clicked_point",
+-        10,
+-        std::bind(&TrajectoryAndObstaclesPublisher::rviz_point_callback, this, std::placeholders::_1)
+-    );
+-
+-    // 注意：这里不再处理 initialpose 来更新 cur_pose_，
+-    // 因为位置应该由仿真器决定。规划器只负责接收当前位置。
+-    // 但为了触发重规划，我们保留订阅，仅用于设置标志位。
+-    pose_estimate_sub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+-        "/initialpose",
+-        10,
+-        std::bind(&TrajectoryAndObstaclesPublisher::pose_estimate_callback, this, std::placeholders::_1)
+-    );
+-
+-    trigger_plan_sub_ = this->create_subscription<std_msgs::msg::Bool>(
+-        "/trigger_plan",
+-        10,
+-        std::bind(&TrajectoryAndObstaclesPublisher::trigger_plan_callback, this, std::placeholders::_1)
+-    );
+-
+-    init_ego_planner_base();
++#include <algorithm>
++#include <cmath>
++#include <limits>
++#include <sstream>
++#include <utility>
+ 
+-    // 5Hz 规划与发布循环
+-    timer_ = this->create_wall_timer(
+-        std::chrono::milliseconds(50),
+-        std::bind(&TrajectoryAndObstaclesPublisher::publish_and_plan, this)
+-    );
+-
+-    RCLCPP_INFO(this->get_logger(), "Planner Ready. Waiting for global path points (/clicked_point)...");
+-}
+-
+-
+-void TrajectoryAndObstaclesPublisher::pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
++namespace ego_planner
+ {
+-    // std::cout << "[pose_callback] cur_pose_ " << msg->x << " ," << msg->y << " ," << msg->theta << std::endl;
+-    // std::lock_guard<std::mutex> lock(data_mutex_);
+-    // cur_pose_.x = msg->x;
+-    // cur_pose_.y = msg->y;
+-    // cur_pose_.z = msg->theta; // 这里 z 存储 theta
+-
+-    std::lock_guard<std::mutex> lock(data_mutex_);
+-    // 1. 更新机器人初始位姿（原有逻辑）
+-    cur_pose_.x = msg->pose.position.x;
+-    cur_pose_.y = msg->pose.position.y;
+-    cur_pose_.z = 0;
+-    // 计算偏航角（使用tf2或手动计算，确保正确）
+-    tf2::Quaternion q(
+-        msg->pose.orientation.x,
+-        msg->pose.orientation.y,
+-        msg->pose.orientation.z,
+-        msg->pose.orientation.w);
+-    cur_pose_.z = tf2::getYaw(q);
+-    // std::cout << "pose_estimate_callback " << std::endl;
+-
+-    // 收到位置更新，且有全局路径时，应当触发检查是否需要重规划
+-    // 这里简化逻辑：只要处于规划模式，就认为数据是最新的
+-}
+-
+-void TrajectoryAndObstaclesPublisher::init_ego_planner_base()
++namespace
+ {
+-    ego_planner_ = std::make_shared<PlannerInterface>();
+-    ego_planner_->initParam(max_vel_, max_acc_, max_jerk_);
+-    ego_planner_->initEsdfMap(
+-        map_x_size_, map_y_size_, map_z_size_,
+-        map_resolution_, map_origin_, map_inflate_value_
+-    );
++constexpr double kSamplePeriod = 0.1;
++constexpr double kTrajectoryValidity = 0.25;
++constexpr double kEpsilon = 1e-9;
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::add_obstacle_at_position(double x, double y)
++TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
++: Node("ego_vehicle_adapter")
+ {
+-    std::lock_guard<std::mutex> lock(data_mutex_);
+-    ObstacleInfo obs;
+-    obs.x = x; obs.y = y; obs.z = 0.0;
+-    obstacles_.push_back(obs);
+-    has_obstacles_ = true;
+-    needs_replan_ = true;
++  max_speed_mps_ = declare_parameter<double>("max_speed_mps", 0.0);
++  max_accel_mps2_ = declare_parameter<double>("max_accel_mps2", 0.0);
++  max_decel_mps2_ = declare_parameter<double>("max_decel_mps2", 0.0);
++  max_yaw_rate_rps_ = declare_parameter<double>("max_yaw_rate_rps", 0.0);
++  max_yaw_accel_rps2_ = declare_parameter<double>("max_yaw_accel_rps2", 0.0);
++  max_yaw_decel_rps2_ = declare_parameter<double>("max_yaw_decel_rps2", 0.0);
++  max_curvature_1pm_ = declare_parameter<double>("max_curvature_1pm", 0.0);
++  max_lateral_speed_mps_ = declare_parameter<double>("max_lateral_speed_mps", 0.0);
++  max_jerk_mps3_ = declare_parameter<double>("max_jerk_mps3", 0.0);
++  inflate_radius_m_ = declare_parameter<double>("inflate_radius_m", 0.0);
++  configured_map_resolution_m_ = declare_parameter<double>("map_resolution_m", 0.0);
++  grid_unknown_is_occupied_ = declare_parameter<bool>("grid_unknown_is_occupied", true);
++  allow_reverse_ = declare_parameter<bool>("allow_reverse", false);
++  output_topic_ = declare_parameter<std::string>("output_topic", "/research/ego_trajectory");
++  (void)declare_parameter<std::string>("footprint_source", "PENDING");
++  (void)declare_parameter<std::string>("measured_wheel_radius_m", "PENDING");
++  (void)declare_parameter<std::string>("measured_track_m", "PENDING");
++  map_version_ = declare_parameter<std::string>("initial_map_version", "UNKNOWN");
++
++  ego_planner_ = std::make_shared<PlannerInterface>();
++  ego_planner_->initVehicleParam(max_speed_mps_, max_accel_mps2_, max_jerk_mps3_,
++                                 max_yaw_rate_rps_, max_curvature_1pm_);
++
++  trajectory_publisher_ = create_publisher<research_interfaces::msg::TimedTrajectory2D>(output_topic_, 10);
++  visual_trajectory_publisher_ = create_publisher<nav_msgs::msg::Path>(
++    "/research/visual_local_trajectory", 10);
++
++  odom_subscriber_ = create_subscription<nav_msgs::msg::Odometry>(
++    "/lio/odom_vehicle", 10,
++    std::bind(&TrajectoryAndObstaclesPublisher::odom_callback, this, std::placeholders::_1));
++  road_reference_subscriber_ = create_subscription<nav_msgs::msg::Path>(
++    "/research/road_reference", 10,
++    std::bind(&TrajectoryAndObstaclesPublisher::road_reference_callback, this, std::placeholders::_1));
++  obstacle_subscriber_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
++    "/research/local_obstacle_grid", 10,
++    std::bind(&TrajectoryAndObstaclesPublisher::obstacle_callback, this, std::placeholders::_1));
++  map_version_subscriber_ = create_subscription<std_msgs::msg::String>(
++    "/research/map_version", 10,
++    std::bind(&TrajectoryAndObstaclesPublisher::map_version_callback, this, std::placeholders::_1));
++  timer_ = create_wall_timer(std::chrono::milliseconds(100),
++                             std::bind(&TrajectoryAndObstaclesPublisher::plan_timer_callback, this));
++
++  RCLCPP_INFO(get_logger(),
++              "Vehicle EGO adapter ready; waiting for measured odom, road reference, obstacle grid and map version");
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::pose_estimate_callback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
++double TrajectoryAndObstaclesPublisher::yaw_from_quaternion(const geometry_msgs::msg::Quaternion & q)
+ {
+-    std::lock_guard<std::mutex> lock(data_mutex_);
+-    // 仅用于触发重规划，实际位置更新依赖 SimNode 发来的 current_pose
+-    RCLCPP_INFO(this->get_logger(), "收到重置信号，准备重规划...");
+-    needs_replan_ = true;
+-   // 1. 更新机器人初始位姿（原有逻辑）
+-    cur_pose_.x = msg->pose.pose.position.x;
+-    cur_pose_.y = msg->pose.pose.position.y;
+-    cur_pose_.z = 0;
+-    // 计算偏航角（使用tf2或手动计算，确保正确）
+-    tf2::Quaternion q(
+-        msg->pose.pose.orientation.x,
+-        msg->pose.pose.orientation.y,
+-        msg->pose.pose.orientation.z,
+-        msg->pose.pose.orientation.w);
+-    cur_pose_.z = tf2::getYaw(q);
++  tf2::Quaternion quaternion(q.x, q.y, q.z, q.w);
++  if (quaternion.length2() <= kEpsilon) {
++    return std::numeric_limits<double>::quiet_NaN();
++  }
++  quaternion.normalize();
++  return tf2::getYaw(quaternion);
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::trigger_plan_callback(const std_msgs::msg::Bool::SharedPtr msg)
++double TrajectoryAndObstaclesPublisher::angle_delta(double lhs, double rhs)
+ {
+-    should_plan_ = msg->data;
+-    if(should_plan_) needs_replan_ = true;
+-    RCLCPP_INFO(this->get_logger(), "规划触发状态: %s", should_plan_ ? "ON" : "OFF");
++  return std::atan2(std::sin(lhs - rhs), std::cos(lhs - rhs));
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::goal_pose_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
++double TrajectoryAndObstaclesPublisher::finite_or_zero(double value)
+ {
+-    add_obstacle_at_position(msg->pose.position.x, msg->pose.position.y);
++  return std::isfinite(value) ? value : 0.0;
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::rviz_point_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg)
++void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+ {
++  if (msg->header.frame_id != "odom" || msg->child_frame_id != "base_footprint") {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+-    PathPoint point;
+-    point.x = msg->point.x;
+-    point.y = msg->point.y;
+-    point.z = 0; 
+-    global_plan_traj_.push_back(point);
+-    
+-    RCLCPP_INFO(this->get_logger(), "添加全局路径点: (%.2f, %.2f), 总点数: %zu", point.x, point.y, global_plan_traj_.size());
+-    
+-    if (global_plan_traj_.size() >= 2) {
+-        has_valid_global_path_ = true;
+-        needs_replan_ = true;
++    state_valid_ = false;
++    return;
++  }
++  const double yaw = yaw_from_quaternion(msg->pose.pose.orientation);
++  const double body_vx = msg->twist.twist.linear.x;
++  const double body_vy = msg->twist.twist.linear.y;
++  const double body_w = msg->twist.twist.angular.z;
++  const rclcpp::Time stamp(msg->header.stamp);
++  if (!std::isfinite(yaw) || !std::isfinite(body_vx) || !std::isfinite(body_vy) ||
++      !std::isfinite(body_w) || stamp.nanoseconds() <= 0) {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    state_valid_ = false;
++    return;
++  }
++
++  const Eigen::Vector3d world_velocity(
++    std::cos(yaw) * body_vx - std::sin(yaw) * body_vy,
++    std::sin(yaw) * body_vx + std::cos(yaw) * body_vy,
++    0.0);
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  if (have_previous_odom_) {
++    const double dt = (stamp - previous_odom_stamp_).seconds();
++    if (dt <= 0.0 || dt > 1.0) {
++      state_valid_ = false;
++    } else {
++      start_acceleration_ = (world_velocity - previous_world_velocity_) / dt;
++      state_valid_ = std::isfinite(start_acceleration_.x()) &&
++        std::isfinite(start_acceleration_.y()) &&
++        std::abs(body_vy) <= max_lateral_speed_mps_ + 0.05;
+     }
++  }
++  previous_world_velocity_ = world_velocity;
++  previous_odom_stamp_ = stamp;
++  have_previous_odom_ = true;
++  start_velocity_ = world_velocity;
++  vehicle_state_.x = static_cast<float>(msg->pose.pose.position.x);
++  vehicle_state_.y = static_cast<float>(msg->pose.pose.position.y);
++  vehicle_state_.z = static_cast<float>(yaw);
++  vehicle_state_.v = static_cast<float>(std::hypot(body_vx, body_vy));
++  vehicle_state_.vx = static_cast<float>(world_velocity.x());
++  vehicle_state_.vy = static_cast<float>(world_velocity.y());
++  vehicle_state_.ax = static_cast<float>(start_acceleration_.x());
++  vehicle_state_.ay = static_cast<float>(start_acceleration_.y());
++  vehicle_state_.state_valid = state_valid_;
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::publish_and_plan()
++void TrajectoryAndObstaclesPublisher::road_reference_callback(const nav_msgs::msg::Path::SharedPtr msg)
+ {
+-    // 必须加锁，因为 cur_pose_ 在回调中更新
+-    // std::lock_guard<std::mutex> lock(data_mutex_);
+-
+-    if (!has_valid_global_path_ || global_plan_traj_.empty()) {
+-        publish_global_path(); // 即使空的也发布，保持RViz状态
+-        return;
+-    }
+-
+-    // 简单策略：总是尝试规划，或者根据 needs_replan_
+-    // 为了演示流畅性，这里只要允许规划就一直运行
+-    {
+-            std::vector<ObstacleInfo> local_obstacles;
+-
+-            std::lock_guard<std::mutex> lock(data_mutex_); // 获取锁
+-            std::vector<ObstacleInfo> local_obstacles_res;
+-            // 只有当有路径且允许规划时，才拷贝数据
+-            local_pose = cur_pose_;
+-            local_obstacles = obstacles_; // 拷贝障碍物列表
+-            for(int i = 0; i < local_obstacles.size();i++)
+-            {
+-                double dist =  sqrt(pow(local_obstacles[i].x - local_pose.x,2) + pow(local_obstacles[i].y - local_pose.y,2));
+-                // distance(local_obstacles[i], local_pose); 
+-                if(dist < 10)
+-                {
+-                    local_obstacles_res.push_back(local_obstacles[i]);
+-                }
+-            }
+-            ego_planner_->resetMap();
+-            ego_planner_->setGridMap(local_pose);
+-            ego_planner_->setObstacles(local_obstacles_res);
+-    } 
+-
+-
+-
+-    if (collisionDetection(planned_traj) || (planned_traj.size() < 10) || needs_replan_) 
+-    {
+-        std::cout << "replan..." << std::endl;
+-        needs_replan_ = false;
+-        std::cout << "[publish_and_plan] cur_pose_.x  = " << cur_pose_.x << " cur_pose_.y =" << cur_pose_.y << std::endl;
+-        a_star_pathes_.clear();
+-
+-        std::vector<ObstacleInfo> local_obstacles;
+-        {
+-            std::lock_guard<std::mutex> lock(data_mutex_); // 获取锁
+-
+-            // 只有当有路径且允许规划时，才拷贝数据
+-            local_pose = cur_pose_;
+-            local_obstacles = obstacles_; // 拷贝障碍物列表
+-        } // <--- 锁在这里自动释放！后续
+-        // 设置全局路径
+-        if (!global_plan_traj_.empty())
+-        {
+-            std::vector<PathPoint> global_plan_traj_temp;
+-
+-            discretize_trajectory(global_plan_traj_, global_plan_traj_temp, 0.3);
+-             
+-            float mindist = 100000000;
+-            int minddex = 0;
+-            for(int i = 0; i < global_plan_traj_temp.size();i++)
+-            {
+-                double dist =  distance(global_plan_traj_temp[i], local_pose); 
+-                if(dist < mindist)
+-                {
+-                    mindist = dist;
+-                    minddex = i;
+-                } 
+-            }
+-
+-            std::vector<PathPoint> global_plan_traj_after;
+-            global_plan_traj_after.push_back(local_pose);
+-            for(int i = minddex; i < global_plan_traj_temp.size();i++)
+-            {
+-                global_plan_traj_after.push_back(global_plan_traj_temp[i]);
+-            }
+-            discretize_trajectory(global_plan_traj_after, global_plan_traj_temp, 0.3);
+-            
+-            int length = 50;
+-            if(global_plan_traj_temp.size() < length) length = global_plan_traj_temp.size();
+-            global_plan_traj_res_.clear();
+-            for(int i = 0; i < length;i++)
+-            {
+-                global_plan_traj_res_.push_back(global_plan_traj_temp[i]);
+-            }
+-            // ego_planner_->setPathPoint(global_plan_traj_res_);
+-        }
+-        ego_planner_->setPathPoint(global_plan_traj_res_);
+-
+-        {
+-            ego_planner_->resetMap();
+-            ego_planner_->setGridMap(local_pose);
+-            flag_ = true;
+-        }
+-        
+-        ego_planner_->setCurrentVehiclePos(local_pose);
+-        
+-        std::vector<ObstacleInfo> local_obstacles_res;
+-        for(int i = 0; i < local_obstacles.size();i++)
+-        {
+-            double dist =  sqrt(pow(local_obstacles[i].x - local_pose.x,2) + pow(local_obstacles[i].y - local_pose.y,2));
+-            // distance(local_obstacles[i], local_pose); 
+-            if(dist < 10)
+-            {
+-                local_obstacles_res.push_back(local_obstacles[i]);
+-            }
+-        }
+-        ego_planner_->setObstacles(local_obstacles_res);
+-        // 3. 执行规划
+-        // if(global_plan_traj_res_.size() > 5)
+-        std::cout << "global_plan_traj_res_.size()  =" << global_plan_traj_res_.size()  << std::endl;
+-        // if(global_plan_traj_res_.size() > 5 && !global_plan_traj_.empty())
+-        {
+-            ego_planner_->makePlan();
+-            ego_planner_->getAStarPath(a_star_pathes_);
+-        }
+-
+-        //if (ego_planner_->makePlan()) {
+-            // ego_planner_->getAStarPath(a_star_pathes_);
+-            // 规划成功后，needs_replan_ 可以置 false，
+-            // 但如果是连续控制，通常每一帧都规划。
+-        needs_replan_ = false; 
+-        // } else {
+-        //     RCLCPP_WARN(this->get_logger(), "规划失败!");
+-        // }
++  std::vector<PathPoint> reference;
++  if (msg->header.frame_id != "odom" || msg->poses.size() < 3) {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    reference_valid_ = false;
++    return;
++  }
++  reference.reserve(msg->poses.size());
++  for (const auto & pose : msg->poses) {
++    if (!std::isfinite(pose.pose.position.x) || !std::isfinite(pose.pose.position.y)) {
++      std::lock_guard<std::mutex> lock(data_mutex_);
++      reference_valid_ = false;
++      return;
+     }
+-
+-    // 发布数据
+-    publish_global_path();
+-    publish_planned_trajectory();
+-    publish_obstacles();
+-    publish_a_star_path();
+-    publish_local_obstacles();
++    PathPoint point;
++    point.x = static_cast<float>(pose.pose.position.x);
++    point.y = static_cast<float>(pose.pose.position.y);
++    point.z = 0.0F;
++    reference.push_back(point);
++  }
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  road_reference_ = std::move(reference);
++  reference_valid_ = true;
+ }
+ 
+-bool TrajectoryAndObstaclesPublisher::collisionDetection(std::vector<PathPoint>& planned_traj)
++void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+ {
+-    for(int i = 0; i < planned_traj.size();i++)
+-    {
+-        bool status = ego_planner_->getInflateOccupancy(planned_traj[i]);
+-        if(status)
+-        {
+-            std::cout << "[collisionDetection] ok=" << std::endl; 
+-            return true;
+-        }
++  if (msg->header.frame_id != "odom" || msg->info.width == 0 || msg->info.height == 0 ||
++      msg->info.resolution <= 0.0F || configured_map_resolution_m_ <= 0.0 ||
++      std::abs(configured_map_resolution_m_ - msg->info.resolution) > 1e-6 || inflate_radius_m_ <= 0.0) {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    grid_valid_ = false;
++    return;
++  }
++  if (planner_initialized_ && std::abs(map_resolution_ - msg->info.resolution) > 1e-6) {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    grid_valid_ = false;
++    return;
++  }
++  const double origin_yaw = yaw_from_quaternion(msg->info.origin.orientation);
++  if (!std::isfinite(origin_yaw) || msg->data.size() != msg->info.width * msg->info.height) {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    grid_valid_ = false;
++    return;
++  }
++  std::vector<ObstacleInfo> obstacles;
++  obstacles.reserve(msg->data.size() / 8 + 1);
++  for (uint32_t row = 0; row < msg->info.height; ++row) {
++    for (uint32_t col = 0; col < msg->info.width; ++col) {
++      const int8_t cell = msg->data[row * msg->info.width + col];
++      if (cell >= 100 || (cell < 0 && grid_unknown_is_occupied_)) {
++        const double local_x = (static_cast<double>(col) + 0.5) * msg->info.resolution;
++        const double local_y = (static_cast<double>(row) + 0.5) * msg->info.resolution;
++        ObstacleInfo obstacle;
++        obstacle.x = static_cast<float>(msg->info.origin.position.x +
++          std::cos(origin_yaw) * local_x - std::sin(origin_yaw) * local_y);
++        obstacle.y = static_cast<float>(msg->info.origin.position.y +
++          std::sin(origin_yaw) * local_x + std::cos(origin_yaw) * local_y);
++        obstacle.z = 0.0F;
++        obstacles.push_back(obstacle);
++      }
+     }
+-
+-    return false; 
++  }
++  if (!planner_initialized_) {
++    ego_planner_->initEsdfMap(static_cast<double>(msg->info.width) * msg->info.resolution,
++                               static_cast<double>(msg->info.height) * msg->info.resolution, 1.0,
++                               msg->info.resolution,
++                               Eigen::Vector3d(msg->info.origin.position.x,
++                                               msg->info.origin.position.y, 0.0),
++                               inflate_radius_m_);
++    map_resolution_ = msg->info.resolution;
++    planner_initialized_ = true;
++  }
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  obstacles_ = std::move(obstacles);
++  grid_valid_ = true;
+ }
+ 
+-// 发布可视化全局路径
+-void TrajectoryAndObstaclesPublisher::publish_global_path()
++void TrajectoryAndObstaclesPublisher::map_version_callback(const std_msgs::msg::String::SharedPtr msg)
+ {
+-    // if (global_plan_traj_.empty()) return;
+-
+-    nav_msgs::msg::Path visual_path;
+-    visual_path.header.stamp = this->now();
+-    visual_path.header.frame_id = "map";
+-
+-    for (const auto& path_point : global_plan_traj_)
+-    {
+-        geometry_msgs::msg::PoseStamped pose;
+-        pose.header = visual_path.header;
+-        pose.pose.position.x = path_point.x;
+-        pose.pose.position.y = path_point.y;
+-        pose.pose.position.z = path_point.z;
+-
+-        tf2::Quaternion q;
+-        q.setRPY(0.0, 0.0, 0.0);
+-        pose.pose.orientation.x = q.x();
+-        pose.pose.orientation.y = q.y();
+-        pose.pose.orientation.z = q.z();
+-        pose.pose.orientation.w = q.w();
+-
+-        visual_path.poses.push_back(pose);
+-    }
+-
+-    global_path_pub_->publish(visual_path);
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  map_version_ = msg->data.empty() ? "UNKNOWN" : msg->data;
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::publish_a_star_path()
++void TrajectoryAndObstaclesPublisher::publish_failure(uint8_t status, const std::string & reason)
+ {
+-    // 如果没有路径数据，直接返回
+-    if (a_star_pathes_.empty())
+-    {
+-    //   RCLCPP_WARN(this->get_logger(), "a_star_pathes_ is empty, no trajectories to publish.");
+-      return;
+-    }
+-
+-    // 创建一个MarkerArray消息
+-    visualization_msgs::msg::MarkerArray marker_array_msg;
+-
+-    // 遍历 a_star_pathes_ 中的每一条路径
+-    for (size_t i = 0; i < a_star_pathes_.size(); ++i)
+-    {
+-      const std::vector<Eigen::Vector2d>& current_path = a_star_pathes_[i];
+-
+-      // 1. 创建一个Marker对象
+-      visualization_msgs::msg::Marker marker;
+-
+-      // 2. 设置Marker的基本信息
+-      marker.header.frame_id = "map"; // 非常重要！指定轨迹所在的坐标系
+-      marker.header.stamp = this->get_clock()->now();
+-      marker.ns = "a_star_paths"; // 命名空间，用于分组管理Marker
+-      marker.id = i;              // 每条路径必须有唯一的ID
+-      marker.type = visualization_msgs::msg::Marker::LINE_STRIP; // 类型为线串
+-      marker.action = visualization_msgs::msg::Marker::ADD;      // 动作是添加
+-
+-      // 3. 设置线的视觉属性
+-      marker.scale.x = 0.1; // 线宽为0.1米
+-
+-      // 设置颜色（RGBA格式），每条路径可以设置不同的颜色
+-      marker.color.r = 1.0 - (i * 0.3); // 红色分量
+-      marker.color.g = 0.2;             // 绿色分量
+-      marker.color.b = 0.2 + (i * 0.3); // 蓝色分量
+-      marker.color.a = 1.0;             // 透明度（1.0为完全不透明）
+-
+-      // 4. 填充路径点
+-      for (const auto& eigen_point : current_path)
+-      {
+-        geometry_msgs::msg::Point ros_point;
+-        ros_point.x = eigen_point.x();
+-        ros_point.y = eigen_point.y();
+-        ros_point.z = 0.0; // 2D轨迹，z轴设为0
+-
+-        marker.points.push_back(ros_point);
+-      }
+-
+-      // 5. 将当前路径的Marker添加到MarkerArray中
+-      marker_array_msg.markers.push_back(marker);
+-    }
+-
+-    // 6. 发布MarkerArray消息
+-    a_star_path_pub_->publish(marker_array_msg);
+-    // RCLCPP_INFO(this->get_logger(), "a_star_path_pub_ Published %zu trajectories.", a_star_pathes_.size());
+-
++  research_interfaces::msg::TimedTrajectory2D message;
++  const rclcpp::Time generated = now();
++  message.header.stamp = generated.to_msg();
++  message.header.frame_id = "odom";
++  message.trajectory_id = "ego-failure-" + std::to_string(++trajectory_id_);
++  message.map_version = map_version_.empty() ? "UNKNOWN" : map_version_;
++  message.generated_at = message.header.stamp;
++  message.valid_until = message.header.stamp;
++  message.status = status;
++  message.failure_reason = reason;
++  trajectory_publisher_->publish(message);
+ }
+ 
+-// 发布Ego Planner规划后的局部轨迹
+-void TrajectoryAndObstaclesPublisher::publish_planned_trajectory()
++bool TrajectoryAndObstaclesPublisher::plan_once()
+ {
+-    std::cout << "发布Ego Planner规划后的局部轨迹" << std::endl;
+-    planned_traj.clear();
+-    std::cout << "global_plan_traj_res_.size()  =" << global_plan_traj_res_.size()  << std::endl;
+-    // if(global_plan_traj_res_.size() > 5)
+-    {
+-        ego_planner_->getLocalPlanTrajResults(planned_traj);
+-        std::cout << "planned start x =  " << planned_traj[0].x << " , start y =" <<  planned_traj[0].y << std::endl;
+-    }
+-    // else
+-    // { 
+-    //     std::cout << "use global path !!!" << std::endl;
+-    //     planned_traj = global_plan_traj_res_;
+-    // }
+-    
+-   
+-    // if (planned_traj.empty()) return;
+-
+-    nav_msgs::msg::Path visual_traj;
+-    visual_traj.header.stamp = this->now();
+-    visual_traj.header.frame_id = "map";
+-
+-    for (size_t i = 0; i < planned_traj.size(); ++i)
+-    {
+-        // std::cout << "[publish_planned_trajectory] x = " << planned_traj[i].x << " y =" << planned_traj[i].y << std::endl;
+-        geometry_msgs::msg::PoseStamped pose;
+-        pose.header = visual_traj.header;
+-        pose.pose.position.x = planned_traj[i].x;
+-        pose.pose.position.y = planned_traj[i].y;
+-        pose.pose.position.z = planned_traj[i].z;
+-
+-        tf2::Quaternion q;
+-        q.setRPY(0.0, 0.0, 0.0);
+-        pose.pose.orientation.x = q.x();
+-        pose.pose.orientation.y = q.y();
+-        pose.pose.orientation.z = q.z();
+-        pose.pose.orientation.w = q.w();
+-
+-        visual_traj.poses.push_back(pose);
+-    }
+-
+-    local_traj_pub_->publish(visual_traj);
++  std::lock_guard<std::mutex> lock(data_mutex_);
++  if (!state_valid_) {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_STALE,
++                    "measured_odom_state_unavailable");
++    return false;
++  }
++  if (!reference_valid_) {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
++                    "road_reference_unavailable_or_unconfirmed");
++    return false;
++  }
++  if (!grid_valid_ || !planner_initialized_) {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_UNKNOWN_MAP,
++                    "local_obstacle_grid_unavailable_or_unknown");
++    return false;
++  }
++  if (map_version_.empty() || map_version_ == "UNKNOWN") {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_UNKNOWN_MAP,
++                    "map_version_unavailable");
++    return false;
++  }
++  if (max_curvature_1pm_ <= 0.0 || max_lateral_speed_mps_ <= 0.0 ||
++      max_speed_mps_ <= 0.0 || max_accel_mps2_ <= 0.0 || max_yaw_rate_rps_ <= 0.0) {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
++                    "vehicle_limits_or_footprint_not_configured");
++    return false;
++  }
++  ego_planner_->resetMap();
++  ego_planner_->setGridMap(vehicle_state_);
++  ego_planner_->setPathPoint(road_reference_);
++  ego_planner_->setCurrentVehicleState(vehicle_state_, start_velocity_, start_acceleration_);
++  ego_planner_->setObstacles(obstacles_);
++  ego_planner_->makePlan();
++  std::vector<PathPoint> planned;
++  ego_planner_->getLocalPlanTrajResults(planned);
++  if (planned.empty() || !trajectory_is_feasible(planned)) {
++    publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
++                    "ego_planner_vehicle_feasibility_rejected");
++    return false;
++  }
++  publish_timed_trajectory(planned);
++  publish_visual_trajectory(planned);
++  return true;
+ }
+ 
+-// 发布可视化障碍物
+-// void TrajectoryAndObstaclesPublisher::publish_obstacles()
+-// {
+-//     // if (obstacles_.empty()) return;
+-
+-//     sensor_msgs::msg::PointCloud2 visual_obs;
+-//     visual_obs.header.stamp = this->now();
+-//     visual_obs.header.frame_id = "map";
+-//     visual_obs.width = obstacles_.size();
+-//     visual_obs.height = 1;
+-//     visual_obs.is_dense = true;
+-
+-//     sensor_msgs::PointCloud2Modifier modifier(visual_obs);
+-//     modifier.setPointCloud2FieldsByString(1, "xyz");
+-
+-//     sensor_msgs::PointCloud2Iterator<float> iter_x(visual_obs, "x");
+-//     sensor_msgs::PointCloud2Iterator<float> iter_y(visual_obs, "y");
+-//     sensor_msgs::PointCloud2Iterator<float> iter_z(visual_obs, "z");
+-
+-//     for (const auto& obs : obstacles_)
+-//     {
+-//         *iter_x = static_cast<float>(obs.x);
+-//         *iter_y = static_cast<float>(obs.y);
+-//         *iter_z = 0.0f;
+-//         ++iter_x;
+-//         ++iter_y;
+-//         ++iter_z;
+-//     }
+-
+-//     obs_pub_->publish(visual_obs);
+-// }
+-
+-void TrajectoryAndObstaclesPublisher::publish_obstacles()
++bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<PathPoint> & points) const
+ {
+-    sensor_msgs::msg::PointCloud2 visual_obs;
+-    visual_obs.header.stamp = this->now();
+-    visual_obs.header.frame_id = "map";
+-    visual_obs.height = 1;
+-    visual_obs.width = obstacles_.size();
+-    visual_obs.is_dense = true;
+-
+-    // 必须设置字段
+-    sensor_msgs::PointCloud2Modifier modifier(visual_obs);
+-    modifier.setPointCloud2FieldsByString(1, "xyz"); // x,y,z float32
+-
+-    // 必须告诉 ROS2 每个点占 12 字节
+-    modifier.resize(obstacles_.size());
+-
+-    // 之后 Iterator 才能写数据
+-    sensor_msgs::PointCloud2Iterator<float> iter_x(visual_obs, "x");
+-    sensor_msgs::PointCloud2Iterator<float> iter_y(visual_obs, "y");
+-    sensor_msgs::PointCloud2Iterator<float> iter_z(visual_obs, "z");
+-
+-    for (const auto& obs : obstacles_)
+-    {
+-        *iter_x = static_cast<float>(obs.x);
+-        *iter_y = static_cast<float>(obs.y);
+-        *iter_z = 0.0f;
+-
+-        ++iter_x;
+-        ++iter_y;
+-        ++iter_z;
++  if (points.empty()) {
++    return false;
++  }
++  double previous_yaw = vehicle_state_.z;
++  double previous_w = 0.0;
++  double previous_v = vehicle_state_.v;
++  for (size_t index = 0; index < points.size(); ++index) {
++    const auto & point = points[index];
++    const double vx = point.vx;
++    const double vy = point.vy;
++    const double speed = std::hypot(vx, vy);
++    if (!std::isfinite(point.v) || !std::isfinite(speed) || speed > max_speed_mps_ + 1e-6 ||
++        (!allow_reverse_ && point.v < -1e-6)) {
++      return false;
+     }
+-
+-    // 发布（不会再崩）
+-    obs_pub_->publish(visual_obs);
++    const double yaw = speed > kEpsilon ? std::atan2(vy, vx) : previous_yaw;
++    const double acceleration = speed > kEpsilon ? (vx * point.ax + vy * point.ay) / speed : 0.0;
++    const double yaw_rate = speed > kEpsilon ? (vx * point.ay - vy * point.ax) / speed : 0.0;
++    const double curvature = speed > kEpsilon ? yaw_rate / (speed * speed) : 0.0;
++    if (std::abs(yaw_rate) > max_yaw_rate_rps_ + 1e-6 ||
++        std::abs(curvature) > max_curvature_1pm_ + 1e-6 ||
++        acceleration > max_accel_mps2_ + 0.05 ||
++        acceleration < -max_decel_mps2_ - 0.05) {
++      return false;
++    }
++    const double dt = index == 0 ? kSamplePeriod : kSamplePeriod;
++    const double alpha = angle_delta(yaw, previous_yaw) / dt;
++    const double dv = (point.v - previous_v) / dt;
++    const double dw = (yaw_rate - previous_w) / dt;
++    if (std::abs(alpha) > std::max(max_yaw_accel_rps2_, max_yaw_decel_rps2_) + 0.05 ||
++        dv > max_accel_mps2_ + 0.05 || dv < -max_decel_mps2_ - 0.05 ||
++        dw > max_yaw_accel_rps2_ + 0.05 || dw < -max_yaw_decel_rps2_ - 0.05) {
++      return false;
++    }
++    previous_yaw = yaw;
++    previous_w = yaw_rate;
++    previous_v = point.v;
++  }
++  return true;
+ }
+ 
+-
+-// void TrajectoryAndObstaclesPublisher::publish_local_obstacles()
+-// {
+-//     // if (obstacles_.empty()) return;
+-
+-//     sensor_msgs::msg::PointCloud2 visual_obs;
+-//     visual_obs.header.stamp = this->now();
+-//     visual_obs.header.frame_id = "map";
+-//     visual_obs.width = obstacles_.size();
+-//     visual_obs.height = 1;
+-//     visual_obs.is_dense = true;
+-
+-//     sensor_msgs::PointCloud2Modifier modifier(visual_obs);
+-//     modifier.setPointCloud2FieldsByString(1, "xyz");
+-
+-//     sensor_msgs::PointCloud2Iterator<float> iter_x(visual_obs, "x");
+-//     sensor_msgs::PointCloud2Iterator<float> iter_y(visual_obs, "y");
+-//     sensor_msgs::PointCloud2Iterator<float> iter_z(visual_obs, "z");
+-
+-//     std::vector<ObstacleInfo> obstacles;
+-//     ego_planner_->getObstacles(obstacles);
+-
+-//     for (const auto& obs : obstacles)
+-//     {
+-//         *iter_x = static_cast<float>(obs.x);
+-//         *iter_y = static_cast<float>(obs.y);
+-//         *iter_z = 0.0f;
+-//         ++iter_x;
+-//         ++iter_y;
+-//         ++iter_z;
+-//     }
+-
+-//     obs_local_pub_->publish(visual_obs);
+-// }
+-
+-void TrajectoryAndObstaclesPublisher::publish_local_obstacles()
++void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector<PathPoint> & points)
+ {
+-    std::vector<ObstacleInfo> obstacles;
+-    ego_planner_->getObstacles(obstacles);
+-
+-    if (obstacles.empty()) return;
+-
+-    sensor_msgs::msg::PointCloud2 visual_obs;
+-    visual_obs.header.stamp = this->now();
+-    visual_obs.header.frame_id = "map";
+-
+-    // 正确设置点云大小
+-    visual_obs.height = 1;
+-    visual_obs.width = obstacles.size();
+-    visual_obs.is_dense = true;
+-
+-    // 为点云分配字段
+-    sensor_msgs::PointCloud2Modifier modifier(visual_obs);
+-    modifier.setPointCloud2FieldsByString(1, "xyz");
+-    modifier.resize(obstacles.size());   // 关键！分配空间
+-
+-    // 创建迭代器
+-    sensor_msgs::PointCloud2Iterator<float> iter_x(visual_obs, "x");
+-    sensor_msgs::PointCloud2Iterator<float> iter_y(visual_obs, "y");
+-    sensor_msgs::PointCloud2Iterator<float> iter_z(visual_obs, "z");
+-
+-    for (const auto& obs : obstacles)
+-    {
+-        *iter_x = static_cast<float>(obs.x);
+-        *iter_y = static_cast<float>(obs.y);
+-        *iter_z = 0.0f;
+-
+-        ++iter_x;
+-        ++iter_y;
+-        ++iter_z;
+-    }
+-
+-    obs_local_pub_->publish(visual_obs);
++  research_interfaces::msg::TimedTrajectory2D message;
++  const rclcpp::Time generated = now();
++  message.header.stamp = generated.to_msg();
++  message.header.frame_id = "odom";
++  message.trajectory_id = "ego-" + std::to_string(++trajectory_id_);
++  message.map_version = map_version_;
++  message.generated_at = message.header.stamp;
++  message.valid_until = (generated + rclcpp::Duration::from_seconds(kTrajectoryValidity)).to_msg();
++  message.status = research_interfaces::msg::TimedTrajectory2D::STATUS_OK;
++  message.failure_reason.clear();
++
++  double previous_yaw = vehicle_state_.z;
++  double previous_w = 0.0;
++  for (size_t index = 0; index < points.size(); ++index) {
++    const auto & point = points[index];
++    const double speed = std::hypot(point.vx, point.vy);
++    const double yaw = speed > kEpsilon ? std::atan2(point.vy, point.vx) : previous_yaw;
++    const double acceleration = speed > kEpsilon ?
++      (point.vx * point.ax + point.vy * point.ay) / speed : 0.0;
++    const double yaw_rate = speed > kEpsilon ?
++      (point.vx * point.ay - point.vy * point.ax) / speed : 0.0;
++    research_interfaces::msg::TimedTrajectoryPoint2D sample;
++    sample.t = static_cast<double>(index) * kSamplePeriod;
++    sample.x = point.x;
++    sample.y = point.y;
++    sample.yaw = yaw;
++    sample.v = point.v;
++    sample.w = yaw_rate;
++    sample.a = acceleration;
++    sample.alpha = index == 0 ? 0.0 : angle_delta(yaw, previous_yaw) / kSamplePeriod;
++    sample.curvature = speed > kEpsilon ? yaw_rate / (speed * speed) : 0.0;
++    message.points.push_back(sample);
++    previous_yaw = yaw;
++    previous_w = yaw_rate;
++    (void)previous_w;
++  }
++  trajectory_publisher_->publish(message);
+ }
+ 
+-
+-// 计算两点之间的欧氏距离（单位：米）
+-double TrajectoryAndObstaclesPublisher::distance(const PathPoint& p1, const PathPoint& p2) {
+-    double dx = p2.x - p1.x;
+-    double dy = p2.y - p1.y;
+-    return std::sqrt(dx*dx + dy*dy);
++void TrajectoryAndObstaclesPublisher::publish_visual_trajectory(const std::vector<PathPoint> & points)
++{
++  nav_msgs::msg::Path visual;
++  visual.header.stamp = now().to_msg();
++  visual.header.frame_id = "odom";
++  for (const auto & point : points) {
++    geometry_msgs::msg::PoseStamped pose;
++    pose.header = visual.header;
++    pose.pose.position.x = point.x;
++    pose.pose.position.y = point.y;
++    pose.pose.position.z = 0.0;
++    const double speed = std::hypot(point.vx, point.vy);
++    const double yaw = speed > kEpsilon ? std::atan2(point.vy, point.vx) : vehicle_state_.z;
++    tf2::Quaternion quaternion;
++    quaternion.setRPY(0.0, 0.0, yaw);
++    pose.pose.orientation.x = quaternion.x();
++    pose.pose.orientation.y = quaternion.y();
++    pose.pose.orientation.z = quaternion.z();
++    pose.pose.orientation.w = quaternion.w();
++    visual.poses.push_back(pose);
++  }
++  visual_trajectory_publisher_->publish(visual);
+ }
+ 
+-/**
+- * 将轨迹离散为均匀间隔的点（间隔10cm）
+- * @param original_trajectory 原始轨迹（由多个顶点组成的折线）
+- * @param discrete_trajectory 输出的离散轨迹
+- * @param interval 间隔距离（单位：米，默认0.1米即10cm）
+- */
+-void TrajectoryAndObstaclesPublisher::discretize_trajectory(const std::vector<PathPoint>& original_trajectory,
+-                                                            std::vector<PathPoint>& discrete_trajectory,
+-                                                            double interval) {
+-    if (original_trajectory.size() < 2) {
+-        std::cerr << "原始轨迹至少需要2个点！" << std::endl;
+-        return;
+-    }
+-
+-    discrete_trajectory.clear();
+-    // 添加轨迹起点
+-    // discrete_trajectory.push_back(cur_pose_);
+-    discrete_trajectory.push_back(original_trajectory[0]);
+-
+-    // 遍历原始轨迹的每一段线段
+-    for (size_t i = 0; i < original_trajectory.size() - 1; ++i) {
+-        const PathPoint& start = original_trajectory[i];
+-        const PathPoint& end = original_trajectory[i+1];
+-        double seg_length = distance(start, end);  // 线段总长度
+-
+-        if (seg_length < 1e-6) {  // 跳过长度接近0的线段（避免除零）
+-            continue;
+-        }
+-
+-        // 计算当前线段需要插入的点数（不含起点，含终点）
+-        int num_points = static_cast<int>(seg_length / interval);
+-        // 最后一个点到终点的距离（避免累积误差）
+-        double last_interval = seg_length - num_points * interval;
+-
+-        // 生成线段上的离散点
+-        for (int j = 1; j <= num_points; ++j) {
+-            double ratio;
+-            if (j < num_points) {
+-                // 前num_points-1个点：按均匀间隔计算
+-                ratio = (j * interval) / seg_length;
+-            } else {
+-                // 最后一个点：直接对齐到线段终点（避免累积误差）
+-                ratio = 1.0;
+-            }
+-
+-            // 线性插值计算点坐标
+-            PathPoint p;
+-            p.x = start.x + ratio * (end.x - start.x);
+-            p.y = start.y + ratio * (end.y - start.y);
+-            discrete_trajectory.push_back(p);
+-        }
+-    }
++void TrajectoryAndObstaclesPublisher::plan_timer_callback()
++{
++  (void)plan_once();
+ }
+ 
+-// int main(int argc, char *argv[])
+-// {
+-//     rclcpp::init(argc, argv);
+-//     auto node = std::make_shared<TrajectoryAndObstaclesPublisher>();
+-
+-//     rclcpp::executors::MultiThreadedExecutor executor;
+-//     executor.add_node(node);
+-//     executor.spin();
++}  // namespace ego_planner
+ 
+-//     rclcpp::shutdown();
+-//     return 0;
+-// }
+-
+-int main(int argc, char *argv[])
++int main(int argc, char * argv[])
+ {
+-    rclcpp::init(argc, argv);
+-    auto node = std::make_shared<TrajectoryAndObstaclesPublisher>();
+-
+-    // 【强制修改】使用默认的单线程执行器
+-    // 这能保证回调函数 PoseCallback 和 TimerCallback 永远不会同时运行
+-    // 彻底根除锁竞争导致的随机崩溃
+-    rclcpp::spin(node); 
+-
+-    rclcpp::shutdown();
+-    return 0;
++  rclcpp::init(argc, argv);
++  auto node = std::make_shared<ego_planner::TrajectoryAndObstaclesPublisher>();
++  rclcpp::spin(node);
++  rclcpp::shutdown();
++  return 0;
+ }
+-- 
+2.54.0 (Apple Git-157)
+

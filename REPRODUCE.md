@@ -28,6 +28,9 @@ PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
 
 On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,
 build with one worker, and run the new launch with `execution_mode:=shadow`.
-Shadow/live starts the pinned Super-LIO node; replay intentionally does not
-start sensor processes. Do not attach a production serial device to a replay container. `live` remains
-blocked until the acceptance checklist is completed by a human operator.
+Shadow/live starts the pinned Super-LIO node, the patched EGO vehicle ROS edge,
+and the source-aware adapter; replay intentionally does not start sensor,
+authority, planner or serial processes. The physical serial sink requires the
+separate explicit gate `execution_mode:=live enable_serial:=true`; never attach a
+production serial device to replay or shadow. `live` remains blocked until the
+acceptance checklist is completed by a human operator.

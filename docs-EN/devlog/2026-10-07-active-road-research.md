@@ -22,3 +22,9 @@ repair, and MPPI chain cannot be treated as an executable vehicle interface.
 The research entry defaults to replay/shadow. Until Super-LIO's IMU-to-vehicle
 mapping is verified, the adapter reports UNKNOWN and stops. Jetson, bag, camera,
 and physical acceptance evidence remain pending.
+
+Follow-up: the branch now also contains the EGO vehicle ROS edge,
+TimedTrajectory2D, dynamic/curvature/footprint/discrete-lateral-speed checks,
+and an explicit pixel-depth geometry contract. The physical serial sink requires
+explicit `live + enable_serial`; Super-LIO IMU-to-vehicle mapping remains
+UNKNOWN and fail-closed until measured deployment evidence exists.

@@ -359,3 +359,18 @@ footprint sweep, map version, and expiry. Unknown map space or an unverified
 Super-LIO IMU-to-base transform blocks motion. Evidence persistence binds CRS,
 time, submap, and observation UUID; the active-observation score is a bounded
 heuristic and is not a claim of novelty or real-vehicle benefit.
+
+## 5.5 Active-road research entry (2026-10-07)
+
+`system_active_road_research.launch.py` defaults to `replay`. Only `shadow`/`live`
+start Super-LIO, the source-health adapter, and the pinned Ego-Planner-2D
+vehicle ROS edge. EGO consumes `/lio/odom_vehicle`, an odom-frame
+`/research/road_reference`, and `/research/local_obstacle_grid`; the control
+contract is typed `/research/ego_trajectory`, while `nav_msgs/Path` is only
+visualization. Unknown grid cells are occupied, and missing map version,
+curvature/footprint configuration, or measured state rejects a trajectory.
+
+The physical serial sink additionally requires
+`execution_mode:=live enable_serial:=true`; replay/shadow never attach the
+production serial device. RTK authority, the original corridor guard, and
+manual stop priority remain unchanged.

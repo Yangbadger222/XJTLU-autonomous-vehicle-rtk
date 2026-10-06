@@ -9,7 +9,7 @@ vehicle simulator.
 | Component | New entry status | Reason/evidence |
 |---|---|---|
 | FAST-LIO2 process | excluded | `super_lio` is the only LIO candidate in the research launch; old package remains for rollback |
-| Super-LIO node | explicit opt-in | `enable_super_lio=false` by default until parser and frame audit passes |
+| Super-LIO node | shadow/live default, replay excluded | `enable_super_lio=true` in shadow/live; replay remains actuator/sensor-free and the vehicle adapter still blocks unverified output |
 | SLAM Toolbox | excluded | no include in active-road launch |
 | Nav2 planner/controller/MPPI/BT | excluded | no Nav2 include; `nav_msgs/Path` is not a control contract |
 | PGO/FGO shadow | excluded | `rtk_map_odom_corrector` remains the sole map→odom authority |

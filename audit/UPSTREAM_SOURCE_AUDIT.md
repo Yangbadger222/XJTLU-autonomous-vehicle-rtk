@@ -186,3 +186,16 @@ The output is a visualization-only `nav_msgs/Path`: every pose has a zero-yaw qu
 | health | no equivalent | eigen min/condition/regularized | source-aware health; no unconditional healthy alias |
 | EGO path | visualization `nav_msgs/Path` only | no timed trajectory contract | add trajectory ID/start stamp/knots or timed samples with kinematic validity |
 | authority | no authority or stop | RTK gate owns stop/motion permission | keep RTK authority and serial safety bridge unchanged |
+
+## Project ROS edge follow-up (2026-10-07)
+
+The second project patch (`0002-vehicle-ros-timed-trajectory.patch`) replaces
+only the upstream interactive ROS edge. It subscribes to `/lio/odom_vehicle`,
+`/research/road_reference`, `/research/local_obstacle_grid`, and
+`/research/map_version`; it calls the patched `PlannerInterface` with measured
+world-frame velocity/acceleration and publishes `research_interfaces/TimedTrajectory2D`.
+The old `nav_msgs/Path` publisher remains visualization-only. Unknown occupancy
+cells, missing map version, zero/unmeasured curvature/footprint limits and stale
+state produce a typed failure and no executable trajectory. This patch was
+applied sequentially after `0001` on a fresh checkout; target ROS compilation
+remains pending because ROS 2 Humble is unavailable here.

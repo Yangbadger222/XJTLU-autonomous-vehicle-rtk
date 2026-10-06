@@ -42,3 +42,22 @@ def test_dynamic_limits_reject_without_clipping():
     ]), VehicleLimits(), now=0.0, expected_map_version="m1")
     assert not result.valid
     assert any("accel_limit" in reason for reason in result.reasons)
+
+
+def test_discrete_body_lateral_speed_is_rejected():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),
+        TimedPoint(1.0, 0.2, 0.2, 0.0, 0.2, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert "lateral_speed_limit:0.2" in result.reasons
+
+
+def test_discrete_speed_and_yaw_rate_derivatives_are_rejected():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        TimedPoint(1.0, 0.2, 0.0, 0.5, 2.0, 2.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert any(reason.startswith("speed_derivative_accel_limit") for reason in result.reasons)
+    assert any(reason.startswith("yaw_derivative_accel_limit") for reason in result.reasons)

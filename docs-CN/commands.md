@@ -886,7 +886,8 @@ colcon test-result --verbose
 本地无 ROS 依赖时仅运行执行器隔离的 replay：
 
 ```bash
-PYTHONPATH=src/research_runtime python3 -m pytest -q src/research_runtime/test
+PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q \
+  src/research_runtime/test src/super_lio_vehicle_adapter/test
 PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
   --output runtime-data/research/active_road/replay_smoke.json
 ```
@@ -897,3 +898,8 @@ Jetson 需在干净 worktree 中使用 `colcon build --parallel-workers 1`，再
 
 锁定前两层参数并保留第三层待车端 dump：
 `python3 scripts/audit_vehicle_baseline.py`。
+
+shadow/live 的 EGO 输入合同是 `/lio/odom_vehicle`、
+`/research/road_reference`、`/research/local_obstacle_grid` 和
+`/research/map_version`，输出 `/research/ego_trajectory`。物理串口还必须显式
+设置 `enable_serial:=true`，并且只允许 `execution_mode:=live`。

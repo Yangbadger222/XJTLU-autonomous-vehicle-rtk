@@ -197,6 +197,13 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "68 tests including ROS unknown-covariance sentinel rejection"
+    },
+    {
+      "command": "bounded Docker daemon probe for desktop-linux and orbstack (8 s each)",
+      "status": "PENDING",
+      "exit_code": null,
+      "evidence": "desktop-linux socket unavailable; orbstack daemon timed out after 8 s",
+      "scope": "external container service probe only; no target-image build or runtime claim"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

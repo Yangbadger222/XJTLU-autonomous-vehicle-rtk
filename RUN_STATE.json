@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "7f309d3",
+  "tip_commit_at_report": "5cfd420",
   "active_processes": [],
   "commands": [
     {
@@ -133,6 +133,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "65 tests after stamped Super-LIO and typed RoadEvidence2D boundary checks"
+    },
+    {
+      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "overall_static_status=PASS after nonzero RoadEvidence2D timestamp enforcement"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

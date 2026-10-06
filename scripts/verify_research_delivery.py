@@ -82,6 +82,16 @@ def main() -> int:
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(super_patch), str(ego_one), str(ego_two)],
           json.dumps({"expected": expected_hashes, "actual": actual_hashes}, sort_keys=True))
 
+    patch_audit = Path("audit/ego_patch_check_current.log")
+    patch_audit_text = patch_audit.read_text() if patch_audit.is_file() else ""
+    check("ego_patch_apply_audit",
+          verification["ego_planner_2d_ros2"].get("apply_check") == "PASS_SEQUENTIAL" and
+          "sequential patches: 0001, 0002, 0003" in patch_audit_text and
+          "git apply --check and apply: PASS" in patch_audit_text and
+          "map-version ESDF reset" in patch_audit_text,
+          ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
+          "requires exact-commit sequential apply evidence for all three patches")
+
     protected = subprocess.run(["sha256sum", "-c", "audit/vehicle_baseline/PROTECTED_FILES.sha256"],
                                text=True, capture_output=True)
     check("protected_vehicle_files", protected.returncode == 0,

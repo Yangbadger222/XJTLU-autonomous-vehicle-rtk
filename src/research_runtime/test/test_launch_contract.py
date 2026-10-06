@@ -61,3 +61,6 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
                          "double max_jerk_ = 4.0", "double map_resolution_ = 0.1",
                          "double map_inflate_value_ = 0.5"):
         assert demo_default not in active_additions
+    assert "(point.vx * point.ay - point.vy * point.ax) / (speed * speed)" in active_additions
+    assert "sample.curvature = speed > kEpsilon ? yaw_rate / speed" in active_additions
+    assert "sample.curvature = speed > kEpsilon ? yaw_rate / (speed * speed)" not in active_additions

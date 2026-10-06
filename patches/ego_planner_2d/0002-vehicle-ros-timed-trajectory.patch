@@ -1196,7 +1196,7 @@ index a2befd4..53270ed 100644
 +    const double acceleration = speed > kEpsilon ?
 +      (point.vx * point.ax + point.vy * point.ay) / speed : 0.0;
 +    const double yaw_rate = speed > kEpsilon ?
-+      (point.vx * point.ay - point.vy * point.ax) / speed : 0.0;
++      (point.vx * point.ay - point.vy * point.ax) / (speed * speed) : 0.0;
 +    research_interfaces::msg::TimedTrajectoryPoint2D sample;
 +    sample.t = static_cast<double>(index) * kSamplePeriod;
 +    sample.x = point.x;
@@ -1206,7 +1206,7 @@ index a2befd4..53270ed 100644
 +    sample.w = yaw_rate;
 +    sample.a = acceleration;
 +    sample.alpha = index == 0 ? 0.0 : angle_delta(yaw, previous_yaw) / kSamplePeriod;
-+    sample.curvature = speed > kEpsilon ? yaw_rate / (speed * speed) : 0.0;
++    sample.curvature = speed > kEpsilon ? yaw_rate / speed : 0.0;
 +    message.points.push_back(sample);
 +    previous_yaw = yaw;
 +    previous_w = yaw_rate;
@@ -1337,4 +1337,3 @@ index a2befd4..53270ed 100644
  }
 -- 
 2.54.0 (Apple Git-157)
-

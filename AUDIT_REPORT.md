@@ -97,6 +97,11 @@ same tracker using a synthetic measured pose before injecting RTK authority
 loss; the resulting evidence contains both the bounded tracked command and
 the final zero serial bytes.
 
+The EGO ROS trajectory wrapper now derives yaw-rate as
+`cross(v,a)/|v|^2` and curvature as `yaw-rate/|v|`; the source-level contract
+test rejects the previous dimensionally incorrect formula and the patch hash in
+`audit/UPSTREAM_PATCH_VERIFICATION.json` was refreshed.
+
 ## Follow-up implementation evidence
 
 The pinned EGO source now has a second sequential project patch that replaces its

@@ -38,6 +38,16 @@ def _stamp_seconds(stamp) -> float:
     return float(stamp.sec) + 1e-9 * float(stamp.nanosec)
 
 
+def _stamp_is_set(stamp) -> bool:
+    """Evidence must carry acquisition time; zero cannot mean an unknown epoch."""
+    try:
+        sec = int(stamp.sec)
+        nanosec = int(stamp.nanosec)
+    except (AttributeError, TypeError, ValueError):
+        return False
+    return sec >= 0 and 0 <= nanosec < 1_000_000_000 and (sec > 0 or nanosec > 0)
+
+
 def _finite_point(point) -> bool:
     return all(math.isfinite(float(value)) for value in (point.x, point.y, point.z))
 
@@ -119,6 +129,9 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
             return
         if str(msg.header.frame_id) != "odom":
             self._reject("evidence geometry must already be in odom")
+            return
+        if not _stamp_is_set(msg.header.stamp):
+            self._reject("evidence has no acquisition timestamp")
             return
         if not msg.evidence_id or not msg.source or not msg.local_submap_id:
             self._reject("evidence id/source/local_submap_id are required")

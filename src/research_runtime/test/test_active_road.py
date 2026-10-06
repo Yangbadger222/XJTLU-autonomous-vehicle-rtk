@@ -4,6 +4,20 @@ import pytest
 
 from research_runtime.active_road import (EvidenceState, EvidenceStore, GeoTransform, MaGRoadPrior,
                                            ObservationCandidate, RoadEvidence, choose_observation)
+from active_road_mapping.evidence_node import _stamp_is_set
+
+
+class _Stamp:
+    def __init__(self, sec, nanosec):
+        self.sec = sec
+        self.nanosec = nanosec
+
+
+def test_typed_evidence_requires_a_nonzero_acquisition_timestamp():
+    assert not _stamp_is_set(_Stamp(0, 0))
+    assert not _stamp_is_set(_Stamp(-1, 1))
+    assert not _stamp_is_set(_Stamp(1, 1_000_000_000))
+    assert _stamp_is_set(_Stamp(0, 1))
 
 
 def test_evidence_replay_is_idempotent_and_persistent(tmp_path):

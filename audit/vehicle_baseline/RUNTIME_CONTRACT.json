@@ -15,13 +15,13 @@
     "/lio/cloud_body": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "base_footprint",
-      "producer": "Super-LIO adapter",
+      "producer": "patched Super-LIO cloud output; vehicle cloud adapter pending",
       "frequency_hz": "PENDING_RUNTIME"
     },
     "/lio/cloud_world": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "odom",
-      "producer": "Super-LIO adapter",
+      "producer": "patched Super-LIO cloud output; local grid node accepts only verified odom frame",
       "frequency_hz": "PENDING_RUNTIME"
     },
     "/lio/health": {

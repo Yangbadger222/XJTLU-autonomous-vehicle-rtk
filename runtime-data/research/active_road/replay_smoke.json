@@ -25,7 +25,7 @@
     "truth_is_evaluator_only": true
   },
   "selected_candidate": "view-safe",
-  "selected_score": 0.6999996500001749,
+  "selected_score": 0.7,
   "serial_allowed": "vcx=0.2,wc=0\n",
   "serial_denied": "vcx=0,wc=0\n",
   "trajectory": {

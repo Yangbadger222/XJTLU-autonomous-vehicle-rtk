@@ -61,3 +61,39 @@ def test_discrete_speed_and_yaw_rate_derivatives_are_rejected():
     assert not result.valid
     assert any(reason.startswith("speed_derivative_accel_limit") for reason in result.reasons)
     assert any(reason.startswith("yaw_derivative_accel_limit") for reason in result.reasons)
+
+
+def test_expiry_map_version_and_frame_are_rejected():
+    expired = validate_trajectory(
+        TimedTrajectory.from_points("t", "old", "map", 0.0, 0.5,
+                                    [TimedPoint(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)]),
+        VehicleLimits(), now=1.0, expected_map_version="m1")
+    assert not expired.valid
+    assert {"trajectory_expired", "map_version_mismatch", "unsupported_frame:map"} <= set(expired.reasons)
+
+
+def test_time_rollback_is_rejected():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),
+        TimedPoint(-0.1, 0.02, 0.0, 0.0, 0.2, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert "non_monotonic_time" in result.reasons
+
+
+def test_curvature_and_yaw_rate_must_agree_in_timed_contract():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.5, 0.0, curvature=1.0),
+        TimedPoint(1.0, 0.5, 0.0, 0.0, 0.5, 0.0, curvature=1.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert "yaw_rate_curvature_inconsistent" in result.reasons
+
+
+def test_pose_jump_is_rejected_by_discrete_speed_check():
+    result = validate_trajectory(traj([
+        TimedPoint(0.0, 0.0, 0.0, 0.0, 0.2, 0.0),
+        TimedPoint(0.1, 1.0, 0.0, 0.0, 0.2, 0.0),
+    ]), VehicleLimits(), now=0.0, expected_map_version="m1")
+    assert not result.valid
+    assert "path_speed_mismatch" in result.reasons

@@ -38,7 +38,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`32 passed`). The replay
+The new transport-independent and contract suite passes (`36 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -54,6 +54,10 @@ The final mock sink fault matrix now includes RTK authority false/stale,
 unknown LIO health, invalid TF, invalid map, invalid/expired trajectory,
 stop-override, manual stop and non-finite command inputs; each asserts the
 exact `vcx=0,wc=0\\n` output.
+
+The shared trajectory validator also has explicit rejection cases for map and
+frame mismatch, expiry, time rollback, pose jumps, and curvature/yaw-rate
+inconsistency; these are separate from the upstream planner compile evidence.
 
 ## Follow-up implementation evidence
 

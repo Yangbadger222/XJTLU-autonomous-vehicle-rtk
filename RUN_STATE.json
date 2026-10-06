@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "2ab6d1058a3fc449a501ef8d67ad9bd391af2ec6",
+  "tip_commit_at_report": "cc49dab04636e530586ed8cc47ff3217367e1c5f",
   "active_processes": [],
   "commands": [
     {
@@ -39,6 +39,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "all protected source hashes match"
+    },
+    {
+      "command": "python3 scripts/audit_vehicle_baseline.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "source and parsed corridor layers reproduced; runtime ros2 param dump remains PENDING_JETSON"
     },
     {
       "command": "scripts/apply_ego_vehicle_patch.sh (fresh checkout; sequential git apply --check)",

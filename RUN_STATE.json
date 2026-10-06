@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "5cfd420",
+  "tip_commit_at_report": "85ea1d2",
   "active_processes": [],
   "commands": [
     {
@@ -145,6 +145,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "audit/ego_patch_check_current.log; exact source files fetched from pinned commit; no source conflicts"
+    },
+    {
+      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "overall_static_status=PASS; current EGO map-reset patch hash and exact sequential apply-check provenance verified"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

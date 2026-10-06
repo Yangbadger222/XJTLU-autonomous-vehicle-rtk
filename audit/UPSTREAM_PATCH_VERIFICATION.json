@@ -18,8 +18,8 @@
   },
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch",
-    "patch_sha256": "249a8268f2d503abc4b4557414cf549db23085cf2740356b5260839238ef45ca",
+    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch + 0003-clear-stale-plan-on-failure.patch",
+    "patch_sha256": "97d387a44911bcf40963e4b72055bec76c2c814200c4d0e77173ce0b4a03b588",
     "apply_check": "PASS_SEQUENTIAL",
     "files": [
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
@@ -32,7 +32,7 @@
       "src/EgoPlanner-ROS2/CMakeLists.txt",
       "src/EgoPlanner-ROS2/package.xml"
     ],
-    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CURRENT_PATCH",
+    "ros_build": "PASS_TWO_PATCHES_CURRENT_THREE_PATCH_REBUILD_PENDING",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
@@ -43,6 +43,11 @@
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
         "sha256": "8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1",
         "apply_check": "PASS_AFTER_0001"
+      },
+      {
+        "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+        "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
+        "apply_check": "PASS_AFTER_0002"
       }
     ],
     "raw_reproduction": {
@@ -65,11 +70,11 @@
       "evidence": "audit/ego_patch_check_latest.log"
     },
     "current_rebuild_probe": {
-      "status": "PASS_BUILDKIT_CURRENT_PATCH_COMPILE_RUNTIME_PENDING",
+      "status": "PASS_BUILDKIT_TWO_PATCH_COMPILE_THREE_PATCH_REBUILD_PENDING",
       "evidence": "audit/container/ego-current-build.log",
       "exit_evidence": "audit/container/ego-current-build-result.json",
       "observed": "BuildKit linux/arm64 completed research_interfaces and ego_planner with Summary: 2 packages finished and #13 DONE; Docker Desktop disconnected after image export, so no ordinary container-start claim is made",
-      "conclusion": "Current patched EGO compile PASS; container/Jetson runtime remains pending"
+      "conclusion": "Current two-patch ARM64 compile evidence is valid for 0001+0002 only; 0003 stale-plan safety patch applies cleanly but needs a fresh ROS/ARM64 rebuild"
     },
     "patched_build_evidence_current": [
       "audit/container/ego-current-build.log",
@@ -77,7 +82,8 @@
       "audit/container/ego-current-build.Dockerfile",
       "source commit 7f5be6d4cee34871e85aa1f15285cfaf17b23877; both project patches applied in BuildKit",
       "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
-      "compile proof only; ordinary container startup and Jetson runtime remain pending"
+      "compile proof only; ordinary container startup and Jetson runtime remain pending",
+      "current compile log predates 0003; sequential apply-check for all three patches is audit/ego_patch_check_current.log"
     ]
   }
 }

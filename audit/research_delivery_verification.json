@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "codex/superlio-ego-active-road",
-  "tip": "c51a6cdce2f3e4f127fcbead476a6670b1283620",
+  "tip": "4128356716aaa9cd2d93a5e5b100665de57274ac",
   "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "checks": [
     {
@@ -11,7 +11,7 @@
         "git rev-parse --abbrev-ref HEAD",
         "audit/vehicle_baseline/SOURCE_IDENTITY.json"
       ],
-      "detail": "branch=codex/superlio-ego-active-road, tip=c51a6cdce2f3e4f127fcbead476a6670b1283620, base=e54c6afbcb5a58db22d7c468085a87d658b0b932"
+      "detail": "branch=codex/superlio-ego-active-road, tip=4128356716aaa9cd2d93a5e5b100665de57274ac, base=e54c6afbcb5a58db22d7c468085a87d658b0b932"
     },
     {
       "name": "external_pins",
@@ -30,7 +30,7 @@
         "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
         "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch"
       ],
-      "detail": "{\"actual\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_two\": \"8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}, \"expected\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_two\": \"8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}}"
+      "detail": "{\"actual\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_three\": \"caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3\", \"ego_two\": \"8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}, \"expected\": {\"ego_one\": \"ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f\", \"ego_three\": \"caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3\", \"ego_two\": \"8144ab2a3c9928f63d9dff828ab75822df83dc6c113321bc7a83914c8c7a21c1\", \"super_lio\": \"f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1\"}}"
     },
     {
       "name": "protected_vehicle_files",

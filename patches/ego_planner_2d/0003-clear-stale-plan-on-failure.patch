@@ -1,0 +1,15 @@
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+index fd21b7c..196ed15 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+@@ -145,6 +145,10 @@ namespace ego_planner
+ 
+     void PlannerInterface::makePlan()
+     {
++        // A failed replan must not leave an earlier timed trajectory available
++        // to the ROS edge.  The caller treats an empty result as a stop.
++        _plan_traj_results_.clear();
++        a_star_pathes_.clear();
+         std::cout << "开始规划..." << std::endl;
+         Eigen::Vector3d start_pt;
+         Eigen::Vector3d start_vel;

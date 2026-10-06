@@ -129,6 +129,14 @@ The EGO ROS trajectory wrapper now derives yaw-rate as
 test rejects the previous dimensionally incorrect formula and the patch hash in
 `audit/UPSTREAM_PATCH_VERIFICATION.json` was refreshed.
 
+The third sequential EGO patch clears the planner's previous timed-result and
+A* result before every replan. A failed optimizer or missing measured state
+therefore cannot be followed by republishing an older feasible-looking plan;
+the ROS edge receives an empty result and publishes a failure/stop contract.
+The exact three-patch apply check passes in `audit/ego_patch_check_current.log`.
+The existing ARM64 BuildKit compile predates this third patch, so the current
+three-patch ROS rebuild remains pending.
+
 After that formula change, a fresh temporary checkout at the exact upstream
 commit reapplied patch 0001 and passed `git apply --check` for patch 0002;
 the command and current hashes are recorded in `audit/ego_patch_check_latest.log`.

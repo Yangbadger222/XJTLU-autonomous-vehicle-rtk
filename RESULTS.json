@@ -53,9 +53,10 @@
       "config/ego_vehicle_adapter.yaml",
       "audit/container/current-ego-rebuild-probe.log",
       "audit/container/ego-current-build.log",
-      "audit/container/ego-current-build-result.json"
+      "audit/container/ego-current-build-result.json",
+      "audit/ego_patch_check_current.log"
     ],
-    "reason": "exact sequential patch apply-check, source/contract tests and prior isolated ARM64 BuildKit compile passed; the current tree adds the typed RoadEvidence2D/geometry_msgs interface after that compile, so a current ROS message package build plus target wiring/runtime remain pending",
+    "reason": "three sequential patches (including stale-plan clearing after failed replan) apply cleanly at the exact upstream commit; source/contract tests pass; existing ARM64 compile evidence covers 0001+0002 only, while the current three-patch ROS rebuild and target wiring/runtime remain pending",
     "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; safety and evidence interfaces are static/installed-package checked, current ROS/ARM64 rebuild and Jetson runtime remain pending"
   },
   "UGV_TRAJECTORY_FEASIBILITY": {

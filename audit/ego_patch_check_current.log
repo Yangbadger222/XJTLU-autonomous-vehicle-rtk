@@ -1,0 +1,4 @@
+exact upstream commit: 7f5be6d4cee34871e85aa1f15285cfaf17b23877
+sequential patches: 0001, 0002, 0003
+git apply --check and apply: PASS
+working tree: sparse checkout, no source conflicts

@@ -64,12 +64,15 @@ def main() -> int:
     super_patch = Path("patches/super_lio/0001-publish-source-aware-odom-health.patch")
     ego_one = Path("patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch")
     ego_two = Path("patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch")
+    ego_three = Path("patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch")
     expected_hashes = {
         "super_lio": verification["super_lio"]["patch_sha256"],
         "ego_one": verification["ego_planner_2d_ros2"]["patches"][0]["sha256"],
         "ego_two": verification["ego_planner_2d_ros2"]["patches"][1]["sha256"],
+        "ego_three": verification["ego_planner_2d_ros2"]["patches"][2]["sha256"],
     }
-    actual_hashes = {"super_lio": sha256(super_patch), "ego_one": sha256(ego_one), "ego_two": sha256(ego_two)}
+    actual_hashes = {"super_lio": sha256(super_patch), "ego_one": sha256(ego_one),
+                     "ego_two": sha256(ego_two), "ego_three": sha256(ego_three)}
     check("patch_hashes", actual_hashes == expected_hashes,
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(super_patch), str(ego_one), str(ego_two)],
           json.dumps({"expected": expected_hashes, "actual": actual_hashes}, sort_keys=True))

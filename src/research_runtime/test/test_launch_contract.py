@@ -114,3 +114,8 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
     assert "std::abs(point.v - speed) > speed_tolerance" in active_additions
     assert "sample.curvature = speed > kEpsilon ? yaw_rate / (speed * speed)" not in active_additions
     assert "const double curvature = speed > kEpsilon ? yaw_rate / (speed * speed)" not in active_additions
+
+    stale_plan_patch = (Path(__file__).parents[3] / "patches" / "ego_planner_2d" /
+                        "0003-clear-stale-plan-on-failure.patch").read_text()
+    assert "_plan_traj_results_.clear();" in stale_plan_patch
+    assert "a_star_pathes_.clear();" in stale_plan_patch

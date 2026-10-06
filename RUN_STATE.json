@@ -47,10 +47,10 @@
       "evidence": "source and parsed corridor layers reproduced; runtime ros2 param dump remains PENDING_JETSON"
     },
     {
-      "command": "scripts/apply_ego_vehicle_patch.sh (fresh checkout; sequential git apply --check)",
+      "command": "fresh sparse checkout; sequential git apply --check for EGO patches 0001+0002+0003",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "0001 + 0002 sequential apply-check at exact EGO commit; latest recheck in audit/ego_patch_check_latest.log; raw and patched ARM64 ROS 2 Humble build evidence in audit/container"
+      "evidence": "0001 + 0002 + 0003 sequential apply-check at exact EGO commit in audit/ego_patch_check_current.log; 0003 clears stale results after failed replan; raw and two-patch ARM64 ROS 2 Humble build evidence in audit/container; current three-patch rebuild pending"
     },
     {
       "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
@@ -95,6 +95,12 @@
       "status": "PASS",
       "exit_code": 0,
       "evidence": "overall_static_status=PASS; branch/base, pins, patch hashes, protected files, launch allowlist, serial gate, cloud TF boundary, typed interfaces, required deliverables and report copy"
+    },
+    {
+      "command": "python3 scripts/verify_research_delivery.py --output /tmp/research-delivery-after-0003.json",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "three patch hashes and current report/result matrix verified; overall_static_status=PASS"
     }
   ],
   "runtime_data_root": "runtime-data/research/active_road",

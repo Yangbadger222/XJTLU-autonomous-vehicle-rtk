@@ -53,7 +53,8 @@ def test_research_entry_has_no_legacy_navigation_or_fake_sim_include():
 
 def test_bringup_declares_active_road_runtime_dependencies():
     package = (Path(__file__).parents[3] / "src" / "bringup" / "package.xml").read_text()
-    for dependency in ("super_lio", "ego_planner", "research_interfaces",
+    for dependency in ("ament_index_python", "launch", "launch_ros",
+                       "super_lio", "ego_planner", "research_interfaces",
                        "research_runtime", "super_lio_vehicle_adapter",
                        "active_road_mapping",
                        "livox_ros_driver2", "um982_rtk_driver",

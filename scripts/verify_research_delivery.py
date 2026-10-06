@@ -158,6 +158,12 @@ def main() -> int:
           [str(ego_config), "src/bringup/CMakeLists.txt",
            "src/bringup/launch/system_active_road_research.launch.py"],
           "vehicle EGO parameters are installed with bringup rather than left in a repository-only config directory")
+    bringup_package = Path("src/bringup/package.xml").read_text()
+    check("bringup_launch_dependencies",
+          all(f"<exec_depend>{dependency}</exec_depend>" in bringup_package
+              for dependency in ("ament_index_python", "launch", "launch_ros")),
+          ["src/bringup/package.xml", "src/bringup/launch/system_active_road_research.launch.py"],
+          "launch imports have explicit clean-install package dependencies")
 
     contract = json.loads(Path("audit/vehicle_baseline/RUNTIME_CONTRACT.json").read_text())
     topics = contract["topics"]

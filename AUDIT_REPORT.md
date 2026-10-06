@@ -106,6 +106,9 @@ The vehicle EGO parameter file is installed under `src/bringup/config/` and is
 resolved through the bringup share directory used by the launch file; the
 previous repository-root-only path was removed so a clean install cannot fail
 before the planner node starts.
+The bringup manifest also declares `ament_index_python`, `launch`, and
+`launch_ros`, which are direct imports of the research launch file rather than
+transitive desktop dependencies.
 
 The active-road research loop now has a typed `RoadEvidence2D` ROS ingest
 message and `active_road_evidence` node. The node requires a valid persisted

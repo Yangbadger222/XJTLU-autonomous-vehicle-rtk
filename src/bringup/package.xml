@@ -22,6 +22,9 @@
   <depend>std_msgs</depend>
   <depend>geographic_msgs</depend>
   <depend>tf2_ros</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
   <!-- Active-road research entry dependencies. Legacy packages remain
        available for the original launch files and rollback. -->
   <exec_depend>super_lio</exec_depend>

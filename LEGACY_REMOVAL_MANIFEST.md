@@ -19,5 +19,5 @@ vehicle simulator.
 | RTK driver and authority | retained in shadow/live | authority loss continues to stop motion |
 | corridor command guard | retained | final stop and speed authority remains unchanged |
 | serial reader/twistctl | retained | final mock/STM32 command contract remains unchanged |
-| local ground/obstacle inputs | adapter boundary | Super-LIO output and existing filters require target-side runtime audit |
+| local ground/obstacle inputs | adapter boundary | `research_runtime.grid_map` provides the conservative odom-frame projection and unknown-as-occupied contract; Super-LIO output, existing height filters and target-side sensor/TF wiring require runtime audit |
 | `rviz_car_sim/fake_sim_node` | replay only | it cannot own live TF or final command |

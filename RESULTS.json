@@ -65,7 +65,7 @@
       "src/research_runtime/test/test_launch_contract.py",
       "runtime-data/research/active_road/replay_smoke.json"
     ],
-    "scope": "final mock serial bytes; physical e-stop pending"
+    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults; physical e-stop pending"
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
     "status": "PASS",

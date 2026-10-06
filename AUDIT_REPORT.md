@@ -38,7 +38,7 @@
 
 ## Regression evidence
 
-The new transport-independent and contract suite passes (`26 passed`). The replay
+The new transport-independent and contract suite passes (`32 passed`). The replay
 entry point was also executed through `research_safety_bridge --mode replay`; it
 accepted the mode flag, wrote the deterministic replay JSON, and retained the
 final mock stop bytes. The original
@@ -49,6 +49,11 @@ test importing unavailable `rclpy`). The existing corridor launch suite records
 `26 passed, 1 failed` because the pinned baseline lacks the expected
 `enable_local_odom_bridge: false` text. No protected file was modified to make
 these tests pass.
+
+The final mock sink fault matrix now includes RTK authority false/stale,
+unknown LIO health, invalid TF, invalid map, invalid/expired trajectory,
+stop-override, manual stop and non-finite command inputs; each asserts the
+exact `vcx=0,wc=0\\n` output.
 
 ## Follow-up implementation evidence
 

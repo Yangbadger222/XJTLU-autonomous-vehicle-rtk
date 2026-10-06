@@ -28,7 +28,7 @@
 - Jetson runtime and target launch/parameter dumps are unavailable in this
   session. The isolated container builds do not provide the target device's
   sensors, serial device, TF tree or runtime parameter layer.
-- No verified vehicle IMU→base extrinsic, expanded URDF footprint/wheel geometry, camera intrinsics/extrinsics/depth stream or vehicle bag identity was supplied in this workspace.
+- No verified vehicle IMU→base extrinsic, runtime confirmation of the locked corridor footprint/wheel geometry, camera intrinsics/extrinsics/depth stream or vehicle bag identity was supplied in this workspace. The corridor source polygon is now recorded and transported as an exact carry-over, but it is not treated as a target runtime dump.
 - Super-LIO parser output has no covariance/health equivalent at the pinned commit; adapter remains UNKNOWN and fails closed.
 - A local 135.1 s bag was reindexed, inspected and replayed in the isolated
   ARM64 ROS 2 Humble container. The replay delivered 1347 legacy
@@ -66,8 +66,8 @@ body cloud by string relabeling.
 The ROS safety bridge now parses `enable_serial` by value, rejects `UNKNOWN`
 map versions, and expires both the persisted map-version heartbeat and local
 obstacle grid after 0.50 s. It uses the locked corridor speed/acceleration/yaw
-limits and keeps curvature/lateral limits disabled until measured vehicle
-geometry is provided. The map publisher runs at 0.20 s to remain inside that
+limits and consumes the exact corridor source footprint polygon. Curvature/lateral
+limits remain disabled until the target runtime confirms the vehicle geometry. The map publisher runs at 0.20 s to remain inside that
 freshness window. New contract tests cover these boundaries.
 
 The final mock sink fault matrix now includes RTK authority false/stale,
@@ -84,7 +84,7 @@ resolution is rejected instead of being treated as a point-only proof.
 
 The launch-contract suite also asserts that the vehicle EGO configuration
 contains the locked corridor limits, keeps curvature/inflation at explicit
-fail-closed zero values until measured, treats unknown occupancy as blocked,
+fail-closed zero values until their semantics are verified, treats unknown occupancy as blocked,
 and does not activate the upstream demo defaults for speed, acceleration,
 jerk, resolution or inflation.
 
@@ -116,8 +116,8 @@ trajectory sample directly to `/cmd_vel`; expired, invalid or stale state still
 reaches the mock sink as a stop, and a health message older than the explicit
 0.50 s timeout is treated as UNKNOWN. The bridge also requires a matching
 odom-frame `/research/local_obstacle_grid`, `/research/map_version`, and
-explicit measured footprint before enabling its collision oracle; absent or
-stale map/footprint data remains a stop.
+the locked source footprint polygon before enabling its collision oracle; absent or
+stale map/footprint data remains a stop, and target runtime confirmation is still required.
 
 The deterministic replay harness now drives its allowed command through the
 same tracker using a synthetic measured pose before injecting RTK authority

@@ -18,6 +18,7 @@
     {"name":"lio.r_il","value":[1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],"type":"matrix3x3","unit":"rotation","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/r_il","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
     {"name":"cloud.publish_height_window","value":[-0.33,0.30],"type":"interval","unit":"m relative to body along gravity","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/publish_cloud_min_z,max_z","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
     {"name":"cloud.nav2_obstacle_height_window","value":[0.08,1.20],"type":"interval","unit":"m relative to body along gravity","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/nav2_obstacle_cloud_min_z,max_z","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
+    {"name":"vehicle.corridor_footprint_xy","value":[[0.33,0.305],[0.33,-0.305],[-0.33,-0.305],[-0.33,0.305]],"type":"polygon","unit":"m in base_link xy","source":"src/bringup/config/nav2_corridor_rtk.yaml:local_costmap.local_costmap.footprint","priority":"corridor_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
     {"name":"corridor.smoother.max_velocity","value":[0.85,0.0,0.70],"type":"vector<double>","unit":"m/s,m/s,rad/s","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
     {"name":"corridor.smoother.min_velocity","value":[0.0,0.0,-0.70],"type":"vector<double>","unit":"m/s,m/s,rad/s","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
     {"name":"corridor.smoother.max_accel","value":[0.85,0.0,1.4],"type":"vector<double>","unit":"m/s2,m/s2,rad/s2","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
@@ -30,7 +31,7 @@
     {"name":"gnss.heading_offset_deg","value":88.5,"type":"double","unit":"deg","source":"src/bringup/config/master_params.yaml:/um982_rtk_driver/ros__parameters/heading_offset_deg","priority":"master_yaml","class":"EXACT_CARRY_OVER_PENDING_CALIBRATION","runtime_verification":"PENDING_JETSON"}
   ],
   "missing_or_unverified": [
-    "expanded URDF/chassis footprint, wheel radius and track",
+    "runtime confirmation of the baseline footprint, wheel radius and track",
     "Jetson launch parameter dump and current_scene generated overlays",
     "Super-LIO parser time offset and IMU unit equivalence",
     "camera model, extrinsics and depth unit",

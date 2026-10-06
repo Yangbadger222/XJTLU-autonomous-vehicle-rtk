@@ -102,6 +102,9 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
     assert "inflate_radius_m: 0.0" in config
     assert "map_resolution_m: 0.30" in config
     assert "grid_unknown_is_occupied: true" in config
+    safety = (Path(__file__).parents[3] / "src" / "bringup" / "config" /
+              "research_safety_bridge.yaml").read_text()
+    assert "footprint_xy: [0.33, 0.305, 0.33, -0.305, -0.33, -0.305, -0.33, 0.305]" in safety
     assert 'initial_map_version: "UNKNOWN"' in config
 
     patch = (Path(__file__).parents[3] / "patches" / "ego_planner_2d" /

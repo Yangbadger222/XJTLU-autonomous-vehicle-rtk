@@ -16,4 +16,7 @@ research_safety_bridge:
     max_yaw_decel_rps2: 1.80
     max_curvature_1pm: 0.0
     max_lateral_speed_mps: 0.0
-    footprint_xy: []
+    # Exact corridor local-costmap polygon from the locked baseline.  This is
+    # a source carry-over, not a new measurement; runtime confirmation still
+    # remains required before live motion.
+    footprint_xy: [0.33, 0.305, 0.33, -0.305, -0.33, -0.305, -0.33, 0.305]

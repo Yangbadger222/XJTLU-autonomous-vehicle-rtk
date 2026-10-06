@@ -6,6 +6,7 @@ lio.r_il,I3,super_lio.extrinsic_rotation,EXACT_CARRY_OVER,rotation matrix; no on
 cloud.publish_height_window,[-0.33 0.30],research_cloud_filter,EXACT_CARRY_OVER,relative z along gravity,FAST-LIO2 lio_node.cpp,PENDING_ADAPTER
 cloud.nav2_obstacle_height_window,[0.08 1.20],research_obstacle_filter,EXACT_CARRY_OVER,relative z along gravity,FAST-LIO2 lio_node.cpp,PENDING_ADAPTER
 cloud.nav2_obstacle_height_window,[0.08 1.20],research_local_obstacle_grid.obstacle_min_z_m/max_z_m,EXACT_CARRY_OVER,relative z along gravity; only measured cells become occupied,FAST-LIO2 lio_node.cpp,PENDING_TF_RUNTIME
+corridor.local_costmap.footprint,[[0.33 0.305] [0.33 -0.305] [-0.33 -0.305] [-0.33 0.305]],research_safety_bridge.footprint_xy,EXACT_CARRY_OVER,polygon flattened only for ROS parameter transport; runtime source/effective dump still required,nav2_corridor_rtk.yaml,PENDING_RUNTIME
 corridor.smoother.max_velocity,[0.85 0 0.70],trajectory.v_w_max/w_max,SEMANTIC_CONVERSION,world/body transform then v and yaw-rate checks,system_gps_corridor.launch.py,PENDING_FOOTPRINT
 corridor.smoother.max_accel,[0.85 0 1.4],trajectory.a_w_max/alpha_max,SEMANTIC_CONVERSION,body longitudinal acceleration and angular acceleration,system_gps_corridor.launch.py,PENDING_FOOTPRINT
 corridor.smoother.max_decel,[-1.2 0 -1.8],trajectory.a_min/alpha_min,SEMANTIC_CONVERSION,stop authority remains original,system_gps_corridor.launch.py,PENDING_FOOTPRINT

@@ -1,0 +1,100 @@
+diff --git a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+index ccc1a6d..dd8c6fc 100644
+--- a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
++++ b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+@@ -13,6 +13,7 @@
+ #include "nav_msgs/msg/path.hpp"
+ #include "std_msgs/msg/string.hpp"
+ #include "research_interfaces/msg/timed_trajectory2_d.hpp"
++#include "research_interfaces/msg/local_evidence_grid2_d.hpp"
+ #include "research_interfaces/srv/plan_road_reference.hpp"
+ #include "tf2/LinearMath/Quaternion.h"
+ #include "tf2/utils.h"
+@@ -39,7 +40,7 @@ public:
+ private:
+   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+   void road_reference_callback(const nav_msgs::msg::Path::SharedPtr msg);
+-  void obstacle_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg);
++  void obstacle_callback(const research_interfaces::msg::LocalEvidenceGrid2D::SharedPtr wrapped);
+   void map_version_callback(const std_msgs::msg::String::SharedPtr msg);
+   void plan_timer_callback();
+ 
+@@ -59,7 +60,7 @@ private:
+   rclcpp::Subscription<geometry_msgs::msg::AccelStamped>::SharedPtr acceleration_subscriber_;
+   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscriber_;
+   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr road_reference_subscriber_;
+-  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_subscriber_;
++  rclcpp::Subscription<research_interfaces::msg::LocalEvidenceGrid2D>::SharedPtr obstacle_subscriber_;
+   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr map_version_subscriber_;
+   rclcpp::Publisher<research_interfaces::msg::TimedTrajectory2D>::SharedPtr trajectory_publisher_;
+   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_trajectory_publisher_;
+@@ -82,6 +83,8 @@ private:
+   std::vector<PathPoint> road_reference_;
+   std::vector<ObstacleInfo> obstacles_;
+   std::string map_version_;
++  std::string localization_session_id_;
++  bool allow_analytical_grid_fixture_{false};
+   double map_resolution_{0.0};
+   bool have_previous_odom_{false};
+   bool state_valid_{false};
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index e4085c1..65fbea6 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -74,6 +74,8 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   (void)declare_parameter<std::string>("measured_wheel_radius_m", "PENDING");
+   (void)declare_parameter<std::string>("measured_track_m", "PENDING");
+   map_version_ = declare_parameter<std::string>("initial_map_version", "UNKNOWN");
++  localization_session_id_=declare_parameter<std::string>("localization_session_id","UNKNOWN");
++  allow_analytical_grid_fixture_=declare_parameter<bool>("allow_analytical_grid_fixture",false);
+ 
+   ego_planner_ = std::make_shared<PlannerInterface>();
+   ego_planner_->initVehicleParam(max_speed_mps_, max_accel_mps2_, max_jerk_mps3_,
+@@ -116,8 +118,8 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   road_reference_subscriber_ = create_subscription<nav_msgs::msg::Path>(
+     "/research/road_reference", 10,
+     std::bind(&TrajectoryAndObstaclesPublisher::road_reference_callback, this, std::placeholders::_1));
+-  obstacle_subscriber_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
+-    "/research/local_obstacle_grid", 10,
++  obstacle_subscriber_ = create_subscription<research_interfaces::msg::LocalEvidenceGrid2D>(
++    "/research/local_evidence_grid", 10,
+     std::bind(&TrajectoryAndObstaclesPublisher::obstacle_callback, this, std::placeholders::_1));
+   map_version_subscriber_ = create_subscription<std_msgs::msg::String>(
+     "/research/map_version", 10,
+@@ -261,8 +263,21 @@ void TrajectoryAndObstaclesPublisher::road_reference_callback(const nav_msgs::ms
+   reference_valid_ = true;
+ }
+ 
+-void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
++void TrajectoryAndObstaclesPublisher::obstacle_callback(const research_interfaces::msg::LocalEvidenceGrid2D::SharedPtr wrapped)
+ {
++  const auto* msg=&wrapped->grid;
++  {
++    std::lock_guard<std::mutex> lock(data_mutex_);
++    if (wrapped->header != msg->header || wrapped->map_version != map_version_ ||
++        localization_session_id_.empty() || localization_session_id_=="UNKNOWN" ||
++        wrapped->localization_session_id != localization_session_id_ ||
++        (wrapped->support_model != "single_scan_flat_dense_with_locked_obstacles_v1" &&
++         !(allow_analytical_grid_fixture_ && wrapped->support_model=="analytical_fixture_v1"))) {
++      grid_valid_=false;
++      executable_cache_valid_=false;
++      return;
++    }
++  }
+   if (msg->header.frame_id != "odom" || msg->info.width == 0 || msg->info.height == 0 ||
+       msg->info.resolution <= 0.0F || configured_map_resolution_m_ <= 0.0 ||
+       std::abs(configured_map_resolution_m_ - msg->info.resolution) > 1e-6 || inflate_radius_m_ <= 0.0) {
+@@ -312,6 +327,13 @@ void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::Occ
+     planner_initialized_ = true;
+   }
+   std::lock_guard<std::mutex> lock(data_mutex_);
++  if(wrapped->map_version != map_version_) {
++    grid_valid_=false;
++    executable_cache_valid_=false;
++    planner_initialized_=false;
++    map_resolution_=0.;
++    return;
++  }
+   ego_planner_->setInputGridGeometry(msg->info.width, msg->info.height,
+                                     Eigen::Vector2d(msg->info.origin.position.x, msg->info.origin.position.y));
+   grid_stamp_ = rclcpp::Time(msg->header.stamp);

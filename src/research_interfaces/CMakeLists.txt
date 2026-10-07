@@ -15,6 +15,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ResearchStatus.msg"
   "msg/OperatorPermit.msg"
   "msg/RoadEvidence2D.msg"
+  "msg/LocalEvidenceGrid2D.msg"
   "srv/PlanRoadReference.srv"
   "srv/ManageResearchTask.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs nav_msgs

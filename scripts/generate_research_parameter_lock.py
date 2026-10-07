@@ -5,6 +5,7 @@ import json
 import argparse
 import re
 import math
+import subprocess
 import yaml
 from pathlib import Path
 
@@ -16,13 +17,23 @@ def main():
     root = Path(__file__).resolve().parents[1]
     source = root/"audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json"
     payload = json.loads(source.read_text())
-    assert payload["source_commit"] == "e54c6afbcb5a58db22d7c468085a87d658b0b932"
+    if payload["source_commit"] != "e54c6afbcb5a58db22d7c468085a87d658b0b932":
+        raise SystemExit("approved vehicle source identity differs")
     locked = {item["name"]: item["value"] for item in payload["parameters"]}
     vmax,vmin,acc,dec = (locked[name] for name in ("corridor.smoother.max_velocity",
         "corridor.smoother.min_velocity","corridor.smoother.max_accel","corridor.smoother.max_decel"))
     values = dict(max_speed_mps=vmax[0],min_speed_mps=vmin[0],max_yaw_rate_rps=vmax[2],
                   max_accel_mps2=acc[0],max_decel_mps2=-dec[0],
                   max_yaw_accel_rps2=acc[2],max_yaw_decel_rps2=-dec[2],max_lateral_accel_mps2=locked["corridor.guard.turn_product_limit"])
+    firmware = {key:locked['firmware.source.source_values.'+key] for key in
+                ('radius_m','track_m','gear_ratio','radps_to_rpm','max_motor_rpm')}
+    notes_path = 'docs-CN/hardware_spec.md'
+    original_notes = subprocess.check_output(['git','show',payload['source_commit']+':'+notes_path],cwd=root)
+    if (root/notes_path).read_bytes() != original_notes:
+        raise SystemExit("recorded MID360 source notes differ from approved baseline")
+    height_match = re.search(r'安装高度 \(相对地面\) \| \*\*([0-9.]+) m\*\*',original_notes.decode())
+    if not height_match:
+        raise SystemExit("recorded MID360 mounting height unavailable")
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     footprint = tuple(tuple(point) for point in locked["vehicle.corridor_footprint_xy"])
     master_path = root/"src/bringup/config/master_params.yaml"
@@ -31,6 +42,9 @@ def main():
     if hashlib.sha256(master_path.read_bytes()).hexdigest() != protected["src/bringup/config/master_params.yaml"]:
         raise SystemExit("protected master source differs; refusing to regenerate stop confirmation")
     master = yaml.safe_load(master_path.read_text())["/rtk_map_odom_corrector"]["ros__parameters"]
+    lidar_params = yaml.safe_load(master_path.read_text())["/fastlio2"]["lio_node"]["ros__parameters"]
+    ground_reference = dict(lidar_height_m=float(height_match.group(1)),
+                            lidar_in_imu_m=tuple(lidar_params['t_il']))
     stopped = (master["stopped_linear_rate_mps"], math.radians(master["stopped_yaw_rate_degps"]),
                master["stopped_confirmation_s"])
     python = root/"src/research_runtime/research_runtime/physical_parameter_lock.py"
@@ -40,6 +54,9 @@ def main():
         +f"STOP_CONFIRMATION = {stopped!r}\n"
         +f"STOP_CONFIRMATION_SOURCE_SHA256 = {hashlib.sha256(master_path.read_bytes()).hexdigest()!r}\n"
         +f"AUTHORITY_HEARTBEAT_TIMEOUT_S = {locked['authority.heartbeat_timeout_s']!r}\n"
+        +f"FIRMWARE_COMMAND_MODEL = {firmware!r}\n"
+        +f"MID360_GROUND_REFERENCE = {ground_reference!r}\n"
+        +f"MID360_MOUNTING_NOTES_SHA256 = {hashlib.sha256(original_notes).hexdigest()!r}\n"
         +'''\ndef require_locked_motion_parameters(actual):
     import math
     for key, expected in PHYSICAL_LIMITS.items():

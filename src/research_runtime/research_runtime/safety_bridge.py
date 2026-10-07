@@ -22,6 +22,7 @@ try:
     from geometry_msgs.msg import Twist
     from nav_msgs.msg import Odometry
     from nav_msgs.msg import OccupancyGrid
+    from research_interfaces.msg import LocalEvidenceGrid2D
     from std_msgs.msg import Bool, String
     from research_interfaces.msg import TimedTrajectory2D, ResearchStatus, OperatorPermit
 except ImportError:
@@ -77,7 +78,9 @@ if rclpy:
             self.declare_parameter("max_lateral_speed_mps", 0.0)
             self.declare_parameter("health_topic", "/lio/vehicle_health")
             self.declare_parameter("odom_topic", "/lio/odom_vehicle")
-            self.declare_parameter("obstacle_grid_topic", "/research/local_obstacle_grid")
+            self.declare_parameter("obstacle_grid_topic", "/research/local_evidence_grid")
+            self._localization_session = str(self.declare_parameter("localization_session_id","UNKNOWN").value)
+            self._allow_fixture_grid = _parameter_bool(self.declare_parameter("allow_analytical_grid_fixture",False).value)
             self.declare_parameter("map_version_topic", "/research/map_version")
             self.declare_parameter("permission_grid_topic", "/research/permission_grid")
             footprint_parameter = self.declare_parameter("footprint_xy", Parameter.Type.DOUBLE_ARRAY)
@@ -143,7 +146,7 @@ if rclpy:
             self.create_subscription(String,"/localization_authority/mode",self._authority_mode_cb,10)
             self.create_subscription(String, str(self.get_parameter("health_topic").value), self._health_cb, 10)
             self.create_subscription(Odometry, str(self.get_parameter("odom_topic").value), self._odom_cb, 10)
-            self.create_subscription(OccupancyGrid, str(self.get_parameter("obstacle_grid_topic").value), self._grid_cb, 10)
+            self.create_subscription(LocalEvidenceGrid2D, str(self.get_parameter("obstacle_grid_topic").value), self._grid_cb, 10)
             self.create_subscription(String, str(self.get_parameter("map_version_topic").value), self._map_version_cb, 10)
             self.create_subscription(TimedTrajectory2D, "/research/ego_trajectory", self._trajectory_cb, 10)
             self.create_subscription(OccupancyGrid, str(self.get_parameter("permission_grid_topic").value),
@@ -207,10 +210,18 @@ if rclpy:
             self._map_version = value if _valid_map_version(value) else "UNKNOWN"
             self._map_stamp = time.monotonic()
 
-        def _grid_cb(self, msg):
+        def _grid_cb(self, wrapped):
             self._grid = None
             self._grid_stamp = 0.0
             try:
+                if (wrapped.map_version != self._map_version or
+                    self._localization_session in ("","UNKNOWN") or
+                    wrapped.localization_session_id != self._localization_session or
+                    wrapped.header != wrapped.grid.header or
+                    (wrapped.support_model != "single_scan_flat_dense_with_locked_obstacles_v1" and
+                     not (self._allow_fixture_grid and wrapped.support_model == "analytical_fixture_v1"))):
+                    return
+                msg = wrapped.grid
                 stamp = self._time_seconds(msg.header.stamp)
                 age = self.get_clock().now().nanoseconds * 1e-9 - stamp
                 if (msg.header.frame_id != "odom" or not _valid_map_version(self._map_version) or
@@ -226,7 +237,7 @@ if rclpy:
                               for value in msg.data)
                 self._grid = LocalObstacleGrid(
                     frame_id=msg.header.frame_id,
-                    map_version=self._map_version,
+                    map_version=wrapped.map_version,
                     resolution_m=float(msg.info.resolution),
                     origin_x_m=float(msg.info.origin.position.x),
                     origin_y_m=float(msg.info.origin.position.y),

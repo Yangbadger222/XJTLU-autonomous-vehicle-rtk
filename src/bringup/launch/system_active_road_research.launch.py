@@ -52,7 +52,8 @@ def generate_launch_description():
     ego_vehicle = Node(package="ego_planner", executable="motion_plan", name="ego_vehicle_adapter",
                        output="screen",
 
-                       parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml"), {"use_sim_time": simulated_time}])
+                       parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml"),
+                                   {"use_sim_time": simulated_time,"localization_session_id":LaunchConfiguration("localization_session_id")}])
     tf_integrity = Node(package="ego_planner", executable="research_tf_guard",
         name="research_tf_integrity_guard", output="screen", parameters=[{"use_sim_time": simulated_time,
                                                                          "protect_world_gauge": True}])
@@ -69,7 +70,12 @@ def generate_launch_description():
     local_grid = Node(package="research_runtime", executable="research_local_obstacle_grid",
                       name="research_local_obstacle_grid", output="screen",
 
-                      parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml"), {"use_sim_time": simulated_time}])
+                      parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml"),
+                                  {"use_sim_time": simulated_time,"localization_session_id":LaunchConfiguration("localization_session_id")}])
+    observed_ground = Node(package="research_runtime", executable="research_observed_ground",
+        name="research_observed_ground", output="screen",
+        parameters=[os.path.join(bringup_share,"config","research_observed_ground.yaml"),
+                    {"use_sim_time": simulated_time,"localization_session_id":LaunchConfiguration("localization_session_id")}])
     active_road_map = Node(package="active_road_mapping", executable="active_road_map",
                            name="active_road_map", output="screen",
 
@@ -109,7 +115,8 @@ def generate_launch_description():
                                  "actuator_enabled": LaunchConfiguration("enable_serial"),
                                  "health_topic": "/lio/vehicle_health",
                                  "odom_topic": "/lio/odom_vehicle",
-                                 "obstacle_grid_topic": "/research/local_obstacle_grid",
+                                 "obstacle_grid_topic": "/research/local_evidence_grid",
+                                 "localization_session_id":LaunchConfiguration("localization_session_id"),
                                  "map_version_topic": "/research/map_version"}, {"use_sim_time": simulated_time}])
     console = Node(package="research_runtime",executable="research_operator_console",name="research_operator_console",
         output="screen",parameters=[{"execution_mode":LaunchConfiguration("execution_mode"),
@@ -134,5 +141,5 @@ def generate_launch_description():
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               robot_description, livox, rtk,
                               super_lio, adapter, cloud_frame, active_road_map, active_road_evidence, active_observation,
-                              local_grid, ego_vehicle, tf_integrity,
+                              observed_ground, local_grid, ego_vehicle, tf_integrity,
                               authority, cmd_guard, serial, research, console])

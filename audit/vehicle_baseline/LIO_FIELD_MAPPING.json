@@ -6,7 +6,11 @@
     "EXACT_CARRY_OVER",
     "SEMANTIC_MISMATCH_PENDING",
     "TARGET_RUNTIME_PENDING",
-    "UNKNOWN_BLOCKS_MOTION"
+    "UNKNOWN_BLOCKS_MOTION",
+    "SOFTWARE_VERIFIED",
+    "SOURCE_VERIFIED_DIFFERENT_NORMALIZATION",
+    "SOURCE_DERIVED_SUFFICIENT_BOUND",
+    "PHYSICAL_ACCURACY_PENDING"
   ],
   "fields": [
     {
@@ -19,22 +23,22 @@
       "super_lio_source": "Super-LIO ROSWrapper.cpp:347-349 consumes header.stamp directly through stampToSec()",
       "encoding_status": "SOURCE_VERIFIED",
       "measurement_clock_status": "TARGET_RUNTIME_PENDING",
-      "runtime_evidence": "TARGET_RUNTIME_PENDING",
+      "runtime_evidence": "audit/vehicle_ready/ff346f8/full-raw-reference.json; audit/vehicle_ready/packet-time-audit.json",
       "risk": "ROS stamp encoding is identical, but the vehicle driver source proves the stamp is system/arrival time rather than a verified hardware measurement time; deskew equivalence remains unproven"
     },
     {
       "name": "imu_linear_acceleration_scale",
-      "super_lio": "copied without scale",
-      "vehicle_fastlio": "multiplied by 10.0 before buffering",
-      "status": "SEMANTIC_MISMATCH_PENDING",
-      "reason": "driver/bag unit contract is not proven; neither retaining nor removing the factor is safe",
-      "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:441-449",
+      "super_lio": "raw g copied; kf_init computes imu_scale=g_gravity_norm/initial_mean_norm and ESKF::Predict applies it",
+      "vehicle_fastlio": "original callback multiplies raw g by10.0; original IMUProcessor propagates this input without mean-norm amplitude rescaling",
+      "status": "SOURCE_VERIFIED_DIFFERENT_NORMALIZATION",
+      "reason": "MID360 protocol specifies g; recorded norm about.9957g. Existing paths have different known normalization, not missing unit evidence.",
+      "source": "original lio_node.cpp:441-449; src/perception/fastlio2/src/map_builder/imu_processor.cpp; pinned Super kf_init/ESKF::Predict; official MID360 protocol",
       "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:782-787 copies imu_data.acc_x/y/z directly into sensor_msgs/Imu.linear_acceleration",
       "super_lio_source": "Super-LIO ROSWrapper.cpp:350-352 copies sensor_msgs/Imu.linear_acceleration directly into IMUData.acc",
-      "unit_status": "TARGET_RUNTIME_PENDING",
-      "risk": "Both parser/driver paths are raw copies, while the locked FAST-LIO2 callback applies an unexplained factor of 10.0; no source file proves whether the device values are m/s^2, scaled counts, or another convention",
+      "unit_status": "SOURCE_VERIFIED",
+      "risk": "Nominal acceleration gain/noise models are different; original callback/config remain protected. Functional replay is not universal numerical or physical accuracy equivalence.",
       "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
-      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
+      "protocol": "https://raw.githubusercontent.com/Livox-SDK/livox_wiki_en/master/source/tutorials/new_product/mid360/livox_eth_protocol_mid360.md"
     },
     {
       "name": "imu_angular_velocity",
@@ -44,51 +48,57 @@
       "source": "Super-LIO ROSWrapper.cpp:347-367; vehicle lio_node.cpp:417-449",
       "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:782-784 copies imu_data.gyro_x/y/z directly",
       "super_lio_source": "Super-LIO ROSWrapper.cpp:353-355 copies sensor_msgs/Imu.angular_velocity directly",
-      "unit_status": "TARGET_RUNTIME_PENDING",
-      "risk": "The copy path is source-verified, but ROS rad/s and the device's actual scale still require a stationary IMU/runtime or raw bag check"
+      "unit_status": "SOURCE_VERIFIED",
+      "risk": "Official protocol specifies rad/s and both parsers preserve raw values. Posterior bias/body covariance now software-qualified; physical angular accuracy remains unmeasured.",
+      "protocol": "https://raw.githubusercontent.com/Livox-SDK/livox_wiki_en/master/source/tutorials/new_product/mid360/livox_eth_protocol_mid360.md"
     },
     {
       "name": "livox_offset_time",
-      "super_lio": "offset_time * 1e-9 seconds",
+      "super_lio": "Each accepted offset_time*1e-9 seconds; scan end uses maximum accepted offset, preserving point order/time",
       "vehicle_fastlio": "offset_time * 1e-6 stored as ms, then /1000 for cloud end",
-      "status": "SEMANTIC_MISMATCH_PENDING",
+      "status": "SOFTWARE_VERIFIED",
       "reason": "both use driver arrival-time header; hardware timebase relationship is unverified",
       "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27; vehicle lio_node.cpp:482-513",
       "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:614-626 stores points[i].offset_time - pkg.base_time in uint32 CustomPoint.offset_time",
       "super_lio_source": "Super-LIO ROSWrapper.cpp:426-439 multiplies CustomPoint.offset_time by 1e-9 and adds the last accepted offset to header.stamp",
-      "source_unit_claim": "The driver preserves an SDK offset delta in a uint32 field and Super-LIO consumes that field as nanoseconds; SDK/hardware clock and packet-unit proof are still required",
+      "source_unit_claim": "Protected SDK/driver relative uint32 offsets consumed as nanoseconds; no hardware/arrival clock equivalence claimed",
       "runtime_status": "TARGET_RUNTIME_PENDING",
-      "risk": "The driver deliberately stamps the message with cur_node_->now() and rewrites timebase, so a numerically matching offset unit does not establish hardware-time deskew",
+      "risk": "Arrival header is preserved. Actual point ordering/overlap are audited and deskew uses real IMU brackets/history; target hardware clock/physical accuracy still pending.",
       "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
-      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent.",
+      "runtime_evidence": "audit/vehicle_ready/ff346f8/full-raw-reference.json"
     },
     {
       "name": "livox_filter",
       "super_lio": "tag/range/filter_rate; no line<4 check",
       "vehicle_fastlio": "tag/range/filter_rate plus line<4",
-      "status": "SEMANTIC_MISMATCH_PENDING",
-      "reason": "vehicle packet-stride semantics need the actual MID360 stream or bag",
+      "status": "SOFTWARE_VERIFIED",
+      "reason": "Protected range .5..25m and stride4 carry over; first50 recorded packets agree in accepted point sets. Pinned Super retains its differing line/boundary behavior.",
       "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27",
       "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
-      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent.",
+      "risk": "Sampled recorded acceptance equality is not universal malformed-packet or every firmware equivalence."
     },
     {
       "name": "lidar_imu_synchronization",
-      "super_lio": "consumes imu_time <= lidar_end_time; no point sort before last offset",
+      "super_lio": "Current3 IMUs; monotonic finite real brackets; retained lookahead; measured maximum packet end; finite previous integration interval for overlap; endpoint-exact historical interpolation",
       "vehicle_fastlio": "sorts points; consumes imu_time < cloud_end_time",
-      "status": "SEMANTIC_MISMATCH_PENDING",
-      "reason": "boundary and non-monotonic offset behavior require replay evidence",
+      "status": "SOFTWARE_VERIFIED",
+      "reason": "Actual native malformed/insufficient/overlap/posterior tests and full1x raw replay executed; five too-old point groups explicitly denied.",
       "source": "Super-LIO ROSWrapper.cpp:532-565; vehicle lio_node.cpp:482-513",
       "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
-      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent.",
+      "runtime_evidence": "audit/vehicle_ready/ff346f8/native-results.json; audit/vehicle_ready/ff346f8/full-raw-reference.json"
     },
     {
       "name": "odom_pose_and_twist",
-      "super_lio": "world frame, imu child, world velocity; patched angular velocity and source covariance",
+      "super_lio": "world/imu pose and complete native world-fixed-axis pose covariance; body-IMU linear/angular velocity and full18-state covariance",
       "vehicle_fastlio": "world frame, base child, body velocity",
-      "status": "SEMANTIC_MISMATCH_PENDING",
-      "reason": "measured IMU-to-base transform and lever-arm covariance are absent",
-      "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; vehicle lio_node.cpp:676-697"
+      "status": "SOFTWARE_VERIFIED",
+      "reason": "Original mounting/internal IMU and navigation reference exist; full native Jacobian/PSD/lever-arm math and acquisition-stamp pairing verified. No assertion that IMU equals physical chassis center.",
+      "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; patch0002; super_lio_reference.yaml; SOURCE_HEALTH_CONTRACT.md",
+      "vehicle_adapter": "owned static odom<-world identity; audited original FAST IMU-origin navigation point remains base_footprint; measured rigid-body profile separately supported",
+      "runtime_evidence": "audit/vehicle_ready/ff346f8/native-results.json; audit/vehicle_ready/ff346f8/full-raw-reference.json"
     },
     {
       "name": "height_and_obstacle_clouds",
@@ -102,16 +112,24 @@
     },
     {
       "name": "health",
-      "super_lio": "UNKNOWN source health; no degeneracy equivalent",
+      "super_lio": "measurement-stamped native certificate, actual observation-only six-pose information min eigenvalue and feature count/worst iteration",
       "vehicle_fastlio": "degeneracy eigenvalue/condition metric and health aggregator",
-      "status": "UNKNOWN_BLOCKS_MOTION",
-      "reason": "Super-LIO cannot be mapped to FAST-LIO2 degeneracy without a validated formula",
-      "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; vehicle ieskf.cpp and health aggregator"
+      "status": "SOURCE_DERIVED_SUFFICIENT_BOUND",
+      "reason": "Under original fixed extrinsics, legacy twelve-block min eigenvalue >=min(lambda_min(Hobs),100000). Test unchanged75/50/current3IMU requirements; this is a stricter sufficient bound, not raw legacy degeneracy identity.",
+      "source": "audit/vehicle_ready/SOURCE_HEALTH_CONTRACT.md; patches/super_lio/0002-certify-source-observations-and-covariance.patch",
+      "runtime_evidence": "audit/vehicle_ready/ff346f8/native-results.json; audit/vehicle_ready/ff346f8/full-raw-reference.json",
+      "motion_policy": "Invalid/missing/expired certificate denies health; RTK loss remains an independent stop even eligible LIO. Physical localization accuracy/target deployment remain pending."
     }
   ],
   "actual_humble_evidence": [
     "audit/remote_humble/lio-bag-fields.json",
     "audit/remote_humble/lio-paired-metrics.json",
-    "audit/remote_humble/adapter.json"
-  ]
+    "audit/remote_humble/adapter.json",
+    "audit/vehicle_ready/ff346f8/native-results.json",
+    "audit/vehicle_ready/ff346f8/full-raw-reference.json",
+    "audit/vehicle_ready/packet-time-audit.json"
+  ],
+  "current_contract": "audit/vehicle_ready/SOURCE_HEALTH_CONTRACT.md",
+  "historical_mapping": "audit/vehicle_ready/HISTORICAL_LIO_FIELD_MAPPING_pre_ready.json",
+  "current_qualified_input": "audit/vehicle_ready/ff346f8/full-raw-reference.json"
 }

@@ -27,6 +27,7 @@ from nmea_msgs.msg import Sentence
 from rosgraph_msgs.msg import Clock
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from research_interfaces.msg import TimedTrajectory2D, TimedTrajectoryPoint2D, ResearchStatus, OperatorPermit
+from research_interfaces.msg import LocalEvidenceGrid2D
 
 
 def main():
@@ -78,7 +79,7 @@ def main():
         "stop": node.create_publisher(Bool, "/gps_corridor/stop_override", 10),
         "health": node.create_publisher(String, "/lio/vehicle_health", 10),
         "odom": node.create_publisher(Odometry, "/lio/odom_vehicle", 10),
-        "grid": node.create_publisher(OccupancyGrid, "/research/local_obstacle_grid", 10),
+        "grid": node.create_publisher(LocalEvidenceGrid2D, "/research/local_evidence_grid", 10),
         "version": node.create_publisher(String, "/research/map_version", 10),
         "trajectory": node.create_publisher(TimedTrajectory2D, "/research/ego_trajectory", 10),
         "reference": node.create_publisher(RosPath, "/research/road_reference", 10),
@@ -249,7 +250,8 @@ def main():
             grid.data = [-1 if fault == "unknown_ground" else 0] * 1600
             if fault == "footprint_interior_obstacle":
                 grid.data[20 * 40 + 20] = 100
-            pubs["grid"].publish(grid)
+            pubs["grid"].publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version="m1",
+                localization_session_id="mock-only",support_model="analytical_fixture_v1"))
         if fault != "permission_stream_lost":
             permission = OccupancyGrid()
             permission.header.frame_id, permission.header.stamp = "odom", stamp
@@ -303,7 +305,8 @@ def main():
         commands = [
             ("research_runtime", "research_safety_bridge", ["--params-file", str(safety_config),
                 "-p", "mode:=live", "-p", "actuator_enabled:=true", "-p", "max_curvature_1pm:=1.0",
-                "-p", "max_lateral_speed_mps:=0.05"]),
+                "-p", "max_lateral_speed_mps:=0.05", "-p","localization_session_id:=mock-only",
+                "-p","allow_analytical_grid_fixture:=true"]),
             ("gps_waypoint_dispatcher", "corridor_cmd_vel_guard_node", ["--params-file", str(master_config)]),
             ("serial_twistctl", "serial_twistctl_node", ["--params-file", str(master_config),
                 "-p", "port:=" + slave_path, "-r", "/cmd_vel:=/cmd_vel_guarded"]),
@@ -315,7 +318,8 @@ def main():
             commands.append(("ego_planner", "motion_plan", ["--params-file",
                 str(args.repo / "src/bringup/config/ego_vehicle_adapter.yaml"),
                 "-p", "max_curvature_1pm:=1.0", "-p", "max_lateral_speed_mps:=0.05",
-                "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305))]))
+                "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305)),
+                "-p","localization_session_id:=mock-only","-p","allow_analytical_grid_fixture:=true"]))
         for package, binary, ros_args in commands:
             if args.paused_clock_probe:ros_args += ["-p","use_sim_time:="+("false" if binary=="corridor_cmd_vel_guard_node" else "true")]
             log = (args.output.parent / (args.output.stem+"-"+binary + "-mock.log")).open("w")

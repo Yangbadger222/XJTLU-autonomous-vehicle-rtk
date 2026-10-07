@@ -10,6 +10,7 @@ import subprocess
 import time
 
 import rclpy
+from research_interfaces.msg import LocalEvidenceGrid2D
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry, OccupancyGrid, Path as RosPath
 from std_msgs.msg import String
@@ -31,14 +32,15 @@ def main():
     messages = []
     node.create_subscription(TimedTrajectory2D, "/research/ego_trajectory", messages.append, 100)
     odom_pub = node.create_publisher(Odometry, "/lio/odom_vehicle", 10)
-    grid_pub = node.create_publisher(OccupancyGrid, "/research/local_obstacle_grid", 10)
+    grid_pub = node.create_publisher(LocalEvidenceGrid2D, "/research/local_evidence_grid", 10)
     ref_pub = node.create_publisher(RosPath, "/research/road_reference", 10)
     ver_pub = node.create_publisher(String, "/research/map_version", 10)
     log = args.output.with_suffix(".node.log").open("w")
     command = [str(args.install / "ego_planner/lib/ego_planner/motion_plan"), "--ros-args",
                "--params-file", str(args.repo / "src/bringup/config/ego_vehicle_adapter.yaml"),
                "-p", "max_curvature_1pm:=1.0", "-p", "max_lateral_speed_mps:=0.05",
-               "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305))]
+               "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305)),
+               "-p","localization_session_id:=mock-only","-p","allow_analytical_grid_fixture:=true"]
     process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     cases = []
     query_client = node.create_client(PlanRoadReference, "/research/ego_plan_query")
@@ -68,7 +70,8 @@ def main():
             grid.info.origin.position.x = grid.info.origin.position.y = -15.0
             grid.info.origin.orientation.w = 1.0
             grid.data = [-1 if scenario == "unknown_ground" else 0] * 10000
-            grid_pub.publish(grid)
+            grid_pub.publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version="sim-input-map",
+                localization_session_id="mock-only",support_model="analytical_fixture_v1"))
             reference = RosPath()
             reference.header.frame_id, reference.header.stamp = "odom", stamp
             for i in range(12):

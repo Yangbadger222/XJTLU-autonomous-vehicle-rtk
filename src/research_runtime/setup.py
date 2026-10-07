@@ -12,6 +12,7 @@ setup(
         "research_replay = research_runtime.replay_sim:main",
         "research_safety_bridge = research_runtime.safety_bridge:main",
         "research_local_obstacle_grid = research_runtime.local_obstacle_grid_node:main",
+        "research_observed_ground = research_runtime.observed_ground_node:main",
         "research_operator_console = research_runtime.console_node:main",
     ]},
 )

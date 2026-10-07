@@ -1,0 +1,20 @@
+/Users/badger/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________ test_adjacent_flat_surfaces_cannot_hide_a_nine_cm_step ____________
+
+    def test_adjacent_flat_surfaces_cannot_hide_a_nine_cm_step():
+        points = [(x,y,z-.049) for x,y,z in patch()]
+        points += [(x+.30,y,z+.049) for x,y,z in patch()]
+        grid,_ = project(points)
+>       assert grid.cells == (100,100)
+E       assert (0, 0) == (100, 100)
+E         
+E         At index 0 diff: 0 != 100
+E         Use -v to get more diff
+
+src/research_runtime/test/test_observed_ground.py:66: AssertionError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_observed_ground.py::test_adjacent_flat_surfaces_cannot_hide_a_nine_cm_step
+1 failed, 9 deselected in 0.13s

@@ -8,6 +8,7 @@ unknown cells or changes limits.
 import argparse,json,math,os,signal,subprocess,time
 from pathlib import Path
 import rclpy
+from research_interfaces.msg import LocalEvidenceGrid2D
 from nav_msgs.msg import Odometry,OccupancyGrid,Path as RosPath
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
@@ -28,15 +29,15 @@ def main():
  fixed,reason=confirmed_route_prefix(graph,'start','goal',s[:3],grid,LOCKED_FOOTPRINT)
  a.output.parent.mkdir(parents=True,exist_ok=True);log=a.output.with_suffix('.node.log').open('w')
  rclpy.init();node=rclpy.create_node('captured_prefix_regression');client=node.create_client(PlanRoadReference,'/research/ego_plan_query')
- pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/lio/odom_vehicle'),(OccupancyGrid,'/research/local_obstacle_grid'),(String,'/research/map_version')]]
- child=subprocess.Popen([str(a.install/'ego_planner/lib/ego_planner/motion_plan'),'--ros-args','--params-file',str(a.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),'-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+ pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/lio/odom_vehicle'),(LocalEvidenceGrid2D,'/research/local_evidence_grid'),(String,'/research/map_version')]]
+ child=subprocess.Popen([str(a.install/'ego_planner/lib/ego_planner/motion_plan'),'--ros-args','--params-file',str(a.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),'-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0','-p','localization_session_id:=mock-only','-p','allow_analytical_grid_fixture:=true'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
  def feed():
   stamp=node.get_clock().now().to_msg();o=Odometry();o.header.frame_id='odom';o.header.stamp=stamp;o.child_frame_id='base_footprint'
   o.pose.pose.position.x,o.pose.pose.position.y=s[:2];o.pose.pose.orientation.z=math.sin(s[2]/2);o.pose.pose.orientation.w=math.cos(s[2]/2)
   o.twist.twist.linear.x,o.twist.twist.angular.z=s[3:5]
   m=OccupancyGrid();m.header.frame_id='odom';m.header.stamp=stamp;m.info.resolution=g['resolution'];m.info.width=g['width'];m.info.height=g['height']
   m.info.origin.position.x,m.info.origin.position.y=g['origin'];m.info.origin.orientation.w=1.;m.data=g['cells']
-  pubs[0].publish(o);pubs[1].publish(m);pubs[2].publish(String(data='captured'))
+  pubs[0].publish(o);pubs[1].publish(LocalEvidenceGrid2D(header=m.header,grid=m,map_version='captured',localization_session_id='mock-only',support_model='analytical_fixture_v1'));pubs[2].publish(String(data='captured'))
  def query(points):
   request=PlanRoadReference.Request();request.request_id='captured-prefix';request.map_version='captured';request.road_reference.header.frame_id='odom';request.road_reference.header.stamp=node.get_clock().now().to_msg()
   for x,y in points:

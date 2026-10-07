@@ -3,6 +3,7 @@
 import argparse,json,math,os,signal,subprocess,time
 from pathlib import Path
 import rclpy
+from research_interfaces.msg import LocalEvidenceGrid2D
 from nav_msgs.msg import Odometry,OccupancyGrid,Path as RosPath
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import String
@@ -20,8 +21,8 @@ def main():
   if m.status==m.STATUS_OK:samples.append({'generated':m.generated_at.sec+m.generated_at.nanosec*1e-9,'stamp':m.header.stamp.sec+m.header.stamp.nanosec*1e-9})
   else:failures.append(m.header.stamp.sec+m.header.stamp.nanosec*1e-9)
  node.create_subscription(TimedTrajectory2D,'/research/ego_trajectory',cb,100)
- pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/lio/odom_vehicle'),(OccupancyGrid,'/research/local_obstacle_grid'),(String,'/research/map_version'),(RosPath,'/research/road_reference')]]
- child=subprocess.Popen([str(a.install/'ego_planner/lib/ego_planner/motion_plan'),'--ros-args','--params-file',str(a.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),'-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+ pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/lio/odom_vehicle'),(LocalEvidenceGrid2D,'/research/local_evidence_grid'),(String,'/research/map_version'),(RosPath,'/research/road_reference')]]
+ child=subprocess.Popen([str(a.install/'ego_planner/lib/ego_planner/motion_plan'),'--ros-args','--params-file',str(a.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),'-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0','-p','localization_session_id:=mock-only','-p','allow_analytical_grid_fixture:=true'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
  try:
   started=time.monotonic();until=started+6
   while time.monotonic()<until:
@@ -36,7 +37,7 @@ def main():
    ref=RosPath();ref.header.frame_id='odom';ref.header.stamp=stamp
    for x,y in raw['reference']:
     pose=PoseStamped();pose.pose.position.x,pose.pose.position.y=x,y;pose.pose.orientation.w=1.;ref.poses.append(pose)
-   for pub,msg in zip(pubs,[o,m,String(data='captured-cache'),ref]):pub.publish(msg)
+   for pub,msg in zip(pubs,[o,LocalEvidenceGrid2D(header=m.header,grid=m,map_version='captured-cache',localization_session_id='mock-only',support_model='analytical_fixture_v1'),String(data='captured-cache'),ref]):pub.publish(msg)
    rclpy.spin_once(node,timeout_sec=.02);time.sleep(.01)
   normal=[m for m in samples if fault_epoch is None or m['stamp']<fault_epoch]
   ages=[m['stamp']-m['generated'] for m in normal]

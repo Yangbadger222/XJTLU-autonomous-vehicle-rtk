@@ -22,7 +22,7 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert reference["navigation_reference_convention"] == "locked_fast_imu_origin"
     assert not reference["imu_to_base_extrinsic_verified"]
     assert "ego_vehicle_adapter.yaml" in source
-    assert '"/research/local_obstacle_grid"' in source
+    assert '"/research/local_evidence_grid"' in source
     assert '"/research/map_version"' in source
     assert 'executable="research_local_obstacle_grid"' in source
     assert 'research_local_grid.yaml' in source

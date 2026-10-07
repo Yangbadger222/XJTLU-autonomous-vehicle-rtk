@@ -21,6 +21,7 @@ import urllib.request
 import uuid
 
 import rclpy
+from research_interfaces.msg import LocalEvidenceGrid2D
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry, OccupancyGrid
 from std_msgs.msg import Bool, Float32, String
@@ -50,6 +51,7 @@ def main():
         "grid":(OccupancyGrid,"/research/local_obstacle_grid"),"permission":(OccupancyGrid,"/research/permission_grid"),
         "trajectory":(TimedTrajectory2D,"/research/ego_trajectory"),"tf":(TFMessage,"/tf")}
     pubs={k:node.create_publisher(kind,topic,10) for k,(kind,topic) in topics.items()}
+    typed_grid=node.create_publisher(LocalEvidenceGrid2D,"/research/local_evidence_grid",10)
     base="http://127.0.0.1:8765"
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     csrf="";window=str(uuid.uuid4());cases=[]
@@ -81,6 +83,8 @@ def main():
             grid=OccupancyGrid();grid.header.stamp,grid.header.frame_id=stamp,"odom";grid.info.resolution=.3
             grid.info.width=grid.info.height=40;grid.info.origin.position.x=grid.info.origin.position.y=-6.
             grid.info.origin.orientation.w=1.;grid.data=[0]*1600;pubs[kind].publish(grid)
+            if kind=="grid":typed_grid.publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,
+                map_version="console-simulation-m1",localization_session_id="mock-only",support_model="analytical_fixture_v1"))
         transforms=[]
         for parent,child in (("map","odom"),("odom","base_footprint")):
             tf=TransformStamped();tf.header.stamp,tf.header.frame_id,tf.child_frame_id=stamp,parent,child
@@ -121,7 +125,8 @@ def main():
         cases.append({"case":name,"nominal_nonzero_final_serial":nonzero,"final_serial_tail":tail,"console_state":state,"status":"PASS" if ok else "FAIL"})
     try:
         console=spawn("research_runtime","research_operator_console",["-p","execution_mode:=live","-p","actuator_enabled:=true","-p","mission_execution_enabled:=true"])
-        spawn("research_runtime","research_safety_bridge",["--params-file",str(config/"research_safety_bridge.yaml"),"-p","mode:=live","-p","actuator_enabled:=true","-p","max_curvature_1pm:=1.0","-p","max_lateral_speed_mps:=0.05"])
+        spawn("research_runtime","research_safety_bridge",["--params-file",str(config/"research_safety_bridge.yaml"),"-p","mode:=live","-p","actuator_enabled:=true","-p","max_curvature_1pm:=1.0","-p","max_lateral_speed_mps:=0.05",
+            "-p","localization_session_id:=mock-only","-p","allow_analytical_grid_fixture:=true"])
         spawn("gps_waypoint_dispatcher","corridor_cmd_vel_guard_node",["--params-file",str(config/"master_params.yaml")])
         spawn("serial_twistctl","serial_twistctl_node",["--params-file",str(config/"master_params.yaml"),"-p","port:="+port,"-r","/cmd_vel:=/cmd_vel_guarded"])
         spawn("ego_planner","research_tf_guard",[])

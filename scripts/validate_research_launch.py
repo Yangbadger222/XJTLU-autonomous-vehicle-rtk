@@ -42,6 +42,8 @@ def main():
             "adapter_parameters": ["ros2", "param", "dump", "/super_lio_vehicle_adapter"],
             "tf_guard_parameters": ["ros2", "param", "dump", "/research_tf_integrity_guard"],
             "cloud_frame_parameters": ["ros2", "param", "dump", "/super_lio_cloud_frame_adapter"],
+            "ground_parameters": ["ros2","param","dump","/research_observed_ground"],
+            "local_grid_parameters": ["ros2","param","dump","/research_local_obstacle_grid"],
             "superlio_parameters": ["ros2", "param", "dump", "/super_lio_node"],
             "robot_description_parameters": ["ros2","param","dump","/robot_state_publisher"],
         }.items():
@@ -92,7 +94,7 @@ def main():
         # Discovery can lag a started rclpy process. Keep the initial snapshot
         # and check the inventory again after parameter responses prove startup.
         expected = {"/research_tf_integrity_guard", "/super_lio_node", "/super_lio_vehicle_adapter", "/super_lio_cloud_frame_adapter",
-                    "/active_road_map", "/active_road_evidence", "/active_observation", "/research_local_obstacle_grid",
+                    "/active_road_map", "/active_road_evidence", "/active_observation", "/research_local_obstacle_grid", "/research_observed_ground",
                     "/ego_vehicle_adapter", "/rtk_map_odom_corrector", "/corridor_cmd_vel_guard",
                     "/research_safety_bridge", "/research_operator_console", "/robot_state_publisher", "/joint_state_publisher"}
         rclpy.init()

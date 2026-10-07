@@ -110,13 +110,15 @@ def trial(args,mode,index,manifest):
         spawn('perception',[sys.executable,str(args.repo/'scripts/research_restricted_sim.py'),'perception','--output',str(root/'perception.json'),
             '--localization-session-id',session_id]+(
             ['--seed-evidence',str(store)] if index>1 else []))
-        spawn('local-grid',python_node('research_runtime','research_local_obstacle_grid',config/'research_local_grid.yaml'))
+        spawn('local-grid',python_node('research_runtime','research_local_obstacle_grid',config/'research_local_grid.yaml',
+            ['-p','localization_session_id:='+session_id,'-p','allow_analytical_grid_fixture:=true']))
         spawn('ego',binary('ego_planner','motion_plan',config/'ego_vehicle_adapter.yaml',
             ['-p','use_measured_acceleration:=true','-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0',
-             '-p','inflate_radius_m:='+str(math.hypot(.33,.305))]))
+             '-p','inflate_radius_m:='+str(math.hypot(.33,.305)),'-p','localization_session_id:='+session_id]))
         spawn('tf-guard',binary('ego_planner','research_tf_guard'))
         spawn('safety',python_node('research_runtime','research_safety_bridge',config/'research_safety_bridge.yaml',
-            ['-p','mode:=live','-p','actuator_enabled:=true','-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05']))
+            ['-p','mode:=live','-p','actuator_enabled:=true','-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05',
+             '-p','localization_session_id:='+session_id]))
         spawn('guard',python_node('gps_waypoint_dispatcher','corridor_cmd_vel_guard_node',config/'master_params.yaml'))
         spawn('serial',binary('serial_twistctl','serial_twistctl_node',config/'master_params.yaml',
             ['-p','port:='+port,'-r','/cmd_vel:=/cmd_vel_guarded']))

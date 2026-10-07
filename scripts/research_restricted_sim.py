@@ -189,7 +189,8 @@ class MeasuredPerception(Node):
         self.odom_pub=self.create_publisher(Odometry,'/lio/odom_vehicle',10)
         self.health=self.create_publisher(String,'/lio/vehicle_health',10)
         self.evidence=self.create_publisher(RoadEvidence2D,"/research/road_evidence",1000)
-        self.ground=self.create_publisher(OccupancyGrid,'/research/observed_ground_grid',10)
+        from research_interfaces.msg import LocalEvidenceGrid2D
+        self.ground=self.create_publisher(LocalEvidenceGrid2D,'/research/observed_ground_grid',10)
         self.cloud=self.create_publisher(PointCloud2,'/lio/cloud_odom',10)
         self.permission=self.create_publisher(OccupancyGrid,'/research/permission_grid',10)
         self.create_subscription(Odometry,'/lio/odom',self.source_odom,100)
@@ -291,8 +292,11 @@ class MeasuredPerception(Node):
         self.permission.publish(self.grid([0]*10000)) # Explicit approved synthetic room, not inferred from free space.
         if self.version=='UNKNOWN' or not fresh:return
         current=[value if now-self.last_seen[i]<=2. else -1 for i,value in enumerate(self.cells)]
-        self.ground.publish(self.grid(current))
-        header=Header(stamp=self.get_clock().now().to_msg(),frame_id='odom')
+        from research_interfaces.msg import LocalEvidenceGrid2D
+        grid=self.grid(current)
+        self.ground.publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version=self.version,
+            localization_session_id=self.localization_session_id,support_model='restricted_sensor_fixture_v1'))
+        header=grid.header
         self.cloud.publish(point_cloud2.create_cloud_xyz32(header,[]))
 
     def save(self):

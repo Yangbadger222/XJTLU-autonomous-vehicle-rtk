@@ -1,15 +1,18 @@
-# Physical acceptance and known repository evidence
+# Conditions before on-site acceptance
 
-Software/PTY checks and original-bag estimator replay have been executed on the authorized non-Jetson Humble host. They do not by themselves satisfy the new-stack physical acceptance items below. Existing mounting/firmware/field notes are present and are used; see audit/vehicle_contract_review/REVIEW.md. Do not misreport those source records as absent.
+This checklist is pending; no new-stack physical motion or firmware flashing has occurred. Recorded MID360 internal IMU/mounting/factory lever, STM source command geometry, caps and bag response are available and used. They are not wholesale missing data.
 
-- [ ] Build the exact research source in a separate Jetson worktree with one worker; preserve the production branch/install/runtime-data.
-- [ ] Read current_scene, CLI/environment/generated launch overlays and actual deployed parameter dumps. Reconcile differences with the locked corridor profile before deployment.
-- [ ] Verify current flashed firmware identity against the recorded source. Command-track .46 m versus feedback/URDF .50 m, gear 19.2 versus 19.0, and source radius .10 m versus documented .085 m diameter already have explicit provenance and theoretical scaling. Preserve original values; do not replace them just to remove these differences.
-- [ ] Reconcile the documented MID360 installation (-.07,+.12,.447m), factory LiDAR/IMU transform and original FAST IMU-origin base_footprint convention with the research adapter. No additional external IMU calibration is requested. Qualify source covariance/health and clocks; UNKNOWN continues to block motion. GNSS approximate lever-arm and heading calibration records must retain their recorded qualification.
-- [ ] Supply a calibrated positive ground/depth provider, camera model/K/distortion/aligned-depth units/extrinsics and acquisition TF if used; verify holes, steps, slopes, 3D obstacle heights and sensor blind spots.
-- [ ] Supply real GeoTIFF/MaGRoad files, hashes, CRS/datum and surveyed registration control points. Verify separate-session map reuse and independent historical-submap registration.
-- [ ] Run actuator-disabled shadow; verify unique map→odom, odom→base and final cmd owners and absence of old navigation/FAST/SLAM/FGO/FRC/fake simulator.
-- [ ] Human-test KEY, PS2 X, controller loss and the physical e-stop at the final MCU/motor output. PS2 B active braking does not replace X or physical e-stop.
-- [ ] Use the existing locked limits, STM32 command/feedback formulas and field bags to finish the new-stack movement model; command-RPM and coupled yaw/curvature bounds are already source-proven. The read-only41-bag audit and two actual serial logs are completed: forward feedback is in Y, present and has exploratory response estimates. The wire angular field is gyro, not wheel-derived yaw. Retain isolated layout/speed/gyro outliers; independently validate new-stack stopping and in-place turning. Preserve the original limits.
-- [ ] With an operator at the physical e-stop, verify RTK authority loss stops the vehicle despite healthy LIO. RTK holdover motion remains unapproved and disabled.
-- [ ] Only after these gates and explicit on-site permission: manually enable a bounded low-speed live test. This delivery does not automatically drive or flash firmware.
+Software prerequisites still to close: nonzero source-derived conservative execution profile and source motor-target checks; explicit in-place trajectory treatment; real unfiltered-cloud ground/road evidence integration and persistence; complete current-source fault and motion simulation after these changes. Existing isolated build/three full raw source replays/16 ground ROS/10 EGO/39 final-wire cases are scoped software receipts.
+
+Target preparation: identify the running Jetson deployment and actual CLI/environment/generated launch overlays read-only, preserve its production checkout/install and current assets, compare original source/parsed/effective parameters, compile the submitted research commit in a separate worktree with one worker, run actuator-disabled shadow. Recorded Jetson100.79.128.21 SSH timed out; authorized non-Jetson100.88.131.52 is used for Humble/bags. No timeout implies missing mounting/chassis records.
+
+On-site human tests, after software/target prerequisites pass:
+
+- Confirm the actual flashed STM identity against the preserved source and recorded command/feedback formula differences; retain wheel diameter/virtual-radius discrepancies rather than silently rewriting either.
+- Check KEY, PS2 loss/manual takeover, X zero-current/coasting, B active brake and physical estop at the real final actuator; PTY zeros do not prove brake/estop physics.
+- Verify current stopping distance, latency, footprint sweep, terrain support assumptions and slip under the preserved motion caps.
+- Check straight/turn direction and source acquisition/arrival time behavior; recorded g-unit/raw bag proof is separate from current hardware clock alignment.
+- Confirm RTK position/heading gate loss stops despite healthy LIO; recovery does not silently rearm the operator stop latch.
+- Check missing IMU/LiDAR, map/version/TF faults and controller loss under the same deadlines.
+
+No automatic driving, source editing on Jetson, firmware flash, forcepush, production merge or removal of old assets is authorized. Optional camera observation requires the specific calibration/registered input actually used; no generic D455/example parameters are substituted. Real georeferenced prior registration and ground-to-road field evidence remain separate from synthetic policy results.

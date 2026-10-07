@@ -46,3 +46,5 @@ Read `audit/optimization_v2/`, `RESULTS.json` and
 `LIVE_ACCEPTANCE_CHECKLIST.md` for executed lab tests and pending vehicle gates.
 
 Raw pause uses SIGSTOP on the owned player group; resume may catch up scheduling time. The pause/resume acceptance is not a strict wall-clock pacing test.
+
+Current qualification uses a separate source-bound14-package workspace with2 Super/6 EGO patches,16 ROS support fixtures and39 final-PTY faults. The preserved preview remains atce46418; it is not evidence that the new default control/real terrain/road pipeline or hardware acceptance is complete. Recorded vehicle data are available and used; firmware identity and physical braking/estop remain on-site requirements. See RESULTS.json.

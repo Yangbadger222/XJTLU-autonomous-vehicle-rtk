@@ -1,0 +1,36 @@
+{
+  "status": "PASS",
+  "source_commit": "69b9b7517e6cd79d126d7c013a93e6d392a4a39e",
+  "workspace": "/home/badger/codex-research/superlio-ego-20261007/lio-ready-69b9b75-ws",
+  "workspace_created_fresh": true,
+  "package_count": 14,
+  "build_exit": 0,
+  "SDK": "fresh task-local original SDK compile/install",
+  "attempts": [
+    {
+      "log": "build-space-failure.log",
+      "exit": 2,
+      "reason": "No space left on device during EGO compiler temporary output"
+    },
+    {
+      "log": "build-retry.log",
+      "exit": 0,
+      "scope": "resume same fresh workspace; no source/compiler flags changed; TMPDIR in task-owned tmpfs"
+    }
+  ],
+  "recovery": "1240 this-turn generated objects losslessly gzip archived and SHA-verified; 698398641 bytes freed; source/bags/logs/installed binaries preserved",
+  "binary_sha256": {
+    "install/super_lio/lib/super_lio/super_lio_node": "06b4d0b1a311304f8baf25bf7a3b6e2e2c4db4f1b99124ecf483d88feedb8934",
+    "install/super_lio/lib/liblio.so": "8c1424d4d32fd025a7d95c21fc83418e6143fb6ee5dc0c2918c2421719621df7",
+    "install/ego_planner/lib/ego_planner/motion_plan": "5ddcd517ec53da76d9eb1ba2596805b3f8e0b74a6244c8ce1f56a153aa3dcc98",
+    "install/ego_planner/lib/ego_planner/research_tf_guard": "43eaf5d5104f764523fe12a181e57f950272e87302c31b1d88d8fae3bc112539",
+    "install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node": "5f8683c4e233e59ab994020719ed8b0e3bc4f0c4e3a41a00a25969bcd15995ad"
+  },
+  "log_sha256": {
+    "build.log": "6061d8ec3a56c2db3de1a63e1268d77dfbea258fc1a246beadaa60439c7ea8e6",
+    "build-retry.log": "2d2f4ae37f41222d642aaee5361201cf3e1609bede8b5e628ca78dd202cb90f9"
+  },
+  "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+  "architecture": "x86_64",
+  "scope": "Non-Jetson Humble SDK/14 package source-bound build, one explicit disk retry; separate runtime/input/physical receipts required"
+}

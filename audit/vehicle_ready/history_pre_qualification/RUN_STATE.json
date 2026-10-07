@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "runtime_source_commit": "da361f24b15f417787647c224cabde22d404fd73",
+  "runtime_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
   "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
   "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
   "physical_motion": "not_performed",
@@ -201,19 +201,5 @@
   "vehicle_contract_correction": {
     "scope": "Original mounting/source limits present; corrected Y-forward and gyro fields, retained header-clock stillness/measurement displacement, isolated feedback outliers. No new driving permission.",
     "evidence": "audit/vehicle_contract_review/REVIEW.md"
-  },
-  "goal_status": "ACTIVE",
-  "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-  "qualification_workspace": "/home/badger/codex-research/superlio-ego-20261007/ground-da361f2-ws",
-  "completed_qualification": [
-    "69b9b75 full3 raw replays EOF0",
-    "DA fresh SDK/14 package build",
-    "DA exact2Super/6EGO patch proof",
-    "DA16 actualgroundROS fixtures",
-    "DA10 EGO interface cases",
-    "DA39 final serial PTY faults",
-    "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained"
-  ],
-  "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
-  "finite_tests": "all current checkpoint child groups ended; only preserved ce46418 preview intentionally running"
+  }
 }

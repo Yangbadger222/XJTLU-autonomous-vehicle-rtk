@@ -24,3 +24,7 @@ limits. Patch0001's UNKNOWN is historical intermediate behavior; patch0002 is
 required by the current build/application recipe. No physical limit, firmware,
 serial protocol or factory extrinsic is changed. A conservative certificate is
 not physical accuracy or vehicle acceptance.
+
+## Current native qualification
+
+Patch0002 adds measurement-bound conservative observation eligibility/full18-state body covariance, malformed MID count/stride checks, maximum accepted offset synchronization, actual current IMU coverage, failed-update rollback and one previous real integration interval with posterior endpoint-continuous historical interpolation. It neither changes recorded driver/calibration nor permits RTK holdover motion. Three full raw EOF receipts at69b9b75, native red/green regressions and fresh2-patch source proof are under audit/vehicle_ready/. Source failure/out-of-history cases remain explicit; no accuracy/ground-truth/physical acceptance is claimed.

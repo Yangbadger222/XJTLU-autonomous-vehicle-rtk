@@ -66,49 +66,36 @@ def main() -> int:
           ["dependencies.research.repos"], json.dumps(pins, sort_keys=True))
 
     verification = json.loads(Path("audit/UPSTREAM_PATCH_VERIFICATION.json").read_text())
-    super_patch = Path("patches/super_lio/0001-publish-source-aware-odom-health.patch")
-    ego_one = Path("patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch")
-    ego_two = Path("patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch")
-    ego_three = Path("patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch")
-    ego_four = Path("patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch")
-    expected_hashes = {
-        "super_lio": verification["super_lio"]["patch_sha256"],
-        "ego_one": verification["ego_planner_2d_ros2"]["patches"][0]["sha256"],
-        "ego_two": verification["ego_planner_2d_ros2"]["patches"][1]["sha256"],
-        "ego_three": verification["ego_planner_2d_ros2"]["patches"][2]["sha256"],
-        "ego_four": verification["ego_planner_2d_ros2"]["patches"][3]["sha256"],
-    }
-    actual_hashes = {"super_lio": sha256(super_patch), "ego_one": sha256(ego_one),
-                     "ego_two": sha256(ego_two), "ego_three": sha256(ego_three),"ego_four":sha256(ego_four)}
-    check("patch_hashes", actual_hashes == expected_hashes,
-          ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(super_patch), str(ego_one), str(ego_two)],
-          json.dumps({"expected": expected_hashes, "actual": actual_hashes}, sort_keys=True))
-
-    patch_audit = Path("audit/ego_four_patch_source_verification.json")
-    patch_audit_data = json.loads(patch_audit.read_text()) if patch_audit.is_file() else {}
-    check("ego_patch_apply_audit",
-          verification["ego_planner_2d_ros2"].get("apply_check") == "PASS_SEQUENTIAL_ALL_FOUR" and
-          patch_audit_data.get("status")=="PASS" and patch_audit_data.get("pinned_commit")==EGO and
-          patch_audit_data.get("patches")==verification["ego_planner_2d_ros2"]["patches"] and
-          patch_audit_data.get("matches_built_source") is True,
-          ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
-          "requires exact-commit sequential apply evidence for all four patches")
-    clean_path=Path("audit/optimization_v2/clean-build.json")
+    proof_path=Path(verification["current_source_proof"])
+    proof=json.loads(proof_path.read_text())
+    for name,pin,directory,count in (("super_lio",SUPER,"super_lio",2),("ego_planner_2d_ros2",EGO,"ego_planner_2d",6)):
+        item=proof.get("dependencies",{}).get(name,{})
+        patches=sorted(Path("patches",directory).glob("*.patch"))
+        expected=[{"path":str(p),"sha256":sha256(p),"check_apply":"PASS"} for p in patches]
+        check(name+"_current_patch_source_proof",proof.get("status")=="PASS" and
+              len(patches)==count and [p.name[:4] for p in patches]==[f"{i:04}" for i in range(1,count+1)] and
+              item.get("pinned_commit")==pin and item.get("patches")==expected and
+              item.get("sequential_apply")=="PASS" and item.get("matches_built_source") is True and
+              item.get("differences")==[] and verification["dependencies"][name]["patches"]==expected,
+              [str(proof_path),"audit/UPSTREAM_PATCH_VERIFICATION.json",*[str(p) for p in patches]],
+              f"fresh exact-pin sequential {count} patches; actual checkout all-file byte equality; historical receipts remain historical")
+    clean_path=Path(verification["current_clean_build"])
     clean=json.loads(clean_path.read_text()) if clean_path.is_file() else {}
     clean_commit=clean.get("source_commit","")
     valid_commit=bool(re.fullmatch(r"[0-9a-f]{40}",clean_commit))
-    runtime_paths=["src","patches","dependencies.research.repos","scripts/build_active_road_research.sh",
+    runtime_paths=["src","patches","dependencies.research.repos","scripts/build_active_road_research.sh","scripts/generate_research_parameter_lock.py",
         "scripts/apply_ego_vehicle_patch.sh","scripts/apply_super_lio_patch.sh"]
     # Compare the working tree too. Package README prose is not installed runtime
     # code; every other source/build-input difference invalidates this evidence.
     changed=run("git","diff","--name-only",clean_commit,"--",*runtime_paths).splitlines() if valid_commit else []
     untracked=run("git","ls-files","--others","--exclude-standard","--",*runtime_paths).splitlines()
-    documentation_only={"src/research_interfaces/README.md"}
+    documentation_only={"src/research_interfaces/README.md","patches/super_lio/README.md",
+                        "patches/ego_planner_2d/README.md"}
     runtime_changes=[p for p in changed+untracked if p not in documentation_only]
     compiled_sources_match=valid_commit and not runtime_changes
     check("current_clean_humble_build",clean.get("status")=="PASS" and clean.get("build_exit")==0 and
           clean.get("package_count")==14 and compiled_sources_match,
-          [str(clean_path),"audit/optimization_v2/clean-build.log"],
+          [str(clean_path),verification["current_build_log"]],
           "fresh isolated SDK/14-package build; runtime changes since build: "+repr(runtime_changes))
 
     three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
@@ -192,6 +179,7 @@ def main() -> int:
         "src/bringup/config/super_lio_cloud_frame.yaml",
         "src/bringup/config/research_safety_bridge.yaml",
         "src/bringup/config/research_local_grid.yaml",
+        "src/bringup/config/research_observed_ground.yaml",
         "src/bringup/config/active_road_mapping.yaml",
         "src/bringup/config/active_road_evidence.yaml",
         "src/bringup/config/ego_vehicle_adapter.yaml",

@@ -1,130 +1,63 @@
 {
-  "super_lio": {
-    "commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
-    "patch": "patches/super_lio/0001-publish-source-aware-odom-health.patch",
-    "patch_sha256": "f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1",
-    "apply_check": "PASS",
-    "files": [
-      "src/super_lio/include/ros/ROSWrapper.h",
-      "src/super_lio/src/ros/ROSWrapper.cpp"
-    ],
-    "historical_build": {
-      "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CORE_WITH_MESSAGE_ONLY_LIVOX_CONTRACT",
-      "build_evidence": [
-        "audit/container/super-lio-build-message-only.log",
-        "audit/container/super-lio-build-message-only.exit",
-        "source commit f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2; source-aware patch applied",
-        "core build uses a compile-only livox_ros_driver2 message package; physical SDK/driver and sensor runtime remain unverified"
-      ]
-    },
-    "ros_build": "PASS_CLEAN_X86_64_HUMBLE_REAL_SDK_AND_DRIVER",
-    "build_evidence": [
-      "audit/remote_humble/clean-final-build.json",
-      "audit/remote_humble/clean-final-build.log",
-      "audit/remote_humble/source-provenance.json"
-    ],
-    "raw_bag_runtime": "audit/remote_humble/lio-paired-metrics.json"
-  },
-  "ego_planner_2d_ros2": {
-    "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch + patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch + patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
-    "apply_check": "PASS_SEQUENTIAL_ALL_FOUR",
-    "files": [
-      "src/EgoPlanner-ROS2/CMakeLists.txt",
-      "src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h",
-      "src/EgoPlanner-ROS2/package.xml",
-      "src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h",
-      "src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp",
-      "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
-      "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h",
-      "src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp",
-      "src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp",
-      "src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt",
-      "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp",
-      "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h",
-      "src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp",
-      "src/EgoPlanner-ROS2/src/research_tf_guard.cpp",
-      "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp"
-    ],
-    "ros_build": "PASS_CLEAN_X86_64_HUMBLE_ALL_FOUR_PATCHES",
-    "patches": [
-      {
-        "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
-        "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
-        "check_apply": "PASS"
-      },
-      {
-        "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-        "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
-        "check_apply": "PASS"
-      },
-      {
-        "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
-        "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
-        "check_apply": "PASS"
-      },
-      {
-        "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
-        "sha256": "59f6a009e022a6fa8474ae9b1f7a4d99eeafb2aad5c04200c4375b96c5f8852b",
-        "check_apply": "PASS"
-      }
-    ],
-    "latest_recheck": {
-      "status": "PASS_SEQUENTIAL",
-      "checkout_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-      "evidence": "audit/ego_four_patch_source_verification.json"
-    },
-    "patched_source_byte_equality": true,
-    "historical_builds": {
-      "raw_reproduction": {
-        "build": "PASS",
-        "startup": "PASS_TIMEOUT_EXPECTED",
-        "evidence": [
-          "audit/container/ego-raw-build-and-start.log",
-          "audit/container/ego-raw-build-and-start.exit"
-        ],
-        "details": "raw pinned ego_planner built and motion_plan started in isolated ROS 2 Humble until bounded 5 s timeout; no RViz/display or vehicle inputs"
-      },
-      "patched_build_evidence_prior_revision": [
-        "audit/container/ego-build-pass-2.log",
-        "audit/container/ego-build-pass-2.exit",
-        "prior patch revision; not evidence for current patch hash"
+  "schema": 2,
+  "current_source_proof": "audit/vehicle_ready/da361f2/patch-source-proof.json",
+  "current_clean_build": "audit/vehicle_ready/da361f2/clean-build.json",
+  "current_build_log": "audit/vehicle_ready/da361f2/build.log",
+  "historical_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_pre_ground.json",
+  "dependencies": {
+    "super_lio": {
+      "pinned_commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
+      "patches": [
+        {
+          "path": "patches/super_lio/0001-publish-source-aware-odom-health.patch",
+          "sha256": "f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/super_lio/0002-certify-source-observations-and-covariance.patch",
+          "sha256": "3dc13a16aac06262652ea24fe8908f13ee50c52de02c32076f580995713081bf",
+          "check_apply": "PASS"
+        }
       ],
-      "current_rebuild_probe": {
-        "status": "PASS_BUILDKIT_TWO_PATCH_COMPILE_THREE_PATCH_REBUILD_PENDING",
-        "evidence": "audit/container/ego-current-build.log",
-        "exit_evidence": "audit/container/ego-current-build-result.json",
-        "observed": "BuildKit linux/arm64 completed research_interfaces and ego_planner with Summary: 2 packages finished and #13 DONE; Docker Desktop disconnected after image export, so no ordinary container-start claim is made",
-        "conclusion": "Current two-patch ARM64 compile evidence is valid for 0001+0002 only; 0003 stale-plan safety patch applies cleanly but needs a fresh ROS/ARM64 rebuild"
-      },
-      "patched_build_evidence_current": [
-        "audit/container/ego-current-build.log",
-        "audit/container/ego-current-build-result.json",
-        "audit/container/ego-current-build.Dockerfile",
-        "source commit 7f5be6d4cee34871e85aa1f15285cfaf17b23877; both project patches applied in BuildKit",
-        "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
-        "compile proof only; ordinary container startup and Jetson runtime remain pending",
-        "current compile log predates 0003; sequential apply-check for all three patches is audit/ego_patch_check_current.log"
-      ]
+      "sequential_apply": "PASS",
+      "matches_built_source": true
     },
-    "raw_reproduction": {
-      "build": "PASS",
-      "simulation": "PASS",
-      "rviz_gui": "NOT_RUN_HEADLESS",
-      "evidence": [
-        "audit/remote_humble/ego-raw-build.log",
-        "audit/remote_humble/ego-raw-simulation.json"
-      ]
-    },
-    "current_rebuild_probe": {
-      "status": "PASS",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "packages": 14,
-      "evidence": [
-        "audit/remote_humble/clean-final-build.json",
-        "audit/remote_humble/source-provenance.json"
+    "ego_planner_2d_ros2": {
+      "pinned_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+      "patches": [
+        {
+          "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+          "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+          "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+          "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+          "sha256": "59f6a009e022a6fa8474ae9b1f7a4d99eeafb2aad5c04200c4375b96c5f8852b",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/ego_planner_2d/0005-protect-owned-local-world-gauge.patch",
+          "sha256": "f4155b8d1ede8b6cd2b0ead08f0b099177bbdb3c1d3d4a9c91a9f4d472326d06",
+          "check_apply": "PASS"
+        },
+        {
+          "path": "patches/ego_planner_2d/0006-atomic-local-evidence-grid-contract.patch",
+          "sha256": "deeb721df0a5872cfef13b4f2e7798df89e393c0e461f0d7d5802dfaed404cf8",
+          "check_apply": "PASS"
+        }
       ],
-      "scope": "all four current patches, exact byte-equal source; no Jetson runtime claim"
+      "sequential_apply": "PASS",
+      "matches_built_source": true
     }
   }
 }

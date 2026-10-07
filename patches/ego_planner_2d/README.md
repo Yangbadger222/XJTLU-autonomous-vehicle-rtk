@@ -49,3 +49,7 @@ All five patches apply sequentially to the pinned raw commit. See
 `AUDIT_REPORT.md`; it is not a physical vehicle acceptance.
 
 The fourth patch also preserves the original coupled `|v*w| <= 0.25` guard cap in optimization, continuous certification and tracking. A validated 10 Hz heartbeat retains the trajectory generation time between 1 Hz geometry replans; every heartbeat still checks fresh state, TF, reference, map version and the remaining footprint against the current grid. Candidate queries cannot replace the execution cache.
+
+## Current qualification
+
+Six patches apply sequentially to develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877. Patch0005 protects the owned local-world TF gauge;0006 carries atomic LocalEvidenceGrid2D map/session/acquisition identity into the pinned planner and rejects foreign/unsupported payloads. Fresh14 build and source byte equality: audit/vehicle_ready/da361f2/. Ordinary entry disables analytical fixture grids. Earlier four-patch receipts remain historical.

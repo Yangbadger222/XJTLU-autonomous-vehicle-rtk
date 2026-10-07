@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "source_commit": "da361f24b15f417787647c224cabde22d404fd73",
+  "workspace": "/home/badger/codex-research/superlio-ego-20261007/ground-da361f2-ws",
+  "workspace_created_fresh": true,
+  "package_count": 14,
+  "build_exit": 0,
+  "SDK": "fresh task-local original SDK compile/install",
+  "packages": [
+    "research_interfaces",
+    "um982_rtk_driver",
+    "ego_planner",
+    "research_runtime",
+    "active_road_mapping",
+    "ego_vehicle_adapter",
+    "gps_waypoint_dispatcher",
+    "serial",
+    "basic",
+    "bringup",
+    "super_lio_vehicle_adapter",
+    "super_lio",
+    "serial_twistctl",
+    "livox_ros_driver2"
+  ],
+  "binary_sha256": {
+    "install/super_lio/lib/super_lio/super_lio_node": "bee0be4a7fb41a55c7f08efd608e0816978cf985b91aff090e7d2c54b398e552",
+    "install/super_lio/lib/liblio.so": "1d945a3748e43b1b7832adffda1689a873d472367c359e82936a36e6d2592528",
+    "install/ego_planner/lib/ego_planner/motion_plan": "653949251aff1daa2642de77509ced250da8431d8135d97068d1b0b8efc600ca",
+    "install/ego_planner/lib/ego_planner/research_tf_guard": "72a2ad3b7f32d50d2090ca4f95e568f800c26fc5d7aa85454a681a717ad0bec7",
+    "install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node": "1f46b978b77b06ff926fbfad23241dc4326f5d639a0157ee2990bdac53dc5257"
+  },
+  "log_sha256": "a9846b9324961c18c465e56d7cffd7ef188be9c16babc168dbbfad7f2c1a5270",
+  "scope": "new task workspace; inherited overlays cleared, original SDK, six EGO and two Super sequential patches; x86_64 non-Jetson Humble, no physical deployment"
+}

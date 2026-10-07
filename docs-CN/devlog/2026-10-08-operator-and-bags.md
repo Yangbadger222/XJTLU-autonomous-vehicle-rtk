@@ -122,3 +122,7 @@ ff实际SDK/14包、4native及35原串口/8world故障通过。完整July15 1× 
 
 #### 影响
 新适配器的实际安装绿色验证继续执行。原固件/标定/串口/物理限值和RTK失权停车保持；地面、EGO实车profile和车端资格尚未完成。非Jetson软件证据与现场验收/研究收益分开，goal继续。
+
+## Super-LIO/地面资格验证进展
+
+MID360安装、内置IMU与STM源模型来自原仓库，先前笼统的缺数据表述已纠正。当前三组raw完整EOF持续覆盖/协方差/健康通过；新独立14包编译、地面16项ROS、EGO10项、最终原串口PTY39故障通过。typed地图/会话/采集身份防止旧支撑刷新；相邻台阶实际red→green。默认执行剖面和真实地面道路生产链仍在实现，实车急停/制动与Jetsonshadow另列PENDING，历史策略0/6负结果保留。详见audit/vehicle_ready与RESULTS.json。

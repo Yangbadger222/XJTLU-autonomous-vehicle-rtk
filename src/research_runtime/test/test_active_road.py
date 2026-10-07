@@ -33,6 +33,36 @@ def test_evidence_replay_is_idempotent_and_persistent(tmp_path):
     assert loaded.evidence()[0].state == EvidenceState.OBSERVED_GEOMETRY
 
 
+def test_history_load_validates_all_content_without_hashing_every_prefix(tmp_path, monkeypatch):
+    # A second task loads the full persisted history inside a ROS callback.
+    # Rehashing every growing prefix made that callback exceed the unchanged
+    # 0.20 s state and 0.50 s permission deadlines on the Humble host.
+    store = EvidenceStore(GeoTransform("EPSG:32651", "WGS84", 0, 0, 1, 1), "v1")
+    for index in range(224):
+        store.add(RoadEvidence(str(index), [(0, 0), (1, 0)],
+            EvidenceState.OBSERVED_GEOMETRY, 1.0, "lidar", "s1", .03, 1.0))
+    store.anchor_submap("s1", (0, 0, 0), stamp=1., uncertainty_m=.03, authority_valid=True)
+    path = tmp_path / "history.json"
+    store.save(path)
+    import research_runtime.active_road as active_road
+    original_hash = active_road.hashlib.sha256
+    hashes = []
+    def count_hash(*args, **kwargs):
+        hashes.append(1)
+        return original_hash(*args, **kwargs)
+    monkeypatch.setattr(active_road.hashlib, "sha256", count_hash)
+    loaded = EvidenceStore.load(path)
+    assert loaded.map_version == store.map_version
+    assert loaded.evidence() == store.evidence()
+    assert loaded.submap_anchors == store.submap_anchors
+    assert len(hashes) == 1
+    payload = json.loads(path.read_text())
+    payload["evidence"][-1]["source"] = "tampered"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="content/version mismatch"):
+        EvidenceStore.load(path)
+
+
 def test_unsafe_high_score_candidate_is_filtered():
     selected = choose_observation([
         ObservationCandidate("unsafe", "e", True, False, True, True, 100, 1, 0.1),

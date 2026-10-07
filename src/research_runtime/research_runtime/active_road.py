@@ -199,6 +199,7 @@ class EvidenceStore:
         self.submap_anchors = {}
         self.graph_updates = {}
         self.rolled_back_graph_updates = {}
+        self._defer_version_hash = False
 
     def add(self, evidence: RoadEvidence) -> bool:
         """Add once by UUID; replaying the same observation is idempotent."""
@@ -212,6 +213,8 @@ class EvidenceStore:
         return True
 
     def _update_version(self):
+        if self._defer_version_hash:
+            return
         content = {"prior_version": self.prior_version, "transform": asdict(self.transform),
                    "evidence": [asdict(self._evidence[key]) for key in sorted(self._evidence)]}
         if self.submap_anchors:
@@ -333,6 +336,11 @@ class EvidenceStore:
         if not isinstance(payload.get("evidence"), list):
             raise ValueError("evidence store list is required")
         store = cls(GeoTransform(**payload["transform"]), payload.get("prior_version",payload["map_version"]))
+        # Loading is transactional: this private store cannot escape until all
+        # measurements, anchors, graph references and tombstones are validated.
+        # Hash once at the end, rather than every growing evidence prefix.
+        # Quadratic reload time otherwise starves the original ROS deadlines.
+        store._defer_version_hash = True
         for submap_id,anchor in payload.get("submap_anchors",{}).items():
             if anchor.get("target_frame")!="map" or anchor.get("state") not in ("ANCHORED","STALE"):
                 raise ValueError("invalid persisted submap anchor")
@@ -350,6 +358,9 @@ class EvidenceStore:
         for update in payload.get('graph_updates',{}).values():store.add_graph_update(update)
         for identity,record in payload.get('rolled_back_graph_updates',{}).items():
             store.rollback_graph_update(identity,reason=record['reason'],stamp=record['stamp'])
+        store._defer_version_hash = False
+        if store._evidence or store.submap_anchors or store.graph_updates or store.rolled_back_graph_updates:
+            store._update_version()
         if "prior_version" in payload and store.map_version != payload["map_version"]:
             raise ValueError("persisted evidence content/version mismatch")
         if "prior_version" not in payload:

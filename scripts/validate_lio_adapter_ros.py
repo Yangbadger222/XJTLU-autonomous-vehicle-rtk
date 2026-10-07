@@ -41,7 +41,7 @@ def main():
             odom.publish(msg)
             if send_health:health.publish(String(data='OK: ANALYTICAL_TEST_SOURCE'))
             if send_cloud:cloud.publish(point_cloud2.create_cloud_xyz32(msg.header,[(0.,0.,100.05),(1.,0.,100.2),(2.,0.,100.8),(3.,0.,101.3),(float('nan'),0.,0.)]))
-            
+
             for _ in range(7):rclpy.spin_once(node,timeout_sec=.002)
             time.sleep(.025)
     def check(name,ok,detail=None):checks.append({'case':name,'status':'PASS' if ok else 'FAIL','detail':detail})

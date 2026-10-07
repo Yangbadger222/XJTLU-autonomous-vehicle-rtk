@@ -1339,7 +1339,7 @@ index 0000000..49a77a4
 +};
 +int main(int argc,char** argv) { rclcpp::init(argc,argv); rclcpp::spin(std::make_shared<ResearchTfGuard>()); rclcpp::shutdown(); }
 diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
-index f6594cd..adc58c0 100644
+index f6594cd..e4085c1 100644
 --- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 +++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
 @@ -8,6 +8,7 @@
@@ -1596,7 +1596,7 @@ index f6594cd..adc58c0 100644
      publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_UNKNOWN_MAP,
                      "local_obstacle_grid_unavailable_or_unknown");
      return false;
-@@ -288,14 +376,70 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+@@ -288,14 +376,81 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
      return false;
    }
    if (max_curvature_1pm_ <= 0.0 || max_lateral_speed_mps_ <= 0.0 ||
@@ -1622,7 +1622,18 @@ index f6594cd..adc58c0 100644
 +    for(size_t i=0;valid && i+1<executable_cache_.points.size();++i) {
 +      const auto &a=executable_cache_.points[i],&b=executable_cache_.points[i+1];
 +      if(b.t<elapsed)continue;
-+      valid=ego_planner_->isInflatedPositionFree((a.x+b.x)*.5,(a.y+b.y)*.5,max_speed_mps_*(b.t-a.t));
++      const double dt=b.t-a.t;
++      if(!std::isfinite(dt) || dt<=0.) {valid=false;break;}
++      // The certified spline has |dv/dt| <= A. Every interval speed is
++      // bounded by max(endpoint speeds)+A*dt/2, and by the original V cap.
++      // Any curve point is within V_interval*dt of the endpoint midpoint:
++      // nearest-endpoint travel <= V_interval*dt/2 and half chord likewise.
++      // Using the global V cap everywhere needlessly rejects stopped tails
++      // near a support boundary and restarts a valid plan on every heartbeat.
++      const double acceleration=std::max(max_accel_mps2_,max_decel_mps2_);
++      const double interval_speed=std::min(max_speed_mps_,
++        std::max(std::abs(a.v),std::abs(b.v))+acceleration*dt*.5);
++      valid=ego_planner_->isInflatedPositionFree((a.x+b.x)*.5,(a.y+b.y)*.5,interval_speed*dt);
 +    }
 +    if(valid) {
 +      auto message=executable_cache_;message.header.stamp=to_builtin_time(now());
@@ -1669,7 +1680,7 @@ index f6594cd..adc58c0 100644
    ego_planner_->setCurrentVehicleState(vehicle_state_, start_velocity_, start_acceleration_);
    ego_planner_->setObstacles(obstacles_);
    ego_planner_->makePlan();
-@@ -307,7 +451,7 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+@@ -307,7 +462,7 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
      return false;
    }
    publish_timed_trajectory(planned);
@@ -1678,7 +1689,7 @@ index f6594cd..adc58c0 100644
    return true;
  }
  
-@@ -317,8 +461,12 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+@@ -317,8 +472,12 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
      return false;
    }
    double previous_yaw = vehicle_state_.z;
@@ -1692,7 +1703,7 @@ index f6594cd..adc58c0 100644
    for (size_t index = 0; index < points.size(); ++index) {
      const auto & point = points[index];
      const double vx = point.vx;
-@@ -326,31 +474,31 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+@@ -326,31 +485,31 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
      const double speed = std::hypot(vx, vy);
      if (!std::isfinite(point.v) || !std::isfinite(speed) || speed > max_speed_mps_ + 1e-6 ||
          (!allow_reverse_ && point.v < -1e-6)) {
@@ -1738,7 +1749,7 @@ index f6594cd..adc58c0 100644
      }
      previous_yaw = yaw;
      previous_w = yaw_rate;
-@@ -373,14 +521,14 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
+@@ -373,14 +532,14 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
    message.failure_reason.clear();
  
    double previous_yaw = vehicle_state_.z;
@@ -1757,7 +1768,7 @@ index f6594cd..adc58c0 100644
        (point.vx * point.ay - point.vy * point.ax) / (speed * speed) : 0.0;
      research_interfaces::msg::TimedTrajectoryPoint2D sample;
      sample.t = static_cast<double>(index) * kSamplePeriod;
-@@ -390,14 +538,19 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
+@@ -390,14 +549,19 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
      sample.v = point.v;
      sample.w = yaw_rate;
      sample.a = acceleration;

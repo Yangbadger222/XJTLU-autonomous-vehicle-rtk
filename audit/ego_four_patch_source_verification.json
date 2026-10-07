@@ -19,7 +19,7 @@
     },
     {
       "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
-      "sha256": "6f6e7e3043fd2d4f5883602f45301ef29e7c51687803b1ca41cf4d4b93093a65",
+      "sha256": "59f6a009e022a6fa8474ae9b1f7a4d99eeafb2aad5c04200c4375b96c5f8852b",
       "check_apply": "PASS"
     }
   ],
@@ -41,5 +41,5 @@
     "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp"
   ],
   "matches_built_source": true,
-  "verification_checkout": "ego-latest-four-patch-verification"
+  "verification_checkout": "ego-cache-four-patch-verification"
 }

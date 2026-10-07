@@ -19,12 +19,14 @@ def main():
     parser.add_argument("--override-probes",action="store_true")
     parser.add_argument("--repo",type=Path)
     parser.add_argument("--serial-evidence",type=Path)
+    parser.add_argument("--console-port",type=int,default=8876,help="task-only HTTP port; preserves an existing user preview")
     args = parser.parse_args()
     if os.environ.get("ROS_DOMAIN_ID") != "93" or os.environ.get("ROS_LOCALHOST_ONLY") != "1":
         raise SystemExit("requires isolated domain 93")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     log = args.output.with_suffix(".log").open("w")
-    process = subprocess.Popen(["ros2", "launch", "bringup", "system_active_road_research.launch.py"],
+    process = subprocess.Popen(["ros2", "launch", "bringup", "system_active_road_research.launch.py",
+                                "console_port:="+str(args.console_port)],
                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
     time.sleep(4)
     evidence = {}
@@ -38,6 +40,7 @@ def main():
             "authority_parameters": ["ros2", "param", "dump", "/rtk_map_odom_corrector"],
             "guard_parameters": ["ros2", "param", "dump", "/corridor_cmd_vel_guard"],
             "adapter_parameters": ["ros2", "param", "dump", "/super_lio_vehicle_adapter"],
+            "tf_guard_parameters": ["ros2", "param", "dump", "/research_tf_integrity_guard"],
             "cloud_frame_parameters": ["ros2", "param", "dump", "/super_lio_cloud_frame_adapter"],
             "superlio_parameters": ["ros2", "param", "dump", "/super_lio_node"],
             "robot_description_parameters": ["ros2","param","dump","/robot_state_publisher"],
@@ -114,7 +117,8 @@ def main():
         evidence["owned_child_processes"] = [{"pid": pid, "alive": Path(f"/proc/{pid}").exists()}
                                               for pid in owned_pids]
         forbidden = ("fastlio", "nav2", "mppi", "slam", "fake_sim", "frc", "fgo", "serial_twistctl", "livox_ros_driver", "um982")
-        result = {"domain": 93, "mode": "default replay", "evidence": evidence,"deliberate_override_probes":override_results,
+        result = {"domain": 93, "mode": "default replay", "test_only_overrides":{"console_port":args.console_port},
+                  "evidence": evidence,"deliberate_override_probes":override_results,
                   "missing_expected_nodes": sorted(expected - set(names)),
                   "forbidden_nodes": [n for n in names if any(word in n.lower() for word in forbidden)],
                   "launch_exit_before_cleanup": process.poll()}

@@ -83,6 +83,19 @@ def audit(root, default_entry, serial):
         checked("obstacle_height."+key,value,parsed_cloud[key],cloud_runtime[key])
     for key,value in zip(("publish_min_z_m","publish_max_z_m"),locked["cloud.publish_height_window"]):
         checked("regular_cloud_height."+key,value,parsed_cloud[key],cloud_runtime[key])
+    # New reference settings derive from the source-reviewed original FAST
+    # IMU-origin convention, not a newly measured physical chassis extrinsic.
+    reference=yaml.safe_load((root/"src/bringup/config/super_lio_reference.yaml").read_text())["super_lio_vehicle_adapter"]["ros__parameters"]
+    reference_runtime=parameters(evidence["adapter_parameters"]["output"])
+    for key,value in {"source_frame":"world","source_child_frame":"imu","world_frame":"odom","base_frame":"base_footprint",
+            "navigation_reference_convention":"locked_fast_imu_origin","navigation_reference_contract":"corridor_e54c6af_fast_imu_origin_v1",
+            "imu_to_base_extrinsic_verified":False,"imu_to_base_translation_m":[0.,0.,0.],"imu_to_base_quaternion_xyzw":[0.,0.,0.,1.],
+            "world_gauge_mode":"source_local_world","require_source_health_ok":True,"require_covariance":True}.items():
+        checked("audited_reference."+key,value,reference.get(key),reference_runtime.get(key))
+    checked("cloud.owned_identity_gauge",True,parsed_cloud.get("require_owned_identity_gauge"),cloud_runtime.get("require_owned_identity_gauge"))
+    checked("tf_guard.protect_world_gauge",True,
+            "\"protect_world_gauge\": True" in (root/"src/bringup/launch/system_active_road_research.launch.py").read_text(),
+            parameters(evidence["tf_guard_parameters"]["output"]).get("protect_world_gauge"))
     # Compare the actual robot_description geometry with expansion of the
     # protected original Xacro, ignoring only nonsemantic comments/formatting.
     source=root/"src/bringup/urdf/rosbot/rosbot.urdf.xacro"

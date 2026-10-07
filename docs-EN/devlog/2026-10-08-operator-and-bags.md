@@ -65,3 +65,17 @@ Independent reviews found an end-iterator dereference before the late IMU guard,
 
 #### Effect
 156 portable checks pass. The earlier b40 SDK/14-package build is superseded evidence; this revision requires a separate source-bound Humble build, native probes, raw replay and final serial cases. Original protected settings and production assets remain preserved; no physical result is inferred.
+
+### Raw replay coverage and unordered MID scan-end regression
+
+#### File
+Super patch0002; native packet probe/runner; strict source replay/captured-callback/read-only packet audits; three-layer/launch probes; `audit/vehicle_ready/diagnosis.md`.
+
+#### Change
+Actual9f build/native/43 final-wire/136 parameter checks pass. Tighten replay to sustained coverage and terminal output; record a two-frame actual CDR reference-fault fixture. Native MID parser now uses the maximum accepted offset, preserving point times; malformed array/count is rejected before indexing.
+
+#### Reason
+The first replay check incorrectly passed1866 source/363 vehicle frames. A tight callback reproduces23.48deg over.399s; original15deg protection correctly stops.248 actual packets have unordered maximum/last offsets,1147 overlap previous packet intervals, and the fault-window old-bag gyro exceeds current .7 caps. A valid-constructor actual parser probe fails the maximum-end assertion before the fix.
+
+#### Effect
+No stop threshold/clock/calibration/cap relaxation. Three native probes,35 original faults,8 world fault/latch cases and136 triple-layer checks are concrete evidence; sustained source integration remains FAIL until the tightened replay is rerun. Jetson connectivity is currently unavailable. This is ongoing authorized goal work, not completion or physical acceptance.

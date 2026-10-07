@@ -13,6 +13,7 @@ def main():
     parser.add_argument('--repo',type=Path,required=True)
     parser.add_argument('--workspace',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--only',choices=('information','failed_update','deskew','packet'))
     args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
     build=args.workspace/'build/super_lio'
     make=(build/'CMakeFiles/lio.dir/flags.make').read_text().splitlines()
@@ -21,7 +22,7 @@ def main():
     object_index=next(i for i,part in enumerate(link) if part.endswith('src/apps/super_lio_node.cpp.o'))
     output_index=link.index('-o')+1
     checks=[]
-    for name in ('information','failed_update','deskew'):
+    for name in ((args.only,) if args.only else ('information','failed_update','deskew','packet')):
         source=args.repo/f'scripts/validate_super_lio_{name}.cpp'
         object_file=args.output/f'{name}.o';binary=args.output/name
         compile_cmd=[link[0],*flags['CXX_DEFINES'],*flags['CXX_INCLUDES'],

@@ -316,7 +316,7 @@ index f7a64d2..bee8611 100644
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..b58cc06 100644
+index d1a3ae7..ea85172 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
 @@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
@@ -347,7 +347,7 @@ index d1a3ae7..b58cc06 100644
    Output();
    caceData();
  }
-@@ -358,21 +362,77 @@ inline double get_cpu_time_seconds() {
+@@ -358,21 +362,78 @@ inline double get_cpu_time_seconds() {
  }
  
  
@@ -379,9 +379,10 @@ index d1a3ae7..b58cc06 100644
 +  for (const auto& point : measures_.lidar.pc->points) {
 +    const double query = start_time + point.offset_time;
 +    if (!std::isfinite(query) || !std::isfinite(point.x) || !std::isfinite(point.y) ||
-+        !std::isfinite(point.z) || point.offset_time < 0 ||
-+        query < kf_->GetTime() - 1e-6 || query > end_time + 1e-6)
-+      return reject("point_outside_scan_state_interval");
++        !std::isfinite(point.z) || point.offset_time < 0)
++      return reject("nonfinite_point_or_offset");
++    if (query < kf_->GetTime() - 1e-6) return reject("point_before_current_state_interval");
++    if (query > end_time + 1e-6) return reject("point_after_declared_scan_end");
 +  }
 +  // Actual bracketing samples, not an assumed IMU period or a latest-TF guess.
 +  IMUData end_imu = measures_.imu.back();
@@ -430,7 +431,7 @@ index d1a3ae7..b58cc06 100644
    auto& raw_pc = measures_.lidar.pc;
  
    std::size_t ptsize = raw_pc->points.size();
-@@ -386,23 +446,15 @@ void SuperLIO::Propagation_Undistort(){
+@@ -386,23 +447,15 @@ void SuperLIO::Propagation_Undistort(){
        auto& pt_full = scan_undistort_full_->points[idx];
        const auto& pt = raw_pc->points[idx];
        pt_full.intensity = pt.intensity;
@@ -463,7 +464,7 @@ index d1a3ae7..b58cc06 100644
        auto match_iter_n = std::next(match_iter);
        double dt = match_iter_n->time - match_iter->time;
        double tau = query_time - match_iter->time;
-@@ -423,6 +475,7 @@ void SuperLIO::Propagation_Undistort(){
+@@ -423,6 +476,7 @@ void SuperLIO::Propagation_Undistort(){
        pt_full.z = eigen_point[2];
      }
    });
@@ -471,7 +472,7 @@ index d1a3ae7..b58cc06 100644
  }
  
  
-@@ -435,12 +488,17 @@ void SuperLIO::DownSample(){
+@@ -435,12 +489,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
    V6d HTVr = V6d::Zero();
@@ -490,7 +491,7 @@ index d1a3ae7..b58cc06 100644
    
    static std::vector<float> _lengths;
    points_body_v3_.resize(ptsize);
-@@ -458,7 +516,7 @@ void SuperLIO::Observe(){
+@@ -458,7 +517,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
  
@@ -499,7 +500,7 @@ index d1a3ae7..b58cc06 100644
      const SE3 pose = kf_state.pose;
      const bool need_converge = kf_state.need_converge;
      const M3d R_transpose = (pose.R_.transpose()).cast<double>();
-@@ -504,18 +562,22 @@ void SuperLIO::Observe(){
+@@ -504,18 +563,22 @@ void SuperLIO::Observe(){
        
              local_acc.HTVH += J * 1000 * J.transpose();
              local_acc.HTVr -= J * 1000 * error;
@@ -522,7 +523,7 @@ index d1a3ae7..b58cc06 100644
  
      if(need_converge) return;
  
-@@ -534,6 +596,7 @@ void SuperLIO::Observe(){
+@@ -534,6 +597,7 @@ void SuperLIO::Observe(){
    });
  
    frame_num_++;
@@ -530,7 +531,7 @@ index d1a3ae7..b58cc06 100644
  }
  
  
-@@ -589,4 +652,4 @@ void SuperLIO::printTimeRecord(){
+@@ -589,4 +653,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
  
@@ -538,7 +539,7 @@ index d1a3ae7..b58cc06 100644
 \ No newline at end of file
 +} // namespace END.
 diff --git a/src/super_lio/src/ros/ROSWrapper.cpp b/src/super_lio/src/ros/ROSWrapper.cpp
-index 7745912..dc53751 100644
+index 7745912..704c48e 100644
 --- a/src/super_lio/src/ros/ROSWrapper.cpp
 +++ b/src/super_lio/src/ros/ROSWrapper.cpp
 @@ -1,6 +1,8 @@
@@ -550,7 +551,34 @@ index 7745912..dc53751 100644
  
  
  using namespace BASIC;
-@@ -554,12 +556,14 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+@@ -420,7 +422,7 @@ void ROSWrapper::imuHandler(const sensor_msgs::msg::Imu::SharedPtr msg){
+ 
+ 
+ void ROSWrapper::livoxHandler(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg){
+-  if(msg->point_num < 10) return;
++  if(msg->point_num < 10 || msg->point_num != msg->points.size() || g_filter_rate <= 0) return;
+   LidarData lidar_data;
+   std::size_t ptsize = msg->point_num;
+   lidar_data.pc.reset(new pcl::PointCloud<LI2Sup::PointXTZIT>());
+@@ -433,11 +435,15 @@ void ROSWrapper::livoxHandler(const livox_ros_driver2::msg::CustomMsg::SharedPtr
+     if (tag == 0x10 || tag == 0x00){
+       auto dis = pt.x * pt.x + pt.y * pt.y + pt.z * pt.z;
+       if(dis > g_blind2 && dis < g_maxrange2){
+-        offset_time = pt.offset_time * 1e-9;
+-        lidar_data.pc->emplace_back(pt.x, pt.y, pt.z, pt.reflectivity, offset_time);
++        const double point_time = pt.offset_time * 1e-9;
++        // MID packet offsets are not necessarily ordered. Preserve each
++        // point's measured offset and synchronize through the actual maximum.
++        offset_time = std::max(offset_time, point_time);
++        lidar_data.pc->emplace_back(pt.x, pt.y, pt.z, pt.reflectivity, point_time);
+       }
+     }
+   }
++  if (lidar_data.pc->empty()) return;
+   lidar_data.start_time = stampToSec(msg->header.stamp);
+   lidar_data.end_time   = lidar_data.start_time + offset_time;
+   lidar_buffer_.push_back(lidar_data);
+@@ -554,12 +560,14 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
  
    double imu_time = imu_buffer_.front().secs;
    meas.imu.clear();
@@ -565,7 +593,7 @@ index 7745912..dc53751 100644
  
    last_timestamp_lidar_ = meas.lidar.end_time;
    lidar_buffer_.pop_front();
-@@ -568,6 +572,26 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+@@ -568,6 +576,26 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
  }
  
  
@@ -592,7 +620,7 @@ index 7745912..dc53751 100644
  void ROSWrapper::pub_odom(const NavState& state){
    nav_msgs::msg::Odometry odom;
    odom.header.frame_id = "world";
-@@ -584,9 +608,12 @@ void ROSWrapper::pub_odom(const NavState& state){
+@@ -584,9 +612,12 @@ void ROSWrapper::pub_odom(const NavState& state){
    odom.pose.pose.orientation.z = temp_q[2];
    odom.pose.pose.orientation.w = temp_q[3];
  
@@ -608,7 +636,7 @@ index 7745912..dc53751 100644
  
    if (eskf_ != nullptr) {
      const auto dynamic = eskf_->GetDynamicState();
-@@ -594,26 +621,23 @@ void ROSWrapper::pub_odom(const NavState& state){
+@@ -594,26 +625,23 @@ void ROSWrapper::pub_odom(const NavState& state){
      odom.twist.twist.angular.y = dynamic.w[1];
      odom.twist.twist.angular.z = dynamic.w[2];
  

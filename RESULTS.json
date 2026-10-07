@@ -30,9 +30,10 @@
       "audit/remote_humble/adapter.json",
       "audit/remote_humble/lio-bag-fields.json",
       "audit/remote_humble/lio-paired-metrics.json",
-      "audit/vehicle_baseline/LIO_FIELD_MAPPING.json"
+      "audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
+      "audit/vehicle_contract_review/REVIEW.md"
     ],
-    "scope": "Actual ROS mathematical adapter/window/health-expiry checks PASS; bag-specific parser/filter observations preserved. Measured IMU/base/GNSS lever arms, world->odom registration, source health/covariance and hardware clocks are unqualified, so full real-vehicle equivalence remains pending."
+    "scope": "MID360 factory and mounting position records exist. Original FAST IMU-origin base_footprint convention is documented. This data was previously mislabeled absent; the research adapter has not yet reconciled these reference conventions or qualified full source-health/covariance/clock semantics. Actual mathematical ROS tests remain PASS, physical equivalence remains PENDING."
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
     "status": "PASS",
@@ -139,7 +140,7 @@
     "evidence": [
       "LIVE_ACCEPTANCE_CHECKLIST.md"
     ],
-    "scope": "No physical driving or calibrated slip/wheel/braking/curvature/camera/ground acceptance; deployment contract gaps explicitly block default motion."
+    "scope": "Current new research stack has no live driving/Jetson validation. Repository mounting, command geometry, motion limits and field evidence are used, not absent. New-stack reference/health/ground/control integration and physical stop validation remain incomplete. Forward serial feedback is in Y (607/571 nonzero records); coupled response fits exist. Retained layout/speed/gyro outliers and unlabeled hardware state do not certify new-stack physical braking or independent wheel/slip calibration."
   },
   "RTK_HOLDOVER_MOTION_APPROVAL": {
     "status": "NOT_RUN",
@@ -158,7 +159,7 @@
   },
   "DELIVERY_STATE": {
     "status": "PASS",
-    "detail": "Normal research-only branch push and OPEN draft PR verified; production baseline remains e54c6af. Current installed runtime remains ce46418. Finite tests ended; the recorded default actuator-free replay preview is intentionally active. Receipt descendants contain status/audit prose only.",
+    "detail": "Normal research-only branch push and OPEN draft PR verified; production baseline remains e54c6af. Current installed runtime remains ce46418. Finite tests ended; the recorded default actuator-free replay preview is intentionally active. Subsequent standalone read-only audit tools/reports do not change installed ROS sources.",
     "evidence": [
       "audit/optimization_v2/publication.json",
       "audit/optimization_v2/static-delivery.json",
@@ -178,6 +179,16 @@
       "docs-CN/research_operator_console.md",
       "docs-EN/research_operator_console.md",
       "audit/optimization_v2/final-code-review.md"
+    ]
+  },
+  "REPOSITORY_VEHICLE_CONTRACT_EVIDENCE": {
+    "status": "PASS",
+    "scope": "Corrected prior overbroad missing-data claims: documented MID360 mounting/internal IMU/legacy reference, exact original STM32 command/feedback equations, source-derived speed-dependent curvature and all41 command/LIO bags were audited. Corrected serial Y forward axis and gyro semantics; 1186 zero-command candidates include rotations,15 have continuous >=1s header/planar stillness coverage. Estimates are exploratory and preserve original limits; no physical enabling or braking certification.",
+    "evidence": [
+      "audit/vehicle_contract_review/REVIEW.md",
+      "audit/vehicle_contract_review/source-contract.json",
+      "audit/vehicle_contract_review/recorded-response.json",
+      "audit/vehicle_contract_review/validation.json"
     ]
   }
 }

@@ -19,4 +19,20 @@ Read-only122 metadata entries yield3 independent raw CDR streams. Two more full1
 
 ce clean SDK/all14 Humble packages built in2m51s. Current128 portable tests,35 final-PTY faults, paused-clock stop,7HTTP cases, actual CUA GET outage, default entry and122 source/parsed/runtime checks passed. Recovery never automatically enables motion. Desktop/tablet show no horizontal overflow. Delivered default replay preview has actuator/mission disabled and no player started.
 
-Six new60s policy tasks passed protocol but reached0/6 goals; benefit remainsFAIL. The earlier45s cohort is retained, not mixed into60s comparisons. Policy shares foundation/perception/safety, without truth input. Synthetic assumptions do not constitute physical acceptance. Concrete Jetson, calibration/health, camera/ground/prior, braking/slip/wheels and hardware e-stop gates remainPENDING. No firmware flash, physical driving, asset deletion, production merge or force push.
+Six new60s policy tasks passed protocol but reached0/6 goals; benefit remainsFAIL. The earlier45s cohort is retained, not mixed into60s comparisons. Policy shares foundation/perception/safety, without truth input. Synthetic assumptions do not constitute physical acceptance. Jetson deployment, localization/ground/control qualification and new-stack physical stopping remainPENDING; existing installation/chassis records are corrected and used in the following audit. No firmware flash, physical driving, asset deletion, production merge or force push.
+
+
+### Repository vehicle evidence and response-audit correction
+
+#### File
+- `scripts/audit_recorded_chassis_response.py`, `scripts/test_recorded_chassis_response.py`
+- `audit/vehicle_contract_review/`, `LIVE_ACCEPTANCE_CHECKLIST.md`, `RESULTS.json`, delivery report
+
+#### Change
+Re-read mounting notes, the legacy FAST IMU-origin navigation convention and original STM32 sources. Derived command RPM bound1853.7696, theoretical wheel-feedback ratios1.0105263/.9296842 (the latter does not correct the serialized gyro) and speed-dependent curvature from unchanged caps. Actually analyzed all41 command/LIO bags,68732 qualified intervals and twoJuly7 original TX/RX logs read-only, Y forward feedback is nonzero607/571 times and has exploratory coupled-response fits. Among1186 zero-command transitions including rotation,15 have at least1s continuous source-header/planar stillness coverage; outliers/unconfirmed items retained.
+
+#### Reason
+Earlier broad claims that installation/chassis data was missing were inaccurate. Distinguish supplied evidence, reference conventions, unfinished research integration and new-stack physical acceptance. Do not invent parameters to enable motion or request all existing measurements again.
+
+#### Effect
+Source equations and permission limits are known; feedback qualification limitations have concrete counts. Nine independent fit/excitation/finite-value/feedback-axis/sign/two-clock/lateral/gap tests pass. No firmware/calibration/limits/installed runtime change. New Super health/reference/ground/control integration and target acceptance remain incomplete and explicit. The research curvature-zero gate is unfinished configuration, not proof the repo lacks chassis information.

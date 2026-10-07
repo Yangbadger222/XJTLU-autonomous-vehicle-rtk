@@ -1,0 +1,133 @@
+{
+  "status": "PASS",
+  "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c",
+  "source_sha256": "32e2534a513ca7b0e3de0ee45ac4b293cd13410849a7079f63a1880800721a2c",
+  "source_values": {
+    "track_m": 0.46,
+    "radius_m": 0.1,
+    "max_motor_rpm": 20000.0,
+    "gear_ratio": 19.2,
+    "radps_to_rpm": 9.55,
+    "brake_stop_rpm": 120.0,
+    "brake_low_speed_rpm": 300.0,
+    "brake_current_limit": 8000.0,
+    "brake_low_speed_current_limit": 4500.0,
+    "brake_damping_kp": 12.0,
+    "brake_current_step": 1200.0
+  },
+  "command_equations": [
+    "rpmL=(v-w*C/2)/r*9.55*19.2",
+    "rpmR=(v+w*C/2)/r*9.55*19.2",
+    "motor_targets=[rpmL,rpmL,-rpmR,-rpmR]"
+  ],
+  "feedback_source_values": {
+    "track_m": 0.5,
+    "radius_m": 0.1,
+    "gear_ratio": 19.0,
+    "radps_to_rpm": 9.55
+  },
+  "pid_source_values": {
+    "max_output": 15000.0,
+    "integral_limit": 1000.0,
+    "deadband": 0.0,
+    "period": 0.0,
+    "max_error": 1000.0,
+    "initial_target": 0.0,
+    "kp": 10.0,
+    "ki": 100.0,
+    "kd": 0.0
+  },
+  "worst_case_command_motor_rpm": 1853.7695999999996,
+  "checks": {
+    "entire_v_w_cap_rectangle_below_source_motor_rpm": true,
+    "four_motor_sign_and_grouping": true
+  },
+  "discrepancies": [
+    "firmware command track .46 differs from feedback/URDF .50",
+    "firmware command gear 19.2 differs from feedback 19.0",
+    "firmware/URDF radius .10 differs from hardware-spec claimed diameter .085"
+  ],
+  "scope": "source contract proof only; no firmware edit/flash and no claim that these are physically measured or currently flashed",
+  "pending": [
+    "Verify current flashed firmware identity against recorded source; individual physical/slip response is distinct from the known command geometry/limits",
+    "New-stack physical current/brake/KEY/PS2 validation; coupled recorded response is estimated, not a new safety calibration"
+  ],
+  "feedback_of_exact_command": {
+    "v_feedback_over_v_command": 1.0105263157894737,
+    "w_feedback_over_w_command": 0.9296842105263159,
+    "scope": "Theoretical MOTORrpm2vw outputs for exact command-wheel RPM tracking; the real_w output is not serialized. The ratio .929684 is not a correction to wire gyro."
+  },
+  "curvature_envelope_from_original_limits": {
+    "formula_for_v_positive": "abs(kappa) <= min(max_yaw_rate/v, max_lateral_accel/v^2)",
+    "max_yaw_rate_rps": 0.7,
+    "max_lateral_accel_mps2": 0.25,
+    "samples": [
+      {
+        "v": 0.1,
+        "max_kappa_1pm": 6.999999999999999,
+        "max_w_rps": 0.7
+      },
+      {
+        "v": 0.2,
+        "max_kappa_1pm": 3.4999999999999996,
+        "max_w_rps": 0.7
+      },
+      {
+        "v": 0.4,
+        "max_kappa_1pm": 1.5624999999999998,
+        "max_w_rps": 0.625
+      },
+      {
+        "v": 0.6,
+        "max_kappa_1pm": 0.6944444444444444,
+        "max_w_rps": 0.4166666666666667
+      },
+      {
+        "v": 0.85,
+        "max_kappa_1pm": 0.34602076124567477,
+        "max_w_rps": 0.29411764705882354
+      }
+    ],
+    "zero_speed": "Finite curvature cannot represent documented in-place rotation; separate yaw-rate gate applies. No finite constant inferred from maximum recorded curvature."
+  },
+  "documented_mounting": {
+    "lidar_position_m": [
+      -0.07,
+      0.12,
+      0.447
+    ],
+    "position_source": "docs-CN/hardware_spec.md:117-119",
+    "lidar_to_imu_translation_m": [
+      -0.011,
+      -0.02329,
+      0.04412
+    ],
+    "extrinsic_semantics": "p_IMU = R_IL*p_LIDAR+t_IL; original FAST-LIO source verifies direction",
+    "legacy_navigation_reference": "FAST-LIO state t_wi/r_wi is published as base_footprint; July devlog explicitly documents IMU-height origin and URDF display artifact",
+    "full_physical_transform_status": "Documented mounting is present; differences between physical mounting and legacy navigation/URDF origin must be reconciled. Do not call it absent or blindly mark an identity physical transform verified.",
+    "lidar_position_reference": "X/Y recorded installation offsets and Z height above ground; not an already-reconciled ROS base_link transform."
+  },
+  "sources": {
+    "docs-CN/hardware_spec.md": "68c13b201ca622ead792b388d4404c4344c0a73e1a7e56ea1d34ea121c9e95fa",
+    "docs-CN/devlog/2026-07.md": "78d885764cda97b75b928e6386dccc776c723714e0244a0e93f6b6396cadc6aa",
+    "src/perception/fastlio2/src/lio_node.cpp": "dd6a1154bec5ef7fbd41ca99b3b08f1b5ebbc13d22a148ddaae86afd58ef6366",
+    "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c": "32e2534a513ca7b0e3de0ee45ac4b293cd13410849a7079f63a1880800721a2c",
+    "src/bringup/config/master_params.yaml": "a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758",
+    "src/firmware/rm_c_board/Core/Src/main.c": "dc291b390e8a2ac980cc58f0c7c2b773c4ebb5655603781cb8b7277d6e1f12ff",
+    "src/sensor_drivers/serial_reader/src/serial_reader_node.cpp": "a32b380f3bd33113c75de50f5a84358c98310087d39fe7f3d0cdca882393c285"
+  },
+  "imu_protocol_units": {
+    "source": "https://raw.githubusercontent.com/Livox-SDK/livox_wiki_en/master/source/tutorials/new_product/mid360/livox_eth_protocol_mid360.md",
+    "gyro": "rad/s",
+    "acceleration": "g",
+    "scope": "official manufacturer protocol, corroborated raw bag mean norm~1g; actual driver uses arrival stamps. No firmware or existing calibration changed."
+  },
+  "serial_feedback_layout": {
+    "source": "src/firmware/rm_c_board/Core/Src/main.c:294",
+    "linear_xyz": "[0, real_vc, 0] m/s; forward speed is Y",
+    "angular_xyz": "FusionDegreesToRadians(gyroscope.xyz), not wheel real_w",
+    "ros_reader": "src/sensor_drivers/serial_reader/src/serial_reader_node.cpp:397",
+    "odom": "Y linear speed with alpha=.3 LPF; raw gyro z negated and filtered",
+    "imu": "raw gyro z sign retained; no accelerometer data sent"
+  }
+}

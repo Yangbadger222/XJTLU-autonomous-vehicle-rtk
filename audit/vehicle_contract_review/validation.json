@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "new_math_tests": "9 passed",
+  "parameter_lock": "PASS",
+  "static_delivery": "PASS",
+  "protected_original_files": 1011,
+  "installed_source_unchanged": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "new_tool_starts_ros_or_hardware": false,
+  "runner_sha256": "81379a0b6d1bb2f8693efb0c5513d0ff19cd6ff01e684fcca819ccd879b075f9",
+  "bag_count": 41,
+  "measurement_intervals": 68732,
+  "zero_command_candidates": 1186,
+  "header_covered_planar_quiet_windows": 15,
+  "scope": "Actual read-only Humble CDR audit; nine independent offline regressions plus existing protected-source/parameter/static checks. No installed ROS source change or new physical acceptance.",
+  "independent_review": "Standards/Spec: no remaining P1/P2 in read-only correction; see code-review.md"
+}

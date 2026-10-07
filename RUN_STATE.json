@@ -175,6 +175,13 @@
       "status": "PASS",
       "runtime_source": "1f110dc",
       "evidence": "audit/optimization_v2/final-ego-arc.json"
+    },
+    {
+      "name": "read-only repository vehicle contract and recorded chassis response",
+      "command": "python3 scripts/audit_recorded_chassis_response.py --catalog /absolute/sealed-bag-catalog.json --serial-log-root /absolute/rosbag-analysis --output /absolute/recorded-response.json",
+      "status": "PASS",
+      "runtime_source": "No ROS nodes/device access; imports Humble CDR deserialization only. Installed ce46418 unchanged.",
+      "evidence": "audit/vehicle_contract_review/recorded-response.json"
     }
   ],
   "publication": {
@@ -190,5 +197,9 @@
     "receipt_scope": "Confirms the already-published implementation/report ancestor. This receipt and current static/status prose are subsequent publication-only descendants; installed sources remain ce46418."
   },
   "lineage": "Paired estimator binaries remain frozen 08d1835. Actual 60s policy runs use full ed4b7f6 foundation; ce46418 changes only same-value locked operator timeout, stale UI confirmation and monitoring/test scripts. Core planner/map/safety code unchanged between ed4 and ce. Previous straight/arc 1f results remain explicitly source-bound historical components; current final-wire/HTTP/default-entry repeat is ce.",
-  "final_process_evidence": "audit/optimization_v2/final-process-snapshot.json"
+  "final_process_evidence": "audit/optimization_v2/final-process-snapshot.json",
+  "vehicle_contract_correction": {
+    "scope": "Original mounting/source limits present; corrected Y-forward and gyro fields, retained header-clock stillness/measurement displacement, isolated feedback outliers. No new driving permission.",
+    "evidence": "audit/vehicle_contract_review/REVIEW.md"
+  }
 }

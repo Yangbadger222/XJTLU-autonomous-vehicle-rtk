@@ -1,3 +1,7 @@
+# Repository-evidence correction, 2026-10-08
+
+The documented MID360 mounting, internal IMU, original navigation reference, firmware command/feedback equations and historical field tests exist. The previous broad absence claims were inaccurate. Source-derived RPM/coupled-yaw constraints and read-only41-bag/2-serial-log analysis now completed; see audit/vehicle_contract_review/REVIEW.md. No installed/runtime/physical-limit/firmware bytes changed. New-stack reference/health/ground/control integration and physical validation remain distinct from available source data. Older narrative uses its original wording; this correction takes precedence.
+
 # Current v2 audit
 
 The current installed source is ce4641836c265432c74086669fca8dbd6362b7d7, clean task SDK and all14 Humble packages. See audit/optimization_v2/clean-build.json/log and source-provenance.json. All15 EGO patch file hashes still match the original audited four-patch set. Subsequent report/test-script changes are not installed code.

@@ -905,3 +905,11 @@ ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 badger@100.88.131.52
 ```
 
 Open http://127.0.0.1:8765. See [REPRODUCE](../REPRODUCE.md) for FYP/ROS logging roots, read-only catalog generation and actual HTTP/PTY probes. Consent cannot change environment, serial configuration or physical parameters. SIGSTOP raw pause may catch up scheduling after resume; do not use it as a strict wall-clock performance comparison.
+
+
+See [Repository evidence correction](../audit/vehicle_contract_review/REVIEW.md). Run the read-only response audit in Humble; it starts no ROS node or hardware:
+
+```bash
+python3 scripts/audit_recorded_chassis_response.py --catalog /absolute/sealed-bag-catalog.json --serial-log-root /absolute/rosbag-analysis --output /absolute/audit/recorded-response.json
+python3 -m pytest -q scripts/test_recorded_chassis_response.py
+```

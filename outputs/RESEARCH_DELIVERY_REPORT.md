@@ -2,6 +2,8 @@
 
 车辆基线严格为 `corridor-authority-stability @ e54c6afbcb5a58db22d7c468085a87d658b0b932`；开发分支 `codex/superlio-ego-active-road`。当前完整编译源码 `ce4641836c265432c74086669fca8dbd6362b7d7`，后续测试脚本与报告不改变已安装运行代码。研究分支已正常推送，远端生产基线仍为 e54c6af。研究 [PR #22](https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22) 保持草稿，不合并生产分支。原分支、生产工作区、固件、标定、串口协议和已测限值保留。v1 原报告及结果原样保存在 `audit/delivery_v1/`。
 
+**2026-10-08 资料复核更正：** 仓库已经记录 MID360 安装位置、内置 IMU 关系、旧 FAST 导航参考点、STM32 几何/换算与运动权限；先前把它们笼统称为缺失不准确。已实际分析41个命令/LIO bag及两次原始串口日志，源命令RPM及速度相关曲率边界已证明。实际前向反馈在Y，两场非零607/571条，第二场中位.53775m/s；先前误读X的“几乎零”判断撤回。正常样本完成组合响应估计，异常原值保留；header时间覆盖得到15个静止观测窗口，不冒称实体急停。新栈合同尚未正确接入与实体验收分开记录，详见 `audit/vehicle_contract_review/REVIEW.md`。下文旧“缺失”表述以此次复核为准，不由此改固件、限值或开启运动。
+
 ## 软件与交互
 
 在授权的非 Jetson Ubuntu22.04.5 x86_64 / Humble 电脑实际完成干净 SDK 与全部 14 包构建（2 分 51 秒）；9 包有保留的 stderr 警告，构建退出 0。固定 Super-LIO `ros2@f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2`、EGO `develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877`。四个 EGO 补丁及 15 个已修改上游文件哈希与 v1 一致；没有 ROS1/3D 重复移植或 MPPI 调用。
@@ -52,7 +54,7 @@ v1 中文报告与审计的 CPU/RSS 标签曾误写 Super/FAST；当前表按原
 
 ## 实车待验收
 
-软件有限环境验证完成；研究收益未建立；`JETSON_SHADOW_VALIDATION`、`LIVE_MOTION_ACCEPTANCE` 与 LIO 物理接口等价仍 PENDING。未自动开车、未刷固件、未编辑 Jetson、未删除旧资产、未 force push、未合并生产分支。具体缺失：Jetson 生效覆盖与固件身份、命令/反馈/URDF 轮距半径冲突解释、IMU→base/GNSS 杠杆臂、source-world→odom 注册、协方差/健康等价、硬件采集同步、相机 K/内外参/深度定义、正地面/坡度/台阶判据、真实 GeoTIFF/MaGRoad datum/控制点、制动/滑移/曲率/轮速与物理 KEY/手柄/急停。未知值继续阻塞，不用模拟结果冒充实车验收。
+软件有限环境验证完成；研究收益未建立；`JETSON_SHADOW_VALIDATION`、`LIVE_MOTION_ACCEPTANCE` 与 LIO 物理接口等价仍 PENDING。未自动开车、未刷固件、未编辑 Jetson、未删除旧资产、未 force push、未合并生产分支。已有安装、GNSS近似杠杆臂/heading记录、命令/反馈源码与运动权限均可用；轮/命令公式差异和本车速度相关曲率已经推导。主要剩余是新栈导航参考点/source-world→odom、协方差/健康、正地面证据及控制适配尚未完成验证，随后核对车端当前overlay/固件身份和新栈实体停车。相机/真实先验的模型、配准与采集同步仍按具体提供者资格审计，不用笼统“全部资料缺失”代替查源与实现，不用模拟结果冒充实车验收。
 
 原始回放暂停目前是对所属播放器进程组 SIGSTOP；恢复可能追赶暂停期间的播放调度时钟。此次验证证明暂停期间不发布、数据时间戳正确和拥有进程的控制范围，未将恢复后的严格墙钟匀速或 prefix 操作称为整包 EOF 性能试验。软件停止在租约过期后会被拒绝，但过期自身已撤销许可；界面断联不能代替硬件急停。
 

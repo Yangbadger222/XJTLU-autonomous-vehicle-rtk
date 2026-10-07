@@ -907,3 +907,11 @@ ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 badger@100.88.131.52
 ```
 
 打开 http://127.0.0.1:8765。FYP/ROS 日志根、只读清单生成与实际 HTTP/PTY 验证命令见 [REPRODUCE](../REPRODUCE.md)。操作席只能请求许可，不能改环境、串口或车参。原始播放器暂停使用 SIGSTOP，恢复可能追赶调度；不用它做严格墙钟性能对照。
+
+
+车辆已有资料与只读响应审计见 [资料复核](../audit/vehicle_contract_review/REVIEW.md)。Humble 环境下运行，不启动 ROS 节点或硬件：
+
+```bash
+python3 scripts/audit_recorded_chassis_response.py --catalog /absolute/sealed-bag-catalog.json --serial-log-root /absolute/rosbag-analysis --output /absolute/audit/recorded-response.json
+python3 -m pytest -q scripts/test_recorded_chassis_response.py
+```

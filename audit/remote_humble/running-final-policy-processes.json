@@ -1,0 +1,216 @@
+{
+  "timestamp_unix": 1791379028.2349143,
+  "scope": "task-prefixed executable/script arguments only; read-only process inventory",
+  "actors": [
+    {
+      "pid": 1280382,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/scripts/validate_restricted_policy_ros.py",
+        "--repo",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean",
+        "--install",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install",
+        "--output",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/comparison.json",
+        "--budget-s",
+        "60"
+      ],
+      "start_ticks": "25434916"
+    },
+    {
+      "pid": 1281885,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/super_lio/lib/super_lio/super_lio_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/super_lio_vehicle.yaml"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281886,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/active_road_mapping/lib/active_road_mapping/active_road_map",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/active_road_mapping.yaml",
+        "-p",
+        "evidence_store_path:=/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/evidence.json"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281887,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/active_road_mapping/lib/active_road_mapping/active_road_evidence",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/active_road_evidence.yaml",
+        "-p",
+        "evidence_store_path:=/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/evidence.json",
+        "-p",
+        "global_anchor_uncertainty_verified:=true",
+        "-p",
+        "global_anchor_uncertainty_m:=0.03",
+        "-p",
+        "localization_session_id:=PERIODIC_LOOK-task-2"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281888,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/scripts/research_restricted_sim.py",
+        "perception",
+        "--output",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/task-2/perception.json",
+        "--localization-session-id",
+        "PERIODIC_LOOK-task-2",
+        "--seed-evidence",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/evidence.json"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281889,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/research_runtime/lib/research_runtime/research_local_obstacle_grid",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/research_local_grid.yaml"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281890,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/ego_planner/lib/ego_planner/motion_plan",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/ego_vehicle_adapter.yaml",
+        "-p",
+        "use_measured_acceleration:=true",
+        "-p",
+        "max_curvature_1pm:=1.0",
+        "-p",
+        "max_lateral_speed_mps:=0.05",
+        "-p",
+        "max_jerk_mps3:=3.0",
+        "-p",
+        "inflate_radius_m:=0.4493606569338264"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281891,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/ego_planner/lib/ego_planner/research_tf_guard",
+        "--ros-args"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281892,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/research_runtime/lib/research_runtime/research_safety_bridge",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/research_safety_bridge.yaml",
+        "-p",
+        "mode:=live",
+        "-p",
+        "actuator_enabled:=true",
+        "-p",
+        "max_curvature_1pm:=1.0",
+        "-p",
+        "max_lateral_speed_mps:=0.05"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281893,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/master_params.yaml"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281894,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/master_params.yaml",
+        "-p",
+        "port:=/dev/pts/0",
+        "-r",
+        "/cmd_vel:=/cmd_vel_guarded"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281895,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-5ebdb72-ws/install/active_road_mapping/lib/active_road_mapping/active_observation",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/src/bringup/config/active_observation.yaml",
+        "-p",
+        "execution_mode:=live",
+        "-p",
+        "mission_execution_enabled:=true",
+        "-p",
+        "policy:=PERIODIC_LOOK",
+        "-p",
+        "prior_manifest_path:=/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/read-only-prior/registration.json",
+        "-p",
+        "task_start_node:=start",
+        "-p",
+        "task_goal_node:=goal",
+        "-p",
+        "evidence_store_path:=/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/evidence.json",
+        "-p",
+        "policy_snapshot_path:=/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/policy.json",
+        "-p",
+        "sensor_range_m:=1.8",
+        "-p",
+        "sensor_fov_rad:=6.283185307179586",
+        "-p",
+        "max_curvature_1pm:=1.0",
+        "-p",
+        "observation_budget_s:=60.0",
+        "--log-level",
+        "info"
+      ],
+      "start_ticks": "25455371"
+    },
+    {
+      "pid": 1281896,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-5ebdb72-clean/scripts/research_restricted_sim.py",
+        "truth",
+        "--pty-fd",
+        "3",
+        "--output",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/delivery-final-policy/PERIODIC_LOOK/task-2/truth-evaluation-only.json",
+        "--sensor-fault",
+        "none",
+        "--fault-after-s",
+        "12.0"
+      ],
+      "start_ticks": "25455371"
+    }
+  ]
+}

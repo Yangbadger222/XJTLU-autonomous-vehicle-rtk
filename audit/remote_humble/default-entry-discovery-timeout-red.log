@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/scripts/validate_research_launch.py", line 140, in <module>
+    raise SystemExit(main())
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/scripts/validate_research_launch.py", line 65, in main
+    mutate('runtime_lidar_imu_extrinsic','super_lio_node','lio.extrinsic.lidar_imu',
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/scripts/validate_research_launch.py", line 59, in mutate
+    dumped=subprocess.run(['ros2','param','dump','/'+node],capture_output=True,text=True,timeout=10)
+  File "/usr/lib/python3.10/subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1154, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 2022, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.10/subprocess.py", line 1198, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['ros2', 'param', 'dump', '/super_lio_node']' timed out after 10 seconds

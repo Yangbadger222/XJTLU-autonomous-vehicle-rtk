@@ -1,23 +1,15 @@
-# Live acceptance checklist (human and hardware required)
+# Physical acceptance, all PENDING
 
-All entries below remain `PENDING` until performed on the Jetson with actuator
-disabled first and a human at the physical e-stop.
+Software/PTY checks and original-bag estimator replay have been executed on the authorized non-Jetson Humble host. They do not satisfy the physical items below.
 
-- [ ] Jetson clean worktree builds the exact research commit with
-  `colcon build --parallel-workers 1`.
-- [ ] Super-LIO parser, time units, IMU units, frame and cloud filters are
-  verified against the vehicle bag and runtime parameter dump.
-- [ ] Measured IMU→base transform, wheel/track/footprint and camera calibration
-  are supplied; adapter health becomes equivalent and covariance is addressed.
-- [ ] Replay of a named vehicle bag compares FAST-LIO2 and Super-LIO without
-  segment-wise drift alignment.
-- [ ] Shadow launch has exactly one map→odom owner, one odom→base owner and no
-  Nav2/MPPI/SLAM/FGO/FRC task processes.
-- [ ] Mock serial sink receives zero command on authority false, stale authority,
-  RTK quality loss, LIO UNKNOWN, TF loss, trajectory expiry and stop override.
-- [ ] Physical e-stop, PS2 X/KEY loss and STM32 braking are tested by the human
-  operator; mock output is not accepted as physical evidence.
-- [ ] Straight, turn, obstacle, narrow passage and unknown-ground tests pass
-  footprint sweep, curvature, yaw-rate and stop-distance checks.
-- [ ] Only after all above: manual low-speed live enable, with RTK authority
-  loss confirming the vehicle stops. No automatic driving is performed here.
+- [ ] Build the exact research source in a separate Jetson worktree with one worker; preserve the production branch/install/runtime-data.
+- [ ] Read current_scene, CLI/environment/generated launch overlays and actual deployed parameter dumps. Reconcile differences with the locked corridor profile before deployment.
+- [ ] Verify flashed firmware identity and resolve command-track .46 m versus feedback/URDF .50 m, gear 19.2 versus 19.0, and source radius .10 m versus documented .085 m diameter. Preserve original values until a measured/approved calibration exists.
+- [ ] Supply measured IMU/base and GNSS/dual-antenna lever arms, source/driver clocks, validated pose/twist covariance and a mathematically justified Super-LIO health gate. UNKNOWN continues to block motion.
+- [ ] Supply a calibrated positive ground/depth provider, camera model/K/distortion/aligned-depth units/extrinsics and acquisition TF if used; verify holes, steps, slopes, 3D obstacle heights and sensor blind spots.
+- [ ] Supply real GeoTIFF/MaGRoad files, hashes, CRS/datum and surveyed registration control points. Verify separate-session map reuse and independent historical-submap registration.
+- [ ] Run actuator-disabled shadow; verify unique map→odom, odom→base and final cmd owners and absence of old navigation/FAST/SLAM/FGO/FRC/fake simulator.
+- [ ] Human-test KEY, PS2 X, controller loss and the physical e-stop at the final MCU/motor output. PS2 B active braking does not replace X or physical e-stop.
+- [ ] Measure low-speed straight/curved tracking, skid/slip, wheel speed/current, actual stopping distance and angular deceleration. Software command caps/model braking are not minimum physical braking guarantees.
+- [ ] With an operator at the physical e-stop, verify RTK authority loss stops the vehicle despite healthy LIO. RTK holdover motion remains unapproved and disabled.
+- [ ] Only after these gates and explicit on-site permission: manually enable a bounded low-speed live test. This delivery does not automatically drive or flash firmware.

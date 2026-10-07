@@ -1,0 +1,47 @@
+{
+  "scope": "diagnostic copies of source-6380593 nodes add logging only; captured persisted current-final history with fresh PASSIVE-task-5 epoch, not a fair policy trial",
+  "source_commit": "6380593abafaf6575c6c220ff10c10243d82edfb",
+  "protocol_status": "FAIL",
+  "distance_m": 0.0,
+  "nonzero_serial_count": 0,
+  "mission_callback_s": {
+    "count": 15,
+    "min": 0.9254346660163719,
+    "median": 0.9359897499962244,
+    "max": 0.9485263509850483
+  },
+  "stop_guard_reasons": {
+    "COMMAND_UNAVAILABLE": 1,
+    "STOP_OVERRIDE_UNAVAILABLE": 4,
+    "MOTION_AUTHORITY_FALSE": 61,
+    "STOP_OVERRIDE_TRUE": 209,
+    "STOP_OVERRIDE_STALE": 143
+  },
+  "bridge_allowed_commands": 139,
+  "bridge_max_requested_v": 0.02233524523584924,
+  "example_blocked_tick": {
+    "tick_s": 0.9496270939998794,
+    "ages": [
+      1.0141023279866204,
+      0.996871995012043,
+      0.9566793520061765,
+      0.9761377469985746
+    ],
+    "can_motion": false,
+    "reason": "NO_SAFE_OBSERVATION_POSE"
+  },
+  "final_serial_tail": [
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n"
+  ],
+  "diagnostic_script_sha256": {
+    "inspect_restricted_progress.py": "fa89ae83211cfbcf5a4ba7325a2358ff260fbdb78580b9a04890cbe51408bf30",
+    "inspect_observer.py": "27f76a582a79b69306f6fffc2f5ff815b945ddbbf159a20318cf7658e890f219",
+    "inspect_guard.py": "035bc21fb98841f08ec41ba68e761db648092c3d18407c43a07493d065e3f8ba",
+    "inspect_bridge.py": "ff3e9fe4702d1032433517a67f3c9bd4f4c8f3b30675424d4f18f239a8ea8482"
+  },
+  "actual_logs": "logs/progress-inspection-boundary/PASSIVE/task-5/"
+}

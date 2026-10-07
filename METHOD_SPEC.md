@@ -1,75 +1,17 @@
-# Active-road research method (implemented scope)
+# Active-road research method, executed scope
 
-The research chain keeps three evidence layers: read-only satellite/MaGRoad
-prior, timestamped local geometry observations, and reversible road-graph
-updates. `EvidenceStore` binds every observation to a CRS/datum transform,
-local-submap ID, pose uncertainty, depth range and one UUID. Replaying a UUID
-is idempotent. Evidence states are `UNOBSERVED`, `OBSERVED_GEOMETRY`,
-`TRAVERSED`, `BLOCKED_EVIDENCE`, and `UNCERTAIN`; observing an entrance never
-promotes its unseen continuation to traversed.
+The implementation uses the pinned Super-LIO estimator and the pinned, already two-dimensional Ego-Planner-2D-ROS2 core. The research contribution being explored is a finite, task-driven observation heuristic; estimator/planner migration is infrastructure, and no novelty or policy benefit is claimed from passing software tests.
 
-`MaGRoadPrior.load_geojson` is a read-only, CRS-checked road-graph input that
-preserves a model version. `GeoTiffPrior.load` uses rasterio only when present,
-requires a declared CRS, and exposes metadata without turning pixels into free
-space. Missing rasterio or CRS is an explicit unavailable/error state.
+The read-only GeoTIFF/MaGRoad-format registration manifest binds asset hashes, CRS, affine pixel-center/crop conventions, model identity and a verified metric map registration. It never changes the RTK origin. Runtime ingestion verifies the supplied CRS and requires metric GeoJSON to match the GeoTIFF CRS; mismatches are rejected and must be reprojected externally before ingestion. Pixel/geographic transformation helpers have analytical round-trip tests; they do not imply automatic runtime asset reprojection. Degree coordinates, GCJ-02 and BD-09 are not silently interchangeable. Real registered assets and surveyed control points are still missing.
 
-Candidates are hard-filtered for reachability, safety, pose trust and sensor
-validity, then scored as `impact * observable_fraction / (cost + epsilon)`.
-This is an interpretable heuristic, not a proven information gain. The
-repository contains the policy and evaluator-only synthetic harness; the policy
-does not receive simulator truth. Three policy labels are reserved for the
-future same-base comparison: `PASSIVE`, `PERIODIC_LOOK`, and `TASK_AWARE_LOOK`.
+There are three persisted layers: immutable prior, UUID-tagged local evidence, and reversible graph increments. Evidence carries acquisition time, source, local submap, uncertainty, valid depth range and observed length. Observation states remain distinct from traversal. Positive ground returns may support a local connection; empty rays cannot establish free ground. Increment rollback stores a tombstone and retains its measurement sources. Atomic saves and UUID acknowledgements make retransmission idempotent.
 
-The live ROS boundary is typed: `research_interfaces/msg/RoadEvidence2D`
-accepts measured odom-frame geometry, source/local-submap identity, pose
-uncertainty and a declared depth interval. `active_road_evidence` persists it
-only into a successfully loaded CRS/map-version `EvidenceStore`, using UUID
-idempotence and an atomic replace. It republishes observed geometry as a
-`RoadEvent` without upgrading it to `TRAVERSED`. Externally generated
-`ObservationGoal` candidates carry reachability, safety, pose-trust and sensor
-validity flags; the node chooses only the highest-scoring eligible candidate
-and publishes the selected goal. It cannot create candidates from truth or
-invent camera/TF calibration.
+Each LIO initialization has a fresh localization session identity. Providers obtain the latched `/research/localization_session_id` and namespace `local_submap_id` as `identity/submap`. Only that session's submaps may be anchored by its current map→odom TF. Missing session identity leaves local observations unanchored. Authority loss withholds current-session global geometry; recovery reanchors the same UUIDs. Historical sessions retain their own verified anchors, and require independent registration to correct their coordinates. A new odom origin never applies its TF to historical measurements. Historical graph increments may affect topology, but execution always checks current observed ground and permission. A local road prefix uses the same original footprint circumscribed circle versus occupied-cell AABBs as EGO, with half-sample translation margin. Circle-cell contact is blocked in all four directions. Samples remain attached to immutable road vertices; only the first projection follows the measured pose, preventing pose jitter from moving an unchanged local goal and resetting the timed plan.
 
-The Super-LIO vehicle adapter consumes source `world→imu` odometry only after
-an acquisition-time `world→odom` TF lookup, explicit source-child validation,
-pose-covariance rotation and the measured IMU→base/health gates. It publishes
-`/lio/odom_vehicle` only after those checks. The vehicle adapter then consumes real `/lio/odom_vehicle` state, an odom-frame
-road reference and an odom-frame `OccupancyGrid` whose unknown cells are
-occupied. The second reproducible EGO patch calls the pinned planner and emits
-`TimedTrajectory2D`; `nav_msgs/Path` remains visualization/reference only. It
-rejects missing measured state, unknown map versions, unconfigured footprint
-inflation/curvature bounds, footprint collisions, speed/acceleration,
-discrete body-lateral-speed and curvature/yaw-rate inconsistencies. It never
-clips an infeasible trajectory.
-The third EGO patch clears stale planner results before each replan, so a
-failed optimizer cannot republish an earlier trajectory.
+Events combine registered-prior gaps, observed-ground frontiers and typed measured entrance/clearance/step/obstacle questions. Up to 100 current events are logged; the top three by estimated task impact receive candidate queries. Current implementation enumerates six forward positions at the current body heading, preserving a finite allowed view family. Wider heading search, pan/tilt hardware and a real camera projection/ground classifier are not implemented or fabricated.
 
-The command edge uses `TimedTrajectoryTracker`: it interpolates the trajectory
-at the current ROS time, computes longitudinal/lateral/heading errors from
-measured `/lio/odom_vehicle`, bounds the resulting forward-only `v,w` request,
-and then hands it to the unchanged authority/guard chain. Vehicle health is
-read from `/lio/vehicle_health`, which is the source-aware adapter output;
-unknown or stale state produces a stop. The ROS edge additionally requires a
-matching odom-frame `OccupancyGrid`, map-version message and explicit measured
-footprint before enabling the continuous collision oracle; unknown cells remain
-occupied.
+The three strategies are PASSIVE, PERIODIC_LOOK and TASK_AWARE_LOOK. Candidates pass fresh pose/health/TF, full footprint and permission checks plus an actual non-publishing EGO planning query. Task impact compares graph costs with/without a hypothetical connection, using a fixed 100 m failure cost. Visibility uses the current observed grid, sensor range/FOV and occlusion; unknown cells block visibility. Ranking is impact × observable_fraction / (cost + 1e−6). Cost includes actual timed-plan duration and 1 s settling. A selected view receives a second fresh query before execution. Timed EGO heartbeats preserve generated_at for up to the configured 1 s replan interval. The entire remaining curve is checked on the fresh map: on each sampled interval speed is bounded by min(original V cap, max(endpoint speeds)+A·dt/2), with A=max(original acceleration,deceleration). Enlarging the endpoint-midpoint circle by that bound times dt covers the continuous curve. New occupancy invalidates the cache; a global-V margin is not used to restart a low-speed valid tail on every heartbeat. Attempts are bounded by cell/heading identity, observation budget and execution timeout; unresolved observations remain uncertain. Mission and RTK permission remain hard gates.
 
-The command bridge parses launch booleans by value, rejects `UNKNOWN` map
-versions, and timestamps both map-version and local-grid inputs. The map
-publisher reload period is 0.20 s, below the 0.50 s freshness gate; invalid or
-stale inputs produce the existing zero-command path.
+The finite experiment runs separate truth/sensor and measured-perception processes. Truth only integrates the original serial PTY and renders raw Livox/IMU plus restricted depth returns. Policies/maps receive actual Super-LIO odometry and local measurements, never a truth pose or complete world map. The simulated 1.8 m/360° depth view has opaque occlusion, positive support-plane samples, acquisition-time interpolation and freshness expiry. IMU=base, encoder twist, 0.03 m uncertainty and source-health assumptions are explicitly simulation-only; actual Super-LIO health remains UNKNOWN. The test does not validate a physical camera, slip, slopes or comprehensive 3D obstacle classification.
 
-The local grid producer is conservative: measured odom-frame points inside an
-explicit obstacle height window become occupied cells, while points outside
-the window, invalid points and absent returns do not create free cells. Unknown
-cells remain blocked, and invalid frame, map-version, resolution or
-height-window inputs are rejected before a grid can reach the planner.
-
-Active-road geometry now has an explicit pixel/depth contract: declared depth
-unit and optical-Z/ray-range convention, measured camera→base transform, and
-acquisition-time base→odom transform. Invalid/zero depth is rejected. The
-repository has synthetic round-trip tests; camera intrinsics and extrinsics
-remain deployment inputs rather than guessed values.
-The current repository does not contain a measured wheel/track/footprint dump
-or camera calibration, so no live vehicle claim is made.
+All strategies use the same installed foundation and configurations, verified by hashes before/after every trial. Each strategy has its own store and policy snapshot. The sole writer atomically retains the last map version that passed the existing RTK/mode/TF/uncertainty gates in verified_history/<session-hash>.json. Later authority loss marks the current working anchors STALE; the working store keeps every later local UUID and is never restored from an older snapshot. A different session may use qualified historical topology, subject to the current rollback tombstones, immutable prior identity and exact registered endpoints. Its own current-session export is excluded, so history cannot create RTK holdover motion. That task uses a fresh localization session and freshly measured ground; historical local coordinates are never reanchored by its new TF. Persisted histories retain every original measurement/anchor/graph/rollback validation; the newly allocated store computes its final hash once before it can return. This avoids quadratic reload time starving the original state/permission deadlines, without extending those deadlines or weakening the final content/version check. Six trial outcomes, actuation failures, observation cost and map reuse are retained. Simulator truth is used only for evaluation. A negative outcome is a valid research result; zero actuation is additionally reported as a protocol failure. Single-bag replay is never treated as an alternative-view policy experiment.

@@ -1,0 +1,72 @@
+{
+  "collected_at_utc": "2026-10-07T14:12:32.668436+00:00",
+  "scope": "only argv entries starting with task-owned root; no environment capture",
+  "processes": [
+    {
+      "pid": 1304004,
+      "argv": [
+        "python3",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/scripts/validate_mock_serial_ros.py",
+        "--repo",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean",
+        "--install",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install",
+        "--output",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-core/faults.json"
+      ],
+      "start_ticks": "25785471"
+    },
+    {
+      "pid": 1304015,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install/research_runtime/lib/research_runtime/research_safety_bridge",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/bringup/config/research_safety_bridge.yaml",
+        "-p",
+        "mode:=live",
+        "-p",
+        "actuator_enabled:=true",
+        "-p",
+        "max_curvature_1pm:=1.0",
+        "-p",
+        "max_lateral_speed_mps:=0.05"
+      ],
+      "start_ticks": "25785490"
+    },
+    {
+      "pid": 1304016,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/bringup/config/master_params.yaml"
+      ],
+      "start_ticks": "25785491"
+    },
+    {
+      "pid": 1304017,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/bringup/config/master_params.yaml",
+        "-p",
+        "port:=/dev/pts/0",
+        "-r",
+        "/cmd_vel:=/cmd_vel_guarded"
+      ],
+      "start_ticks": "25785491"
+    },
+    {
+      "pid": 1304018,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install/ego_planner/lib/ego_planner/research_tf_guard",
+        "--ros-args"
+      ],
+      "start_ticks": "25785491"
+    }
+  ]
+}

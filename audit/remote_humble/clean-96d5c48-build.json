@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "source_commit": "96d5c4883e814db014ab089dd3dbc205e0401ee3",
+  "package_count": 14,
+  "build_exit": 0,
+  "SDK": "fresh task-local compile/install",
+  "build_log": "clean-96d5c48-build.log",
+  "binary_sha256": {
+    "super_lio": "54fe95f7afde2b5cb017028479d6de3196b55af4702ec1cf89636c9f058a50c3",
+    "ego_planner": "141884406430c9d066e60d766414bf7b9e0e6fc648fb2d311f127da06f0eb7e3",
+    "serial_twistctl": "5fed7e4aaef8644384522c11d347460d72849d12b7aa7200e6af2afc886cdf09",
+    "research_tf_guard": "178d1edf4a42182ee18275d1466503414e1571966eebb6e462519a18c0899fc0"
+  },
+  "ament_prefix_path": [
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/bringup",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/um982_rtk_driver",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/super_lio_vehicle_adapter",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/super_lio",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/serial_twistctl",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/serial",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/ego_vehicle_adapter",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/active_road_mapping",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/research_runtime",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/ego_planner",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/research_interfaces",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/livox_ros_driver2",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/gps_waypoint_dispatcher",
+    "/home/badger/codex-research/superlio-ego-20261007/clean-96d5c48-ws/install/basic",
+    "/opt/ros/humble"
+  ],
+  "workspace": "clean-96d5c48-ws",
+  "scope": "clean x86_64 ROS2 Humble source/SDK/driver build; no Jetson or physical motion"
+}

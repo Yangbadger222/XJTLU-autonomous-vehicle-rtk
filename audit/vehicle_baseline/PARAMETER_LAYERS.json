@@ -58,5 +58,12 @@
       -0.02329,
       0.04412
     ]
+  },
+  "research_non_jetson_runtime_layer": {
+    "status": "PASS",
+    "checks": 122,
+    "evidence": "audit/remote_humble/three-layer.json",
+    "overrides": "audit/remote_humble/entry.json",
+    "scope": "actual non-Jetson Humble runtime, not deployed Jetson overlays"
   }
 }

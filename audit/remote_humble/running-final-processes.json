@@ -1,0 +1,94 @@
+{
+  "timestamp_unix": 1791377234.5282233,
+  "scope": "task-prefixed executable/script arguments only; read-only process inventory",
+  "actors": [
+    {
+      "pid": 1269456,
+      "argv": [
+        "bash",
+        "/home/badger/codex-research/superlio-ego-20261007/qualified-final-validation.sh"
+      ],
+      "start_ticks": "25269095"
+    },
+    {
+      "pid": 1269966,
+      "argv": [
+        "python3",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/scripts/validate_mock_serial_ros.py",
+        "--repo",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean",
+        "--install",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install",
+        "--output",
+        "/home/badger/codex-research/superlio-ego-20261007/logs/qualified-final-core/rtk-quality.json",
+        "--rtk-classifier"
+      ],
+      "start_ticks": "25279428"
+    },
+    {
+      "pid": 1269977,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install/research_runtime/lib/research_runtime/research_safety_bridge",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/src/bringup/config/research_safety_bridge.yaml",
+        "-p",
+        "mode:=live",
+        "-p",
+        "actuator_enabled:=true",
+        "-p",
+        "max_curvature_1pm:=1.0",
+        "-p",
+        "max_lateral_speed_mps:=0.05"
+      ],
+      "start_ticks": "25279447"
+    },
+    {
+      "pid": 1269978,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/src/bringup/config/master_params.yaml"
+      ],
+      "start_ticks": "25279447"
+    },
+    {
+      "pid": 1269979,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/src/bringup/config/master_params.yaml",
+        "-p",
+        "port:=/dev/pts/0",
+        "-r",
+        "/cmd_vel:=/cmd_vel_guarded"
+      ],
+      "start_ticks": "25279447"
+    },
+    {
+      "pid": 1269980,
+      "argv": [
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install/ego_planner/lib/ego_planner/research_tf_guard",
+        "--ros-args"
+      ],
+      "start_ticks": "25279447"
+    },
+    {
+      "pid": 1269981,
+      "argv": [
+        "/usr/bin/python3",
+        "/home/badger/codex-research/superlio-ego-20261007/clean-c5dfeec-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/rtk_map_odom_corrector_node",
+        "--ros-args",
+        "--params-file",
+        "/home/badger/codex-research/superlio-ego-20261007/vehicle-c5dfeec-clean/src/bringup/config/master_params.yaml",
+        "-p",
+        "lio_odom_topic:=/lio/odom_vehicle"
+      ],
+      "start_ticks": "25279447"
+    }
+  ]
+}

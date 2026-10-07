@@ -1,0 +1,43 @@
+{
+  "scope": "derived only from actual observer logs; separate from primary trial payload",
+  "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "rows": [
+    {
+      "strategy": "PASSIVE",
+      "task": 1,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/PASSIVE/task-1/observer.log"
+    },
+    {
+      "strategy": "PASSIVE",
+      "task": 2,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/PASSIVE/task-2/observer.log"
+    },
+    {
+      "strategy": "PERIODIC_LOOK",
+      "task": 1,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/PERIODIC_LOOK/task-1/observer.log"
+    },
+    {
+      "strategy": "PERIODIC_LOOK",
+      "task": 2,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/PERIODIC_LOOK/task-2/observer.log"
+    },
+    {
+      "strategy": "TASK_AWARE_LOOK",
+      "task": 1,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/TASK_AWARE_LOOK/task-1/observer.log"
+    },
+    {
+      "strategy": "TASK_AWARE_LOOK",
+      "task": 2,
+      "observer_terminal_state": "BUDGET_EXHAUSTED",
+      "terminal_log": "logs/history-final-policy/TASK_AWARE_LOOK/task-2/observer.log"
+    }
+  ],
+  "original_prior_bytes_unchanged": true
+}

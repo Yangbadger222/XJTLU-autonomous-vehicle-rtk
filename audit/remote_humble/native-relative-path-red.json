@@ -1,0 +1,61 @@
+{
+  "scope": "native probes linked to the actual patched upstream core",
+  "cases": [
+    {
+      "name": "boundary",
+      "compile_exit": 1,
+      "compile_stderr": "cc1plus: fatal error: vehicle/scripts/validate_ego_bspline_boundary.cpp: No such file or directory\ncompilation terminated.\n",
+      "link_exit": null,
+      "link_stderr": null,
+      "run_stderr": null,
+      "run_exit": null,
+      "output": null,
+      "status": "FAIL"
+    },
+    {
+      "name": "turn_gradient",
+      "compile_exit": 1,
+      "compile_stderr": "cc1plus: fatal error: vehicle/scripts/validate_ego_turn_gradient.cpp: No such file or directory\ncompilation terminated.\n",
+      "link_exit": null,
+      "link_stderr": null,
+      "run_stderr": null,
+      "run_exit": null,
+      "output": null,
+      "status": "FAIL"
+    },
+    {
+      "name": "turn_bounds",
+      "compile_exit": 1,
+      "compile_stderr": "cc1plus: fatal error: vehicle/scripts/validate_ego_turn_bounds.cpp: No such file or directory\ncompilation terminated.\n",
+      "link_exit": null,
+      "link_stderr": null,
+      "run_stderr": null,
+      "run_exit": null,
+      "output": null,
+      "status": "FAIL"
+    },
+    {
+      "name": "grid_contract",
+      "compile_exit": 1,
+      "compile_stderr": "cc1plus: fatal error: vehicle/scripts/validate_ego_grid_contract.cpp: No such file or directory\ncompilation terminated.\n",
+      "link_exit": null,
+      "link_stderr": null,
+      "run_stderr": null,
+      "run_exit": null,
+      "output": null,
+      "status": "FAIL"
+    },
+    {
+      "name": "measured_start",
+      "compile_exit": 1,
+      "compile_stderr": "cc1plus: fatal error: vehicle/scripts/validate_ego_measured_start.cpp: No such file or directory\ncompilation terminated.\n",
+      "link_exit": null,
+      "link_stderr": null,
+      "run_stderr": null,
+      "run_exit": null,
+      "output": null,
+      "status": "FAIL"
+    }
+  ],
+  "status": "FAIL"
+}

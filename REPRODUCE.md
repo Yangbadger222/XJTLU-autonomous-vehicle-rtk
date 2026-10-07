@@ -1,86 +1,56 @@
-# Reproduce
+# Reproduce the isolated research delivery
+
+Use the published research branch and the source commit recorded in audit/remote_humble/clean-final-build.json. Do not start again from main or replace the production workspace.
 
 ```bash
-git clone https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk.git
-git switch --detach e54c6afbcb5a58db22d7c468085a87d658b0b932
-git switch -c codex/superlio-ego-active-road
+git clone --branch codex/superlio-ego-active-road https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk.git research-checkout
+cd research-checkout
 vcs import src < dependencies.research.repos
-scripts/apply_super_lio_patch.sh
-scripts/apply_ego_vehicle_patch.sh
-colcon build --symlink-install --parallel-workers 1
-source install/setup.bash
+bash scripts/apply_super_lio_patch.sh
+bash scripts/apply_ego_vehicle_patch.sh
+bash scripts/build_active_road_research.sh /absolute/isolated/research-ws
+source /opt/ros/humble/setup.bash
+source /absolute/isolated/research-ws/install/setup.bash
 ```
 
-Before deployment, extract the source and corridor launch layers (the target
-runtime layer is intentionally pending until a Jetson `ros2 param dump`):
+The build clears inherited overlays, compiles/installs a task-local Livox SDK and explicitly selects the 14-package source allowlist with one worker. There must be a real `Summary: 14 packages finished`; `0 packages finished` is not compilation evidence. Neither whole-repository colcon discovery nor a production install is a dependency shortcut.
+
+Executed host: non-Jetson x86_64 Ubuntu 22.04.5 / ROS2 Humble. Install the declared ROS dependencies before running an asset-backed entry; active_road_mapping declares python3-rasterio and python3-pyproj. The experiment used a task-only Python venv with rasterio 1.3.11, pyproj 3.6.1 and numpy 1.26.4 with system ROS packages. Invoke geospatial Python probes with that venv interpreter; no global pip installation is needed. The system-shebang launch requires its declared runtime dependencies when a real prior manifest is supplied; the no-manifest default audit is not proof of asset-backed target deployment. Builds, source and current explicit session logs are under /home/badger/codex-research/superlio-ego-20261007. Earlier unchanged serial binaries also wrote native logs to their default /home/badger/XJTLU-autonomous-vehicle/runtime-data/logs/twist_log; that fallback root is not a Git checkout and contains only runtime-data. Those historical artifacts are preserved. Set the FYP and ROS logging roots below for isolated reproductions. Lightweight summaries are checked in; bags, GeoTIFF fixtures and binaries are not.
 
 ```bash
-python3 scripts/audit_vehicle_baseline.py
+PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test
+python3 scripts/generate_research_parameter_lock.py --check
+export ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=91
+export FYP_RUNTIME_ROOT=/absolute/isolated/logs/runtime-data
+export FYP_LOG_SESSION_DIR=/absolute/isolated/logs/native-serial
+export ROS_LOG_DIR=/absolute/isolated/logs/ros
+python3 scripts/validate_ego_native.py --repo "$PWD" --workspace /absolute/isolated/research-ws --output /absolute/logs/native.json
+python3 scripts/validate_ego_vehicle_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/ego-interface.json
+python3 scripts/validate_mock_serial_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/faults.json
+python3 scripts/validate_mock_serial_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/straight.json --ego-loop --loop-budget-s 65
+python3 scripts/validate_mock_serial_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/arc.json --arc-loop --loop-budget-s 65
 ```
 
-The local actuator-free smoke test requires only Python:
+The probe allocates its own PTY and feeds the unchanged serial executable. Curvature=1/m, lateral tolerance=.05 m/s, jerk=3 m/s³ and model braking are labelled synthetic settings, never physical acceptance. Additional switches `--rtk-classifier` and `--tf-static-fault` test original GNSS quality classification and static TF competition. Physical manual/KEY/firmware e-stop is outside their scope.
 
 ```bash
-PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter \
-  python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test
-PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
-  --output runtime-data/research/active_road/replay_smoke.json
-PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=["research_safety_bridge","--mode","replay","--output","/tmp/research-safety-bridge-replay.json"]; from research_runtime.safety_bridge import main; raise SystemExit(main())'
+python3 scripts/validate_route_prefix_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --input /absolute/retained-measured-failures.json --output /absolute/logs/route-prefix.json
+python3 scripts/validate_ego_cache_progress_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --input /absolute/retained-measured-failures.json --output /absolute/logs/cache-progress.json
+export ROS_DOMAIN_ID=96
+python3 scripts/validate_evidence_anchor_ros.py --install /absolute/isolated/research-ws/install --output /absolute/logs/anchors.json
+export ROS_DOMAIN_ID=97
+python3 scripts/validate_lio_adapter_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/adapter.json
+export ROS_DOMAIN_ID=98
+/path/to/research-venv/bin/python scripts/validate_observer_session_ros.py --install /absolute/isolated/research-ws/install --output /absolute/logs/observer-session.json
+export ROS_DOMAIN_ID=93
+/path/to/research-venv/bin/python scripts/validate_research_launch.py --repo "$PWD" --output /absolute/logs/entry.json --serial-evidence /absolute/logs/faults.json --override-probes
+python3 scripts/audit_research_runtime_parameters.py --root "$PWD" --default-entry /absolute/logs/entry.json --serial /absolute/logs/faults.json --output /absolute/logs/three-layer.json
+export ROS_DOMAIN_ID=94
+/path/to/research-venv/bin/python scripts/validate_restricted_policy_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/new-trial-directory/comparison.json --budget-s 60
 ```
 
-On Jetson, use a clean worktree and the exact commit, source ROS 2 Humble,
-build with one worker, and run the new launch with `execution_mode:=shadow`.
-Shadow/live starts the pinned Super-LIO node, the patched EGO vehicle ROS edge,
-the source-aware odometry adapter, the timestamped cloud-frame adapter,
-`active_road_map`, the typed `active_road_evidence` ingest/policy boundary,
-and the fail-closed local obstacle grid node; replay
-intentionally does not start sensor,
-authority, planner or serial processes. The physical serial sink requires the
-separate explicit gate `execution_mode:=live enable_serial:=true`; never attach a
-production serial device to replay or shadow. `live` remains blocked until the
-acceptance checklist is completed by a human operator.
+Use a fresh trial directory and run comparisons without other ROS/build jobs. The retained c5dfeec measured-failure input is under the isolated remote logs/qualified-final-policy/PASSIVE/task-2/failed-measured-inputs.json; the prefix regression does not use truth or a full world map. Its core query records old endpoint rejection and shortened endpoint feasibility. The cache-progress probe uses the distinct already-shortened partial-map input at logs/delivery-final-policy/PERIODIC_LOOK/task-2/failed-measured-inputs.json. The simulator spawns only task-owned processes; no real actuator or production domain is connected. For sensor-loss tests add `--strategies PASSIVE --tasks 1 --budget-s 25 --sensor-fault imu_lost --fault-after-s 12`, and similarly lidar_lost/depth_invalid. Inspect fault-phase wire bytes captured before cleanup denies RTK.
 
-The recorded ARM64 compile evidence for EGO patches 0001+0002 is reproducible
-with `audit/container/ego-current-build.Dockerfile`; its completed BuildKit log
-is `audit/container/ego-current-build.log`. Patch 0003 is included in the
-exact sparse-checkout apply audit, but the current three-patch rebuild is still
-pending. The recipe proves compilation only and does not replace Jetson shadow
-or live acceptance.
+Raw bag identity and one-time alignment rules are in audit/remote_humble/lio-paired-metrics.json and lio-bag-fields.json. The raw July 15 bag contains 2867 scans / 57008 IMU samples over 287.37 s. Existing legacy odometry is not an estimator input. Replay scripts audit input identity, source measurement time and binary SHA. The paired discrepancy is not ground-truth error.
 
-The complete current three-patch ARM64 recipe is
-`audit/container/ego-current-three-patch-build.Dockerfile`. When the Docker
-daemon is available, run it from the repository root with:
-
-```bash
-docker build --platform linux/arm64 \
-  -f audit/container/ego-current-three-patch-build.Dockerfile \
-  -t ego-current-three-patch:research .
-```
-
-It applies 0001, 0002 and 0003 at the pinned EGO commit before building
-`research_interfaces` and `ego_planner`; until that command produces a
-complete log, the current three-patch build remains pending.
-
-An isolated ARM64 OrbStack run using the public `ros:humble` base has now
-completed this three-patch build and startup smoke. The reproducible recipe is
-`audit/container/ego-orbstack-ros-base-three-patch.Dockerfile`; evidence is in
-`audit/container/ego-orbstack-ros-base-three-patch-build.log`,
-`audit/container/ego-orbstack-ros-base-three-patch-build-summary.log`,
-`audit/container/ego-orbstack-ros-base-three-patch-run.log`, and the structured
-result JSON beside them. The node starts and waits for measured odom, road
-reference, obstacle grid and map version, then exits only at the five-second
-smoke timeout. This is an alternate-base compile/start result; it does not
-prove the unavailable `ros2-go2:humble` image or Jetson runtime.
-
-The current Python package install path can be checked without ROS:
-
-```bash
-python3 -m pip wheel --no-deps --wheel-dir <temporary-dir> \
-  src/research_runtime src/active_road_mapping
-```
-
-The installed entry points include `active_road_map`,
-`active_road_evidence`, `research_local_obstacle_grid`, and
-`research_safety_bridge`. `RoadEvidence2D` accepts only measured odom-frame
-geometry; the evidence node refuses a missing/unknown persisted map identity
-and writes accepted UUIDs atomically/idempotently.
+Ordinary entry is `ros2 launch bringup system_active_road_research.launch.py`, default replay with simulated time and no drivers/serial. A new launch creates a fresh localization session ID; providers use its latched identity/submap namespace. Independent LIO reinitialization requires a new session. Default physical curvature/jerk/sensor model and verified extrinsics/health remain unresolved and block motion. Jetson deployment is not performed by these commands. Follow LIVE_ACCEPTANCE_CHECKLIST.md before any human-controlled live test.

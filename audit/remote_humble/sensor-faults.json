@@ -1,0 +1,46 @@
+{
+  "status": "PASS",
+  "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "checks": [
+    {
+      "case": "imu_lost",
+      "status": "PASS",
+      "nonzero_before_fault": 153,
+      "fault_phase_final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "evidence": "audit/remote_humble/sensor-imu_lost.json"
+    },
+    {
+      "case": "lidar_lost",
+      "status": "PASS",
+      "nonzero_before_fault": 144,
+      "fault_phase_final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "evidence": "audit/remote_humble/sensor-lidar_lost.json"
+    },
+    {
+      "case": "depth_invalid",
+      "status": "PASS",
+      "nonzero_before_fault": 150,
+      "fault_phase_final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "evidence": "audit/remote_humble/sensor-depth_invalid.json"
+    }
+  ],
+  "scope": "actual original PTY outputs recorded during raw sensor faults before cleanup denies RTK"
+}

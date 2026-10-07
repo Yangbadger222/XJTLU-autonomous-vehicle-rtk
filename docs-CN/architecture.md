@@ -359,18 +359,12 @@ UUID 持久化，主动观察评分是有限启发式，不代表论文创新或
 
 ## 5.5 Active-road 研究入口（2026-10-07）
 
-`system_active_road_research.launch.py` 默认是 `replay`。`shadow`/`live` 才启动
-Super-LIO、源健康适配器和固定提交的 Ego-Planner-2D vehicle ROS edge。EGO
-输入是 `/lio/odom_vehicle`、odom-frame `/research/road_reference` 和
-`/research/local_obstacle_grid`；控制合同是 typed
-`/research/ego_trajectory`，`nav_msgs/Path` 只做可视化。未知栅格按占用处理，
-缺地图版本、曲率/footprint 参数或实测状态时拒绝轨迹。
+新默认 `replay` 实际运行 Super-LIO、EGO、TF 完整性、证据/观察、局部栅格与原 authority/guard；传感器驱动只在 shadow/live 启动，串口还需显式 live + enable_serial。默认 mission_execution_enabled=false，缺少可信健康、外参、地面和物理曲率时继续停车。生产栈资产保留；新入口不启动 FAST-LIO、Nav2/MPPI、SLAM、FGO/FRC 或 fake simulator。
 
-物理串口额外需要 `execution_mode:=live enable_serial:=true`；replay/shadow
-不挂载生产串口。RTK authority、原 corridor guard 和人工停车优先级保持不变。
+EGO 保留真正二维上游核心，使用真实起始状态、动态时间修复、连续 footprint/曲率/yaw-rate/角加速度与原 |v*w|≤0.25 约束。1 Hz 几何重规划与 10 Hz 新鲜输入复查心跳分开，generated_at 保留轨迹进度。控制只使用 TimedTrajectory2D；Path 是参考/显示。
 
-shadow/live 还启动 `active_road_evidence`。它通过 typed
-`research_interfaces/msg/RoadEvidence2D` 接收已经在 `odom` 中表达的实测几何，
-要求持久化 CRS/地图版本有效后才做原子、UUID 幂等写入；观测几何只发布为
-`RoadEvent`，不会自动升级为已通过道路。外部候选必须同时标记可达、安全、位姿可信
-和传感器有效，才可能发布 `observation_goal`。地图或局部栅格缺失/过期时安全桥继续停车。
+Super-LIO 输出仍是 world→imu。适配器按采集时刻变换位姿、杆臂速度与协方差，未知 source health 拒绝实车运动。旧常规高度窗 [-0.33,.30] 和障碍窗 [.08,1.20] 都沿 source-world 重力方向相对 IMU 原点过滤；完整原始研究云保留。
+
+证据使用 typed RoadEvidence2D/RoadGraphUpdate2D、UUID 幂等、原子保存与可回滚增量。每次 LIO 初始化生成 localization_session_id，provider 按 identity/submap 命名。当前 map→odom 只重挂本会话；历史子图保留其已验证锚点，跨会话重配准须独立证据。新图增量只引用当前会话 UUID，历史拓扑复用仍须重新检查当前地面/许可。
+
+主动观察组合先验断口、局部前沿和净宽/台阶/障碍问题，经实际 EGO 查询和硬安全过滤再评分。第一版仅枚举当前朝向上的有限前进观察位姿；未虚构云台、相机或全图真值。三个策略各执行首次/复用任务，负结果与物理 PENDING 分开记录。具体测试、收益和限制见根目录报告。

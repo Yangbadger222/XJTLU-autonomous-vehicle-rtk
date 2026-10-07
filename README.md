@@ -2,6 +2,12 @@
 
 ROS 2 Humble monorepo for the XJTLU autonomous vehicle platform. The repository contains the Jetson runtime workspace, sensor drivers, SLAM/localization, Nav2 navigation, GNSS tooling, engineering documentation, and the STM32 lower-controller firmware snapshot used by the current vehicle.
 
+## Research branch status (2026-10-07)
+
+This branch develops the isolated Super-LIO + Ego-Planner-2D-ROS2 active-road runtime from corridor-authority-stability@e54c6af. `make setup`, `make build`, and `make launch` now use the pinned research dependencies, explicit 14-package allowlist and default replay entry. Replay starts the actual cores but excludes sensor drivers and serial. Legacy operating modes below describe the preserved production assets.
+
+Actual non-Jetson Humble builds, original raw-bag estimator comparison, typed EGO/native probes, original-serial PTY fault tests and finite restricted-sensor strategy experiments are recorded in [RESULTS.json](RESULTS.json), [AUDIT_REPORT.md](AUDIT_REPORT.md) and [REPRODUCE.md](REPRODUCE.md). Default mission and physical actuator permission remain disabled; unknown health/calibration remains a stop. Software execution does not imply research benefit or physical acceptance.
+
 ## Current State
 
 - Main deployment target: Jetson Orin NX running Ubuntu 22.04 and ROS 2 Humble.

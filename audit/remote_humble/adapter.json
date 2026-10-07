@@ -1,0 +1,76 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "case": "nonzero_measured_lever_90_degree_frames_body_velocity",
+      "status": "PASS",
+      "detail": {
+        "pose": [
+          7.0,
+          21.0,
+          200.0
+        ],
+        "count": 48
+      }
+    },
+    {
+      "case": "gravity_height_window_tilted_body_nonzero_altitude_nan_rejection",
+      "status": "PASS",
+      "detail": [
+        [
+          10.0,
+          21.0,
+          200.1999969482422
+        ],
+        [
+          10.0,
+          22.0,
+          200.8000030517578
+        ]
+      ]
+    },
+    {
+      "case": "regular_world_and_imu_body_cloud_same_gravity_filter",
+      "status": "PASS",
+      "detail": {
+        "world": [
+          [
+            0.0,
+            0.0,
+            100.05000305175781
+          ],
+          [
+            1.0,
+            0.0,
+            100.19999694824219
+          ]
+        ],
+        "body": [
+          [
+            -1.0,
+            -1.7311923503875732,
+            1.0027328729629517
+          ],
+          [
+            0.0,
+            -1.6592814922332764,
+            1.1343649625778198
+          ]
+        ]
+      }
+    },
+    {
+      "case": "source_health_receipt_expiry_with_continuing_odom",
+      "status": "PASS",
+      "detail": null
+    }
+  ],
+  "scope": "actual ROS adapters, analytical rigid transforms/covariance/health only; real source health and physical extrinsics remain pending",
+  "collection_provenance": {
+    "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+    "remote_artifact": "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-core/adapter.json",
+    "remote_json_sha256": "0fa81e4a048f14e9e54f2d943717fbf6fba73b9a8e1511196d60e2bdf842d2c8",
+    "annotation": "added at evidence collection; original test payload retained"
+  }
+}

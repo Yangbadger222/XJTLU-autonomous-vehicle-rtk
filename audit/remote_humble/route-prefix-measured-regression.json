@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "before": {
+    "feasible": false,
+    "reason": "ego_planner_vehicle_feasibility_rejected",
+    "cost_s": null
+  },
+  "after": {
+    "feasible": true,
+    "reason": "",
+    "cost_s": 9.600000000000001
+  },
+  "old_endpoint": [
+    1.4250972618174274,
+    0.0
+  ],
+  "fixed_endpoint": [
+    1.2753081849521932,
+    0.0
+  ],
+  "prefix_reason": "LOCAL_SUPPORT_BOUNDARY",
+  "grid_unchanged": true,
+  "scope": "actual unchanged EGO query with captured measured odom/grid; conservative reference truncation only; no physical motion"
+}

@@ -1,254 +1,268 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "tip_commit_at_report": "f707c8c",
+  "runtime_source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / ROS2 Humble",
+  "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
+  "actuator_mode": "only allocated task PTYs; no physical actuator connection",
+  "physical_motion": "not_performed",
+  "production_source_workspaces": "not edited",
+  "logging_exception": "earlier unchanged original serial wrote native logs to non-Git fallback root containing only runtime-data; 128 retained; explicit final task-root logging proven",
   "active_processes": [],
+  "process_evidence": [
+    "audit/remote_humble/entry.json",
+    "audit/remote_humble/running-history-final-processes.json",
+    "audit/remote_humble/native-log-isolation.json",
+    "audit/remote_humble/final-cleanup-processes.json"
+  ],
+  "command_exit_scope": "successful commands confirmed by set-e source-bound runner and per-command results; historical/red traces retained separately",
+  "publication": {
+    "status": "PENDING",
+    "scope": "normal research-only push and draft review; never production merge"
+  },
   "commands": [
     {
-      "command": "PYTHONPATH=src/research_runtime:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "name": "clean SDK and 14 packages",
+      "command": "bash scripts/build_active_road_research.sh /home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "68 tests"
+      "evidence": "audit/remote_humble/clean-final-build.json",
+      "detail": "exact source 08d1835, one worker, no inherited overlays"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim --output runtime-data/research/active_road/replay_smoke.json",
+      "name": "native",
+      "command": "scripts/validate_ego_native.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "timed-trajectory tracker, policy comparison and final mock serial stop"
+      "evidence": "audit/remote_humble/native.json",
+      "detail": "5 linked cases"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime python3 -c 'import sys; sys.argv=[\\\"research_safety_bridge\\\",\\\"--mode\\\",\\\"replay\\\",\\\"--output\\\",\\\"/tmp/research-safety-bridge-replay.json\\\"]; from research_runtime.safety_bridge import main; raise SystemExit(main())'",
+      "name": "ego-interface",
+      "command": "scripts/validate_ego_vehicle_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "replay entry accepted mode flag, wrote JSON and retained vcx=0,wc=0\\n mock stop"
+      "evidence": "audit/remote_humble/ego-interface.json",
+      "detail": "10 ROS cases"
     },
     {
-      "command": "python3 -m pip wheel --no-deps --wheel-dir <temporary-dir> src/research_runtime src/active_road_mapping",
+      "name": "faults",
+      "command": "scripts/validate_mock_serial_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/research_wheel_build_latest.log; wheels contain active_road_evidence.py, evidence/map entry_points and research runtime safety/trajectory modules"
+      "evidence": "audit/remote_humble/faults.json",
+      "detail": "27 final original serial fault cases"
     },
     {
-      "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py",
+      "name": "static-tf",
+      "command": "scripts/validate_mock_serial_ros.py --tf-static-fault",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "launch, vehicle odometry adapter, cloud-frame adapter and evidence/safety Python syntax"
+      "evidence": "audit/remote_humble/static-tf.json",
+      "detail": "1 static competition case"
     },
     {
-      "command": "sha256sum -c audit/vehicle_baseline/PROTECTED_FILES.sha256",
+      "name": "rtk-quality",
+      "command": "scripts/validate_mock_serial_ros.py --rtk-classifier",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "all protected source hashes match"
+      "evidence": "audit/remote_humble/rtk-quality.json",
+      "detail": "5 classifier cases"
     },
     {
-      "command": "python3 scripts/audit_vehicle_baseline.py",
+      "name": "straight",
+      "command": "scripts/validate_mock_serial_ros.py --ego-loop --loop-budget-s 65",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "source and parsed corridor layers reproduced; runtime ros2 param dump remains PENDING_JETSON"
+      "evidence": "audit/remote_humble/straight.json",
+      "detail": "measured straight goal-stop"
     },
     {
-      "command": "fresh sparse checkout; sequential git apply --check for EGO patches 0001+0002+0003",
+      "name": "arc",
+      "command": "scripts/validate_mock_serial_ros.py --arc-loop --loop-budget-s 65",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "0001 + 0002 + 0003 sequential apply-check at exact EGO commit in audit/ego_patch_check_current.log; 0002 resets ESDF state on map-version change; 0003 clears stale results after failed replan; current three-patch ROS rebuild pending"
+      "evidence": "audit/remote_humble/arc.json",
+      "detail": "measured R=3m arc goal-stop"
     },
     {
-      "command": "python3 -m json.tool audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
+      "name": "cache-progress",
+      "command": "scripts/validate_ego_cache_progress_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "source-audited LIO field mapping; unresolved semantics fail closed"
+      "evidence": "audit/remote_humble/cache-progress.json",
+      "detail": "2 captured map/time-progress cases"
     },
     {
-      "command": "docker ARM64 ROS 2 Humble isolated builds (raw EGO, prior patched EGO revision, Super-LIO core)",
+      "name": "adapter",
+      "command": "scripts/validate_lio_adapter_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/container/ego-raw-build-and-start.log; audit/container/ego-build-pass-2.log (prior patch revision); audit/container/super-lio-build-message-only.log"
+      "evidence": "audit/remote_humble/adapter.json",
+      "detail": "4 transformation/expiry cases"
     },
     {
-      "command": "docker ARM64 rebuild of current EGO vehicle patch set (0001+0002)",
-      "status": "PASS",
-      "evidence": "audit/container/ego-current-build.log; audit/container/ego-current-build-result.json; completed colcon compile RUN stage for patches 0001+0002; no reliable final Docker CLI exit code captured",
-      "scope": "patches 0001+0002 source/patch compile only; patch 0003 has sequential apply-check evidence but is excluded from this compile result; ordinary container startup, target wiring, RViz interaction and Jetson runtime remain pending",
-      "docker_cli_exit": null
-    },
-    {
-      "command": "ros2 bag play <vehicle bag>",
-      "status": "PASS",
-      "evidence": "isolated ARM64 ROS 2 Humble reindex/info/play received 1347 legacy odom, 481 local costmap, 130 global costmap and 2118 cmd_vel messages; no raw Livox/IMU; full bag play exited 0 (audit/container/vehicle-bag-full-play-20260326.log)",
-      "exit_code": 0,
-      "scope": "legacy topic replay only; Super-LIO replay remains unverified"
-    },
-    {
-      "command": "system_active_road_research.launch.py execution_mode:=shadow",
-      "status": "NOT_RUN",
-      "evidence": "Jetson-only runtime dependencies and hardware unavailable; isolated compile does not prove target runtime"
-    },
-    {
-      "command": "docker ARM64 current research_interfaces rebuild after RoadEvidence2D extension",
-      "status": "NOT_RUN",
-      "exit_code": null,
-      "evidence": "audit/container/current-ego-rebuild-probe.log; docker info bounded wait produced no usable server response",
-      "scope": "current typed ROS interface compile remains pending; no runtime claim"
-    },
-    {
-      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "name": "anchors",
+      "command": "scripts/validate_evidence_anchor_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "overall_static_status=PASS; branch/base, pins, patch hashes, protected files, launch allowlist, serial gate, cloud TF boundary, typed interfaces, required deliverables and report copy"
+      "evidence": "audit/remote_humble/anchors.json",
+      "detail": "9 anchor/session cases"
     },
     {
-      "command": "python3 scripts/verify_research_delivery.py --output /tmp/research-delivery-after-0003.json",
+      "name": "observer-session",
+      "command": "scripts/validate_observer_session_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "three patch hashes and current report/result matrix verified; overall_static_status=PASS"
+      "evidence": "audit/remote_humble/observer-session.json",
+      "detail": "4 actual observer/history cases"
     },
     {
-      "command": "docker info --format \\\"{{.ServerVersion}} {{.Architecture}}\\\" (bounded 8s probe)",
-      "status": "NOT_RUN",
-      "exit_code": null,
-      "evidence": "audit/container/current-ego-rebuild-probe-latest.log; Docker server did not respond within bound",
-      "scope": "current three-patch ROS/ARM64 rebuild remains pending; no runtime claim"
-    },
-    {
-      "command": "python3 scripts/verify_research_delivery.py --output /tmp/research-delivery-after-local-grid-bool.json",
+      "name": "entry",
+      "command": "scripts/validate_research_launch.py --override-probes",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "overall_static_status=PASS after local-grid boolean parsing and 62-test suite"
+      "evidence": "audit/remote_humble/entry.json",
+      "detail": "12 ROS nodes / 14 owned children, 7 deliberate override probes"
     },
     {
-      "command": "docker info --format \"{{.ServerVersion}} {{.Architecture}}\" (bounded 8s probe, continuation)",
-      "status": "NOT_RUN",
-      "exit_code": null,
-      "evidence": "Docker server again produced no response within the bound; current three-patch ROS/ARM64 rebuild remains pending",
-      "scope": "verified external-state probe only; no compile or runtime claim"
-    },
-    {
-      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "name": "three-layer",
+      "command": "scripts/audit_research_runtime_parameters.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "overall_static_status=PASS after locked footprint carry-over and stamped Super-LIO boundary changes"
+      "evidence": "audit/remote_humble/three-layer.json",
+      "detail": "122 checks"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "name": "six restricted policy trials",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "68 tests after stamped Super-LIO TF/covariance and typed RoadEvidence2D boundary checks"
+      "evidence": "audit/remote_humble/policy-comparison.json",
+      "detail": "all six execution protocols PASS; all six goals unreached; prior and foundation byte-preserved"
     },
     {
-      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "name": "imu_lost",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault imu_lost --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "overall_static_status=PASS after nonzero RoadEvidence2D timestamp enforcement"
+      "evidence": "audit/remote_humble/sensor-imu_lost.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
     },
     {
-      "command": "fresh exact-commit source; sequential git apply --check for EGO patches 0001+0002+0003 after map-version reset change",
+      "name": "lidar_lost",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault lidar_lost --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/ego_patch_check_current.log; exact source files fetched from pinned commit; no source conflicts"
+      "evidence": "audit/remote_humble/sensor-lidar_lost.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
     },
     {
-      "command": "python3 scripts/verify_research_delivery.py --output audit/research_delivery_verification.json",
+      "name": "depth_invalid",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault depth_invalid --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "overall_static_status=PASS; current EGO map-reset patch hash and exact sequential apply-check provenance verified"
+      "evidence": "audit/remote_humble/sensor-depth_invalid.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
     },
     {
-      "command": "python3 subprocess probe: docker info --format '{{json .}}' (20 s bound)",
-      "status": "PENDING",
-      "exit_code": null,
-      "evidence": "developer host Docker CLI produced no stdout/stderr and timed out after 20 s; current three-patch ROS/ARM64 rebuild remains pending",
-      "scope": "external Docker service probe only; no compile or runtime claim"
-    },
-    {
-      "command": "docker desktop start/stop plus docker --context orbstack info probes",
-      "status": "PENDING",
-      "exit_code": null,
-      "evidence": "official Docker Desktop CLI reported already running while desktop-linux and orbstack sockets remained unavailable; no current three-patch compile or runtime claim",
-      "scope": "external container-service recovery attempt only"
-    },
-    {
-      "command": "docker --context orbstack build --platform linux/arm64 -f audit/container/ego-orbstack-ros-base-three-patch.Dockerfile -t ego-three-patch-ros-humble:research .",
+      "name": "native log isolation correction",
+      "command": "explicit task-root FYP_RUNTIME_ROOT/FYP_LOG_SESSION_DIR/ROS_LOG_DIR; scripts/validate_mock_serial_ros.py",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/container/ego-orbstack-ros-base-three-patch-build.log; audit/container/ego-orbstack-ros-base-three-patch-build-summary.log; audit/container/ego-orbstack-ros-base-three-patch-result.json",
-      "scope": "all three EGO patches plus research_interfaces/ego_planner compile on OrbStack linux/aarch64 with public ros:humble; original ros2-go2 image remains a separate pending gate"
+      "evidence": "audit/remote_humble/native-log-isolation.json",
+      "detail": "original binary/27 fault cases PASS; actual log FD inside task; 128 historical fallback files unchanged"
     },
     {
-      "command": "docker --context orbstack run --rm --platform linux/arm64 ego-three-patch-ros-humble:research motion_plan smoke",
+      "name": "portable tests and generated constants",
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test; python3 scripts/generate_research_parameter_lock.py --check",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "audit/container/ego-orbstack-ros-base-three-patch-run.log; audit/container/ego-orbstack-ros-base-three-patch-result.json",
-      "scope": "isolated startup smoke reached vehicle EGO adapter and waited for measured odom, road reference, obstacle grid and map version; bounded timeout 124 is expected and does not prove target runtime"
+      "evidence": "audit/remote_humble/portable-tests.log",
+      "detail": "121 tests; lock/header/YAML check PASS"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
+      "name": "raw pinned upstream EGO",
+      "command": "pinned raw motion_plan + original fake_sim in isolated Humble",
+      "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "68 tests including acquisition-time world-to-odom covariance rotation math and launch contract"
+      "evidence": "audit/remote_humble/ego-raw-simulation.json",
+      "detail": "raw source unmodified; GUI NOT_RUN_HEADLESS"
     },
     {
-      "command": "python3 -m py_compile src/bringup/launch/system_active_road_research.launch.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py",
+      "name": "full original raw bag paired replay",
+      "command": "complete separate 1x FAST-LIO2 and Super-LIO replay",
+      "source_commit": "recorded component/binary provenance in evidence",
       "status": "PASS",
       "exit_code": 0,
-      "evidence": "launch, timestamped odometry TF adapter, covariance rotation and cloud-frame adapter syntax"
+      "evidence": "audit/remote_humble/lio-paired-metrics.json",
+      "detail": "binary SHAs belong to recorded replay, not relabelled as final rebuild; component source unchanged"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "68 tests including ROS unknown-covariance sentinel rejection"
+      "name": "entry discovery red trace",
+      "command": "scripts/validate_research_launch.py --override-probes",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/default-entry-discovery-timeout-red.log",
+      "detail": "historical ROS service-discovery timeout; exact probe repeated successfully without changing physical thresholds"
     },
     {
-      "command": "bounded Docker daemon probe for desktop-linux and orbstack (8 s each)",
-      "status": "PENDING",
-      "exit_code": null,
-      "evidence": "desktop-linux socket unavailable; orbstack daemon timed out after 8 s",
-      "scope": "external container service probe only; no target-image build or runtime claim"
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-qualified-history.json",
+      "detail": "complete prior dataset preserved; source identity separated"
     },
     {
-      "command": "clean-install config path audit for system_active_road_research.launch.py",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "src/bringup/config/ego_vehicle_adapter.yaml exists and bringup CMakeLists.txt installs config/; launch resolves it from bringup share"
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-circle-prefix.json",
+      "detail": "complete prior dataset preserved; source identity separated"
     },
     {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "69 tests after moving EGO vehicle config and adding entry-asset checks"
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-cache-interval-bound.json",
+      "detail": "complete prior dataset preserved; source identity separated"
     },
     {
-      "command": "clean-install bringup launch dependency audit",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "bringup/package.xml explicitly declares ament_index_python, launch and launch_ros used by system_active_road_research.launch.py"
-    },
-    {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "72 tests including source-tree checks and non-finite authority-time fail-closed cases"
-    },
-    {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "75 tests including authority timestamps, timeout and linear speed override fail-closed cases"
-    },
-    {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "79 tests; invalid authority/speed/serial-format inputs reach vcx=0,wc=0 mock bytes"
-    },
-    {
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "79 tests including defensive final serial formatter checks for non-finite command/scale"
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-history-load.json",
+      "detail": "complete prior dataset preserved; source identity separated"
     }
-  ],
-  "runtime_data_root": "runtime-data/research/active_road",
-  "actuator_mode": "never_connected",
-  "physical_motion": "not_performed"
+  ]
 }

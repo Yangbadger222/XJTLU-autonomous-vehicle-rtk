@@ -2,163 +2,159 @@
   "VEHICLE_PARAMETER_PRESERVATION": {
     "status": "PASS",
     "evidence": [
-      "audit/vehicle_baseline/SOURCE_IDENTITY.json",
       "audit/vehicle_baseline/PROTECTED_FILES.sha256",
+      "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256",
       "audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json",
-      "audit/vehicle_baseline/PARAMETER_LAYERS.json",
-      "audit/vehicle_baseline/RUNTIME_CONTRACT.json"
+      "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json",
+      "audit/remote_humble/three-layer.json",
+      "audit/remote_humble/entry.json"
     ],
-    "scope": "source and static launch layers; runtime dump pending"
+    "scope": "1011 original bytes protected; source/parsed/Humble runtime 122 checks and deliberate override failures. Actual Jetson effective overlays and flashed hardware identity PENDING."
   },
   "SUPER_LIO_BUILD_AND_RUNTIME": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
-      "dependencies.research.repos",
-      "audit/UPSTREAM_PATCH_VERIFICATION.json",
-      "audit/container/super-lio-build-message-only.log"
+      "audit/remote_humble/clean-final-build.json",
+      "audit/remote_humble/clean-final-build.log",
+      "audit/remote_humble/source-provenance.json",
+      "audit/remote_humble/lio-paired-metrics.json"
     ],
-    "scope": "isolated ARM64 ROS 2 Humble core build passed with a compile-only livox_ros_driver2 message contract; physical Livox SDK/driver, Jetson runtime and sensor bag replay remain pending",
-    "reason": "The build/provenance gate passed, but the requested runtime gate has no physical driver, sensor input or Jetson execution evidence"
+    "scope": "Pinned Super-LIO ros2, actual SDK/driver clean build, complete original raw bag replay and sensor-driven restricted simulation. Health remains UNKNOWN on actual bag; physical deployment separate."
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PENDING",
     "evidence": [
-      "audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
-      "audit/UPSTREAM_SOURCE_AUDIT.md",
-      "src/super_lio_vehicle_adapter"
+      "audit/remote_humble/adapter.json",
+      "audit/remote_humble/lio-bag-fields.json",
+      "audit/remote_humble/lio-paired-metrics.json",
+      "audit/vehicle_baseline/LIO_FIELD_MAPPING.json"
     ],
-    "reason": "field mapping is source-audited, but acceleration scale, Livox timebase/synchronization, base extrinsic, covariance, cloud filters and health equivalence require bag and deployment evidence"
+    "scope": "Actual ROS mathematical adapter/window/health-expiry checks PASS; bag-specific parser/filter observations preserved. Measured IMU/base/GNSS lever arms, world->odom registration, source health/covariance and hardware clocks are unqualified, so full real-vehicle equivalence remains pending."
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
     "status": "PASS",
     "evidence": [
-      "dependencies.research.repos",
-      "audit/UPSTREAM_SOURCE_AUDIT.md",
-      "audit/UPSTREAM_PATCH_VERIFICATION.json",
-      "audit/container/ego-raw-build-and-start.log",
-      "audit/ego_patch_check_latest.log",
-      "audit/container/ego-current-build.log",
-      "audit/container/ego-current-build-result.json",
-      "audit/container/ego-current-build.Dockerfile",
-      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
-      "audit/container/ego-orbstack-ros-base-three-patch.Dockerfile",
-      "audit/container/ego-orbstack-ros-base-three-patch-build.log",
-      "audit/container/ego-orbstack-ros-base-three-patch-build-summary.log",
-      "audit/container/ego-orbstack-ros-base-three-patch-run.log",
-      "audit/container/ego-orbstack-ros-base-three-patch-result.json"
+      "audit/remote_humble/ego-raw-build.log",
+      "audit/remote_humble/ego-raw-simulation.json",
+      "audit/remote_humble/clean-final-build.json",
+      "audit/remote_humble/source-provenance.json",
+      "audit/ego_four_patch_source_verification.json",
+      "audit/UPSTREAM_PATCH_VERIFICATION.json"
     ],
-    "scope": "raw pinned motion_plan build/start passed in isolation; all three patches pass exact sequential apply-check and the current three-patch stack compiles and starts a bounded smoke in isolated OrbStack linux/aarch64 with public ros:humble; original ros2-go2:humble base-specific rebuild, target wiring, RViz interaction and Jetson runtime remain pending"
+    "scope": "Untouched pinned planner + upstream fake simulator actually ran; current four sequential vehicle patches compile and byte-match. Rendered RViz GUI NOT_RUN_HEADLESS; no ROS1/3D port."
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
-      "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
-      "audit/ego_patch_check_latest.log",
-      "src/research_interfaces",
-      "src/research_runtime/research_runtime/trajectory.py",
-      "src/bringup/config/ego_vehicle_adapter.yaml",
-      "audit/container/current-ego-rebuild-probe.log",
-      "audit/container/ego-current-build.log",
-      "audit/container/ego-current-build-result.json",
-      "audit/ego_patch_check_current.log",
-      "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
-      "audit/container/ego-orbstack-ros-base-three-patch-build.log",
-      "audit/container/ego-orbstack-ros-base-three-patch-run.log",
-      "audit/container/ego-orbstack-ros-base-three-patch-result.json"
+      "audit/remote_humble/ego-interface.json",
+      "audit/remote_humble/native.json",
+      "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+      "audit/remote_humble/cache-progress.json"
     ],
-    "reason": "three sequential patches apply cleanly at the exact upstream commit; the current three-patch ROS edge and research_interfaces compile and bounded startup smoke pass with public ros:humble ARM64 base; original ros2-go2 image, target wiring, sensor feeds and Jetson runtime remain pending",
-    "scope": "current ROS edge consumes odom/road reference/OccupancyGrid and emits TimedTrajectory2D with measured-odom feedback; current three-patch compile/start smoke is proven on alternate ARM64 base, while target-image, sensor/TF wiring and Jetson runtime remain pending"
+    "scope": "Ten actual ROS cases and five native linked cases for measured state, GridMap/ground/reference, typed TimedTrajectory, query isolation and hard final feasibility. Physical input qualification separate."
   },
   "UGV_TRAJECTORY_FEASIBILITY": {
     "status": "PASS",
     "evidence": [
-      "src/research_runtime/test/test_trajectory.py",
-      "src/research_runtime/test/test_replay.py",
-      "runtime-data/research/active_road/replay_smoke.json"
+      "audit/remote_humble/native.json",
+      "audit/remote_humble/straight.json",
+      "audit/remote_humble/arc.json",
+      "audit/remote_humble/route-prefix.json"
     ],
-    "scope": "synthetic validator including dynamic derivatives, body-lateral speed, curvature/yaw-rate, future/negative time rejection and resolution-based continuous footprint/centerline sweep rejection"
+    "scope": "Analytical continuous certificate, Euclidean derivative/turn/footprint bounds, dynamic repair/rejection and actual PTY-driven straight/arc goal-stop loops. Original eight physical caps preserved, including |v*w| <= .25; quantized final wire checked. Curvature/jerk/lateral/slip/braking/physical wheel geometry are simulation-only or PENDING live qualification. Local references match the original circle/AABB envelope and fixed road sampling; captured-input actual EGO red/green regression."
   },
   "COMMAND_AUTHORITY_AND_STOP": {
     "status": "PASS",
     "evidence": [
-      "src/research_runtime/test/test_authority_and_serial.py",
-      "src/research_runtime/test/test_launch_contract.py",
-      "runtime-data/research/active_road/replay_smoke.json",
-      "src/research_runtime/test/test_safety_bridge_contract.py",
-      "src/bringup/config/research_safety_bridge.yaml"
+      "audit/remote_humble/faults.json",
+      "audit/remote_humble/static-tf.json",
+      "audit/remote_humble/rtk-quality.json",
+      "audit/remote_humble/sensor-faults.json"
     ],
-    "scope": "final mock serial bytes for authority/health/TF/map/trajectory/stop/manual/non-finite faults, plus ROS-string boolean parsing, UNKNOWN-map rejection and 0.50 s map/grid freshness gates; physical e-stop pending"
+    "scope": "27 actual original-guard/original-serial final PTY fault cases + static-TF competition + five original GNSS-classifier cases + three raw sensor faults. RTK false/stale/bridge still stops despite healthy simulation LIO. Physical KEY/joystick/firmware/e-stop acceptance PENDING."
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
     "status": "PASS",
     "evidence": [
-      "src/research_runtime/research_runtime/geometry.py",
-      "src/research_runtime/research_runtime/active_road.py",
-      "src/research_runtime/research_runtime/grid_map.py",
-      "src/research_runtime/test/test_geometry.py",
-      "src/research_runtime/test/test_active_road.py",
-      "src/research_runtime/test/test_grid_map.py",
-      "src/research_runtime/research_runtime/local_obstacle_grid_node.py",
-      "src/bringup/config/research_local_grid.yaml",
-      "src/active_road_mapping/active_road_mapping/map_node.py",
-      "src/bringup/config/active_road_mapping.yaml",
-      "audit/research_wheel_build.log",
-      "src/research_interfaces/msg/RoadEvidence2D.msg",
-      "src/active_road_mapping/active_road_mapping/evidence_node.py",
-      "src/bringup/config/active_road_evidence.yaml",
-      "audit/research_wheel_build_latest.log"
+      "audit/remote_humble/anchors.json",
+      "audit/remote_humble/observer-session.json",
+      "audit/remote_humble/portable-tests.log"
     ],
-    "scope": "synthetic CRS-bound, idempotent evidence store plus typed odom-frame RoadEvidence2D ingest and atomic persistence boundary; active_road_map exposes persisted map version, local obstacle transport marks only measured cells, and target sensor/TF/camera/reference wiring remains pending"
+    "scope": "Synthetic georeferenced CRS/datum/depth transform contracts plus nine actual typed writer/native-TF and four observer session/history/rollback checks. All local UUIDs retained, current-session stale export excluded, prior read-only. Surveyed real GeoTIFF/MaGRoad and real camera/ground validation PENDING."
   },
   "ACTIVE_OBSERVATION_IMPLEMENTED": {
     "status": "PASS",
     "evidence": [
-      "src/research_runtime/research_runtime/active_road.py",
       "METHOD_SPEC.md",
-      "src/active_road_mapping/active_road_mapping/map_node.py",
-      "src/bringup/config/active_road_mapping.yaml",
-      "src/active_road_mapping/active_road_mapping/evidence_node.py",
-      "src/research_interfaces/msg/ObservationGoal.msg",
-      "src/research_interfaces/msg/RoadEvidence2D.msg",
-      "src/bringup/config/active_road_evidence.yaml"
+      "audit/remote_humble/policy-comparison.json",
+      "audit/remote_humble/observer-session.json"
     ],
-    "scope": "bounded heuristic candidate selection with hard safety flags, typed measured-evidence ingest, atomic UUID-idempotent persistence and fail-closed persisted map/reference ROS boundaries; real camera/TF/evidence source and target runtime remain pending"
+    "scope": "Finite ROS event/query/view/settle/measure/persist loop; six forward current-heading candidates and three strategy state machines. Actual non-publishing EGO query and safety hard filters. Wider heading/pan-tilt search and real ground/camera provider are not implemented/qualified."
   },
-  "POLICY_EFFECT_SIMULATION": {
+  "POLICY_COMPARISON_EXECUTION": {
     "status": "PASS",
     "evidence": [
-      "runtime-data/research/active_road/replay_smoke.json",
-      "src/research_runtime/research_runtime/replay_sim.py"
+      "audit/remote_humble/policy-comparison.json",
+      "audit/remote_humble/policy-before-qualified-history.json",
+      "audit/remote_humble/policy-before-circle-prefix.json",
+      "audit/remote_humble/policy-before-cache-interval-bound.json",
+      "audit/remote_humble/policy-before-history-load.json"
     ],
-    "scope": "truth-blind policy and evaluator-only synthetic comparison driven through the timed-trajectory tracker; no claim of research gain"
+    "scope": "All six source-08d1835 same-foundation limited-view trials executed and passed the unchanged protocol, including >10 actual nonzero PTY commands, final zeros, and qualified second-task history reuse. Four complete earlier protocol-failure datasets retained."
+  },
+  "POLICY_EFFECT_SIMULATION": {
+    "status": "FAIL",
+    "evidence": [
+      "audit/remote_humble/policy-comparison.json",
+      "audit/remote_humble/policy-behavior-audit.json",
+      "audit/remote_humble/policy-termination-audit.json"
+    ],
+    "scope": "Completed finite negative experiment: 0/6 total goals reached within 60 s; no established mission/real-world benefit. TASK_AWARE_LOOK advances farther in this single scene, with one transient geometry resolution; final resolved counts are zero. All outcomes retained. This is not a postponed test or software protocol failure."
   },
   "VEHICLE_BAG_REPLAY": {
     "status": "PASS",
     "evidence": [
-      "audit/VEHICLE_BAG_INVENTORY.json",
-      "audit/VEHICLE_BAG_REPLAY_INPUT.json",
-      "audit/container/vehicle-bag-replay-20260326.log",
-      "audit/container/vehicle-bag-full-play-20260326.log"
+      "audit/remote_humble/lio-bag-fields.json",
+      "audit/remote_humble/lio-paired-metrics.json"
     ],
-    "scope": "real local ROS 2 bag reindex/info/play passed for legacy odom/costmap/cmd topics; raw /livox/lidar and /livox/imu are absent, so this is not a Super-LIO replay or equivalence result"
+    "scope": "Original July 15 raw Livox/IMU bag, full sequential 1x FAST/Super replay, SHA-bound source data. Single initial alignment discrepancy RMSE .0450 m is not accuracy. Not an alternative-view policy experiment."
   },
   "JETSON_SHADOW_VALIDATION": {
     "status": "PENDING",
-    "reason": "no Jetson access in this session"
+    "evidence": [
+      "LIVE_ACCEPTANCE_CHECKLIST.md"
+    ],
+    "scope": "Authorized remote is non-Jetson. No Jetson edit/deployment/shadow/hardware observation was inferred."
   },
   "LIVE_MOTION_ACCEPTANCE": {
     "status": "PENDING",
-    "reason": "explicitly not performed; physical operator/e-stop required"
+    "evidence": [
+      "LIVE_ACCEPTANCE_CHECKLIST.md"
+    ],
+    "scope": "No physical driving or calibrated slip/wheel/braking/curvature/camera/ground acceptance; deployment contract gaps explicitly block default motion."
   },
   "RTK_HOLDOVER_MOTION_APPROVAL": {
     "status": "NOT_RUN",
-    "reason": "never enabled; LIO health cannot override RTK stop"
+    "evidence": [
+      "audit/remote_humble/faults.json",
+      "audit/remote_humble/rtk-quality.json"
+    ],
+    "scope": "Not requested or enabled. Original firmware/permissions remain; fresh RTK mode required. LIO health cannot bypass authority-loss stop."
   },
   "BASELINE_REGRESSION_TESTS": {
     "status": "FAIL",
     "evidence": [
       "AUDIT_REPORT.md"
     ],
-    "reason": "pinned baseline test/environment failures recorded without changing protected files"
+    "scope": "Pinned original test/environment failures retained: 191 PASS/3 FAIL authority-guard; 26 PASS/1 FAIL launch. No protected bytes changed to force green."
+  },
+  "DELIVERY_STATE": {
+    "status": "PENDING",
+    "evidence": [
+      "REPRODUCE.md",
+      "RUN_STATE.json",
+      "outputs/RESEARCH_DELIVERY_REPORT.md"
+    ],
+    "scope": "Executed source 08d1835, complete clean build/runtime/finite comparison and final documents; normal research-only publication is the remaining step."
   }
 }

@@ -1,0 +1,68 @@
+{
+  "scope": "native probes linked to the actual patched upstream core",
+  "cases": [
+    {
+      "name": "boundary",
+      "compile_exit": 0,
+      "compile_stderr": "",
+      "link_exit": 0,
+      "link_stderr": "",
+      "run_stderr": "",
+      "run_exit": 0,
+      "output": "v=0 a=0 boundary_error=0\nv=0 a=0.85 boundary_error=1.11022e-16\nv=0 a=-1.2 boundary_error=4.51028e-16\nv=0.12 a=0 boundary_error=1.56125e-17\nv=0.12 a=0.85 boundary_error=1.73472e-18\nv=0.12 a=-1.2 boundary_error=2.37657e-16\nv=0.2 a=0 boundary_error=3.1225e-17\nv=0.2 a=0.85 boundary_error=3.46945e-18\nv=0.2 a=-1.2 boundary_error=2.498e-16\nexact boundary regression: PASS\n",
+      "status": "PASS"
+    },
+    {
+      "name": "turn_gradient",
+      "compile_exit": 0,
+      "compile_stderr": "",
+      "link_exit": 0,
+      "link_stderr": "",
+      "run_stderr": "",
+      "run_exit": 0,
+      "output": "scale=0.0007 sign=-1 curvature=0 cost=0 gradient_error=0\nscale=0.0007 sign=-1 curvature=1 cost=0 gradient_error=0\nscale=0.0007 sign=-1 curvature=2 cost=0 gradient_error=0\nscale=0.0007 sign=1 curvature=0 cost=0 gradient_error=0\nscale=0.0007 sign=1 curvature=1 cost=0 gradient_error=0\nscale=0.0007 sign=1 curvature=2 cost=0 gradient_error=0\nscale=0.04 sign=-1 curvature=0 cost=5.84539 gradient_error=5.15719e-09\nscale=0.04 sign=-1 curvature=1 cost=28.5161 gradient_error=1.22584e-08\nscale=0.04 sign=-1 curvature=2 cost=156.632 gradient_error=2.06011e-08\nscale=0.04 sign=1 curvature=0 cost=5.84539 gradient_error=5.15719e-09\nscale=0.04 sign=1 curvature=1 cost=28.5161 gradient_error=1.22584e-08\nscale=0.04 sign=1 curvature=2 cost=156.632 gradient_error=2.06011e-08\nscale=0.08 sign=-1 curvature=0 cost=16.1777 gradient_error=1.00686e-07\nscale=0.08 sign=-1 curvature=1 cost=57.4121 gradient_error=2.94973e-08\nscale=0.08 sign=-1 curvature=2 cost=543.145 gradient_error=8.54707e-09\nscale=0.08 sign=1 curvature=0 cost=16.1777 gradient_error=1.00686e-07\nscale=0.08 sign=1 curvature=1 cost=57.4121 gradient_error=2.94973e-08\nscale=0.08 sign=1 curvature=2 cost=543.145 gradient_error=8.54707e-09\nworst_relative_error=1.00686e-07\n",
+      "status": "PASS"
+    },
+    {
+      "name": "turn_bounds",
+      "compile_exit": 0,
+      "compile_stderr": "",
+      "link_exit": 0,
+      "link_stderr": "",
+      "run_stderr": "",
+      "run_exit": 0,
+      "output": "broad_curve=0 certified=1\nbroad_curve=1 certified=1\nbroad_curve=0 certified=1\nbroad_curve=1 certified=1\nbroad_curve=0 certified=1\nbroad_curve=1 certified=1\nindividual_turn_bounds=1 coupled_lateral_bound=0\nold_sampled_max_yaw_rate=0.302331 dense_max=1.94588 certified=0\n",
+      "status": "PASS"
+    },
+    {
+      "name": "grid_contract",
+      "compile_exit": 0,
+      "compile_stderr": "",
+      "link_exit": 0,
+      "link_stderr": "",
+      "run_stderr": "",
+      "run_exit": 0,
+      "output": "[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n10000 cell-center roundtrips, negative boundary, continuous obstacle-cell inflation: PASS\n",
+      "status": "PASS"
+    },
+    {
+      "name": "measured_start",
+      "compile_exit": 0,
+      "compile_stderr": "In file included from /home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/ego_planner_2d_ros2/src/EgoPlanner-ROS2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,\n                 from /home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/scripts/validate_ego_measured_start.cpp:1:\n/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/ego_planner_2d_ros2/src/EgoPlanner-ROS2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:\n/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/ego_planner_2d_ros2/src/EgoPlanner-ROS2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]\n   88 | }\n      | ^\n",
+      "link_exit": 0,
+      "link_stderr": "",
+      "run_stderr": "",
+      "run_exit": 0,
+      "output": "x_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0.002 y = 0\n_global_plan_traj_ x =0.076875 y = 0\n_global_plan_traj_ x =0.15175 y = 0\n_global_plan_traj_ x =0.226625 y = 0\n_global_plan_traj_ x =0.3015 y = 0\n_global_plan_traj_ x =0.376375 y = 0\n_global_plan_traj_ x =0.45125 y = 0\n_global_plan_traj_ x =0.526125 y = 0\n_global_plan_traj_ x =0.601 y = 0\n_global_plan_traj_ x =0.675875 y = 0\n_global_plan_traj_ x =0.75075 y = 0\n_global_plan_traj_ x =0.825625 y = 0\n_global_plan_traj_ x =0.9005 y = 0\n_global_plan_traj_ x =0.975375 y = 0\n_global_plan_traj_ x =1.05025 y = 0\n_global_plan_traj_ x =1.12512 y = 0\n_global_plan_traj_ x =1.2 y = 0\npoint set end\n[makePlan] start_pt x = 0.002 start_pt y =0\nstart optimze\nresult =0\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 1  ms \nmeasured lateral=0 sample_count=91\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0.002 y = 0.0005\n_global_plan_traj_ x =0.076875 y = 0\n_global_plan_traj_ x =0.15175 y = 0\n_global_plan_traj_ x =0.226625 y = 0\n_global_plan_traj_ x =0.3015 y = 0\n_global_plan_traj_ x =0.376375 y = 0\n_global_plan_traj_ x =0.45125 y = 0\n_global_plan_traj_ x =0.526125 y = 0\n_global_plan_traj_ x =0.601 y = 0\n_global_plan_traj_ x =0.675875 y = 0\n_global_plan_traj_ x =0.75075 y = 0\n_global_plan_traj_ x =0.825625 y = 0\n_global_plan_traj_ x =0.9005 y = 0\n_global_plan_traj_ x =0.975375 y = 0\n_global_plan_traj_ x =1.05025 y = 0\n_global_plan_traj_ x =1.12512 y = 0\n_global_plan_traj_ x =1.2 y = 0\npoint set end\n[makePlan] start_pt x = 0.002 start_pt y =0.0005\nstart optimze\nresult =-1008\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 1  ms \nmeasured lateral=0.0005 sample_count=91\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0.002 y = -0.0005\n_global_plan_traj_ x =0.076875 y = 0\n_global_plan_traj_ x =0.15175 y = 0\n_global_plan_traj_ x =0.226625 y = 0\n_global_plan_traj_ x =0.3015 y = 0\n_global_plan_traj_ x =0.376375 y = 0\n_global_plan_traj_ x =0.45125 y = 0\n_global_plan_traj_ x =0.526125 y = 0\n_global_plan_traj_ x =0.601 y = 0\n_global_plan_traj_ x =0.675875 y = 0\n_global_plan_traj_ x =0.75075 y = 0\n_global_plan_traj_ x =0.825625 y = 0\n_global_plan_traj_ x =0.9005 y = 0\n_global_plan_traj_ x =0.975375 y = 0\n_global_plan_traj_ x =1.05025 y = 0\n_global_plan_traj_ x =1.12512 y = 0\n_global_plan_traj_ x =1.2 y = 0\npoint set end\n[makePlan] start_pt x = 0.002 start_pt y =-0.0005\nstart optimze\nresult =-1008\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 0  ms \nmeasured lateral=-0.0005 sample_count=91\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0.002 y = 0.01\n_global_plan_traj_ x =0.076875 y = 0\n_global_plan_traj_ x =0.15175 y = 0\n_global_plan_traj_ x =0.226625 y = 0\n_global_plan_traj_ x =0.3015 y = 0\n_global_plan_traj_ x =0.376375 y = 0\n_global_plan_traj_ x =0.45125 y = 0\n_global_plan_traj_ x =0.526125 y = 0\n_global_plan_traj_ x =0.601 y = 0\n_global_plan_traj_ x =0.675875 y = 0\n_global_plan_traj_ x =0.75075 y = 0\n_global_plan_traj_ x =0.825625 y = 0\n_global_plan_traj_ x =0.9005 y = 0\n_global_plan_traj_ x =0.975375 y = 0\n_global_plan_traj_ x =1.05025 y = 0\n_global_plan_traj_ x =1.12512 y = 0\n_global_plan_traj_ x =1.2 y = 0\npoint set end\n[makePlan] start_pt x = 0.002 start_pt y =0.01\nstart optimze\nresult =-1008\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 3  ms \nmeasured lateral=0.01 sample_count=91\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0 y = 0\n_global_plan_traj_ x =0.3 y = 0\n_global_plan_traj_ x =0.6 y = 0\n_global_plan_traj_ x =0.9 y = 0\n_global_plan_traj_ x =1.2 y = 0\n_global_plan_traj_ x =1.5 y = 0\n_global_plan_traj_ x =1.8 y = 0\n_global_plan_traj_ x =2.1 y = 0\n_global_plan_traj_ x =2.4 y = 0\n_global_plan_traj_ x =2.7 y = 0\n_global_plan_traj_ x =3 y = 0\n_global_plan_traj_ x =3.3 y = 0\npoint set end\n[makePlan] start_pt x = 1.2 start_pt y =0\nstart optimze\nresult =0\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 0  ms \nmeasured_pose_origin_preserved=1\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0 y = 0\n_global_plan_traj_ x =0.2995 y = 0.0149875\n_global_plan_traj_ x =0.596008 y = 0.0598003\n_global_plan_traj_ x =0.886561 y = 0.133991\n_global_plan_traj_ x =1.16826 y = 0.236817\n_global_plan_traj_ x =1.43828 y = 0.367252\n_global_plan_traj_ x =1.69393 y = 0.523993\n_global_plan_traj_ x =1.93265 y = 0.705473\n_global_plan_traj_ x =2.15207 y = 0.90988\n_global_plan_traj_ x =2.34998 y = 1.13517\n_global_plan_traj_ x =2.52441 y = 1.37909\n_global_plan_traj_ x =2.67362 y = 1.63921\npoint set end\n[makePlan] start_pt x = 0 start_pt y =0\nstart optimze\nresult =-1008\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 3  ms \narc_step=0.1 sample_count=97\nx_size =30 y_size =30 z_size1\nresolution =0.3\norigin =-15\n-15\n  0\ninflate_values =0.449361\n[setInflateRadius] 成功更新默认膨胀半径：0.449361m（原：0.449361m）\n\n[inflate] 开始使用默认半径膨胀障碍物\n\n[inflateObstacles] 开始膨胀障碍物，半径：0.449361m\n  - 膨胀半径对应栅格数：2（0.449361m / 0.3m/栅格）\n[inflateObstacles] 无原始障碍物，无需膨胀\n开始规划...\npoint set\n_global_plan_traj_ x =0 y = 0\n_global_plan_traj_ x =0.285168 y = 0.0135842\n_global_plan_traj_ x =0.567754 y = 0.0542139\n_global_plan_traj_ x =0.845198 y = 0.121521\n_global_plan_traj_ x =1.11499 y = 0.214896\n_global_plan_traj_ x =1.37468 y = 0.333494\n_global_plan_traj_ x =1.62192 y = 0.476239\n_global_plan_traj_ x =1.85448 y = 0.641841\n_global_plan_traj_ x =2.07024 y = 0.828798\n_global_plan_traj_ x =2.26725 y = 1.03542\n_global_plan_traj_ x =2.44373 y = 1.25983\n_global_plan_traj_ x =2.59808 y = 1.5\npoint set end\n[makePlan] start_pt x = 0 start_pt y =0\nstart optimze\nresult =-1008\noptimuze complete\nfirst_optimize_step_success flag=1\n轨迹优化器优化成功！\nMotionPlanner Total Running Time: 2  ms \narc_step=0.0951998 sample_count=91\nmeasured_start_success=7/7\n",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS",
+  "collection_provenance": {
+    "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+    "remote_artifact": "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-core/native.json",
+    "remote_json_sha256": "44ea7771506eb1d2fcc389473c645795003d91cfdebfe955b65ff494b450c379",
+    "annotation": "added at evidence collection; original test payload retained"
+  }
+}

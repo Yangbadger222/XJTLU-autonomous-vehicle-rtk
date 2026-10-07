@@ -1,0 +1,133 @@
+{
+  "status": "FAIL",
+  "checks": [
+    {
+      "name": "research_safety_bridge.max_speed_mps",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.min_speed_mps",
+      "locked": 0.0,
+      "parsed": 0.0,
+      "runtime": 0.0,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_rate_rps",
+      "locked": 0.7,
+      "parsed": 0.7,
+      "runtime": 0.7,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_accel_mps2",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_decel_mps2",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_accel_rps2",
+      "locked": 1.4,
+      "parsed": 1.4,
+      "runtime": 1.4,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_decel_rps2",
+      "locked": 1.8,
+      "parsed": 1.8,
+      "runtime": 1.8,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_speed_mps",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.min_speed_mps",
+      "locked": 0.0,
+      "parsed": 0.0,
+      "runtime": null,
+      "status": "FAIL"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_rate_rps",
+      "locked": 0.7,
+      "parsed": 0.7,
+      "runtime": 0.7,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_accel_mps2",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_decel_mps2",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_accel_rps2",
+      "locked": 1.4,
+      "parsed": 1.4,
+      "runtime": 1.4,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_decel_rps2",
+      "locked": 1.8,
+      "parsed": 1.8,
+      "runtime": 1.8,
+      "status": "PASS"
+    },
+    {
+      "name": "serial.baudrate",
+      "locked": 115200,
+      "parsed": 115200,
+      "runtime": 115200,
+      "status": "PASS"
+    },
+    {
+      "name": "serial.angular_z_scale",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "serial.physical_alias",
+      "locked": "/dev/serial_twistctl",
+      "parsed": "/dev/serial_twistctl",
+      "runtime": "/dev/serial_twistctl",
+      "status": "PASS"
+    },
+    {
+      "name": "serial.mock_port_is_pty",
+      "runtime": "/dev/pts/0",
+      "status": "PASS"
+    }
+  ],
+  "scope": "source baseline/parsed research YAML/actual non-Jetson runtime",
+  "pending": [
+    "Jetson current deployment overlays, firmware runtime and measured hardware calibration"
+  ]
+}

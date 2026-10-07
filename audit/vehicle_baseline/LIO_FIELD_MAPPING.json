@@ -1,7 +1,13 @@
 {
   "vehicle_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "super_lio_commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
-  "status_vocabulary": ["SOURCE_VERIFIED", "EXACT_CARRY_OVER", "SEMANTIC_MISMATCH_PENDING", "TARGET_RUNTIME_PENDING", "UNKNOWN_BLOCKS_MOTION"],
+  "status_vocabulary": [
+    "SOURCE_VERIFIED",
+    "EXACT_CARRY_OVER",
+    "SEMANTIC_MISMATCH_PENDING",
+    "TARGET_RUNTIME_PENDING",
+    "UNKNOWN_BLOCKS_MOTION"
+  ],
   "fields": [
     {
       "name": "imu_header_stamp",
@@ -26,7 +32,9 @@
       "vehicle_driver_source": "src/sensor_drivers/livox_ros_driver2/src/lddc.cpp:782-787 copies imu_data.acc_x/y/z directly into sensor_msgs/Imu.linear_acceleration",
       "super_lio_source": "Super-LIO ROSWrapper.cpp:350-352 copies sensor_msgs/Imu.linear_acceleration directly into IMUData.acc",
       "unit_status": "TARGET_RUNTIME_PENDING",
-      "risk": "Both parser/driver paths are raw copies, while the locked FAST-LIO2 callback applies an unexplained factor of 10.0; no source file proves whether the device values are m/s^2, scaled counts, or another convention"
+      "risk": "Both parser/driver paths are raw copies, while the locked FAST-LIO2 callback applies an unexplained factor of 10.0; no source file proves whether the device values are m/s^2, scaled counts, or another convention",
+      "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
     },
     {
       "name": "imu_angular_velocity",
@@ -50,7 +58,9 @@
       "super_lio_source": "Super-LIO ROSWrapper.cpp:426-439 multiplies CustomPoint.offset_time by 1e-9 and adds the last accepted offset to header.stamp",
       "source_unit_claim": "The driver preserves an SDK offset delta in a uint32 field and Super-LIO consumes that field as nanoseconds; SDK/hardware clock and packet-unit proof are still required",
       "runtime_status": "TARGET_RUNTIME_PENDING",
-      "risk": "The driver deliberately stamps the message with cur_node_->now() and rewrites timebase, so a numerically matching offset unit does not establish hardware-time deskew"
+      "risk": "The driver deliberately stamps the message with cur_node_->now() and rewrites timebase, so a numerically matching offset unit does not establish hardware-time deskew",
+      "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
     },
     {
       "name": "livox_filter",
@@ -58,7 +68,9 @@
       "vehicle_fastlio": "tag/range/filter_rate plus line<4",
       "status": "SEMANTIC_MISMATCH_PENDING",
       "reason": "vehicle packet-stride semantics need the actual MID360 stream or bag",
-      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27"
+      "source": "Super-LIO ROSWrapper.cpp:419-441; vehicle utils.cpp:2-27",
+      "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
     },
     {
       "name": "lidar_imu_synchronization",
@@ -66,7 +78,9 @@
       "vehicle_fastlio": "sorts points; consumes imu_time < cloud_end_time",
       "status": "SEMANTIC_MISMATCH_PENDING",
       "reason": "boundary and non-monotonic offset behavior require replay evidence",
-      "source": "Super-LIO ROSWrapper.cpp:532-565; vehicle lio_node.cpp:482-513"
+      "source": "Super-LIO ROSWrapper.cpp:532-565; vehicle lio_node.cpp:482-513",
+      "bag_evidence": "audit/remote_humble/lio-bag-fields.json",
+      "scope": "Original July 15 raw bag audit and complete replay; source semantic differences and device-time acceptance remain explicit, not universally equivalent."
     },
     {
       "name": "odom_pose_and_twist",
@@ -78,11 +92,13 @@
     },
     {
       "name": "height_and_obstacle_clouds",
-      "super_lio": "world cloud only; no equivalent vehicle height/obstacle filters",
+      "super_lio": "Project adapter preserves locked obstacle and regular-cloud source-world gravity height windows relative to acquisition-matched source IMU origin, with timestamped world->odom/IMU transforms",
       "vehicle_fastlio": "body/world height window and separate obstacle window",
       "status": "SEMANTIC_MISMATCH_PENDING",
-      "reason": "target local ground/obstacle adapter must preserve locked windows without guessing",
-      "source": "vehicle lio_node.cpp:526-607,609-673; master_params.yaml obstacle window"
+      "reason": "Software adaptation verified. Real acquisition registration/IMU-to-base/ground classification remain physically unqualified.",
+      "source": "vehicle lio_node.cpp:526-607,609-673; master_params.yaml obstacle window",
+      "software_equivalence": "PASS_ANALYTICAL_ACTUAL_ROS_ALTITUDE_AND_TILT",
+      "runtime_evidence": "audit/remote_humble/adapter.json"
     },
     {
       "name": "health",
@@ -92,5 +108,10 @@
       "reason": "Super-LIO cannot be mapped to FAST-LIO2 degeneracy without a validated formula",
       "source": "patches/super_lio/0001-publish-source-aware-odom-health.patch; vehicle ieskf.cpp and health aggregator"
     }
+  ],
+  "actual_humble_evidence": [
+    "audit/remote_humble/lio-bag-fields.json",
+    "audit/remote_humble/lio-paired-metrics.json",
+    "audit/remote_humble/adapter.json"
   ]
 }

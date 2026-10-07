@@ -362,24 +362,12 @@ heuristic and is not a claim of novelty or real-vehicle benefit.
 
 ## 5.5 Active-road research entry (2026-10-07)
 
-`system_active_road_research.launch.py` defaults to `replay`. Only `shadow`/`live`
-start Super-LIO, the source-health adapter, and the pinned Ego-Planner-2D
-vehicle ROS edge. EGO consumes `/lio/odom_vehicle`, an odom-frame
-`/research/road_reference`, and `/research/local_obstacle_grid`; the control
-contract is typed `/research/ego_trajectory`, while `nav_msgs/Path` is only
-visualization. Unknown grid cells are occupied, and missing map version,
-curvature/footprint configuration, or measured state rejects a trajectory.
+Default replay runs the actual Super-LIO/EGO cores, TF integrity, evidence/observer, local grid and original authority/guard. Sensor drivers start only in shadow/live; serial additionally requires explicit live + enable_serial. Mission permission defaults false. Missing trusted health, extrinsics, ground or physical curvature remains a stop. The entry excludes FAST-LIO, Nav2/MPPI, SLAM, FGO/FRC and fake simulator while preserving legacy assets.
 
-The physical serial sink additionally requires
-`execution_mode:=live enable_serial:=true`; replay/shadow never attach the
-production serial device. RTK authority, the original corridor guard, and
-manual stop priority remain unchanged.
+The genuinely 2D upstream core gains measured boundary states, dynamic time repair, continuous footprint/curvature/yaw/angular-acceleration and original |v*w|≤0.25 checks. A 1 Hz geometry replan and 10 Hz fresh-input heartbeat retain generated_at/progress. Control consumes TimedTrajectory2D; Path is a reference/display.
 
-The shadow/live entry also starts `active_road_evidence`. Its typed
-`research_interfaces/msg/RoadEvidence2D` input accepts measured odom-frame
-geometry only. A valid persisted CRS/map identity is required before atomic,
-UUID-idempotent evidence writes; observed geometry becomes a `RoadEvent` and
-does not become traversed road. Externally generated observation candidates
-must carry reachable, safe, pose-trustworthy and sensor-valid flags before the
-node can publish an `observation_goal`. Missing or stale map/grid inputs keep
-the safety bridge stopped.
+Super-LIO remains world→imu. Acquisition-time rigid pose, lever-arm velocity and covariance transforms do not grant motion when source health is UNKNOWN. Both original regular [-.33,.30] and obstacle [.08,1.20] height windows use source-world gravity vertical relative to the IMU origin; full raw research cloud is retained.
+
+Typed UUID evidence and reversible increments persist atomically. Every LIO initialization creates a localization_session_id; providers namespace submaps as identity/submap. Current map→odom may update only that session, never historical local coordinates. New increments cite current-session UUIDs; historical topology reuse rechecks current ground and permission. Independent registration is required to correct a historical session.
+
+Finite observation combines prior gaps, measured frontiers and clearance/step/obstacle questions, actual EGO queries and hard safety filters before scoring. The first version enumerates finite forward views at current heading. No pan/tilt, camera or full-world truth is invented. Three strategies execute first/reuse tasks; negative outcomes and physical pending gates remain separate in the root reports.

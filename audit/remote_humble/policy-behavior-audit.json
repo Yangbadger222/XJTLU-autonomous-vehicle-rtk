@@ -1,0 +1,97 @@
+{
+  "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "scope": "post-run evaluator only; actual observer transitions and sensor-physics trace, never policy/map input",
+  "measurement_limit": "Logged time starts at first MOVING status, excludes commit-to-first-status delay. Sampled travel is a polyline lower bound inside those spans. Neither is an invented exact total observation cost.",
+  "end_state_correctness_limit": "Primary dataset counts final resolved states; transient geometry-resolution transitions are reported separately and do not establish permanent connectivity.",
+  "rows": [
+    {
+      "strategy": "PASSIVE",
+      "task": 1,
+      "new_committed_views": 0,
+      "logged_observation_span_s": 0,
+      "sampled_observation_travel_lower_bound_m": 0,
+      "transient_observed_geometry_completions": 0,
+      "spans": [],
+      "new_view_ids_repeated_from_task1": 0
+    },
+    {
+      "strategy": "PASSIVE",
+      "task": 2,
+      "new_committed_views": 0,
+      "logged_observation_span_s": 0,
+      "sampled_observation_travel_lower_bound_m": 0,
+      "transient_observed_geometry_completions": 0,
+      "spans": [],
+      "new_view_ids_repeated_from_task1": 0
+    },
+    {
+      "strategy": "PERIODIC_LOOK",
+      "task": 1,
+      "new_committed_views": 2,
+      "logged_observation_span_s": 13.10797905921936,
+      "sampled_observation_travel_lower_bound_m": 0.3347262766843737,
+      "transient_observed_geometry_completions": 0,
+      "spans": [
+        {
+          "first_moving_status_epoch": 1791382645.2096643,
+          "finish_status_epoch": 1791382650.7129133,
+          "logged_active_span_s": 5.503248929977417,
+          "finish": "OBSERVATION_UNCERTAIN",
+          "view_id": "gap:goal:left:cell(1,0):yaw(0)",
+          "sampled_travel_lower_bound_m": 0.17228283354803273,
+          "planned_cost_s": 4.9
+        },
+        {
+          "first_moving_status_epoch": 1791382663.114956,
+          "finish_status_epoch": 1791382670.719686,
+          "logged_active_span_s": 7.604730129241943,
+          "finish": "OBSERVATION_UNCERTAIN",
+          "view_id": "gap:goal:left:cell(3,0):yaw(-1)",
+          "sampled_travel_lower_bound_m": 0.162443443136341,
+          "planned_cost_s": 4.9
+        }
+      ],
+      "new_view_ids_repeated_from_task1": 0
+    },
+    {
+      "strategy": "PERIODIC_LOOK",
+      "task": 2,
+      "new_committed_views": 0,
+      "logged_observation_span_s": 0,
+      "sampled_observation_travel_lower_bound_m": 0,
+      "transient_observed_geometry_completions": 0,
+      "spans": [],
+      "new_view_ids_repeated_from_task1": 0
+    },
+    {
+      "strategy": "TASK_AWARE_LOOK",
+      "task": 1,
+      "new_committed_views": 1,
+      "logged_observation_span_s": 4.103015899658203,
+      "sampled_observation_travel_lower_bound_m": 0.36541733909297475,
+      "transient_observed_geometry_completions": 1,
+      "spans": [
+        {
+          "first_moving_status_epoch": 1791382780.4749525,
+          "finish_status_epoch": 1791382784.5779684,
+          "logged_active_span_s": 4.103015899658203,
+          "finish": "GEOMETRY_RESOLVED_DURING_APPROACH",
+          "view_id": "gap:right:start:cell(4,0):yaw(0)",
+          "sampled_travel_lower_bound_m": 0.36541733909297475,
+          "planned_cost_s": 4.9
+        }
+      ],
+      "new_view_ids_repeated_from_task1": 0
+    },
+    {
+      "strategy": "TASK_AWARE_LOOK",
+      "task": 2,
+      "new_committed_views": 0,
+      "logged_observation_span_s": 0,
+      "sampled_observation_travel_lower_bound_m": 0,
+      "transient_observed_geometry_completions": 0,
+      "spans": [],
+      "new_view_ids_repeated_from_task1": 0
+    }
+  ]
+}

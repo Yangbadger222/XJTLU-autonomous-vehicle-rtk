@@ -1,0 +1,124 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "case": "typed_increment_and_90_degree_nonzero_anchor",
+      "status": "PASS",
+      "detail": [
+        {
+          "end_node_id": "b",
+          "evidence_ids": [
+            "measured-fixture-uuid"
+          ],
+          "geometry_xy": [
+            [
+              10.0,
+              20.0
+            ],
+            [
+              10.0,
+              21.0
+            ]
+          ],
+          "local_submap_id": "session-1/s1",
+          "pose_uncertainty_m": 0.03,
+          "prior_version": "analytical-prior",
+          "source": "supported_ground_fixture",
+          "stamp": 1791376755.4473574,
+          "start_node_id": "a",
+          "supported_width_m": 0.61,
+          "update_id": "gap:a:b",
+          "anchor_uncertainty_m": 0.03
+        }
+      ]
+    },
+    {
+      "case": "same_uuid_replay_idempotent",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "case": "rtk_loss_local_evidence_retained_global_edges_withheld",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "case": "last_verified_export_survives_current_authority_loss",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "case": "rtk_recovery_reanchors_without_duplicate",
+      "status": "PASS",
+      "detail": [
+        {
+          "end_node_id": "b",
+          "evidence_ids": [
+            "measured-fixture-uuid"
+          ],
+          "geometry_xy": [
+            [
+              11.0,
+              20.0
+            ],
+            [
+              11.0,
+              21.0
+            ]
+          ],
+          "local_submap_id": "session-1/s1",
+          "pose_uncertainty_m": 0.03,
+          "prior_version": "analytical-prior",
+          "source": "supported_ground_fixture",
+          "stamp": 1791376755.4473574,
+          "start_node_id": "a",
+          "supported_width_m": 0.61,
+          "update_id": "gap:a:b",
+          "anchor_uncertainty_m": 0.03
+        }
+      ]
+    },
+    {
+      "case": "second_process_reuses_persisted_uuid_and_increment",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "case": "new_odom_origin_never_reanchors_historical_session",
+      "status": "PASS",
+      "detail": {
+        "historical": [
+          [
+            11.0,
+            20.0
+          ],
+          [
+            11.0,
+            21.0
+          ]
+        ],
+        "new": [
+          [
+            100.0,
+            200.0
+          ],
+          [
+            100.0,
+            201.0
+          ]
+        ]
+      }
+    },
+    {
+      "case": "authority_loss_marks_only_current_session_stale",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "case": "lost_authority_new_uuid_retained_local_without_promoting_verified_history",
+      "status": "PASS",
+      "detail": null
+    }
+  ],
+  "scope": "actual Humble typed writer/native TF guard/persistence; analytical support and RTK registration fixtures only"
+}

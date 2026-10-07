@@ -1,0 +1,639 @@
+Starting >>> fastlio2
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rclcpp: 16.0.17 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.9 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found tf2: 0.25.18 (/opt/ros/humble/share/tf2/cmake)
+-- Found tf2_ros: 0.25.18 (/opt/ros/humble/share/tf2_ros/cmake)
+-- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found livox_ros_driver2: 1.0.0 (/home/badger/codex-research/superlio-ego-20261007/research-ws/install/livox_ros_driver2/share/livox_ros_driver2/cmake)
+-- Checking for module 'eigen3'
+--   Found eigen3, version 3.4.0
+-- Found Eigen: /usr/include/eigen3 (Required is at least version "3.1") 
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- Checking for module 'flann'
+--   Found flann, version 1.9.1
+-- Found FLANN: /usr/lib/x86_64-linux-gnu/libflann_cpp.so  
+-- FLANN found (include: /usr/include, lib: /usr/lib/x86_64-linux-gnu/libflann_cpp.so)
+-- Checking for module 'libusb-1.0'
+--   Found libusb-1.0, version 1.0.25
+-- Found libusb: /usr/lib/x86_64-linux-gnu/libusb-1.0.so  
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)
+-- Eigen found (include: /usr/include/eigen3, version: 3.4.0)
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- OpenNI2 found (version: 2.2.0.33, include: /usr/include/openni2, lib: /usr/lib/x86_64-linux-gnu/libOpenNI2.so;libusb::libusb)
+-- Found Qhull version 8.0.2
+-- OpenNI found (version: 1.5.4.0, include: /usr/include/ni, lib: /usr/lib/libOpenNI.so;libusb::libusb)
+-- Found PCL_COMMON: /usr/lib/x86_64-linux-gnu/libpcl_common.so  
+-- Found PCL_KDTREE: /usr/lib/x86_64-linux-gnu/libpcl_kdtree.so  
+-- Found PCL_OCTREE: /usr/lib/x86_64-linux-gnu/libpcl_octree.so  
+-- Found PCL_SEARCH: /usr/lib/x86_64-linux-gnu/libpcl_search.so  
+-- Found PCL_SAMPLE_CONSENSUS: /usr/lib/x86_64-linux-gnu/libpcl_sample_consensus.so  
+-- Found PCL_FILTERS: /usr/lib/x86_64-linux-gnu/libpcl_filters.so  
+-- Found PCL_2D: /usr/include/pcl-1.12  
+-- Found PCL_GEOMETRY: /usr/include/pcl-1.12  
+-- Found PCL_IO: /usr/lib/x86_64-linux-gnu/libpcl_io.so  
+-- Found PCL_FEATURES: /usr/lib/x86_64-linux-gnu/libpcl_features.so  
+-- Found PCL_ML: /usr/lib/x86_64-linux-gnu/libpcl_ml.so  
+-- Found PCL_SEGMENTATION: /usr/lib/x86_64-linux-gnu/libpcl_segmentation.so  
+-- Found PCL_VISUALIZATION: /usr/lib/x86_64-linux-gnu/libpcl_visualization.so  
+-- Found PCL_SURFACE: /usr/lib/x86_64-linux-gnu/libpcl_surface.so  
+-- Found PCL_REGISTRATION: /usr/lib/x86_64-linux-gnu/libpcl_registration.so  
+-- Found PCL_KEYPOINTS: /usr/lib/x86_64-linux-gnu/libpcl_keypoints.so  
+-- Found PCL_TRACKING: /usr/lib/x86_64-linux-gnu/libpcl_tracking.so  
+-- Found PCL_RECOGNITION: /usr/lib/x86_64-linux-gnu/libpcl_recognition.so  
+-- Found PCL_STEREO: /usr/lib/x86_64-linux-gnu/libpcl_stereo.so  
+-- Found PCL_APPS: /usr/lib/x86_64-linux-gnu/libpcl_apps.so  
+-- Found PCL_IN_HAND_SCANNER: /usr/include/pcl-1.12  
+-- Found PCL_MODELER: /usr/include/pcl-1.12  
+-- Found PCL_POINT_CLOUD_EDITOR: /usr/include/pcl-1.12  
+-- Found PCL_OUTOFCORE: /usr/lib/x86_64-linux-gnu/libpcl_outofcore.so  
+-- Found PCL_PEOPLE: /usr/lib/x86_64-linux-gnu/libpcl_people.so  
+CMake Warning (dev) at CMakeLists.txt:35 (find_package):
+  Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+  Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+
+  CMake variable PCL_ROOT is set to:
+
+    /usr
+
+  For compatibility, CMake is ignoring the variable.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Found required Ceres dependency: Eigen version 3.4.0 in /usr/include/eigen3
+-- Found required Ceres dependency: glog
+-- Found required Ceres dependency: gflags
+-- Found Ceres version: 2.0.0 installed in: /usr with components: [EigenSparse, SparseLinearAlgebraLibrary, LAPACK, SuiteSparse, CXSparse, SchurSpecializations, Multithreading]
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/build/fastlio2
+[ 11%] Building CXX object CMakeFiles/lio_node.dir/src/lio_node.cpp.o
+[ 22%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/commons.cpp.o
+[ 33%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/ieskf.cpp.o
+[ 44%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/imu_processor.cpp.o
+[ 55%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/ikd_Tree.cpp.o
+[Processing: fastlio2]
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+[ 66%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/lidar_processor.cpp.o
+[ 77%] Building CXX object CMakeFiles/lio_node.dir/src/map_builder/map_builder.cpp.o
+[ 88%] Building CXX object CMakeFiles/lio_node.dir/src/utils.cpp.o
+[100%] Linking CXX executable lio_node
+[100%] Built target lio_node
+-- Install configuration: "Release"
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/lib/fastlio2/lio_node
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/lib/fastlio2/lio_node" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/launch
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/launch/lio_launch.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/launch/lio_no_rviz.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/rviz
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/rviz/fastlio2.rviz
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/config
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/config/lio_backup.yaml
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/config/lio.yaml
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/ament_index/resource_index/package_run_dependencies/fastlio2
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/ament_index/resource_index/parent_prefix_path/fastlio2
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/environment/ament_prefix_path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/environment/ament_prefix_path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/environment/path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/environment/path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/local_setup.bash
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/local_setup.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/local_setup.zsh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/local_setup.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/package.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/ament_index/resource_index/packages/fastlio2
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/cmake/fastlio2Config.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/cmake/fastlio2Config-version.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/baseline-ws/install/fastlio2/share/fastlio2/package.xml
+--- stderr: fastlio2
+CMake Warning (dev) at CMakeLists.txt:35 (find_package):
+  Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+  Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+  command to set the policy and suppress this warning.
+
+  CMake variable PCL_ROOT is set to:
+
+    /usr
+
+  For compatibility, CMake is ignoring the variable.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZ]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZ; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1730:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZI]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZI; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1731:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZI, Eigen::aligned_allocator<pcl::PointXYZI> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::multi_thread_rebuild() [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:329:17: warning: unused variable ‘valid_old’ [-Wunused-variable]
+  329 |             int valid_old = old_root_node->TreeSize - old_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:330:17: warning: unused variable ‘valid_new’ [-Wunused-variable]
+  330 |             int valid_new = new_root_node->TreeSize - new_root_node->invalid_point_num;
+      |                 ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:231:33: warning: unused variable ‘new_node_ptr’ [-Wunused-variable]
+  231 |     KD_TREE_NODE *father_ptr, **new_node_ptr;
+      |                                 ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Rebuild(KD_TREE<PointType>::KD_TREE_NODE**) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:751:13: warning: unused variable ‘size_rec’ [-Wunused-variable]
+  751 |         int size_rec = (*root)->TreeSize;
+      |             ^~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:802:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  802 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:867:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  867 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_point(KD_TREE<PointType>::KD_TREE_NODE**, PointType, bool, int) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1006:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+ 1006 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_by_range(KD_TREE<PointType>::KD_TREE_NODE**, BoxPointType, bool) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:946:21: warning: unused variable ‘Timeout’ [-Wunused-variable]
+  946 |     struct timespec Timeout;
+      |                     ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Search(KD_TREE<PointType>::KD_TREE_NODE*, int, PointType, KD_TREE<PointType>::MANUAL_HEAP&, float) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1097:63: warning: suggest parentheses around ‘&&’ within ‘||’ [-Wparentheses]
+ 1097 |     if (q.size() < k_nearest || dist_left_node < q.top().dist && dist_right_node < q.top().dist)
+      |                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1094:9: warning: unused variable ‘cur_search_counter’ [-Wunused-variable]
+ 1094 |     int cur_search_counter;
+      |         ^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Add_Points(KD_TREE<PointType>::PointVector&, bool) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:485:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  485 |     for (int i = 0; i < PointToAdd.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:502:39: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  502 |             for (int index = 0; index < Downsample_Storage.size(); index++)
+      |                                 ~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:478:9: warning: unused variable ‘NewPointSize’ [-Wunused-variable]
+  478 |     int NewPointSize = PointToAdd.size();
+      |         ^~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:479:9: warning: unused variable ‘tree_size’ [-Wunused-variable]
+  479 |     int tree_size = size();
+      |         ^~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Add_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:576:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  576 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::Delete_Points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:604:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  604 |     for (int i = 0; i < PointToDel.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘int KD_TREE<PointType>::Delete_Point_Boxes(std::vector<BoxPointType>&) [with PointType = pcl::PointXYZINormal]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:633:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<BoxPointType>::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  633 |     for (int i = 0; i < BoxPoints.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp: In instantiation of ‘void KD_TREE<PointType>::acquire_removed_points(KD_TREE<PointType>::PointVector&) [with PointType = pcl::PointXYZINormal; KD_TREE<PointType>::PointVector = std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >]’:
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:1732:16:   required from here
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:662:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  662 |     for (int i = 0; i < Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/vehicle/src/perception/fastlio2/src/map_builder/ikd_Tree.cpp:666:23: warning: comparison of integer expressions of different signedness: ‘int’ and ‘std::vector<pcl::PointXYZINormal, Eigen::aligned_allocator<pcl::PointXYZINormal> >::size_type’ {aka ‘long unsigned int’} [-Wsign-compare]
+  666 |     for (int i = 0; i < Multithread_Points_deleted.size(); i++)
+      |                     ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---
+Finished <<< fastlio2 [40.9s]
+
+Summary: 1 package finished [41.0s]
+  1 package had stderr output: fastlio2

@@ -1,0 +1,149 @@
+{
+  "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "patches": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "simulation_only_settings": {
+    "max_curvature_1pm": 1.0,
+    "max_lateral_speed_mps": 0.05,
+    "max_jerk_mps3": 3.0
+  },
+  "inflate_radius_from_locked_footprint_m": 0.4493606569338264,
+  "scope": "synthetic real ROS transport through actual EGO core; no vehicle deployment/closed-loop claim",
+  "cases": [
+    {
+      "scenario": "free",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 20,
+      "ok_count": 20,
+      "failure_reasons": [],
+      "first_output_speed": 0.0,
+      "max_output_speed": 0.815368943652826,
+      "max_output_yaw_rate": 0.0,
+      "max_output_accel": 0.5600470892564106,
+      "status": "PASS"
+    },
+    {
+      "scenario": "free",
+      "input_body_speed": 0.12,
+      "input_yaw": 0.0,
+      "received": 20,
+      "ok_count": 20,
+      "failure_reasons": [],
+      "first_output_speed": 0.11999999999999998,
+      "max_output_speed": 0.7839055835084957,
+      "max_output_yaw_rate": 0.0,
+      "max_output_accel": 0.5078955848466699,
+      "status": "PASS"
+    },
+    {
+      "scenario": "free",
+      "input_body_speed": 0.2,
+      "input_yaw": 0.3,
+      "received": 21,
+      "ok_count": 20,
+      "failure_reasons": [
+        "ego_planner_vehicle_feasibility_rejected"
+      ],
+      "first_output_speed": 0.2,
+      "max_output_speed": 0.7927899725912354,
+      "max_output_yaw_rate": 8.6223457275684155e-16,
+      "max_output_accel": 0.47830459026316624,
+      "status": "PASS"
+    },
+    {
+      "scenario": "wrong_odom_frame",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 20,
+      "ok_count": 0,
+      "failure_reasons": [
+        "measured_odom_state_unavailable"
+      ],
+      "first_output_speed": null,
+      "max_output_speed": null,
+      "max_output_yaw_rate": null,
+      "max_output_accel": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "unknown_map",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 21,
+      "ok_count": 0,
+      "failure_reasons": [
+        "map_version_unavailable",
+        "measured_odom_state_unavailable"
+      ],
+      "first_output_speed": null,
+      "max_output_speed": null,
+      "max_output_yaw_rate": null,
+      "max_output_accel": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "unknown_ground",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 20,
+      "ok_count": 0,
+      "failure_reasons": [
+        "ego_planner_vehicle_feasibility_rejected"
+      ],
+      "first_output_speed": null,
+      "max_output_speed": null,
+      "max_output_yaw_rate": null,
+      "max_output_accel": null,
+      "status": "PASS"
+    },
+    {
+      "scenario": "free",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 5,
+      "ok_count": 5,
+      "failure_reasons": [],
+      "first_output_speed": 0.0,
+      "max_output_speed": 0.815368943652826,
+      "max_output_yaw_rate": 0.0,
+      "max_output_accel": 0.5600470892564106,
+      "status": "PASS"
+    },
+    {
+      "scenario": "free",
+      "input_body_speed": 0.0,
+      "input_yaw": 0.0,
+      "received": 6,
+      "ok_count": 6,
+      "failure_reasons": [],
+      "first_output_speed": 0.0,
+      "max_output_speed": 0.815368943652826,
+      "max_output_yaw_rate": 0.0,
+      "max_output_accel": 0.5600470892564106,
+      "status": "PASS"
+    }
+  ],
+  "process_exit_before_cleanup": null,
+  "query_cases": [
+    {
+      "map_version": "sim-input-map",
+      "status": "PASS",
+      "output_status": 0,
+      "candidate_published_to_controller": false,
+      "output_end_x": 1.6499999130577816
+    },
+    {
+      "map_version": "stale-candidate-map",
+      "status": "PASS",
+      "output_status": 3,
+      "candidate_published_to_controller": false,
+      "output_end_x": null
+    }
+  ],
+  "status": "PASS"
+}

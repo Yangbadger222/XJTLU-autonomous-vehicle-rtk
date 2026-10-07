@@ -1,0 +1,227 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "case": "unchanged_partial_map_preserves_timed_execution_progress",
+      "status": "PASS"
+    },
+    {
+      "case": "new_occupied_grid_invalidates_cached_trajectory",
+      "status": "PASS"
+    }
+  ],
+  "ok_count": 50,
+  "unchanged_map_and_goal_before_fault": true,
+  "max_execution_age_s": 0.9991908073425293,
+  "reused_generation_heartbeats": 45,
+  "samples": [
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.3196714
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.4187584
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.518804
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.6188421
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.7187686
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.8189013
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382445.9188423
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382446.0188165
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382446.118837
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382446.218732
+    },
+    {
+      "generated": 1791382445.3196714,
+      "stamp": 1791382446.3188622
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.4197414
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.518897
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.618835
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.7188528
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.818864
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382446.9187946
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382447.0186994
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382447.118695
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382447.2188714
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382447.3187196
+    },
+    {
+      "generated": 1791382446.4197414,
+      "stamp": 1791382447.4188523
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382447.5197911
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382447.6189342
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382447.718712
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382447.8187275
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382447.9186566
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.0187294
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.118838
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.21868
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.3186986
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.4186792
+    },
+    {
+      "generated": 1791382447.5197911,
+      "stamp": 1791382448.5187411
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382448.6196613
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382448.7187366
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382448.8186886
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382448.918723
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.0186677
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.1189501
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.2187598
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.3188698
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.418946
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.5189247
+    },
+    {
+      "generated": 1791382448.6196613,
+      "stamp": 1791382449.6187556
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382449.720004
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382449.818928
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382449.919056
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382450.0188966
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382450.1188772
+    },
+    {
+      "generated": 1791382449.720004,
+      "stamp": 1791382450.218737
+    }
+  ],
+  "scope": "actual EGO with captured odom/grid/road; no actuator; checks time progress under unchanged partial-map geometry",
+  "collection_provenance": {
+    "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+    "remote_artifact": "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-core/cache-progress.json",
+    "remote_json_sha256": "a8676ab98958e828cf79c25fe9327c4abb82aa083b812b8a1901fb9cafeb907e",
+    "annotation": "added at evidence collection; original test payload retained"
+  }
+}

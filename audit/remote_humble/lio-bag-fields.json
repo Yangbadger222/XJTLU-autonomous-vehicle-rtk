@@ -1,0 +1,857 @@
+{
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "db3_sha256": {
+    "fgo_gil_0.db3": "bc4604b0bb94d9492c604f1dee1972c5e9516ec12dee637e70126688ec9b1e89"
+  },
+  "imu_samples": 1000,
+  "scan_samples": 50,
+  "acceleration_norm_median_raw": 0.9957224835421038,
+  "gyro_norm_median_raw": 0.009532715894788036,
+  "imu_period_s_median": 0.004694461822509766,
+  "line_histogram": {
+    "0": 249960,
+    "1": 249960,
+    "2": 249960,
+    "3": 249960
+  },
+  "tag_histogram": {
+    "0": 999733,
+    "16": 107
+  },
+  "sample_filter_counts_equal": true,
+  "scans": [
+    {
+      "stamp": 1784111475.5686252,
+      "timebase": 1784111475568627092,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100273604,
+      "offsets_monotonic": false,
+      "old_filter_count": 1385,
+      "upstream_filter_count": 1385,
+      "record_minus_header_s": 0.03426241874694824
+    },
+    {
+      "stamp": 1784111475.6018841,
+      "timebase": 1784111475601884849,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100099615,
+      "offsets_monotonic": false,
+      "old_filter_count": 1430,
+      "upstream_filter_count": 1430,
+      "record_minus_header_s": 0.027667760848999023
+    },
+    {
+      "stamp": 1784111475.6289876,
+      "timebase": 1784111475628989367,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10017948900000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1434,
+      "upstream_filter_count": 1434,
+      "record_minus_header_s": 0.02756214141845703
+    },
+    {
+      "stamp": 1784111475.6568596,
+      "timebase": 1784111475656860724,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100270917,
+      "offsets_monotonic": false,
+      "old_filter_count": 1368,
+      "upstream_filter_count": 1368,
+      "record_minus_header_s": 0.027571678161621094
+    },
+    {
+      "stamp": 1784111475.684433,
+      "timebase": 1784111475684434408,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10041184900000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1379,
+      "upstream_filter_count": 1379,
+      "record_minus_header_s": 0.027173995971679688
+    },
+    {
+      "stamp": 1784111475.711643,
+      "timebase": 1784111475711644336,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100171329,
+      "offsets_monotonic": false,
+      "old_filter_count": 1384,
+      "upstream_filter_count": 1384,
+      "record_minus_header_s": 0.027047395706176758
+    },
+    {
+      "stamp": 1784111475.7387009,
+      "timebase": 1784111475738701653,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100320198,
+      "offsets_monotonic": false,
+      "old_filter_count": 1380,
+      "upstream_filter_count": 1380,
+      "record_minus_header_s": 0.026880979537963867
+    },
+    {
+      "stamp": 1784111475.765478,
+      "timebase": 1784111475765479057,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10026288400000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1407,
+      "upstream_filter_count": 1407,
+      "record_minus_header_s": 0.02679133415222168
+    },
+    {
+      "stamp": 1784111475.792207,
+      "timebase": 1784111475792207884,
+      "point_num": 20160,
+      "array_size": 20160,
+      "offset_max_s": 0.100580653,
+      "offsets_monotonic": false,
+      "old_filter_count": 1406,
+      "upstream_filter_count": 1406,
+      "record_minus_header_s": 0.027191162109375
+    },
+    {
+      "stamp": 1784111475.8196142,
+      "timebase": 1784111475819615611,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10009276700000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1363,
+      "upstream_filter_count": 1363,
+      "record_minus_header_s": 0.027139902114868164
+    },
+    {
+      "stamp": 1784111475.846606,
+      "timebase": 1784111475846606621,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100301893,
+      "offsets_monotonic": false,
+      "old_filter_count": 1395,
+      "upstream_filter_count": 1395,
+      "record_minus_header_s": 0.026789188385009766
+    },
+    {
+      "stamp": 1784111475.873343,
+      "timebase": 1784111475873344664,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10007647900000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1372,
+      "upstream_filter_count": 1372,
+      "record_minus_header_s": 0.026404619216918945
+    },
+    {
+      "stamp": 1784111475.8995962,
+      "timebase": 1784111475899597605,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10031709300000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1370,
+      "upstream_filter_count": 1370,
+      "record_minus_header_s": 0.027451515197753906
+    },
+    {
+      "stamp": 1784111475.9262938,
+      "timebase": 1784111475926294718,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10033837400000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1396,
+      "upstream_filter_count": 1396,
+      "record_minus_header_s": 0.026775121688842773
+    },
+    {
+      "stamp": 1784111475.953056,
+      "timebase": 1784111475953057370,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10032723800000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1331,
+      "upstream_filter_count": 1331,
+      "record_minus_header_s": 0.027013063430786133
+    },
+    {
+      "stamp": 1784111475.9800472,
+      "timebase": 1784111475980049117,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100202498,
+      "offsets_monotonic": false,
+      "old_filter_count": 1410,
+      "upstream_filter_count": 1410,
+      "record_minus_header_s": 0.0269777774810791
+    },
+    {
+      "stamp": 1784111476.0068567,
+      "timebase": 1784111476006857466,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10018861000000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1399,
+      "upstream_filter_count": 1399,
+      "record_minus_header_s": 0.026812314987182617
+    },
+    {
+      "stamp": 1784111476.0335298,
+      "timebase": 1784111476033531091,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100263716,
+      "offsets_monotonic": false,
+      "old_filter_count": 1424,
+      "upstream_filter_count": 1424,
+      "record_minus_header_s": 0.026768922805786133
+    },
+    {
+      "stamp": 1784111476.0601735,
+      "timebase": 1784111476060175243,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10032739800000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1360,
+      "upstream_filter_count": 1360,
+      "record_minus_header_s": 0.026943206787109375
+    },
+    {
+      "stamp": 1784111476.087008,
+      "timebase": 1784111476087009321,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.1001056,
+      "offsets_monotonic": false,
+      "old_filter_count": 1373,
+      "upstream_filter_count": 1373,
+      "record_minus_header_s": 0.02664971351623535
+    },
+    {
+      "stamp": 1784111476.1136916,
+      "timebase": 1784111476113694178,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100274661,
+      "offsets_monotonic": false,
+      "old_filter_count": 1389,
+      "upstream_filter_count": 1389,
+      "record_minus_header_s": 0.026610851287841797
+    },
+    {
+      "stamp": 1784111476.1403837,
+      "timebase": 1784111476140384892,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100333894,
+      "offsets_monotonic": false,
+      "old_filter_count": 1388,
+      "upstream_filter_count": 1388,
+      "record_minus_header_s": 0.02662968635559082
+    },
+    {
+      "stamp": 1784111476.2154186,
+      "timebase": 1784111476215419571,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10030000500000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1414,
+      "upstream_filter_count": 1414,
+      "record_minus_header_s": 0.026970863342285156
+    },
+    {
+      "stamp": 1784111476.3148987,
+      "timebase": 1784111476314899648,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10025133200000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1413,
+      "upstream_filter_count": 1413,
+      "record_minus_header_s": 0.026668548583984375
+    },
+    {
+      "stamp": 1784111476.4155986,
+      "timebase": 1784111476415599922,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10037994400000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1401,
+      "upstream_filter_count": 1401,
+      "record_minus_header_s": 0.027114152908325195
+    },
+    {
+      "stamp": 1784111476.5150054,
+      "timebase": 1784111476515007006,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100284837,
+      "offsets_monotonic": false,
+      "old_filter_count": 1393,
+      "upstream_filter_count": 1393,
+      "record_minus_header_s": 0.02601313591003418
+    },
+    {
+      "stamp": 1784111476.616197,
+      "timebase": 1784111476616197790,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.100373447,
+      "offsets_monotonic": false,
+      "old_filter_count": 1416,
+      "upstream_filter_count": 1416,
+      "record_minus_header_s": 0.026478290557861328
+    },
+    {
+      "stamp": 1784111476.715031,
+      "timebase": 1784111476715032121,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10010988800000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1399,
+      "upstream_filter_count": 1399,
+      "record_minus_header_s": 0.02982950210571289
+    },
+    {
+      "stamp": 1784111476.816084,
+      "timebase": 1784111476816111734,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10030451700000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1401,
+      "upstream_filter_count": 1401,
+      "record_minus_header_s": 0.031630754470825195
+    },
+    {
+      "stamp": 1784111476.9151847,
+      "timebase": 1784111476915185464,
+      "point_num": 19872,
+      "array_size": 19872,
+      "offset_max_s": 0.10005859,
+      "offsets_monotonic": false,
+      "old_filter_count": 1405,
+      "upstream_filter_count": 1405,
+      "record_minus_header_s": 0.033670902252197266
+    },
+    {
+      "stamp": 1784111477.0152638,
+      "timebase": 1784111477015264631,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10024070700000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1405,
+      "upstream_filter_count": 1405,
+      "record_minus_header_s": 0.035462141036987305
+    },
+    {
+      "stamp": 1784111477.1154375,
+      "timebase": 1784111477115438522,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.100246979,
+      "offsets_monotonic": false,
+      "old_filter_count": 1410,
+      "upstream_filter_count": 1410,
+      "record_minus_header_s": 0.036634206771850586
+    },
+    {
+      "stamp": 1784111477.215596,
+      "timebase": 1784111477215597083,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.100356423,
+      "offsets_monotonic": false,
+      "old_filter_count": 1430,
+      "upstream_filter_count": 1430,
+      "record_minus_header_s": 0.03771543502807617
+    },
+    {
+      "stamp": 1784111477.3152027,
+      "timebase": 1784111477315203661,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10028730100000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1434,
+      "upstream_filter_count": 1434,
+      "record_minus_header_s": 0.04254460334777832
+    },
+    {
+      "stamp": 1784111477.4152427,
+      "timebase": 1784111477415243723,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10024426,
+      "offsets_monotonic": false,
+      "old_filter_count": 1433,
+      "upstream_filter_count": 1433,
+      "record_minus_header_s": 0.042267560958862305
+    },
+    {
+      "stamp": 1784111477.5155895,
+      "timebase": 1784111477515591539,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10015660900000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1416,
+      "upstream_filter_count": 1416,
+      "record_minus_header_s": 0.04192328453063965
+    },
+    {
+      "stamp": 1784111477.6150453,
+      "timebase": 1784111477615046848,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10030483700000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1389,
+      "upstream_filter_count": 1389,
+      "record_minus_header_s": 0.035614013671875
+    },
+    {
+      "stamp": 1784111477.7150433,
+      "timebase": 1784111477715044477,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100291973,
+      "offsets_monotonic": false,
+      "old_filter_count": 1395,
+      "upstream_filter_count": 1395,
+      "record_minus_header_s": 0.03609204292297363
+    },
+    {
+      "stamp": 1784111477.814934,
+      "timebase": 1784111477814935767,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10026752400000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1398,
+      "upstream_filter_count": 1398,
+      "record_minus_header_s": 0.03585338592529297
+    },
+    {
+      "stamp": 1784111477.9151852,
+      "timebase": 1784111477915186075,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10021309,
+      "offsets_monotonic": false,
+      "old_filter_count": 1440,
+      "upstream_filter_count": 1440,
+      "record_minus_header_s": 0.038016319274902344
+    },
+    {
+      "stamp": 1784111478.0150306,
+      "timebase": 1784111478015031668,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10023235500000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1410,
+      "upstream_filter_count": 1410,
+      "record_minus_header_s": 0.03823661804199219
+    },
+    {
+      "stamp": 1784111478.1149879,
+      "timebase": 1784111478114990256,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100257124,
+      "offsets_monotonic": false,
+      "old_filter_count": 1420,
+      "upstream_filter_count": 1420,
+      "record_minus_header_s": 0.041158199310302734
+    },
+    {
+      "stamp": 1784111478.2152274,
+      "timebase": 1784111478215228980,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.100313989,
+      "offsets_monotonic": false,
+      "old_filter_count": 1430,
+      "upstream_filter_count": 1430,
+      "record_minus_header_s": 0.045990943908691406
+    },
+    {
+      "stamp": 1784111478.3151999,
+      "timebase": 1784111478315200912,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10021110600000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1398,
+      "upstream_filter_count": 1398,
+      "record_minus_header_s": 0.04318070411682129
+    },
+    {
+      "stamp": 1784111478.4151516,
+      "timebase": 1784111478415152492,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10027725200000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1475,
+      "upstream_filter_count": 1475,
+      "record_minus_header_s": 0.042496442794799805
+    },
+    {
+      "stamp": 1784111478.5158737,
+      "timebase": 1784111478515894847,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.10043956200000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1401,
+      "upstream_filter_count": 1401,
+      "record_minus_header_s": 0.040930747985839844
+    },
+    {
+      "stamp": 1784111478.6151407,
+      "timebase": 1784111478615143110,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.10021718700000001,
+      "offsets_monotonic": false,
+      "old_filter_count": 1393,
+      "upstream_filter_count": 1393,
+      "record_minus_header_s": 0.03987002372741699
+    },
+    {
+      "stamp": 1784111478.7152257,
+      "timebase": 1784111478715226822,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100303109,
+      "offsets_monotonic": false,
+      "old_filter_count": 1399,
+      "upstream_filter_count": 1399,
+      "record_minus_header_s": 0.04129743576049805
+    },
+    {
+      "stamp": 1784111478.8150878,
+      "timebase": 1784111478815089279,
+      "point_num": 19968,
+      "array_size": 19968,
+      "offset_max_s": 0.100271332,
+      "offsets_monotonic": false,
+      "old_filter_count": 1397,
+      "upstream_filter_count": 1397,
+      "record_minus_header_s": 0.042708635330200195
+    },
+    {
+      "stamp": 1784111478.916265,
+      "timebase": 1784111478916266623,
+      "point_num": 20064,
+      "array_size": 20064,
+      "offset_max_s": 0.100416169,
+      "offsets_monotonic": false,
+      "old_filter_count": 1430,
+      "upstream_filter_count": 1430,
+      "record_minus_header_s": 0.03583955764770508
+    }
+  ],
+  "first_imu": [
+    {
+      "stamp": 1784111475.580979,
+      "record_minus_header_s": 0.0007474422454833984,
+      "a": [
+        -0.005806600209325552,
+        -0.010875189676880836,
+        1.0060380697250366
+      ],
+      "w": [
+        0.0028427718207240105,
+        -0.00465428177267313,
+        0.009293434210121632
+      ]
+    },
+    {
+      "stamp": 1784111475.58525,
+      "record_minus_header_s": 0.00042939186096191406,
+      "a": [
+        0.001029337290674448,
+        0.00377324759028852,
+        1.0035966634750366
+      ],
+      "w": [
+        0.0028427718207240105,
+        -0.00039322394877672195,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.5909376,
+      "record_minus_header_s": 0.000431060791015625,
+      "a": [
+        0.01225980557501316,
+        0.010120904073119164,
+        0.9957841634750366
+      ],
+      "w": [
+        0.0039080362766981125,
+        0.004933098331093788,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.595317,
+      "record_minus_header_s": 0.0005435943603515625,
+      "a": [
+        0.01641019620001316,
+        -0.0013537055347114801,
+        0.9887040853500366
+      ],
+      "w": [
+        0.0060385651886463165,
+        0.004933098331093788,
+        0.003967112861573696
+      ]
+    },
+    {
+      "stamp": 1784111475.6010847,
+      "record_minus_header_s": 0.00037384033203125,
+      "a": [
+        0.01152738370001316,
+        -0.015025580301880836,
+        0.9943193197250366
+      ],
+      "w": [
+        0.00816909410059452,
+        -0.00039322394877672195,
+        0.0060976417735219
+      ]
+    },
+    {
+      "stamp": 1784111475.6055038,
+      "record_minus_header_s": 0.0005488395690917969,
+      "a": [
+        0.001761759165674448,
+        -0.016246283426880836,
+        0.9952958822250366
+      ],
+      "w": [
+        0.010299623012542725,
+        -0.007850075140595436,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.6108778,
+      "record_minus_header_s": 0.0003345012664794922,
+      "a": [
+        -0.004585897084325552,
+        -0.021861517801880836,
+        0.9974931478500366
+      ],
+      "w": [
+        0.009234358556568623,
+        -0.006784810684621334,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.6151547,
+      "record_minus_header_s": 0.000301361083984375,
+      "a": [
+        -0.005562459584325552,
+        -0.00233026803471148,
+        1.0138505697250366
+      ],
+      "w": [
+        0.0007122429087758064,
+        -0.001458488404750824,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.6210043,
+      "record_minus_header_s": 0.0003120899200439453,
+      "a": [
+        0.006888712290674448,
+        0.012318169698119164,
+        0.9996904134750366
+      ],
+      "w": [
+        0.0007122429087758064,
+        0.00599836278706789,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.6251905,
+      "record_minus_header_s": 0.00030922889709472656,
+      "a": [
+        0.01543363370001316,
+        0.008411919698119164,
+        0.9926103353500366
+      ],
+      "w": [
+        0.0028427718207240105,
+        0.003867833875119686,
+        0.0060976417735219
+      ]
+    },
+    {
+      "stamp": 1784111475.6316526,
+      "record_minus_header_s": 0.0003960132598876953,
+      "a": [
+        0.01836332120001316,
+        -0.0006212836597114801,
+        0.9882158041000366
+      ],
+      "w": [
+        0.00816909410059452,
+        0.002802569419145584,
+        0.008228170685470104
+      ]
+    },
+    {
+      "stamp": 1784111475.635175,
+      "record_minus_header_s": 0.000335693359375,
+      "a": [
+        0.01250394620001316,
+        -0.017711127176880836,
+        0.9891923666000366
+      ],
+      "w": [
+        0.009234358556568623,
+        0.0006720405071973801,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.6407843,
+      "record_minus_header_s": 0.0002944469451904297,
+      "a": [
+        0.001761759165674448,
+        -0.023326361551880836,
+        0.9950517416000366
+      ],
+      "w": [
+        0.01349541638046503,
+        -0.005719546228647232,
+        0.008228170685470104
+      ]
+    },
+    {
+      "stamp": 1784111475.6450784,
+      "record_minus_header_s": 0.0003066062927246094,
+      "a": [
+        -0.006050740834325552,
+        -0.019420111551880836,
+        1.0018876791000366
+      ],
+      "w": [
+        0.00816909410059452,
+        -0.006784810684621334,
+        0.007162905298173428
+      ]
+    },
+    {
+      "stamp": 1784111475.650939,
+      "record_minus_header_s": 0.0002841949462890625,
+      "a": [
+        -0.002388631459325552,
+        -0.0062365178018808365,
+        1.0114091634750366
+      ],
+      "w": [
+        0.0049733007326722145,
+        -0.002523752860724926,
+        0.008228170685470104
+      ]
+    },
+    {
+      "stamp": 1784111475.6550143,
+      "record_minus_header_s": 0.0003116130828857422,
+      "a": [
+        0.005912149790674448,
+        0.012562310323119164,
+        1.0040849447250366
+      ],
+      "w": [
+        -0.0003530215471982956,
+        0.003867833875119686,
+        0.009293434210121632
+      ]
+    },
+    {
+      "stamp": 1784111475.6609275,
+      "record_minus_header_s": 0.0004100799560546875,
+      "a": [
+        0.01641019620001316,
+        0.0059705134481191635,
+        0.9872392416000366
+      ],
+      "w": [
+        0.0049733007326722145,
+        0.004933098331093788,
+        0.0060976417735219
+      ]
+    },
+    {
+      "stamp": 1784111475.6651912,
+      "record_minus_header_s": 0.0003743171691894531,
+      "a": [
+        0.01494535245001316,
+        -0.00208612740971148,
+        0.9970048666000366
+      ],
+      "w": [
+        0.00816909410059452,
+        0.001737304963171482,
+        0.0029018474742770195
+      ]
+    },
+    {
+      "stamp": 1784111475.670955,
+      "record_minus_header_s": 0.00028204917907714844,
+      "a": [
+        0.00908597745001316,
+        -0.016002142801880836,
+        0.9833329916000366
+      ],
+      "w": [
+        0.00816909410059452,
+        -0.002523752860724926,
+        0.0018365830183029175
+      ]
+    },
+    {
+      "stamp": 1784111475.6750734,
+      "record_minus_header_s": 0.0003254413604736328,
+      "a": [
+        0.001517618540674448,
+        -0.023814642801880836,
+        0.9979814291000366
+      ],
+      "w": [
+        0.010299623012542725,
+        -0.006784810684621334,
+        0.008228170685470104
+      ]
+    }
+  ],
+  "interpretation": "Raw bag scale/clock evidence only. Source FAST-LIO multiplies acceleration by 10; Super-LIO initial gravity normalization is a different convention. No calibration changed."
+}

@@ -1,0 +1,35 @@
+/Users/badger/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+....FF                                                                   [100%]
+=================================== FAILURES ===================================
+_________ test_circle_contact_detects_each_of_four_neighbor_cell_sides _________
+
+    def test_circle_contact_detects_each_of_four_neighbor_cell_sides():
+        for col,row in [(0,1),(2,1),(1,0),(1,2)]:
+            cells=[0]*16;cells[row*4+col]=-1
+            grid=LocalObstacleGrid('odom','map',1.,0.,0.,4,4,tuple(cells))
+>           assert grid.disk_occupied(1.5,1.5,.5)
+E           AssertionError: assert False
+E            +  where False = disk_occupied(1.5, 1.5, 0.5)
+E            +    where disk_occupied = LocalObstacleGrid(frame_id='odom', map_version='map', resolution_m=1.0, origin_x_m=0.0, origin_y_m=0.0, width=4, height=4, cells=(0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), unknown_is_occupied=True).disk_occupied
+
+src/research_runtime/test/test_prior_mission.py:56: AssertionError
+_ test_unchanged_grid_and_road_keep_prefix_goal_stable_under_measured_pose_jitter _
+
+    def test_unchanged_grid_and_road_keep_prefix_goal_stable_under_measured_pose_jitter():
+        cells=[0 if col<16 else -1 for row in range(40) for col in range(40)]
+        grid=fixture(cells)
+        graph=RoadGraph([GraphEdge('road','start','goal',((0.,0.),(3.,0.)))])
+        a,_=confirmed_route_prefix(graph,'start','goal',(.002,0,0),grid,LOCKED_FOOTPRINT)
+        b,_=confirmed_route_prefix(graph,'start','goal',(.003,0,0),grid,LOCKED_FOOTPRINT)
+>       assert a[0]!=b[0] and a[-1]==b[-1]
+E       assert ((0.002, 0.0) != (0.003, 0.0) and (1.2761500000000001, 0.0) == (1.2767249999999999, 0.0)
+E         
+E         At index 0 diff: 1.2761500000000001 != 1.2767249999999999
+E         Use -v to get more diff)
+
+src/research_runtime/test/test_prior_mission.py:65: AssertionError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_prior_mission.py::test_circle_contact_detects_each_of_four_neighbor_cell_sides
+FAILED src/research_runtime/test/test_prior_mission.py::test_unchanged_grid_and_road_keep_prefix_goal_stable_under_measured_pose_jitter
+2 failed, 4 passed in 0.09s

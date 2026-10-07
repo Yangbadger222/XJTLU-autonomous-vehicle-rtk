@@ -1,0 +1,116 @@
+{
+  "domain": 93,
+  "mode": "default replay",
+  "evidence": {
+    "nodes": {
+      "exit": 0,
+      "output": "/active_observation\n/active_road_evidence\n/active_road_map\n/corridor_cmd_vel_guard\n/ego_vehicle_adapter\n/joint_state_publisher\n/research_local_obstacle_grid\n/research_safety_bridge\n/robot_state_publisher\n/rtk_map_odom_corrector\n/super_lio_node\n/super_lio_vehicle_adapter\n",
+      "stderr": ""
+    },
+    "topics": {
+      "exit": 0,
+      "output": "/clock [rosgraph_msgs/msg/Clock]\n/cmd_vel [geometry_msgs/msg/Twist]\n/cmd_vel_guarded [geometry_msgs/msg/Twist]\n/fastlio2/degeneracy [std_msgs/msg/Float32MultiArray]\n/fix [sensor_msgs/msg/NavSatFix]\n/gps_corridor/enu_to_map [std_msgs/msg/Float64MultiArray]\n/gps_corridor/stop_override [std_msgs/msg/Bool]\n/gps_nav/road_rejoin_active [std_msgs/msg/Bool]\n/heading [geometry_msgs/msg/QuaternionStamped]\n/joint_states [sensor_msgs/msg/JointState]\n/lio/cloud_odom [sensor_msgs/msg/PointCloud2]\n/lio/cloud_world [sensor_msgs/msg/PointCloud2]\n/lio/health [std_msgs/msg/String]\n/lio/imu/odom [nav_msgs/msg/Odometry]\n/lio/odom [nav_msgs/msg/Odometry]\n/lio/odom_vehicle [nav_msgs/msg/Odometry]\n/lio/path [nav_msgs/msg/Path]\n/lio/robo/odom [nav_msgs/msg/Odometry]\n/lio/vehicle_health [std_msgs/msg/String]\n/livox/imu [sensor_msgs/msg/Imu]\n/livox/lidar [livox_ros_driver2/msg/CustomMsg]\n/localization_authority/diagnostics [diagnostic_msgs/msg/DiagnosticArray]\n/localization_authority/max_linear_speed_mps [std_msgs/msg/Float32]\n/localization_authority/mode [std_msgs/msg/String]\n/localization_authority/motion_allowed [std_msgs/msg/Bool]\n/localization_authority/status [std_msgs/msg/String]\n/parameter_events [rcl_interfaces/msg/ParameterEvent]\n/research/ego_trajectory [research_interfaces/msg/TimedTrajectory2D]\n/research/local_obstacle_grid [nav_msgs/msg/OccupancyGrid]\n/research/map_version [std_msgs/msg/String]\n/research/observation_candidate [research_interfaces/msg/ObservationGoal]\n/research/observation_goal [research_interfaces/msg/ObservationGoal]\n/research/observation_status [research_interfaces/msg/ResearchStatus]\n/research/observed_ground_grid [nav_msgs/msg/OccupancyGrid]\n/research/road_events [research_interfaces/msg/RoadEvent]\n/research/road_evidence [research_interfaces/msg/RoadEvidence2D]\n/research/road_reference [nav_msgs/msg/Path]\n/research/road_reference_input [nav_msgs/msg/Path]\n/research/status [research_interfaces/msg/ResearchStatus]\n/research/visual_local_trajectory [nav_msgs/msg/Path]\n/robot_description [std_msgs/msg/String]\n/rosout [rcl_interfaces/msg/Log]\n/rtk/health [diagnostic_msgs/msg/DiagnosticArray]\n/rtk/nmea_sentence [nmea_msgs/msg/Sentence]\n/tf [tf2_msgs/msg/TFMessage]\n/tf_static [tf2_msgs/msg/TFMessage]\n",
+      "stderr": ""
+    },
+    "safety_parameters": {
+      "exit": 0,
+      "output": "/research_safety_bridge:\n  ros__parameters:\n    actuator_enabled: false\n    authority_timeout_s: 0.5\n    footprint_xy:\n    - 0.33\n    - 0.305\n    - 0.33\n    - -0.305\n    - -0.33\n    - -0.305\n    - -0.33\n    - 0.305\n    grid_timeout_s: 0.5\n    health_timeout_s: 0.5\n    health_topic: /lio/vehicle_health\n    map_timeout_s: 0.5\n    map_version_topic: /research/map_version\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 0.0\n    max_decel_mps2: 1.2\n    max_lateral_speed_mps: 0.0\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    min_speed_mps: 0.0\n    mode: replay\n    normal_slew_fraction: 0.5\n    obstacle_grid_topic: /research/local_obstacle_grid\n    odom_topic: /lio/odom_vehicle\n    state_timeout_s: 0.2\n    tracker_heading_gain: 1.0\n    tracker_lateral_gain: 1.5\n    tracker_longitudinal_gain: 0.8\n    tracker_preview_s: 0.1\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "ego_parameters": {
+      "exit": 0,
+      "output": "/ego_vehicle_adapter:\n  ros__parameters:\n    allow_reverse: false\n    footprint_source: LOCKED_URDF_OR_DEPLOYMENT_DUMP_REQUIRED\n    grid_timeout_s: 0.5\n    grid_unknown_is_occupied: true\n    inflate_radius_m: 0.0\n    initial_map_version: UNKNOWN\n    map_resolution_m: 0.3\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 0.0\n    max_decel_mps2: 1.2\n    max_jerk_mps3: 0.0\n    max_lateral_speed_mps: 0.0\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    measured_track_m: PENDING\n    measured_wheel_radius_m: PENDING\n    output_topic: /research/ego_trajectory\n    planning_acceleration_fraction: 0.5\n    planning_speed_fraction: 0.8\n    qos_overrides:\n      /clock:\n        subscription:\n          depth: 1\n          durability: volatile\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    state_timeout_s: 0.2\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "superlio_parameters": {
+      "exit": 0,
+      "output": "/super_lio_node:\n  ros__parameters:\n    lio:\n      eva:\n        timer: true\n      extrinsic:\n        lidar_imu:\n        - -0.011\n        - -0.02329\n        - 0.04412\n        - 1.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 1.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 1.0\n        odom_robo:\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n      hash_map:\n        hash_capacity: 2000000\n        vox_resolution: 0.5\n      kf:\n        kf_align_gravity: true\n        kf_max_iterations: 4\n        kf_quit_eps: 0.001\n        kf_type: 0\n      map:\n        ds_size: 0.25\n        if_filter: true\n        map_name: super_lio_local.pcd\n        save_interval: 500\n        save_map: false\n        save_map_dir: runtime-data/research/active_road/super_lio\n      output:\n        dense: true\n        map: true\n        ml_map: false\n        plan_env_body: true\n        plan_env_world: true\n        planner: false\n        pub_step: 1\n        robot: true\n      relocation:\n        init_pose:\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        update_map: false\n      ros:\n        imu_topic: /livox/imu\n        lidar_topic: /livox/lidar\n      sensor:\n        blind: 0.5\n        enable_downsample: false\n        filter_rate: 4\n        gravity_norm: 9.7946\n        imu_na: 0.01\n        imu_nba: 0.0001\n        imu_nbg: 0.0001\n        imu_ng: 0.01\n        imu_type: 1\n        lidar_type: 1\n        maxrange: 25.0\n        voxel_fliter_size: 0.2\n      submap:\n        submap_capacity: 0\n        submap_resolution: 0.0\n    qos_overrides:\n      /clock:\n        subscription:\n          depth: 1\n          durability: volatile\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n      /tf:\n        publisher:\n          depth: 100\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "persistent_graph_probe": {
+      "exit": 0,
+      "nodes": [
+        "/_ros2cli_daemon_93_a41ec9d9baed4a718a9b89af86771734",
+        "/robot_state_publisher",
+        "/joint_state_publisher",
+        "/super_lio_node",
+        "/super_lio_vehicle_adapter",
+        "/super_lio_cloud_frame_adapter",
+        "/active_road_map",
+        "/active_road_evidence",
+        "/active_observation",
+        "/research_local_obstacle_grid",
+        "/ego_vehicle_adapter",
+        "/rtk_map_odom_corrector",
+        "/corridor_cmd_vel_guard",
+        "/research_safety_bridge"
+      ]
+    },
+    "cmd_vel_publishers": [
+      {
+        "node": "research_safety_bridge",
+        "namespace": "/",
+        "type": "geometry_msgs/msg/Twist"
+      }
+    ],
+    "owned_child_processes": [
+      {
+        "pid": 1180754,
+        "alive": true
+      },
+      {
+        "pid": 1180756,
+        "alive": true
+      },
+      {
+        "pid": 1180758,
+        "alive": true
+      },
+      {
+        "pid": 1180760,
+        "alive": true
+      },
+      {
+        "pid": 1180762,
+        "alive": true
+      },
+      {
+        "pid": 1180764,
+        "alive": true
+      },
+      {
+        "pid": 1180766,
+        "alive": true
+      },
+      {
+        "pid": 1180768,
+        "alive": true
+      },
+      {
+        "pid": 1180770,
+        "alive": true
+      },
+      {
+        "pid": 1180772,
+        "alive": true
+      },
+      {
+        "pid": 1180774,
+        "alive": true
+      },
+      {
+        "pid": 1180776,
+        "alive": true
+      },
+      {
+        "pid": 1180778,
+        "alive": true
+      }
+    ]
+  },
+  "missing_expected_nodes": [],
+  "forbidden_nodes": [],
+  "launch_exit_before_cleanup": null,
+  "status": "PASS",
+  "cleanup_exit": 0
+}

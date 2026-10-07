@@ -1,0 +1,7 @@
+{
+  "status": "FAIL",
+  "historical_snapshot_loaded": true,
+  "current_session_received": null,
+  "persisted_graph_updates": [],
+  "scope": "actual installed ROS observer plus sole writer; analytical support/TF only; no physical actuation"
+}

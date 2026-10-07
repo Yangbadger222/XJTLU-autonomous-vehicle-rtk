@@ -1,0 +1,47 @@
+{
+  "status": "PASS",
+  "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "unchanged_original_serial_binary": true,
+  "fault_cases": 27,
+  "historical_fallback_root": "/home/badger/XJTLU-autonomous-vehicle",
+  "fallback_root_git_checkout": false,
+  "fallback_root_entries": [
+    "runtime-data"
+  ],
+  "historical_native_log_file_count": 128,
+  "historical_fallback_contents_unchanged": true,
+  "open_fd_evidence": {
+    "collected_at_utc": "2026-10-07T14:32:59.048758+00:00",
+    "rows": [
+      {
+        "pid": 1310728,
+        "argv": [
+          "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws/install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node",
+          "--ros-args",
+          "--params-file",
+          "/home/badger/codex-research/superlio-ego-20261007/vehicle-08d1835-clean/src/bringup/config/master_params.yaml",
+          "-p",
+          "port:=/dev/pts/0",
+          "-r",
+          "/cmd_vel:=/cmd_vel_guarded"
+        ],
+        "open_native_serial_logs": [
+          "/home/badger/codex-research/superlio-ego-20261007/logs/native-log-isolation/native/serial_twistctl.log"
+        ],
+        "logging_environment": {
+          "FYP_RUNTIME_ROOT": "/home/badger/codex-research/superlio-ego-20261007/logs/native-log-isolation/runtime-data",
+          "FYP_LOG_SESSION_DIR": "/home/badger/codex-research/superlio-ego-20261007/logs/native-log-isolation/native",
+          "ROS_LOG_DIR": "/home/badger/codex-research/superlio-ego-20261007/logs/native-log-isolation/ros"
+        },
+        "mock_devices": [
+          "/dev/pts/0"
+        ]
+      }
+    ]
+  },
+  "new_native_log": "/home/badger/codex-research/superlio-ego-20261007/logs/native-log-isolation/native/serial_twistctl.log",
+  "new_native_log_size_bytes": 140760,
+  "new_native_log_sha256": "0f022e5813f12e92861e52ecdc090a1a181b462ea26a2424a3d17b6b03540fa3",
+  "scope": "Explicit task-only FYP_RUNTIME_ROOT/FYP_LOG_SESSION_DIR/ROS_LOG_DIR; actual open FD and mock PTY verified; historical native fallback artifacts retained, not deleted",
+  "evidence": "logs/native-log-isolation/faults.json"
+}

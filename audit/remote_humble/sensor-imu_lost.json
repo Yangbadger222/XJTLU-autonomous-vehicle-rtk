@@ -1,0 +1,138 @@
+{
+  "foundation_manifest_sha256": "0cbf1c0c114df12b96679e5dda59ef8427f5dbd178c12fce20ae8da829df78f2",
+  "foundation_file_count": 694,
+  "foundation_unchanged_each_trial": true,
+  "scope": "finite synthetic sensor closed-loop comparison; actual pinned Super-LIO/EGO, original guard and serial PTY",
+  "simulation_only_assumptions": [
+    "IMU=controlled-base extrinsic; measured simulated encoder body twist",
+    "synthetic .03m pose uncertainty bound",
+    "source health assumption; actual /lio/health remains UNKNOWN",
+    "synthetic restricted depth model/support plane and prior registration; no physical camera acceptance"
+  ],
+  "truth_isolation": "separate truth process publishes raw sensors only; policy/map processes have no truth-pose/full-map input or path",
+  "prior_bytes_preserved": true,
+  "trials": [
+    {
+      "strategy": "PASSIVE",
+      "task": 1,
+      "wall_s": 32.45348929500324,
+      "task_reached": false,
+      "final_truth_pose": [
+        0.6015183559246324,
+        -0.013165176167750446,
+        -0.03808066642417978
+      ],
+      "actual_superlio_odometry_count": 110,
+      "processed_limited_depth_frames": 109,
+      "known_ground_cells": 126,
+      "distance_m": 0.6017254339190454,
+      "observation_attempts": [],
+      "resolved_geometry_events": [],
+      "tracking_reason_counts": {
+        "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;rtk_mode_or_age_denied:UNKNOWN:grid_stale,tf_integrity_or_age,permission_missing_or_age": 1,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age,permission_missing_or_age": 1,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age": 21,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale": 15,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,trajectory_version": 3,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale": 10,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,trajectory_version": 1,
+        "trajectory_invalid:tracker:empty_trajectory": 17,
+        "allowed": 155,
+        "map_invalid;trajectory_invalid:trajectory_version": 3,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.00208977,w=-0.00137638": 1,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.00108763,w=-0.00137627": 1,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.00207645,w=-0.00336013": 1,
+        "map_invalid;trajectory_invalid:trajectory_version:tracker:feedback_limit:v=-0.00207645,w=-0.00336013": 1,
+        "trajectory_invalid:tracker:feedback_curvature_limit": 5,
+        "map_invalid;trajectory_invalid:grid_version,trajectory_version": 7,
+        "map_invalid;trajectory_invalid:tf_integrity_or_age:tracker:empty_trajectory": 1,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:tf_integrity_or_age:tracker:empty_trajectory": 4,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:tf_integrity_or_age,grid_version,trajectory_version:tracker:empty_trajectory": 1,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:tf_integrity_or_age,grid_version:tracker:empty_trajectory": 4,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age,grid_version:tracker:empty_trajectory": 340
+      },
+      "planning_result_counts": {
+        "measured_odom_state_unavailable": 190,
+        "road_reference_unavailable_or_unconfirmed": 15,
+        "OK": 87,
+        "local_obstacle_grid_unavailable_or_unknown": 7
+      },
+      "selected_views": [],
+      "observed_evidence_count": 126,
+      "persisted_graph_increment_count": 1,
+      "anchored_graph_increment_count": 0,
+      "previous_graph_increment_count": 0,
+      "previous_verified_graph_count": 0,
+      "previous_evidence_uuid_count": 0,
+      "previous_evidence_uuids_preserved": true,
+      "localization_session_id": "PASSIVE-task-1",
+      "saved_verified_graph_count": 0,
+      "saved_map_version_before_shutdown_fault": null,
+      "planned_observation_cost_s": 0,
+      "resolved_event_correctness": {
+        "correct": 0,
+        "incorrect": 0,
+        "unscored": 0,
+        "scope": "evaluator-only synthetic prior gaps have support; other events are not assigned invented truth"
+      },
+      "sensor_fault": "imu_lost",
+      "fault_phase_final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_before_fault": 153,
+      "map_version": "2f1aa45caa7b64aa2b76860973c2fa0d31494e4d2cd5cbfa7e238e7e9d1a8548",
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_serial_count": 153,
+      "actuation_exercised": true,
+      "child_exit_before_cleanup": {
+        "super-lio": null,
+        "map": null,
+        "evidence": null,
+        "perception": null,
+        "local-grid": null,
+        "ego": null,
+        "tf-guard": null,
+        "safety": null,
+        "guard": null,
+        "serial": null,
+        "observer": null,
+        "truth": null
+      },
+      "child_cleanup_exits": {
+        "super-lio": 0,
+        "map": 0,
+        "evidence": 0,
+        "perception": 0,
+        "local-grid": 0,
+        "ego": 0,
+        "tf-guard": 0,
+        "safety": 0,
+        "guard": -2,
+        "serial": 0,
+        "observer": 0,
+        "truth": 0
+      },
+      "outcome": "BUDGET_OR_NO_CONFIRMED_ROUTE",
+      "protocol_status": "PASS"
+    }
+  ],
+  "protocol_status": "PASS",
+  "benefit": "NOT_ESTABLISHED: finite scene measurements do not prove novelty or real-world policy benefit",
+  "collection_provenance": {
+    "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+    "remote_artifact": "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-imu_lost/comparison.json",
+    "remote_json_sha256": "751df2a74f13df18e1d1d9c78fb7eb235f74a114a8d73046b95daf1ea7ccd865",
+    "annotation": "added at evidence collection; original payload retained"
+  }
+}

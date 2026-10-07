@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "scope": "captured pre-fix history; validated final version matches exactly; no ROS/actuator",
+  "input_sha256": "7b71db105183223a160243272d92759aab9bea37cad0a34b1fc9020a2b7d8c63",
+  "evidence_count": 224,
+  "load_s": [
+    0.007578299002489075,
+    0.006837947992607951,
+    0.006866953015560284
+  ],
+  "hashes_per_load": 1.0,
+  "unchanged_timeout_s": {
+    "measured_state": 0.2,
+    "permission": 0.5
+  }
+}

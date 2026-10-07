@@ -8,13 +8,22 @@
       "src/super_lio/include/ros/ROSWrapper.h",
       "src/super_lio/src/ros/ROSWrapper.cpp"
     ],
-    "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CORE_WITH_MESSAGE_ONLY_LIVOX_CONTRACT",
+    "historical_build": {
+      "ros_build": "PASS_ISOLATED_ARM64_ROS2_HUMBLE_CORE_WITH_MESSAGE_ONLY_LIVOX_CONTRACT",
+      "build_evidence": [
+        "audit/container/super-lio-build-message-only.log",
+        "audit/container/super-lio-build-message-only.exit",
+        "source commit f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2; source-aware patch applied",
+        "core build uses a compile-only livox_ros_driver2 message package; physical SDK/driver and sensor runtime remain unverified"
+      ]
+    },
+    "ros_build": "PASS_CLEAN_X86_64_HUMBLE_REAL_SDK_AND_DRIVER",
     "build_evidence": [
-      "audit/container/super-lio-build-message-only.log",
-      "audit/container/super-lio-build-message-only.exit",
-      "source commit f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2; source-aware patch applied",
-      "core build uses a compile-only livox_ros_driver2 message package; physical SDK/driver and sensor runtime remain unverified"
-    ]
+      "audit/remote_humble/clean-final-build.json",
+      "audit/remote_humble/clean-final-build.log",
+      "audit/remote_humble/source-provenance.json"
+    ],
+    "raw_bag_runtime": "audit/remote_humble/lio-paired-metrics.json"
   },
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
@@ -37,7 +46,7 @@
       "src/EgoPlanner-ROS2/src/research_tf_guard.cpp",
       "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp"
     ],
-    "ros_build": "CURRENT_HUMBLE_BUILD_PENDING_FINAL_COMMIT",
+    "ros_build": "PASS_CLEAN_X86_64_HUMBLE_ALL_FOUR_PATCHES",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
@@ -56,45 +65,66 @@
       },
       {
         "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
-        "sha256": "6f6e7e3043fd2d4f5883602f45301ef29e7c51687803b1ca41cf4d4b93093a65",
+        "sha256": "59f6a009e022a6fa8474ae9b1f7a4d99eeafb2aad5c04200c4375b96c5f8852b",
         "check_apply": "PASS"
       }
-    ],
-    "raw_reproduction": {
-      "build": "PASS",
-      "startup": "PASS_TIMEOUT_EXPECTED",
-      "evidence": [
-        "audit/container/ego-raw-build-and-start.log",
-        "audit/container/ego-raw-build-and-start.exit"
-      ],
-      "details": "raw pinned ego_planner built and motion_plan started in isolated ROS 2 Humble until bounded 5 s timeout; no RViz/display or vehicle inputs"
-    },
-    "patched_build_evidence_prior_revision": [
-      "audit/container/ego-build-pass-2.log",
-      "audit/container/ego-build-pass-2.exit",
-      "prior patch revision; not evidence for current patch hash"
     ],
     "latest_recheck": {
       "status": "PASS_SEQUENTIAL",
       "checkout_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
       "evidence": "audit/ego_four_patch_source_verification.json"
     },
-    "current_rebuild_probe": {
-      "status": "PASS_BUILDKIT_TWO_PATCH_COMPILE_THREE_PATCH_REBUILD_PENDING",
-      "evidence": "audit/container/ego-current-build.log",
-      "exit_evidence": "audit/container/ego-current-build-result.json",
-      "observed": "BuildKit linux/arm64 completed research_interfaces and ego_planner with Summary: 2 packages finished and #13 DONE; Docker Desktop disconnected after image export, so no ordinary container-start claim is made",
-      "conclusion": "Current two-patch ARM64 compile evidence is valid for 0001+0002 only; 0003 stale-plan safety patch applies cleanly but needs a fresh ROS/ARM64 rebuild"
+    "patched_source_byte_equality": true,
+    "historical_builds": {
+      "raw_reproduction": {
+        "build": "PASS",
+        "startup": "PASS_TIMEOUT_EXPECTED",
+        "evidence": [
+          "audit/container/ego-raw-build-and-start.log",
+          "audit/container/ego-raw-build-and-start.exit"
+        ],
+        "details": "raw pinned ego_planner built and motion_plan started in isolated ROS 2 Humble until bounded 5 s timeout; no RViz/display or vehicle inputs"
+      },
+      "patched_build_evidence_prior_revision": [
+        "audit/container/ego-build-pass-2.log",
+        "audit/container/ego-build-pass-2.exit",
+        "prior patch revision; not evidence for current patch hash"
+      ],
+      "current_rebuild_probe": {
+        "status": "PASS_BUILDKIT_TWO_PATCH_COMPILE_THREE_PATCH_REBUILD_PENDING",
+        "evidence": "audit/container/ego-current-build.log",
+        "exit_evidence": "audit/container/ego-current-build-result.json",
+        "observed": "BuildKit linux/arm64 completed research_interfaces and ego_planner with Summary: 2 packages finished and #13 DONE; Docker Desktop disconnected after image export, so no ordinary container-start claim is made",
+        "conclusion": "Current two-patch ARM64 compile evidence is valid for 0001+0002 only; 0003 stale-plan safety patch applies cleanly but needs a fresh ROS/ARM64 rebuild"
+      },
+      "patched_build_evidence_current": [
+        "audit/container/ego-current-build.log",
+        "audit/container/ego-current-build-result.json",
+        "audit/container/ego-current-build.Dockerfile",
+        "source commit 7f5be6d4cee34871e85aa1f15285cfaf17b23877; both project patches applied in BuildKit",
+        "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
+        "compile proof only; ordinary container startup and Jetson runtime remain pending",
+        "current compile log predates 0003; sequential apply-check for all three patches is audit/ego_patch_check_current.log"
+      ]
     },
-    "patched_build_evidence_current": [
-      "audit/container/ego-current-build.log",
-      "audit/container/ego-current-build-result.json",
-      "audit/container/ego-current-build.Dockerfile",
-      "source commit 7f5be6d4cee34871e85aa1f15285cfaf17b23877; both project patches applied in BuildKit",
-      "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
-      "compile proof only; ordinary container startup and Jetson runtime remain pending",
-      "current compile log predates 0003; sequential apply-check for all three patches is audit/ego_patch_check_current.log"
-    ],
-    "patched_source_byte_equality": true
+    "raw_reproduction": {
+      "build": "PASS",
+      "simulation": "PASS",
+      "rviz_gui": "NOT_RUN_HEADLESS",
+      "evidence": [
+        "audit/remote_humble/ego-raw-build.log",
+        "audit/remote_humble/ego-raw-simulation.json"
+      ]
+    },
+    "current_rebuild_probe": {
+      "status": "PASS",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "packages": 14,
+      "evidence": [
+        "audit/remote_humble/clean-final-build.json",
+        "audit/remote_humble/source-provenance.json"
+      ],
+      "scope": "all four current patches, exact byte-equal source; no Jetson runtime claim"
+    }
   }
 }

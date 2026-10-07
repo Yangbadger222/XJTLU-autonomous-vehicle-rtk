@@ -883,28 +883,13 @@ colcon test-result --verbose
 实车验收前还必须单独部署串口分支、刷写 STM32，并在电机失能条件下完成 500 ms command-loss bench。运行时检查 `/localization_authority/motion_allowed`、`/gps_corridor/stop_override`、`/cmd_vel_nav` 与 guard 后的 `/cmd_vel`。
 # 研究闭环命令
 
-本地无 ROS 依赖时仅运行执行器隔离的 replay：
+本分支默认 `make setup/build/launch` 对应固定依赖、隔离 14 包与 replay。生产旧命令仅作为保留资产文档。完整环境、已执行探针、真实 bag 身份及域隔离参数见根目录 REPRODUCE.md。不得使用全局 make kill 清场。
 
 ```bash
-PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q \
-  src/research_runtime/test src/super_lio_vehicle_adapter/test
-PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
-  --output runtime-data/research/active_road/replay_smoke.json
+make setup
+make build RESEARCH_BUILD_ROOT=/absolute/isolated/research-ws
+make launch RESEARCH_BUILD_ROOT=/absolute/isolated/research-ws EXECUTION_MODE=replay
+python3 scripts/generate_research_parameter_lock.py --check
 ```
 
-Jetson 需在干净 worktree 中使用 `colcon build --parallel-workers 1`，再以
-`execution_mode:=shadow` 启动 `system_active_road_research.launch.py`。默认
-入口是 replay；不要把真实串口挂载到 replay，live 需要人工现场验收。
-
-锁定前两层参数并保留第三层待车端 dump：
-`python3 scripts/audit_vehicle_baseline.py`。
-
-shadow/live 的 EGO 输入合同是 `/lio/odom_vehicle`、
-`/research/road_reference`、`/research/local_obstacle_grid` 和
-`/research/map_version`，输出 `/research/ego_trajectory`。物理串口还必须显式
-设置 `enable_serial:=true`，并且只允许 `execution_mode:=live`。
-
-shadow/live 还会启动 `active_road_map`、`active_road_evidence` 和
-`research_local_obstacle_grid`。前者在 EvidenceStore 无法加载时发布
-`UNKNOWN`，证据节点只接受已在 `odom` 中表达的 `RoadEvidence2D`，后者在
-cloud frame/地图版本不满足合同时不发布 OccupancyGrid。
+replay 无真实串口或驱动。shadow 仍不连接执行器，live 必须另经人工现场验收、原 KEY/RTK 权限与显式 enable_serial。provider 从持久化会话 topic 取得新 LIO identity，不能把旧 odom 的证据套用新原点。软件、策略、实车状态分别见 RESULTS.json。

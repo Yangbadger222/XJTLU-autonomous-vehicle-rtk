@@ -881,30 +881,13 @@ colcon test-result --verbose
 Before vehicle acceptance, separately deploy the serial branch, flash the STM32, and perform the motor-disabled 500 ms command-loss bench. During runtime monitor `/localization_authority/motion_allowed`, `/gps_corridor/stop_override`, `/cmd_vel_nav`, and guarded `/cmd_vel`.
 # Research loop commands
 
-On a host without ROS dependencies, run only the actuator-isolated replay:
+Default make setup/build/launch uses pinned dependencies, the isolated 14-package allowlist and replay. Earlier production commands describe preserved assets. See root REPRODUCE.md for the executed environment/probes, raw-bag identity and isolated domains. Never use global make kill for task cleanup.
 
 ```bash
-PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q \
-  src/research_runtime/test src/super_lio_vehicle_adapter/test
-PYTHONPATH=src/research_runtime python3 -m research_runtime.replay_sim \
-  --output runtime-data/research/active_road/replay_smoke.json
+make setup
+make build RESEARCH_BUILD_ROOT=/absolute/isolated/research-ws
+make launch RESEARCH_BUILD_ROOT=/absolute/isolated/research-ws EXECUTION_MODE=replay
+python3 scripts/generate_research_parameter_lock.py --check
 ```
 
-On Jetson, use a clean worktree and `colcon build --parallel-workers 1`, then
-launch `system_active_road_research.launch.py` with `execution_mode:=shadow`.
-The default is replay; never attach a production serial device to replay. Live
-requires the human acceptance checklist.
-
-Extract the source and launch layers while leaving the runtime dump explicit:
-`python3 scripts/audit_vehicle_baseline.py`.
-
-Shadow/live EGO inputs are `/lio/odom_vehicle`, `/research/road_reference`,
-`/research/local_obstacle_grid`, and `/research/map_version`; output is the
-typed `/research/ego_trajectory`. The physical serial sink additionally needs
-`enable_serial:=true` and `execution_mode:=live`.
-
-Shadow/live also starts `active_road_map`, `active_road_evidence`, and
-`research_local_obstacle_grid`. The map node publishes `UNKNOWN` when its
-EvidenceStore cannot be loaded; the evidence node accepts only odom-frame
-`RoadEvidence2D`; the grid node withholds OccupancyGrid output when the cloud
-frame or map-version contract is not satisfied.
+Replay has no physical serial or drivers. Shadow has no actuator. Live requires on-site human acceptance, original KEY/RTK permission and explicit enable_serial. Evidence providers use the latched new LIO session identity; historical odom coordinates cannot receive a new origin's TF. Software, policy and physical statuses are separate in RESULTS.json.

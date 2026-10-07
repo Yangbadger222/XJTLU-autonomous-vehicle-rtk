@@ -1,0 +1,17 @@
+{
+  "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "source_modifications": false,
+  "domain": 91,
+  "rviz_gui": "NOT_RUN_HEADLESS",
+  "local_paths": 245,
+  "astar_marker_messages": 244,
+  "pose_messages": 293,
+  "max_path_points": 22,
+  "scenario": "RViz input topics: initial pose, two route points, obstacle box",
+  "simulated_displacement_m": 2.4229828357902865,
+  "child_exit_before_cleanup": [
+    null,
+    null
+  ],
+  "status": "PASS"
+}

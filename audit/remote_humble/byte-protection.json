@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "manifest": "PROTECTED_FILES.sha256",
+      "count": 7,
+      "status": "PASS",
+      "mismatches": []
+    },
+    {
+      "manifest": "PROTECTED_ADDITIONAL_FILES.sha256",
+      "count": 1004,
+      "status": "PASS",
+      "mismatches": []
+    }
+  ]
+}

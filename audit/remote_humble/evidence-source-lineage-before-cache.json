@@ -1,0 +1,278 @@
+{
+  "status": "PASS",
+  "prior_test_source_commit": "c5dfeec87a64e14a96b313729ba70e3e72d38350",
+  "final_build_source_commit": "5ebdb724302aaef241081f3cd7b2551ba96e8ac2",
+  "runtime_changes": [
+    "src/research_runtime/research_runtime/grid_map.py",
+    "src/research_runtime/research_runtime/prior_mission.py",
+    "src/research_runtime/test/test_prior_mission.py"
+  ],
+  "byte_equal_tested_component_sources": [
+    {
+      "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+      "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
+      "unchanged": true
+    },
+    {
+      "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+      "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
+      "unchanged": true
+    },
+    {
+      "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+      "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
+      "unchanged": true
+    },
+    {
+      "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+      "sha256": "6f6e7e3043fd2d4f5883602f45301ef29e7c51687803b1ca41cf4d4b93093a65",
+      "unchanged": true
+    },
+    {
+      "path": "patches/ego_planner_2d/README.md",
+      "sha256": "1b7ac5e8261cc169e66060c9f90d77f9a4cc99a27cc2c7414f5e7c696b31d42c",
+      "unchanged": true
+    },
+    {
+      "path": "patches/super_lio/0001-publish-source-aware-odom-health.patch",
+      "sha256": "f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1",
+      "unchanged": true
+    },
+    {
+      "path": "patches/super_lio/README.md",
+      "sha256": "ebc4148e034d48106c7948ef3fcb3bee5debbba211062ff1e54775d15922efdd",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/CMakeLists.txt",
+      "sha256": "ee587a0931d50d84fd0e52f402e71a12e368ae4b6ca36b58166502c0c5c0481d",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/README.md",
+      "sha256": "d6aa1b6e500228ad217bb488be255cbf423e1618239c3cbc98a77da2ad240e87",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/include/research_interfaces/vehicle_parameter_lock.hpp",
+      "sha256": "7b9c349719d34f0abe9a9c83286e403d8156d8a19870191bdf3f134d3ae8aadf",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/ObservationGoal.msg",
+      "sha256": "f45141929ddc0d5f1b3652e2f66481f4346dd92afe83385ca3934667d40c8694",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/ResearchStatus.msg",
+      "sha256": "068c756a8faff605b82f3ce7ccdf973cf8a07c18ef6ce7bec466282ea385fefb",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/RoadEvent.msg",
+      "sha256": "862721f0d59812969b710bf2890b686d3fd1745a41f2e2dcd5b59911f3a515ef",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/RoadEvidence2D.msg",
+      "sha256": "a855abe3c8b4d441693b60ddf6183cc78a91d512e65c0539c3e8c7d8a939a726",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/RoadGraphUpdate2D.msg",
+      "sha256": "f73c333319c6df891b547b5ccd303c76096689fa69d3c1fc3d1ad91d701ab9d0",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/TimedTrajectory2D.msg",
+      "sha256": "d118d2588fdf56a9f6c09c517a54ea873d9006a8a78514c2a12a350e474b84d4",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/msg/TimedTrajectoryPoint2D.msg",
+      "sha256": "645c9b498c5e3f17a97b648bb83edf662c37d6150813c606c93710f9b5de3fc6",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/package.xml",
+      "sha256": "0d5c7b6f72bd609ea5c9bec3fe1f5fe0b2bfbbfc7c2f44b4e52746e14c4a5a33",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_interfaces/srv/PlanRoadReference.srv",
+      "sha256": "b719bcab0a298b9986dc9484fbcaa2511927bffd0a2bc2db73db501c6538d454",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/package.xml",
+      "sha256": "341a250b27b37a810824e00ccd7b0839498f6832964aeaf93f82be3e81af679e",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/resource/super_lio_vehicle_adapter",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/setup.cfg",
+      "sha256": "2728850ec4973359c69705d886b2739923e49a8d8c2648010bced4366d76a7ee",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/setup.py",
+      "sha256": "8d587d9b62ddd36c7a98be10245dfe5cc6f48a47405f54b540ffffc2f65bc7bf",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/__init__.py",
+      "sha256": "2ee86218d3843c61d2fb5b6c7a9880dbedb8763098652522c07a000eff82cfff",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py",
+      "sha256": "74a24d7ae099190bd1cad00a99625972f41e661c8415c2560227af02e72e4b1d",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py",
+      "sha256": "35b82495415d95620f14e33c1738f812a558f192d1d7a0d91c1c623d78fe47e6",
+      "unchanged": true
+    },
+    {
+      "path": "src/super_lio_vehicle_adapter/test/test_transform_math.py",
+      "sha256": "4c003ccff5d489f1e30d2b93e1be7c60007d226468271c8ea2411dc90a58fe40",
+      "unchanged": true
+    },
+    {
+      "path": "src/ego_vehicle_adapter/ego_vehicle_adapter/__init__.py",
+      "sha256": "6ae11db33bb5fd6d76c88ad4f49d1004db8c9d6a908219600ee4aa9d401ad400",
+      "unchanged": true
+    },
+    {
+      "path": "src/ego_vehicle_adapter/package.xml",
+      "sha256": "fbf607acb520dc79315d73550617dd3deded0cd1739a65085703f2438800139d",
+      "unchanged": true
+    },
+    {
+      "path": "src/ego_vehicle_adapter/resource/ego_vehicle_adapter",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unchanged": true
+    },
+    {
+      "path": "src/ego_vehicle_adapter/setup.cfg",
+      "sha256": "1a45cd7f65221563f418b9fb6e532b65595527f09fcae9948a887d84f2269b1d",
+      "unchanged": true
+    },
+    {
+      "path": "src/ego_vehicle_adapter/setup.py",
+      "sha256": "9ac55ac84b8dfb21e74a41b94356586bc49558f9866d68df0da0c3cf86ce31df",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/active_observation.yaml",
+      "sha256": "12329b0683c16958970d56facd071c27f1e06048dea13139401aee6987cb7978",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/active_road_evidence.yaml",
+      "sha256": "72eabf7bb575eeb399f9fe95520866a5c95f0ad22d61a9fbf9c0594a3bd4155e",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/active_road_mapping.yaml",
+      "sha256": "abf516ab16dc5b58327eb4dd37d6492708490572dbc3b1a75f0b8d8c9f0387e5",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/ego_vehicle_adapter.yaml",
+      "sha256": "781c8b713a511df492790a2335d9ae13be0509e0f6368f0fa4f8d70bb822e5cb",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/master_params.yaml",
+      "sha256": "a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/nav2_corridor_rtk.yaml",
+      "sha256": "91131dbbb05d17dc6aa97c1efd9141d006f5da5367e3f41f8a3441c5aaf9afb8",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/nav2_default.yaml",
+      "sha256": "953e14a32fdf44d44b946d3afd88f3d0a0e22a2d8f0e8811a713378811d0d16a",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/nav2_explore.yaml",
+      "sha256": "854d5e8ba500467fdf4c5855370f7f234e6a5a7753b7a8cc221853efba9516e8",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/nav2_gps.yaml",
+      "sha256": "40ad61ea42a6e6ef70c04f17882739cf91069022dc1db67451e1c805e0c93718",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/nav2_travel.yaml",
+      "sha256": "a86fbd01ac8cd5a32121d0a2e309a282d6279ebcca0414c5d1ff98e0ff0451ae",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/pgo_corridor_no_gps.yaml",
+      "sha256": "7016a6a9ccb07eaf7253b82f6f96b56bf1c50e1405a7e73d092deeaa6e90c3fe",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/pgo_corridor_no_tf.yaml",
+      "sha256": "54c72165c1f6fa6d724c3debedb39d4ed1cc6bf6837a400a578b044c8405c660",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/research_local_grid.yaml",
+      "sha256": "4d08c131a25dccacfc6a23805be84bc1e5b3653e4421bf9404c2e5319db767e2",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/research_safety_bridge.yaml",
+      "sha256": "d65c42c4a2648f082432d697c05ec420edf4b36c78c62df897a3f929316c8fcb",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/rtk_fgo.yaml",
+      "sha256": "fbb7ecbf73cd47875857fc6550bdad052a9cd11e94de31d7e264e8146db7280c",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/super_lio_cloud_frame.yaml",
+      "sha256": "4e3709954a7b8502185876284ab292d012cf949fd1d6e843221b3bb65d11a035",
+      "unchanged": true
+    },
+    {
+      "path": "src/bringup/config/super_lio_vehicle.yaml",
+      "sha256": "e1c2569b6caab03fc975fb371dcd8f082216efed889afbaaa1b438243b54ded1",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_runtime/research_runtime/safety_bridge.py",
+      "sha256": "96d91c7e2619e5551b2b8f000276c7f89f2b593d72496046fbc83dee46b46dc1",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_runtime/research_runtime/trajectory.py",
+      "sha256": "534b629138ce7582fda3a6809ac7cafe450f43341c4740332a5a491b6ac5fe49",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_runtime/research_runtime/trajectory_tracker.py",
+      "sha256": "23969881626e157cf7a204748e4b24ab84cc0aee7ca6af21bbd515e1e848a428",
+      "unchanged": true
+    },
+    {
+      "path": "src/research_runtime/research_runtime/physical_parameter_lock.py",
+      "sha256": "1ab9e4bbcc8a56cf20e328b928367c28c8a50ea0aaf07eb68e78c52ac518dcbd",
+      "unchanged": true
+    }
+  ],
+  "scope": "component-specific earlier actual tests remain valid for unchanged sources; changed grid-disk/prefix behavior is separately tested on final source"
+}

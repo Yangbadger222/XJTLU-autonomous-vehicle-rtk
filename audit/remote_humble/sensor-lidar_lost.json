@@ -1,0 +1,138 @@
+{
+  "foundation_manifest_sha256": "0cbf1c0c114df12b96679e5dda59ef8427f5dbd178c12fce20ae8da829df78f2",
+  "foundation_file_count": 694,
+  "foundation_unchanged_each_trial": true,
+  "scope": "finite synthetic sensor closed-loop comparison; actual pinned Super-LIO/EGO, original guard and serial PTY",
+  "simulation_only_assumptions": [
+    "IMU=controlled-base extrinsic; measured simulated encoder body twist",
+    "synthetic .03m pose uncertainty bound",
+    "source health assumption; actual /lio/health remains UNKNOWN",
+    "synthetic restricted depth model/support plane and prior registration; no physical camera acceptance"
+  ],
+  "truth_isolation": "separate truth process publishes raw sensors only; policy/map processes have no truth-pose/full-map input or path",
+  "prior_bytes_preserved": true,
+  "trials": [
+    {
+      "strategy": "PASSIVE",
+      "task": 1,
+      "wall_s": 32.45390717301052,
+      "task_reached": false,
+      "final_truth_pose": [
+        0.5691088050776627,
+        -0.0014527795232991275,
+        -0.0027740928703059785
+      ],
+      "actual_superlio_odometry_count": 112,
+      "processed_limited_depth_frames": 111,
+      "known_ground_cells": 125,
+      "distance_m": 0.5691114527367531,
+      "observation_attempts": [],
+      "resolved_geometry_events": [],
+      "tracking_reason_counts": {
+        "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;rtk_mode_or_age_denied:UNKNOWN:grid_stale,tf_integrity_or_age,permission_missing_or_age": 2,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age": 16,
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale": 23,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale": 7,
+        "trajectory_invalid:tracker:empty_trajectory": 26,
+        "allowed": 146,
+        "map_invalid;trajectory_invalid:grid_version": 6,
+        "map_invalid;trajectory_invalid:trajectory_version": 2,
+        "map_invalid;trajectory_invalid:grid_version:tracker:empty_trajectory": 2,
+        "trajectory_invalid:tracker:feedback_curvature_limit": 1,
+        "map_invalid;trajectory_invalid:grid_version,trajectory_version:tracker:empty_trajectory": 2,
+        "map_invalid;trajectory_invalid:trajectory_version:tracker:empty_trajectory": 6,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.00137403,w=0.000581326": 1,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.000374661,w=0.000581346": 1,
+        "map_invalid;trajectory_invalid:grid_version:tracker:feedback_limit:v=-0.000374661,w=0.000581346": 1,
+        "trajectory_invalid:tracker:feedback_limit:v=-0.000206722,w=0.000399157": 1,
+        "map_invalid;trajectory_invalid:tf_integrity_or_age": 1,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:tf_integrity_or_age": 5,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:tf_integrity_or_age,grid_version": 4,
+        "lio_health_not_ok;map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age,grid_version": 340
+      },
+      "planning_result_counts": {
+        "measured_odom_state_unavailable": 191,
+        "road_reference_unavailable_or_unconfirmed": 15,
+        "OK": 75,
+        "local_obstacle_grid_unavailable_or_unknown": 9,
+        "ego_planner_vehicle_feasibility_rejected": 7
+      },
+      "selected_views": [],
+      "observed_evidence_count": 125,
+      "persisted_graph_increment_count": 1,
+      "anchored_graph_increment_count": 0,
+      "previous_graph_increment_count": 0,
+      "previous_verified_graph_count": 0,
+      "previous_evidence_uuid_count": 0,
+      "previous_evidence_uuids_preserved": true,
+      "localization_session_id": "PASSIVE-task-1",
+      "saved_verified_graph_count": 0,
+      "saved_map_version_before_shutdown_fault": null,
+      "planned_observation_cost_s": 0,
+      "resolved_event_correctness": {
+        "correct": 0,
+        "incorrect": 0,
+        "unscored": 0,
+        "scope": "evaluator-only synthetic prior gaps have support; other events are not assigned invented truth"
+      },
+      "sensor_fault": "lidar_lost",
+      "fault_phase_final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_before_fault": 144,
+      "map_version": "b8f30695f9373c7a3da29d6b131afbb345f6f93805d0de035bdb9eddf82b376a",
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_serial_count": 146,
+      "actuation_exercised": true,
+      "child_exit_before_cleanup": {
+        "super-lio": null,
+        "map": null,
+        "evidence": null,
+        "perception": null,
+        "local-grid": null,
+        "ego": null,
+        "tf-guard": null,
+        "safety": null,
+        "guard": null,
+        "serial": null,
+        "observer": null,
+        "truth": null
+      },
+      "child_cleanup_exits": {
+        "super-lio": 0,
+        "map": 0,
+        "evidence": 0,
+        "perception": 0,
+        "local-grid": 0,
+        "ego": 0,
+        "tf-guard": 0,
+        "safety": 0,
+        "guard": -2,
+        "serial": 0,
+        "observer": 0,
+        "truth": 0
+      },
+      "outcome": "BUDGET_OR_NO_CONFIRMED_ROUTE",
+      "protocol_status": "PASS"
+    }
+  ],
+  "protocol_status": "PASS",
+  "benefit": "NOT_ESTABLISHED: finite scene measurements do not prove novelty or real-world policy benefit",
+  "collection_provenance": {
+    "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+    "remote_artifact": "/home/badger/codex-research/superlio-ego-20261007/logs/history-final-lidar_lost/comparison.json",
+    "remote_json_sha256": "e425397899474b7bf8858e4f867668c6ce2959578ceb30471f70236999ce9e5a",
+    "annotation": "added at evidence collection; original payload retained"
+  }
+}

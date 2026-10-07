@@ -1,0 +1,98 @@
+{
+  "status": "PASS",
+  "historical_snapshot_loaded": true,
+  "current_session_received": "new",
+  "checks": [
+    {
+      "case": "stale_old_session_reuses_verified_topology_without_fresh_gap_support",
+      "status": "PASS"
+    },
+    {
+      "case": "working_store_rollback_suppresses_historical_export",
+      "status": "PASS"
+    },
+    {
+      "case": "new_epoch_increment_references_only_new_session_evidence",
+      "status": "PASS"
+    },
+    {
+      "case": "current_session_loss_cannot_resurrect_its_own_verified_export",
+      "status": "PASS"
+    }
+  ],
+  "persisted_graph_updates": [
+    {
+      "end_node_id": "left",
+      "evidence_ids": [
+        "new-uuid"
+      ],
+      "geometry_xy": [
+        [
+          3.2999999999883585,
+          0.0
+        ],
+        [
+          1.2000000000116415,
+          0.0
+        ]
+      ],
+      "local_submap_id": "new/s1",
+      "pose_uncertainty_m": 0.03,
+      "prior_version": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "source": "current_supported_ground",
+      "stamp": 1791376771.2398736,
+      "start_node_id": "goal",
+      "supported_width_m": 0.61,
+      "update_id": "gap:goal:left"
+    },
+    {
+      "end_node_id": "start",
+      "evidence_ids": [
+        "new-uuid"
+      ],
+      "geometry_xy": [
+        [
+          3.2999999999883585,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "local_submap_id": "new/s1",
+      "pose_uncertainty_m": 0.03,
+      "prior_version": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "source": "current_supported_ground",
+      "stamp": 1791376771.2398736,
+      "start_node_id": "goal",
+      "supported_width_m": 0.61,
+      "update_id": "gap:goal:start"
+    },
+    {
+      "end_node_id": "start",
+      "evidence_ids": [
+        "new-uuid"
+      ],
+      "geometry_xy": [
+        [
+          1.5,
+          0.0
+        ],
+        [
+          0.0,
+          0.0
+        ]
+      ],
+      "local_submap_id": "new/s1",
+      "pose_uncertainty_m": 0.03,
+      "prior_version": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "source": "current_supported_ground",
+      "stamp": 1791376771.2398736,
+      "start_node_id": "right",
+      "supported_width_m": 0.61,
+      "update_id": "gap:right:start"
+    }
+  ],
+  "scope": "actual installed ROS observer plus sole writer; analytical support/TF only; no physical actuation"
+}

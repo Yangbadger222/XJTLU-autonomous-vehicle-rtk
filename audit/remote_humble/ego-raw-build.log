@@ -1,0 +1,617 @@
+Wed Oct  7 03:32:31 UTC 2026
+x86_64
+gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0
+c667d010a9fd81c83e8560736cd18ae7dbe82887
+7f5be6d4cee34871e85aa1f15285cfaf17b23877
+Starting >>> ego_planner
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rclcpp: 16.0.17 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.9 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found tf2: 0.25.18 (/opt/ros/humble/share/tf2/cmake)
+-- Found tf2_ros: 0.25.18 (/opt/ros/humble/share/tf2_ros/cmake)
+-- Found sensor_msgs: 4.9.0 (/opt/ros/humble/share/sensor_msgs/cmake)
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0")  
+-- Found visualization_msgs: 4.9.0 (/opt/ros/humble/share/visualization_msgs/cmake)
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+statusego_planner
+-- 包根目录：/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2
+-- 检查msg文件：/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/msg/CurrentPose.msg
+-- ✅ msg文件存在！
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/badger/codex-research/superlio-ego-20261007/raw-ws/build/ego_planner
+[  2%] Generating C++ code for ROS interfaces
+[  2%] Built target ego_planner__cpp
+[  4%] Generating C++ type support dispatch for ROS interfaces
+[  6%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/ego_planner/msg/current_pose__type_support.cpp.o
+[  9%] Linking CXX shared library libego_planner__rosidl_typesupport_cpp.so
+[  9%] Built target ego_planner__rosidl_typesupport_cpp
+[ 11%] Generating C code for ROS interfaces
+[ 13%] Building C object CMakeFiles/ego_planner__rosidl_generator_c.dir/rosidl_generator_c/ego_planner/msg/detail/current_pose__functions.c.o
+[ 16%] Linking C shared library libego_planner__rosidl_generator_c.so
+[ 16%] Built target ego_planner__rosidl_generator_c
+[ 18%] Generating C type support for eProsima Fast-RTPS
+[ 20%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/ego_planner/msg/detail/current_pose__type_support_c.cpp.o
+[ 23%] Linking CXX shared library libego_planner__rosidl_typesupport_fastrtps_c.so
+[ 23%] Built target ego_planner__rosidl_typesupport_fastrtps_c
+[ 25%] Generating C++ type support for eProsima Fast-RTPS
+[ 27%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/ego_planner/msg/detail/dds_fastrtps/current_pose__type_support.cpp.o
+[ 30%] Linking CXX shared library libego_planner__rosidl_typesupport_fastrtps_cpp.so
+[ 30%] Built target ego_planner__rosidl_typesupport_fastrtps_cpp
+[ 32%] Generating C introspection for ROS interfaces
+[ 34%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/ego_planner/msg/detail/current_pose__type_support.c.o
+[ 37%] Linking C shared library libego_planner__rosidl_typesupport_introspection_c.so
+[ 37%] Built target ego_planner__rosidl_typesupport_introspection_c
+[ 39%] Generating C type support dispatch for ROS interfaces
+[ 41%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_c.dir/rosidl_typesupport_c/ego_planner/msg/current_pose__type_support.cpp.o
+[ 44%] Linking CXX shared library libego_planner__rosidl_typesupport_c.so
+[ 44%] Built target ego_planner__rosidl_typesupport_c
+[ 46%] Generating C++ introspection for ROS interfaces
+[ 48%] Building CXX object CMakeFiles/ego_planner__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/ego_planner/msg/detail/current_pose__type_support.cpp.o
+[ 51%] Linking CXX shared library libego_planner__rosidl_typesupport_introspection_cpp.so
+[ 51%] Built target ego_planner__rosidl_typesupport_introspection_cpp
+[ 51%] Built target ego_planner
+[ 51%] Built target ament_cmake_python_copy_ego_planner
+running egg_info
+creating ego_planner.egg-info
+writing ego_planner.egg-info/PKG-INFO
+writing dependency_links to ego_planner.egg-info/dependency_links.txt
+writing top-level names to ego_planner.egg-info/top_level.txt
+writing manifest file 'ego_planner.egg-info/SOURCES.txt'
+reading manifest file 'ego_planner.egg-info/SOURCES.txt'
+writing manifest file 'ego_planner.egg-info/SOURCES.txt'
+[ 51%] Built target ament_cmake_python_build_ego_planner_egg
+[ 53%] Generating Python code for ROS interfaces
+[ 53%] Built target ego_planner__py
+[ 55%] Building C object CMakeFiles/ego_planner__rosidl_generator_py.dir/rosidl_generator_py/ego_planner/msg/_current_pose_s.c.o
+[ 58%] Linking C shared library rosidl_generator_py/ego_planner/libego_planner__rosidl_generator_py.so
+[ 58%] Built target ego_planner__rosidl_generator_py
+[ 60%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 62%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[ 62%] Built target ego_planner__rosidl_typesupport_fastrtps_c__pyext
+[ 65%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 67%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[ 67%] Built target ego_planner__rosidl_typesupport_introspection_c__pyext
+[ 69%] Building C object CMakeFiles/ego_planner__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/ego_planner/_ego_planner_s.ep.rosidl_typesupport_c.c.o
+[ 72%] Linking C shared library rosidl_generator_py/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[ 72%] Built target ego_planner__rosidl_typesupport_c__pyext
+[ 74%] Building CXX object planner/GridMap2D/CMakeFiles/local_map.dir/src/grid_map.cpp.o
+[ 76%] Linking CXX static library liblocal_map.a
+[ 76%] Built target local_map
+[ 79%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/uniform_bspline.cpp.o
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxVel(double&, double&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  334 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxAcc(double&, double&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  360 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+[ 81%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/bspline_optimizer.cpp.o
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘void ego_planner::BsplineOptimizer::combineCostRebound(const double*, double*, double&, int)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:62: warning: unused variable ‘f_turn’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                              ^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:73: warning: unused variable ‘f_kappa’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                                         ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘std::vector<std::vector<Eigen::Matrix<double, 2, 1> > > ego_planner::BsplineOptimizer::initControlPoints(Eigen::MatrixXd&, bool)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:50:16: warning: ‘out_id’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+   50 |     int in_id, out_id;
+      |                ^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:50:9: warning: ‘in_id’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+   50 |     int in_id, out_id;
+      |         ^~~~~
+[ 83%] Building CXX object planner/bspline_opt/CMakeFiles/bspline_opt.dir/src/gradient_descent_optimizer.cpp.o
+[ 86%] Linking CXX static library libbspline_opt.a
+[ 86%] Built target bspline_opt
+[ 88%] Building CXX object planner/path_searching/CMakeFiles/path_searching.dir/src/dyn_a_star.cpp.o
+[ 90%] Linking CXX static library libpath_searching.a
+[ 90%] Built target path_searching
+[ 93%] Building CXX object planner/plan_manage/CMakeFiles/ego_planner_lib.dir/src/planner_interface.cpp.o
+In file included from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp:1:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp: In member function ‘void ego_planner::PlannerInterface::makePlan()’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp:184:52: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘std::chrono::duration<long int, std::ratio<1, 1000> >::rep’ {aka ‘long int’} [-Wformat=]
+  184 |         printf("MotionPlanner Total Running Time: %d  ms \n", elapsed.count());
+      |                                                   ~^          ~~~~~~~~~~~~~~~
+      |                                                    |                       |
+      |                                                    int                     std::chrono::duration<long int, std::ratio<1, 1000> >::rep {aka long int}
+      |                                                   %ld
+[ 95%] Linking CXX static library libego_planner_lib.a
+[ 95%] Built target ego_planner_lib
+[ 97%] Building CXX object CMakeFiles/motion_plan.dir/src/trajectory_publisher.cpp.o
+In file included from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h:46,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp:6:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+[100%] Linking CXX executable motion_plan
+[Processing: ego_planner]
+[100%] Built target motion_plan
+-- Install configuration: "Release"
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ament_index/resource_index/rosidl_interfaces/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__struct.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__functions.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__functions.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_generator_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/current_pose.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/library_path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/library_path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_generator_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_generator_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/current_pose.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__traits.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__builder.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__struct.hpp
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/dds_fastrtps
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_introspection_c.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/include/ego_planner/ego_planner/msg/detail/current_pose__type_support.cpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_typesupport_cpp.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/pythonpath.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/pythonpath.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/PKG-INFO
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/top_level.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/libego_planner__rosidl_generator_py.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/__init__.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/__init__.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose_s.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_c.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/_ego_planner_s.ep.rosidl_typesupport_introspection_c.c
+Listing '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/__init__.py'...
+Listing '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/__init__.py'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/msg/_current_pose.py'...
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/local/lib/python3.10/dist-packages/ego_planner/ego_planner_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_generator_py.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/libego_planner__rosidl_generator_py.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/msg/CurrentPose.idl
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/msg/CurrentPose.msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/ego_planner/motion_plan
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/lib/ego_planner/motion_plan" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ament_index/resource_index/package_run_dependencies/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ament_index/resource_index/parent_prefix_path/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/ament_prefix_path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/ament_prefix_path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/environment/path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/local_setup.bash
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/local_setup.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/local_setup.zsh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/local_setup.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/package.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ament_index/resource_index/packages/ego_planner
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_typesupport_fastrtps_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_introspection_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_planner__rosidl_typesupport_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_pyExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/export_ego_planner__rosidl_generator_pyExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_plannerConfig.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/cmake/ego_plannerConfig-version.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/ego_planner/share/ego_planner/package.xml
+--- stderr: ego_planner
+statusego_planner
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxVel(double&, double&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  334 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:334:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp: In member function ‘void ego_planner::UniformBspline::getMeanAndMaxAcc(double&, double&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tmp’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  360 |     for (double t = tm; t <= tmp; t += 0.01)
+      |                         ~~^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp:360:27: warning: ‘tm’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘void ego_planner::BsplineOptimizer::combineCostRebound(const double*, double*, double&, int)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:62: warning: unused variable ‘f_turn’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                              ^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:1044:73: warning: unused variable ‘f_kappa’ [-Wunused-variable]
+ 1044 |   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+      |                                                                         ^~~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp: In member function ‘std::vector<std::vector<Eigen::Matrix<double, 2, 1> > > ego_planner::BsplineOptimizer::initControlPoints(Eigen::MatrixXd&, bool)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:50:16: warning: ‘out_id’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+   50 |     int in_id, out_id;
+      |                ^~~~~~
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp:50:9: warning: ‘in_id’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+   50 |     int in_id, out_id;
+      |         ^~~~~
+In file included from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp:1:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp: In member function ‘void ego_planner::PlannerInterface::makePlan()’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp:184:52: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘std::chrono::duration<long int, std::ratio<1, 1000> >::rep’ {aka ‘long int’} [-Wformat=]
+  184 |         printf("MotionPlanner Total Running Time: %d  ms \n", elapsed.count());
+      |                                                   ~^          ~~~~~~~~~~~~~~~
+      |                                                    |                       |
+      |                                                    int                     std::chrono::duration<long int, std::ratio<1, 1000> >::rep {aka long int}
+      |                                                   %ld
+In file included from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/plan_manage/include/plan_manage/planner_interface.h:16,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h:46,
+                 from /home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp:6:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h: In function ‘std::ostream& ego_planner::operator<<(std::ostream&, const ego_planner::Bspline_<ContainerAllocator>&)’:
+/home/badger/codex-research/superlio-ego-20261007/ego-raw/src/EgoPlanner-ROS2/./planner/include/Bspline.h:88:1: warning: no return statement in function returning non-void [-Wreturn-type]
+   88 | }
+      | ^
+---
+Finished <<< ego_planner [36.4s]
+Starting >>> rviz_car_sim
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found rclcpp: 16.0.17 (/opt/ros/humble/share/rclcpp/cmake)
+-- Found rosidl_generator_c: 3.1.8 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.8 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.8 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.9 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found geometry_msgs: 4.9.0 (/opt/ros/humble/share/geometry_msgs/cmake)
+-- Found visualization_msgs: 4.9.0 (/opt/ros/humble/share/visualization_msgs/cmake)
+-- Found nav_msgs: 4.9.0 (/opt/ros/humble/share/nav_msgs/cmake)
+-- Found tf2: 0.25.18 (/opt/ros/humble/share/tf2/cmake)
+-- Found tf2_ros: 0.25.18 (/opt/ros/humble/share/tf2_ros/cmake)
+-- Found tf2_geometry_msgs: 0.25.18 (/opt/ros/humble/share/tf2_geometry_msgs/cmake)
+-- Found eigen3_cmake_module: 0.1.1 (/opt/ros/humble/share/eigen3_cmake_module/cmake)
+-- Found Eigen3: TRUE (found version "3.4.0") 
+-- Ensuring Eigen3 include directory is part of orocos-kdl CMake target
+-- Found rosidl_default_generators: 1.2.0 (/opt/ros/humble/share/rosidl_default_generators/cmake)
+statusrviz_car_sim
+-- Found ament_cmake_ros: 0.10.0 (/opt/ros/humble/share/ament_cmake_ros/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.10.12", minimum required is "3.6") 
+-- Found python_cmake_module: 0.10.0 (/opt/ros/humble/share/python_cmake_module/cmake)
+-- Found PythonLibs: /usr/lib/x86_64-linux-gnu/libpython3.10.so (found suitable version "3.10.12", minimum required is "3.5") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using PYTHON_INCLUDE_DIRS: /usr/include/python3.10
+-- Using PYTHON_LIBRARIES: /usr/lib/x86_64-linux-gnu/libpython3.10.so
+-- Found PythonExtra: .so  
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/badger/codex-research/superlio-ego-20261007/raw-ws/build/rviz_car_sim
+[  3%] Generating C++ code for ROS interfaces
+[  3%] Built target rviz_car_sim__cpp
+[  6%] Generating C++ type support dispatch for ROS interfaces
+[  9%] Building CXX object CMakeFiles/rviz_car_sim__rosidl_typesupport_cpp.dir/rosidl_typesupport_cpp/rviz_car_sim/msg/current_pose__type_support.cpp.o
+[ 12%] Linking CXX shared library librviz_car_sim__rosidl_typesupport_cpp.so
+[ 12%] Built target rviz_car_sim__rosidl_typesupport_cpp
+[ 15%] Generating C code for ROS interfaces
+[ 18%] Building C object CMakeFiles/rviz_car_sim__rosidl_generator_c.dir/rosidl_generator_c/rviz_car_sim/msg/detail/current_pose__functions.c.o
+[ 21%] Linking C shared library librviz_car_sim__rosidl_generator_c.so
+[ 21%] Built target rviz_car_sim__rosidl_generator_c
+[ 24%] Generating C type support for eProsima Fast-RTPS
+[ 27%] Building CXX object CMakeFiles/rviz_car_sim__rosidl_typesupport_fastrtps_c.dir/rosidl_typesupport_fastrtps_c/rviz_car_sim/msg/detail/current_pose__type_support_c.cpp.o
+[ 30%] Linking CXX shared library librviz_car_sim__rosidl_typesupport_fastrtps_c.so
+[ 30%] Built target rviz_car_sim__rosidl_typesupport_fastrtps_c
+[ 33%] Generating C++ type support for eProsima Fast-RTPS
+[ 36%] Building CXX object CMakeFiles/rviz_car_sim__rosidl_typesupport_fastrtps_cpp.dir/rosidl_typesupport_fastrtps_cpp/rviz_car_sim/msg/detail/dds_fastrtps/current_pose__type_support.cpp.o
+[ 39%] Linking CXX shared library librviz_car_sim__rosidl_typesupport_fastrtps_cpp.so
+[ 39%] Built target rviz_car_sim__rosidl_typesupport_fastrtps_cpp
+[ 42%] Generating C introspection for ROS interfaces
+[ 45%] Building C object CMakeFiles/rviz_car_sim__rosidl_typesupport_introspection_c.dir/rosidl_typesupport_introspection_c/rviz_car_sim/msg/detail/current_pose__type_support.c.o
+[ 48%] Linking C shared library librviz_car_sim__rosidl_typesupport_introspection_c.so
+[ 48%] Built target rviz_car_sim__rosidl_typesupport_introspection_c
+[ 51%] Generating C type support dispatch for ROS interfaces
+[ 54%] Building CXX object CMakeFiles/rviz_car_sim__rosidl_typesupport_c.dir/rosidl_typesupport_c/rviz_car_sim/msg/current_pose__type_support.cpp.o
+[ 57%] Linking CXX shared library librviz_car_sim__rosidl_typesupport_c.so
+[ 57%] Built target rviz_car_sim__rosidl_typesupport_c
+[ 60%] Generating C++ introspection for ROS interfaces
+[ 63%] Building CXX object CMakeFiles/rviz_car_sim__rosidl_typesupport_introspection_cpp.dir/rosidl_typesupport_introspection_cpp/rviz_car_sim/msg/detail/current_pose__type_support.cpp.o
+[ 66%] Linking CXX shared library librviz_car_sim__rosidl_typesupport_introspection_cpp.so
+[ 66%] Built target rviz_car_sim__rosidl_typesupport_introspection_cpp
+[ 66%] Built target rviz_car_sim
+[ 66%] Built target ament_cmake_python_copy_rviz_car_sim
+running egg_info
+creating rviz_car_sim.egg-info
+writing rviz_car_sim.egg-info/PKG-INFO
+writing dependency_links to rviz_car_sim.egg-info/dependency_links.txt
+writing top-level names to rviz_car_sim.egg-info/top_level.txt
+writing manifest file 'rviz_car_sim.egg-info/SOURCES.txt'
+reading manifest file 'rviz_car_sim.egg-info/SOURCES.txt'
+writing manifest file 'rviz_car_sim.egg-info/SOURCES.txt'
+[ 66%] Built target ament_cmake_python_build_rviz_car_sim_egg
+[ 69%] Generating Python code for ROS interfaces
+[ 69%] Built target rviz_car_sim__py
+[ 72%] Building C object CMakeFiles/rviz_car_sim__rosidl_generator_py.dir/rosidl_generator_py/rviz_car_sim/msg/_current_pose_s.c.o
+[ 75%] Linking C shared library rosidl_generator_py/rviz_car_sim/librviz_car_sim__rosidl_generator_py.so
+[ 75%] Built target rviz_car_sim__rosidl_generator_py
+[ 78%] Building C object CMakeFiles/rviz_car_sim__rosidl_typesupport_fastrtps_c__pyext.dir/rosidl_generator_py/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_fastrtps_c.c.o
+[ 81%] Linking C shared library rosidl_generator_py/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+[ 81%] Built target rviz_car_sim__rosidl_typesupport_fastrtps_c__pyext
+[ 84%] Building C object CMakeFiles/rviz_car_sim__rosidl_typesupport_introspection_c__pyext.dir/rosidl_generator_py/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_introspection_c.c.o
+[ 87%] Linking C shared library rosidl_generator_py/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+[ 87%] Built target rviz_car_sim__rosidl_typesupport_introspection_c__pyext
+[ 90%] Building C object CMakeFiles/rviz_car_sim__rosidl_typesupport_c__pyext.dir/rosidl_generator_py/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_c.c.o
+[ 93%] Linking C shared library rosidl_generator_py/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+[ 93%] Built target rviz_car_sim__rosidl_typesupport_c__pyext
+[ 96%] Building CXX object CMakeFiles/fake_sim_node.dir/src/fake_sim_node.cpp.o
+[100%] Linking CXX executable fake_sim_node
+[100%] Built target fake_sim_node
+-- Install configuration: "Release"
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/ament_index/resource_index/rosidl_interfaces/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__struct.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__type_support.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__functions.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__functions.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/rosidl_generator_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/current_pose.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/library_path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/library_path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_generator_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_generator_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__rosidl_typesupport_fastrtps_c.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/rosidl_typesupport_fastrtps_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_fastrtps_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_fastrtps_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/current_pose.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/rosidl_generator_cpp__visibility_control.hpp
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__type_support.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__traits.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__builder.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__struct.hpp
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__rosidl_typesupport_fastrtps_cpp.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/dds_fastrtps
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/rosidl_typesupport_fastrtps_cpp__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_fastrtps_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_fastrtps_cpp.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__type_support.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__rosidl_typesupport_introspection_c.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/rosidl_typesupport_introspection_c__visibility_control.h
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_introspection_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_introspection_c.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_c.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_c.so" to ""
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg
+-- Up-to-date: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__rosidl_typesupport_introspection_cpp.hpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/include/rviz_car_sim/rviz_car_sim/msg/detail/current_pose__type_support.cpp
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_introspection_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_introspection_cpp.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_cpp.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_typesupport_cpp.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/pythonpath.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/pythonpath.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim-0.0.0-py3.10.egg-info
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim-0.0.0-py3.10.egg-info/PKG-INFO
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim-0.0.0-py3.10.egg-info/SOURCES.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim-0.0.0-py3.10.egg-info/top_level.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim-0.0.0-py3.10.egg-info/dependency_links.txt
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_fastrtps_c.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/__init__.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg/__init__.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg/_current_pose_s.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg/_current_pose.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_introspection_c.c
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/librviz_car_sim__rosidl_generator_py.so
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/_rviz_car_sim_s.ep.rosidl_typesupport_c.c
+Listing '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/__init__.py'...
+Listing '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg/__init__.py'...
+Compiling '/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/msg/_current_pose.py'...
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_fastrtps_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_introspection_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/local/lib/python3.10/dist-packages/rviz_car_sim/rviz_car_sim_s__rosidl_typesupport_c.cpython-310-x86_64-linux-gnu.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_generator_py.so
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/librviz_car_sim__rosidl_generator_py.so" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/msg/CurrentPose.idl
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/msg/CurrentPose.msg
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/rviz_car_sim/fake_sim_node
+-- Set runtime path of "/home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/lib/rviz_car_sim/fake_sim_node" to ""
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/launch
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/launch/bringup.launch.py
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/config
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/config/rviz.rviz
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/ament_index/resource_index/package_run_dependencies/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/ament_index/resource_index/parent_prefix_path/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/ament_prefix_path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/ament_prefix_path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/path.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/environment/path.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/local_setup.bash
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/local_setup.sh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/local_setup.zsh
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/local_setup.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/package.dsv
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/ament_index/resource_index/packages/rviz_car_sim
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_generator_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_generator_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_typesupport_fastrtps_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_typesupport_fastrtps_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_generator_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_typesupport_fastrtps_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_typesupport_fastrtps_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_introspection_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_introspection_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_cExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_cExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_introspection_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_introspection_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_cppExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_sim__rosidl_typesupport_cppExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_generator_pyExport.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/export_rviz_car_sim__rosidl_generator_pyExport-release.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rosidl_cmake-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/ament_cmake_export_dependencies-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/ament_cmake_export_include_directories-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/ament_cmake_export_libraries-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/ament_cmake_export_targets-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rosidl_cmake_export_typesupport_targets-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rosidl_cmake_export_typesupport_libraries-extras.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_simConfig.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/cmake/rviz_car_simConfig-version.cmake
+-- Installing: /home/badger/codex-research/superlio-ego-20261007/raw-ws/install/rviz_car_sim/share/rviz_car_sim/package.xml
+--- stderr: rviz_car_sim
+statusrviz_car_sim
+---
+Finished <<< rviz_car_sim [11.9s]
+
+Summary: 2 packages finished [48.6s]
+  2 packages had stderr output: ego_planner rviz_car_sim

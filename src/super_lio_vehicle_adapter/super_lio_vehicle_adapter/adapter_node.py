@@ -3,13 +3,16 @@
 At the pinned upstream commit Super-LIO publishes an odometry message whose
 world frame is ``world`` and whose child is ``imu``.  It is not the vehicle
 ``odom -> base_footprint`` contract.  Until a timestamped source-frame TF, a
-measured IMU->base transform, and source health are supplied, this node
-publishes source-aware UNKNOWN health and intentionally does not publish
-vehicle odometry.
+measured IMU->base transform or the audited legacy IMU-origin navigation
+convention is selected, the node withholds vehicle odometry. Source health
+remains distinct from coordinate validity and is matched by measurement time.
 This keeps the original RTK authority stop policy fail-closed.
 """
 from __future__ import annotations
 import time
+import json
+import math
+import copy
 
 try:
     import rclpy
@@ -18,7 +21,7 @@ try:
     from geometry_msgs.msg import TransformStamped
     from std_msgs.msg import String
     from rclpy.node import Node
-    from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
+    from tf2_ros import Buffer, StaticTransformBroadcaster, TransformBroadcaster, TransformException, TransformListener
 except ImportError:  # allows static linting on the developer laptop
     rclpy = None
     Duration = Buffer = TransformException = TransformListener = object
@@ -65,6 +68,38 @@ def _stamp_is_set(stamp) -> bool:
     except (AttributeError, TypeError, ValueError):
         return False
     return sec >= 0 and 0 <= nanosec < 1_000_000_000 and (sec > 0 or nanosec > 0)
+
+
+REFERENCE_CONTRACT = "corridor_e54c6af_fast_imu_origin_v1"
+SOURCE_CERTIFICATE = "fixed_extrinsic_observation_lower_bound_v1"
+
+
+def _navigation_reference_valid(convention, contract_id, translation, quaternion):
+    """Identity is a recorded navigation point convention, not a chassis measurement."""
+    return (convention == "locked_fast_imu_origin" and contract_id == REFERENCE_CONTRACT and
+            tuple(translation) == (0., 0., 0.) and tuple(quaternion) == (0., 0., 0., 1.))
+
+
+def _source_certificate(text):
+    """Validate the bound's identity/units and return a measurement-stamped decision."""
+    try:
+        if len(text) > 4096:
+            return None
+        data = json.loads(text)
+        if not isinstance(data, dict) or data.get("source") != "super_lio/f89f48dc" or data.get("certificate") != SOURCE_CERTIFICATE:
+            return None
+        stamp = data["stamp_ns"]
+        observed = float(data["minimum_observation_information"])
+        bound = float(data["legacy_min_eig_lower_bound"])
+        if type(stamp) is not int or stamp <= 0 or not _finite((observed, bound)) or observed < 0 or bound < 0:
+            return None
+        if abs(bound-min(observed, 100000.)) > 1e-6*max(1., bound):
+            return None
+        eligible = (data.get("status") == "OK" and int(data["iterations"]) >= 1 and
+                    int(data["effective_points"]) >= 50 and bound >= 75.)
+        return {"stamp_ns": stamp, "eligible": eligible, "reason": str(data.get("reason", "unknown"))}
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return None
 
 
 def _normalize_quaternion(q):
@@ -195,6 +230,10 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self.declare_parameter("imu_to_base_quaternion_xyzw", [0.0, 0.0, 0.0, 1.0])
         self.declare_parameter("require_source_health_ok", True)
         self.declare_parameter("require_covariance", True)
+        self.declare_parameter("navigation_reference_convention", "measured_rigid_body")
+        self.declare_parameter("navigation_reference_contract", "")
+        self.declare_parameter("world_gauge_mode", "external_stamped_tf")
+        self.declare_parameter("publish_unhealthy_odometry", False)
         self._verified = _parameter_bool(
             self.get_parameter("imu_to_base_extrinsic_verified").value)
         self._source_frame = str(self.get_parameter("source_frame").value)
@@ -203,6 +242,20 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._tf_timeout_s = max(0.0, float(self.get_parameter("tf_timeout_s").value))
         self._translation = tuple(float(x) for x in self.get_parameter("imu_to_base_translation_m").value)
         self._rotation = tuple(float(x) for x in self.get_parameter("imu_to_base_quaternion_xyzw").value)
+        self._legacy_reference = _navigation_reference_valid(
+            str(self.get_parameter("navigation_reference_convention").value),
+            str(self.get_parameter("navigation_reference_contract").value), self._translation, self._rotation)
+        if str(self.get_parameter("navigation_reference_convention").value) == "locked_fast_imu_origin" and not self._legacy_reference:
+            raise ValueError("locked navigation reference contract/identity override rejected")
+        self._own_gauge = str(self.get_parameter("world_gauge_mode").value) == "source_local_world"
+        if self._own_gauge and (not self._legacy_reference or self._source_frame != "world" or self._target_frame != "odom"):
+            raise ValueError("source local-world gauge requires the audited world/odom legacy reference")
+        self._publish_unhealthy = _parameter_bool(self.get_parameter("publish_unhealthy_odometry").value)
+        self._source_certificate_stamp = None
+        self._pending_odom = None
+        self._last_source_stamp = None
+        self._last_source_pose = None
+        self._reference_fault = ""
         self._require_source_health_ok = _parameter_bool(
             self.get_parameter("require_source_health_ok").value)
         self._require_covariance = _parameter_bool(
@@ -210,6 +263,16 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._buffer = Buffer()
         self._listener = TransformListener(self._buffer, self)
         self._vehicle_tf = TransformBroadcaster(self)
+        if self._own_gauge:
+            # odom is this estimator session's local world gauge. This is an
+            # owned, declared rigid transform; map->odom remains RTK-owned.
+            self._gauge_tf = StaticTransformBroadcaster(self)
+            transform = TransformStamped()
+            transform.header.stamp = self.get_clock().now().to_msg()
+            transform.header.frame_id = "odom"
+            transform.child_frame_id = "world"
+            transform.transform.rotation.w = 1.
+            self._gauge_tf.sendTransform(transform)
         self._source_health_ok = False
         self._source_health_received=0.
         self._health = self.create_publisher(String, str(self.get_parameter("health_topic").value), 10)
@@ -222,8 +285,19 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._health.publish(String(data=text))
 
     def _health_callback(self, msg):
-        self._source_health_ok = str(msg.data).upper().startswith("OK")
+        if self._legacy_reference:
+            certificate = _source_certificate(str(msg.data))
+            self._source_certificate_stamp = certificate["stamp_ns"] if certificate else None
+            self._source_health_ok = bool(certificate and certificate["eligible"])
+            if not self._source_health_ok:
+                self._reject("source observation certificate not eligible")
+        else:
+            self._source_health_ok = str(msg.data).upper().startswith("OK")
         self._source_health_received=time.monotonic()
+        pending = self._pending_odom
+        if pending is not None and self._source_certificate_stamp == pending.header.stamp.sec*1_000_000_000+pending.header.stamp.nanosec:
+            self._pending_odom = None
+            self._callback(pending)
 
     def _reject(self, reason: str):
         self._publish_health("UNKNOWN: " + reason)
@@ -234,7 +308,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         A differing source frame needs timestamped TF; a static frame-id
         relabel is never accepted.
         """
-        if self._source_frame == self._target_frame:
+        if self._own_gauge or self._source_frame == self._target_frame:
             return ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))
         try:
             transform = self._buffer.lookup_transform(
@@ -263,11 +337,25 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if str(msg.child_frame_id) != self._source_child_frame:
             self._reject(f"source child frame {msg.child_frame_id!r} != {self._source_child_frame!r}")
             return
-        if not self._verified:
+        if not (self._verified or self._legacy_reference):
             self._reject("missing measured IMU-to-base extrinsic")
             return
         source_health_current=self._source_health_ok and 0<=time.monotonic()-self._source_health_received<=.50
-        if self._require_source_health_ok and not source_health_current:
+        source_stamp = msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
+        if self._legacy_reference:
+            if self._reference_fault:
+                self._reject(self._reference_fault)
+                return
+            if self._source_certificate_stamp != source_stamp:
+                self._pending_odom = msg
+                self._reject("awaiting measurement-matched observation certificate")
+                return
+            if self._last_source_stamp is not None and source_stamp <= self._last_source_stamp:
+                if source_stamp < self._last_source_stamp:
+                    self._reference_fault = "source clock regressed; restart with a new localization session"
+                    self._reject(self._reference_fault)
+                return
+        if self._require_source_health_ok and not source_health_current and not self._publish_unhealthy:
             self._reject("Super-LIO source health is not OK")
             return
         if len(self._translation) != 3 or not _finite(self._translation):
@@ -281,6 +369,19 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if q_wi is None or q_ib is None:
             self._reject("invalid IMU-to-base or source pose quaternion")
             return
+        position = msg.pose.pose.position
+        if not _finite((position.x, position.y, position.z)):
+            self._reject("nonfinite source position")
+            return
+        if self._legacy_reference and self._last_source_pose is not None:
+            previous_position, previous_rotation = self._last_source_pose
+            delta = math.hypot(position.x-previous_position[0], position.y-previous_position[1])
+            yaw_now = math.atan2(2*(q_wi[3]*q_wi[2]+q_wi[0]*q_wi[1]), 1-2*(q_wi[1]**2+q_wi[2]**2))
+            yaw_previous = math.atan2(2*(previous_rotation[3]*previous_rotation[2]+previous_rotation[0]*previous_rotation[1]), 1-2*(previous_rotation[1]**2+previous_rotation[2]**2))
+            if delta > .50 or abs(math.atan2(math.sin(yaw_now-yaw_previous), math.cos(yaw_now-yaw_previous))) > math.radians(15):
+                self._reference_fault = "source pose step exceeds locked bridge guards; restart with a new session"
+                self._reject(self._reference_fault)
+                return
         covariance = tuple(msg.pose.covariance) + tuple(msg.twist.covariance)
         if self._require_covariance:
             if not _covariance_is_known(covariance):
@@ -296,10 +397,10 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             self._reject("non-finite Super-LIO pose")
             return
         output = Odometry()
-        output.header = msg.header
+        output.header = copy.deepcopy(msg.header)
         output.header.frame_id = self._target_frame
         output.child_frame_id = str(self.get_parameter("base_frame").value)
-        output.pose = msg.pose
+        output.pose = copy.deepcopy(msg.pose)
         lever_arm_source = _qrotate(q_wi, self._translation)
         target_position = _qrotate(q_ts, (
             msg.pose.pose.position.x + lever_arm_source[0],
@@ -315,7 +416,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             self._reject("source pose covariance could not be rotated into target frame")
             return
         output.pose.covariance = list(rotated_pose_covariance)
-        output.twist = msg.twist
+        output.twist = copy.deepcopy(msg.twist)
         body_velocity, body_angular = _source_twist_to_base(
             q_wi, q_ib, (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z),
             (msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z),self._translation)
@@ -327,6 +428,9 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = body_velocity
         output.twist.twist.angular.x, output.twist.twist.angular.y, output.twist.twist.angular.z = body_angular
         self._odom.publish(output)
+        if self._legacy_reference:
+            self._last_source_stamp = source_stamp
+            self._last_source_pose = ((position.x, position.y, position.z), q_wi)
         transform = TransformStamped()
         transform.header, transform.child_frame_id = output.header, output.child_frame_id
         transform.transform.translation.x = output.pose.pose.position.x
@@ -334,7 +438,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         transform.transform.translation.z = output.pose.pose.position.z
         transform.transform.rotation = output.pose.pose.orientation
         self._vehicle_tf.sendTransform(transform)
-        self._publish_health("OK: source covariance and measured rigid-body transform applied" if source_health_current
+        self._publish_health("OK: measurement-matched observation bound and audited navigation reference applied" if source_health_current
                              else "UNKNOWN: Super-LIO source health has no validated equivalence")
 
 

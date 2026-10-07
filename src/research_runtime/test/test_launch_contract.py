@@ -1,4 +1,5 @@
 from pathlib import Path
+import yaml
 
 
 LAUNCH = Path(__file__).parents[3] / "src" / "bringup" / "launch" / "system_active_road_research.launch.py"
@@ -14,8 +15,12 @@ def test_active_road_launch_allowlist_and_explicit_serial_gate():
     assert "package=\"serial_twistctl\"" in source
     assert '"/lio/vehicle_health"' in source
     assert '"/lio/odom_vehicle"' in source
-    assert '"source_frame": "world", "world_frame": "odom"' in source
-    assert '"source_child_frame": "imu", "tf_timeout_s": 0.05' in source
+    assert "super_lio_reference.yaml" in source
+    reference = yaml.safe_load((LAUNCH.parents[1]/"config/super_lio_reference.yaml").read_text())["super_lio_vehicle_adapter"]["ros__parameters"]
+    assert (reference["source_frame"],reference["world_frame"],reference["source_child_frame"]) == ("world","odom","imu")
+    assert reference["tf_timeout_s"] == .05 and reference["require_source_health_ok"]
+    assert reference["navigation_reference_convention"] == "locked_fast_imu_origin"
+    assert not reference["imu_to_base_extrinsic_verified"]
     assert "ego_vehicle_adapter.yaml" in source
     assert '"/research/local_obstacle_grid"' in source
     assert '"/research/map_version"' in source

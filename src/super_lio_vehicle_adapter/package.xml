@@ -2,7 +2,7 @@
 <package format="3">
   <name>super_lio_vehicle_adapter</name>
   <version>0.1.0</version>
-  <description>Source-aware Super-LIO vehicle interface; refuses motion without verified base extrinsics.</description>
+  <description>Source-aware Super-LIO navigation reference and measurement-matched conservative health interface.</description>
   <maintainer email="research@xjtlu.invalid">XJTLU research</maintainer>
   <license>Apache-2.0</license>
   <buildtool_depend>ament_python</buildtool_depend>

@@ -36,3 +36,19 @@ ce 完整SDK/14包干净编译2分51秒；128可移植检查、35最终PTY故障
 
 #### 影响
 源公式与已有权限均已确定，数据质量限制有具体计数。9项独立拟合/激励/有限值/反馈轴与符号/两时钟/横移与拒绝缺口测试通过；未改变固件、标定、运动限值或运行源码。新Super健康/参考点/地面/运动适配和车端验收仍如实未完成，不自动上车。解释研究κ=0是尚未完成的配置门控，不称为仓库没有底盘资料。
+
+### 实机验收准备：Super观测证书与原导航参考点
+
+#### 文件
+- `patches/super_lio/0002-certify-source-observations-and-covariance.patch`、补丁脚本
+- `src/super_lio_vehicle_adapter/`、`src/bringup/config/super_lio_reference.yaml`、研究launch
+- `scripts/validate_super_lio_information.cpp`、`audit/vehicle_ready/`
+
+#### 内容
+从原固定外参12维信息块推导保守充分下界：min(实际Super六维观测信息最小特征值,100000)。使用原75门限、50有效点和3同步IMU样本，记录最差迭代，不伪造旧degeneracy值。补全源协方差交叉块/坐标，拒绝无有效观测推进地图。接入已记录的IMU原点base_footprint约定和明确的本地world/odom gauge；按测量戳配对健康与odom，异常时健康不放行。源时钟倒退/原位姿跳变门限锁存。
+
+#### 原因
+固定UNKNOWN和未接入的参考点使新入口只能等待。已有源码可证明更严格的安全充分条件，而物理MID360安装不需再次从零标定。需要真实观测健康与导航坐标合同，不以恒healthy或改标签解锁。
+
+#### 影响
+原固件、标定、限值和RTK失权停车不变。此为本轮继续准备实机验收的源码进展；实际C++/Humble编译、回放和最终mock串口证据尚须执行。地面、EGO源约束接入与车端shadow资格仍未完成，不据此宣布goal完成或自动开车。

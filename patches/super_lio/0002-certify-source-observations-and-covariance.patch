@@ -1,0 +1,410 @@
+diff --git a/src/super_lio/include/lio/ESKF.h b/src/super_lio/include/lio/ESKF.h
+index 1e07c22..2df987c 100644
+--- a/src/super_lio/include/lio/ESKF.h
++++ b/src/super_lio/include/lio/ESKF.h
+@@ -5,6 +5,7 @@
+ #include "basic/Manifold.h"
+ #include "common/ds.h"
+ #include "params.h"
++#include "observation_quality.h"
+ 
+ 
+ namespace LI2Sup{
+@@ -70,6 +71,10 @@ public:
+   Pose_t   GetPoseT() const { return Pose_t(current_time_, R_, p_); }
+ 
+   COV GetCov() const { return P_; }
++  const ObservationQuality& GetObservationQuality() const { return observation_quality_; }
++  void SetObservationSamples(int count) { observation_samples_ = count; }
++  void RejectObservation(const std::string& reason) { observation_quality_ = ObservationQuality(); observation_quality_.reason = reason; }
++  double GetGyroSampleVariance() const { return options_.gyro_var_; }
+ 
+   BASIC::SE3 GetSE3() const { return BASIC::SE3(R_, p_); }
+ 
+@@ -90,6 +95,8 @@ private:
+   void Update();
+   
+   bool  need_converge_  = true;
++  ObservationQuality observation_quality_;
++  int observation_samples_ = 0;
+   float imu_scale_ = 1.0;
+   IMUData last_imu_;
+   double current_time_ = 0.0;
+@@ -126,4 +133,4 @@ private:
+ }
+ 
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/super_lio/include/lio/observation_quality.h b/src/super_lio/include/lio/observation_quality.h
+new file mode 100644
+index 0000000..870140e
+--- /dev/null
++++ b/src/super_lio/include/lio/observation_quality.h
+@@ -0,0 +1,85 @@
++#pragma once
++#include <Eigen/Core>
++#include <Eigen/Eigenvalues>
++#include <Eigen/Cholesky>
++#include <algorithm>
++#include <cmath>
++#include <string>
++
++namespace LI2Sup {
++// Source-derived: vehicle IESKF threshold, fixed-extrinsic initial covariance,
++// and minimum accepted features. These are not configurable relaxed defaults.
++inline constexpr double kLegacyInformationThreshold = 75.0;
++inline constexpr double kFixedExtrinsicInformation = 1.0 / 0.00001;
++inline constexpr int kMinimumObservedFeatures = 50;
++
++struct ObservationQuality {
++  bool valid = false;
++  bool eligible = false;
++  int iterations = 0;
++  int effective_points = 0;
++  double min_information = 0.0;
++  double legacy_lower_bound = 0.0;
++  std::string reason = "not_observed";
++};
++
++inline ObservationQuality assessObservation(const Eigen::Matrix<double, 6, 6>& information, int count) {
++  ObservationQuality quality;
++  quality.effective_points = count;
++  if (count < kMinimumObservedFeatures) {
++    quality.reason = "insufficient_matched_features";
++    return quality;
++  }
++  if (!information.allFinite()) {
++    quality.reason = "nonfinite_observation_information";
++    return quality;
++  }
++  const auto symmetric = (0.5 * (information + information.transpose())).eval();
++  Eigen::SelfAdjointEigenSolver<Eigen::Matrix<double, 6, 6>> solver(symmetric);
++  if (solver.info() != Eigen::Success || !solver.eigenvalues().allFinite() ||
++      solver.eigenvalues().minCoeff() < -1e-8 * std::max(1.0, information.norm())) {
++    quality.reason = "invalid_observation_information";
++    return quality;
++  }
++  quality.valid = true;
++  quality.iterations = 1;
++  quality.min_information = std::max(0.0, solver.eigenvalues().minCoeff());
++  // With esti_il=false, fixed extrinsics stay independent with P_il=1e-5 I.
++  // For ANY PSD pose prior: lambda_min(diag(Hobs+prior,1e5 I)) >= this bound.
++  // This is stricter than the legacy prior+observation test; not its raw metric.
++  quality.legacy_lower_bound = std::min(quality.min_information, kFixedExtrinsicInformation);
++  quality.eligible = quality.legacy_lower_bound >= kLegacyInformationThreshold;
++  quality.reason = quality.eligible ? "observation_lower_bound_pass" : "observation_lower_bound_below_legacy_threshold";
++  return quality;
++}
++
++inline void accumulateObservationQuality(ObservationQuality& worst, const ObservationQuality& current) {
++  if (!worst.iterations) { worst = current; return; }
++  worst.valid = worst.valid && current.valid;
++  worst.eligible = worst.eligible && current.eligible;
++  worst.iterations += current.iterations;
++  worst.effective_points = std::min(worst.effective_points, current.effective_points);
++  worst.min_information = std::min(worst.min_information, current.min_information);
++  worst.legacy_lower_bound = std::min(worst.legacy_lower_bound, current.legacy_lower_bound);
++  if (!current.eligible) worst.reason = current.reason;
++}
++
++inline Eigen::Matrix<double, 6, 6> poseCovariance(
++    const Eigen::Matrix<double, 18, 18>& covariance, const Eigen::Matrix3d& world_from_imu) {
++  Eigen::Matrix<double, 6, 18> jacobian = Eigen::Matrix<double, 6, 18>::Zero();
++  jacobian.block<3,3>(0,3).setIdentity();
++  jacobian.block<3,3>(3,0) = world_from_imu;  // right rotation error -> world fixed axes
++  return jacobian * covariance * jacobian.transpose();
++}
++
++inline Eigen::Matrix<double, 6, 6> twistCovariance(
++    const Eigen::Matrix<double, 18, 18>& covariance, double gyro_sample_variance) {
++  Eigen::Matrix<double, 6, 18> jacobian = Eigen::Matrix<double, 6, 18>::Zero();
++  jacobian.block<3,3>(0,6).setIdentity();
++  jacobian.block<3,3>(3,9) = -Eigen::Matrix3d::Identity();  // omega = measured gyro - bias
++  Eigen::Matrix<double, 6, 6> result = jacobian * covariance * jacobian.transpose();
++  // Conditional native white-noise model; retains state cross blocks.
++  result.block<3,3>(3,3) += gyro_sample_variance * Eigen::Matrix3d::Identity();
++  return result;
++}
++}  // namespace LI2Sup
+diff --git a/src/super_lio/include/lio/super_lio.h b/src/super_lio/include/lio/super_lio.h
+index 15bf038..e2e457f 100644
+--- a/src/super_lio/include/lio/super_lio.h
++++ b/src/super_lio/include/lio/super_lio.h
+@@ -45,7 +45,7 @@ protected:
+   virtual bool map_init();
+   void Propagation_Undistort();
+   void DownSample();
+-  void Observe();
++  bool Observe();
+   virtual void UpdateMap();
+   virtual void Output();
+   void caceData();
+@@ -87,4 +87,3 @@ protected:
+ 
+ #endif
+ 
+-
+diff --git a/src/super_lio/include/ros/ROSWrapper.h b/src/super_lio/include/ros/ROSWrapper.h
+index d0ffe51..2fdcf68 100644
+--- a/src/super_lio/include/ros/ROSWrapper.h
++++ b/src/super_lio/include/ros/ROSWrapper.h
+@@ -67,6 +67,7 @@ public:
+   }
+ 
+   void pub_odom(const NavState&);
++  void pub_observation_health();
+   void pub_cloud_world(const BASIC::CloudPtr& pc, double time);
+   void pub_cloud2planner(const BASIC::CloudPtr& pc, double time);
+   void pub_cloud_world_pose(const BASIC::CloudPtr& pc, 
+diff --git a/src/super_lio/src/lio/ESKF.cpp b/src/super_lio/src/lio/ESKF.cpp
+index f7a64d2..1249155 100644
+--- a/src/super_lio/src/lio/ESKF.cpp
++++ b/src/super_lio/src/lio/ESKF.cpp
+@@ -258,6 +258,18 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+   V3  g_pred = g_;
+ 
+   M18 P_pred = P_;
++  observation_quality_ = ObservationQuality();
++  const auto rollback = [&]() {
++    R_ = R_pred; p_ = p_pred; v_ = v_pred; bg_ = bg_pred; ba_ = ba_pred; g_ = g_pred;
++    P_ = P_pred; dx_.setZero();
++    return false;
++  };
++  const Eigen::LDLT<Eigen::Matrix<double,18,18>> prior_ldlt(
++      (0.5*(P_pred.cast<double>()+P_pred.transpose().cast<double>())).eval());
++  if (!P_pred.allFinite() || prior_ldlt.info()!=Eigen::Success || !prior_ldlt.isPositive()) {
++    observation_quality_.reason = "nonpositive_prior_covariance";
++    return rollback();
++  }
+ 
+   M6 HTVH;
+   V6 HTVr;
+@@ -274,6 +286,9 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+     }
+ 
+     obs(GetKFState(), HTVH, HTVr);
++    const auto quality = assessObservation(HTVH.cast<double>(), observation_samples_);
++    accumulateObservationQuality(observation_quality_, quality);
++    if (!quality.valid || !HTVr.allFinite() || !P_pred.allFinite()) return rollback();
+ 
+     V18 dx_prior = V18::Zero();
+     dx_prior.template block<3,1>(0,0)  = (R_pred.inverse() * R_).log_vee();
+@@ -301,6 +316,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+     // information form
+     M18 A = Pk.inverse() + HTRH;
+     Qk = A.inverse();
++    if (!A.allFinite() || !Qk.allFinite()) {
++      observation_quality_.eligible = false;
++      observation_quality_.valid = false;
++      observation_quality_.reason = "invalid_filter_information";
++      return rollback();
++    }
+ 
+     V18 b = V18::Zero();
+     b.template head<6>() = HTVr;
+@@ -309,6 +330,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+ 
+     // dx = K_h + (K_x - I) * dx_prior
+     dx_ = Qk * b + (K_x - M18::Identity()) * dx_prior;
++    if (!dx_.allFinite()) {
++      observation_quality_.eligible = false;
++      observation_quality_.valid = false;
++      observation_quality_.reason = "nonfinite_filter_increment";
++      return rollback();
++    }
+ 
+     Update();
+ 
+@@ -328,6 +355,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+   P_ = G_reset * P_ * G_reset.transpose();
+ 
+   P_ = 0.5 * (P_ + P_.transpose());
++  if (!P_.allFinite()) {
++    observation_quality_.valid = observation_quality_.eligible = false;
++    observation_quality_.reason = "nonfinite_posterior_covariance";
++    return rollback();
++  }
+ 
+   dx_.setZero();
+ 
+@@ -335,4 +367,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+   return true;
+ }
+ 
+-}
+\ No newline at end of file
++}
+diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
+index d1a3ae7..72699c0 100644
+--- a/src/super_lio/src/lio/super_lio.cpp
++++ b/src/super_lio/src/lio/super_lio.cpp
+@@ -193,17 +193,19 @@ bool SuperLIO::map_init(){
+ 
+ void SuperLIO::stateProcess(){
+   frame_num_++;
++  bool observed = false;
+   if(g_time_eva){
+     time_record_.Evaluate([this](){Propagation_Undistort();}, "[Undistort]");
+     time_record_.Evaluate([this]() { DownSample(); }, "[DownSample]");
+-    time_record_.Evaluate([this]() { Observe(); }, "[Observe]");
+-    time_record_.Evaluate([this]() { UpdateMap(); }, "[UpdateMap]");
++    time_record_.Evaluate([this, &observed]() { observed = Observe(); }, "[Observe]");
++    if (observed) time_record_.Evaluate([this]() { UpdateMap(); }, "[UpdateMap]");
+   }else{
+     Propagation_Undistort();
+     DownSample();
+-    Observe();
+-    UpdateMap();
++    observed = Observe();
++    if (observed) UpdateMap();
+   }
++  if (!observed) { data_wrapper_->pub_observation_health(); return; }
+   Output();
+   caceData();
+ }
+@@ -435,12 +437,21 @@ void SuperLIO::DownSample(){
+ struct ThreadACC{
+   M6d HTVH = M6d::Zero();
+   V6d HTVr = V6d::Zero();
++  int effective_points = 0;
+   ThreadACC(): HTVH(M6d::Zero()), HTVr(V6d::Zero()) {}
+ };
+ 
+ 
+-void SuperLIO::Observe(){
++bool SuperLIO::Observe(){
+   size_t ptsize = ds_undistort_->size();
++  if (ptsize < kMinimumObservedFeatures || ptsize > 20000) {
++    kf_->RejectObservation("scan_feature_count_out_of_bounds");
++    return false;
++  }
++  if (measures_.imu.size() < 3) {
++    kf_->RejectObservation("insufficient_synchronized_imu_samples");
++    return false;
++  }
+   
+   static std::vector<float> _lengths;
+   points_body_v3_.resize(ptsize);
+@@ -458,7 +469,7 @@ void SuperLIO::Observe(){
+   ivox_->reset_max_group();
+   int iter_num = 0;
+ 
+-  kf_->UpdateObserve([&, this](const ESKF::KFState &kf_state, M6 &HTVH, V6 &HTVr) {
++  const bool observed = kf_->UpdateObserve([&, this](const ESKF::KFState &kf_state, M6 &HTVH, V6 &HTVr) {
+     const SE3 pose = kf_state.pose;
+     const bool need_converge = kf_state.need_converge;
+     const M3d R_transpose = (pose.R_.transpose()).cast<double>();
+@@ -504,18 +515,22 @@ void SuperLIO::Observe(){
+       
+             local_acc.HTVH += J * 1000 * J.transpose();
+             local_acc.HTVr -= J * 1000 * error;
++            ++local_acc.effective_points;
+           }
+         }
+     });
+ 
+     M6d sum_HTVH = M6d::Zero();
+     V6d sum_HTVr = V6d::Zero();
++    int matched_points = 0;
+     for(const auto& local_acc : tls_acc){
+       sum_HTVH += local_acc.HTVH;
+       sum_HTVr += local_acc.HTVr;
++      matched_points += local_acc.effective_points;
+     }
+     HTVH = sum_HTVH.cast<scalar>();
+     HTVr = sum_HTVr.cast<scalar>();
++    kf_->SetObservationSamples(matched_points);
+ 
+     if(need_converge) return;
+ 
+@@ -534,6 +549,7 @@ void SuperLIO::Observe(){
+   });
+ 
+   frame_num_++;
++  return observed;
+ }
+ 
+ 
+@@ -589,4 +605,4 @@ void SuperLIO::printTimeRecord(){
+   time_record_.PrintAll();
+ }
+ 
+-} // namespace END.
+\ No newline at end of file
++} // namespace END.
+diff --git a/src/super_lio/src/ros/ROSWrapper.cpp b/src/super_lio/src/ros/ROSWrapper.cpp
+index 7745912..460f639 100644
+--- a/src/super_lio/src/ros/ROSWrapper.cpp
++++ b/src/super_lio/src/ros/ROSWrapper.cpp
+@@ -1,6 +1,8 @@
+ 
+ #include "ros/ROSWrapper.h"
+ #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
++#include <sstream>
++#include <iomanip>
+ 
+ 
+ using namespace BASIC;
+@@ -568,6 +570,25 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+ }
+ 
+ 
++void ROSWrapper::pub_observation_health(){
++  if (!pub_health_ || !eskf_) return;
++  const auto& quality = eskf_->GetObservationQuality();
++  const auto stamp = toRosTime(eskf_->GetTime());
++  std::ostringstream json;
++  json << std::setprecision(17)
++       << "{\"source\":\"super_lio/f89f48dc\",\"certificate\":\"fixed_extrinsic_observation_lower_bound_v1\","
++       << "\"stamp_ns\":" << (static_cast<int64_t>(stamp.sec)*1000000000LL+stamp.nanosec)
++       << ",\"status\":\"" << (quality.valid && quality.eligible ? "OK" : "FAIL")
++       << "\",\"legacy_min_eig_lower_bound\":" << quality.legacy_lower_bound
++       << ",\"minimum_observation_information\":" << quality.min_information
++       << ",\"effective_points\":" << quality.effective_points
++       << ",\"iterations\":" << quality.iterations
++       << ",\"reason\":\"" << quality.reason << "\"}";
++  std_msgs::msg::String health;
++  health.data = json.str();
++  pub_health_->publish(health);
++}
++
+ void ROSWrapper::pub_odom(const NavState& state){
+   nav_msgs::msg::Odometry odom;
+   odom.header.frame_id = "world";
+@@ -594,26 +615,22 @@ void ROSWrapper::pub_odom(const NavState& state){
+     odom.twist.twist.angular.y = dynamic.w[1];
+     odom.twist.twist.angular.z = dynamic.w[2];
+ 
+-    const auto covariance = eskf_->GetCov();
++    const auto covariance = eskf_->GetCov().cast<double>().eval();
+     if (covariance.array().isFinite().all()) {
+-      for (int row = 0; row < 3; ++row) {
+-        for (int col = 0; col < 3; ++col) {
+-          odom.pose.covariance[row * 6 + col] = covariance(row + 3, col + 3);
+-          odom.pose.covariance[(row + 3) * 6 + col + 3] = covariance(row, col);
+-          odom.twist.covariance[row * 6 + col] = covariance(row + 6, col + 6);
++      const auto pose_covariance = poseCovariance(covariance, state.R.R_.cast<double>());
++      const auto twist_covariance = twistCovariance(covariance, eskf_->GetGyroSampleVariance());
++      for (int row = 0; row < 6; ++row) {
++        for (int col = 0; col < 6; ++col) {
++          odom.pose.covariance[row * 6 + col] = pose_covariance(row,col);
++          odom.twist.covariance[row * 6 + col] = twist_covariance(row,col);
+         }
+       }
+     }
+   }
+ 
++  pub_observation_health();
+   pub_odom_->publish(odom);    // imu frame -> lidar frequency
+ 
+-  if (pub_health_) {
+-    std_msgs::msg::String health;
+-    health.data = "UNKNOWN: Super-LIO has no equivalent FAST-LIO2 degeneracy metric";
+-    pub_health_->publish(health);
+-  }
+-
+   V3 robo_position = state.R.R_ * ( - g_odom_robo.R_ * g_odom_robo.t_) + state.p;
+ 
+   if(g_2_robot){

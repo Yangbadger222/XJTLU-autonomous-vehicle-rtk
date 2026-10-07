@@ -36,3 +36,18 @@ Earlier broad claims that installation/chassis data was missing were inaccurate.
 
 #### Effect
 Source equations and permission limits are known; feedback qualification limitations have concrete counts. Nine independent fit/excitation/finite-value/feedback-axis/sign/two-clock/lateral/gap tests pass. No firmware/calibration/limits/installed runtime change. New Super health/reference/ground/control integration and target acceptance remain incomplete and explicit. The research curvature-zero gate is unfinished configuration, not proof the repo lacks chassis information.
+
+### Physical acceptance preparation: observation certificate and original reference
+
+#### File
+- Super patch0002/application recipe, vehicle adapter/reference YAML/launch
+- `scripts/validate_super_lio_information.cpp`, `audit/vehicle_ready/`
+
+#### Change
+Derived a sufficient conservative legacy-information lower bound from actual Super matched observations under fixed extrinsics. Retain75/50 features/3 IMU checks, worst native iteration and full covariance cross blocks. Invalid observations do not advance the map. Preserve the documented IMU-origin navigation point and own explicit local-world/odom gauge; pair source health by measurement stamp, latch source clock/pose jumps.
+
+#### Reason
+Permanent UNKNOWN and an unconnected reference prevent useful shadow operation. Source mathematics supports a stricter sufficient criterion without fixed healthy, relabeling a physical origin or requesting existing calibrations again.
+
+#### Effect
+Original firmware/calibration/caps/RTK-loss stop unchanged. Actual native C++/Humble/replay/final-wire evidence is still required; this source progress does not finish the goal. Ground and EGO source-constraint integration and target shadow qualification remain incomplete, with no automatic physical driving.

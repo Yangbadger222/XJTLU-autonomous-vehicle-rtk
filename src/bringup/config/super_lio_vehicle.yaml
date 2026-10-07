@@ -26,7 +26,8 @@
     lio.sensor.imu_nbg: 0.0001
     lio.extrinsic.lidar_imu: [-0.011, -0.02329, 0.04412, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
     # Keep the upstream output in its measured/reference frame. The vehicle
-    # adapter refuses motion until an independent IMU->base measurement exists.
+    # adapter applies the audited original IMU-origin navigation convention;
+    # this identity does not replace the documented physical mounting.
     lio.extrinsic.odom_robo: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     lio.hash_map.hash_capacity: 2000000
     lio.hash_map.vox_resolution: 0.5

@@ -1,8 +1,9 @@
 """Single research entry point; old Nav2/SLAM/MPPI task stacks are excluded.
 
 Default mode is replay. ``live`` still leaves actuator authorization to the
-existing authority and command guard, and the adapter's unverified-frame gate
-keeps it stopped until measured vehicle extrinsics are supplied.
+existing authority and command guard. The adapter retains the audited original
+IMU-origin navigation point; real source health and input qualification govern
+motion independently from the local coordinate convention.
 """
 import os
 import uuid
@@ -57,11 +58,8 @@ def generate_launch_description():
     adapter = Node(package="super_lio_vehicle_adapter", executable="super_lio_vehicle_adapter",
                    name="super_lio_vehicle_adapter", output="screen",
 
-                   parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
-                                "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
-                                "source_frame": "world", "world_frame": "odom",
-                                "source_child_frame": "imu", "tf_timeout_s": 0.05,
-                                "imu_to_base_extrinsic_verified": False, "require_covariance": True}, {"use_sim_time": simulated_time}])
+                   parameters=[os.path.join(bringup_share, "config", "super_lio_reference.yaml"),
+                               {"use_sim_time": simulated_time}])
     cloud_frame = Node(
         package="super_lio_vehicle_adapter", executable="super_lio_cloud_frame_adapter",
         name="super_lio_cloud_frame_adapter", output="screen",

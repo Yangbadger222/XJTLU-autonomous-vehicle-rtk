@@ -1,0 +1,56 @@
+"""Fresh, ordered human consent shared by observer and final tracker.
+
+Receipt time uses a steady clock. Duplicate messages cannot renew a lease.
+The sole publisher is checked by the ROS adapters, outside this interface.
+"""
+from dataclasses import dataclass
+import math
+
+
+@dataclass(frozen=True)
+class OperatorConsent:
+    session_id: str
+    sequence: int
+    mode: str
+    map_version: str
+    state: str
+    motion_requested: bool
+    lease_active: bool = False
+
+
+class OperatorGate:
+    TIMEOUT_S = .50  # Same locked corridor stop-heartbeat timeout.
+
+    def __init__(self):
+        self._consent = None
+        self._received = -math.inf
+        self._sessions = {}  # Keep high-water marks across session changes.
+
+    def receive(self, consent, received_at):
+        if (not isinstance(consent, OperatorConsent) or not consent.session_id or
+                len(consent.session_id) > 128 or type(consent.sequence) is not int or
+                consent.sequence <= self._sessions.get(consent.session_id, 0) or
+                not math.isfinite(received_at)):
+            return False
+        if len(self._sessions) >= 100 and consent.session_id not in self._sessions:
+            return False  # Restart an exhausted isolated test session safely.
+        self._sessions[consent.session_id] = consent.sequence
+        self._consent, self._received = consent, received_at
+        return True
+
+    def allowed(self, now, *, mode, map_version, sole_publisher=True):
+        c = self._consent
+        return bool(sole_publisher and c and 0 <= now-self._received <= self.TIMEOUT_S and
+                    mode == "live" and c.mode == mode and map_version not in ("", "UNKNOWN") and
+                    c.map_version == map_version and c.state == "AUTONOMOUS" and c.motion_requested is True and c.lease_active is True)
+
+    def editing_allowed(self, now, *, mode, map_version, sole_publisher=True):
+        c = self._consent
+        return bool(sole_publisher and c and 0 <= now-self._received <= self.TIMEOUT_S and
+                    c.mode == mode and c.map_version == map_version and map_version not in ("", "UNKNOWN") and
+                    c.state in ("VIEW_ONLY", "READY", "PAUSED", "TAKEOVER_WAIT", "STOP_LATCHED") and not c.motion_requested and c.lease_active is True)
+
+
+def consent_from_message(msg):
+    return OperatorConsent(msg.session_id, msg.sequence, msg.execution_mode,
+                           msg.map_version, msg.state, msg.motion_requested, msg.lease_active)

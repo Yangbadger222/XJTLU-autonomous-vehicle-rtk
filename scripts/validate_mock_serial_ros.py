@@ -24,8 +24,9 @@ from std_msgs.msg import Bool, Float32, String, Float32MultiArray, Float64MultiA
 from sensor_msgs.msg import NavSatFix
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from nmea_msgs.msg import Sentence
+from rosgraph_msgs.msg import Clock
 from rclpy.qos import QoSProfile, DurabilityPolicy
-from research_interfaces.msg import TimedTrajectory2D, TimedTrajectoryPoint2D, ResearchStatus
+from research_interfaces.msg import TimedTrajectory2D, TimedTrajectoryPoint2D, ResearchStatus, OperatorPermit
 
 
 def main():
@@ -40,6 +41,7 @@ def main():
     parser.add_argument("--rtk-classifier",action="store_true")
     parser.add_argument("--tf-static-fault",action="store_true")
     parser.add_argument("--loop-budget-s", type=float, default=30.0)
+    parser.add_argument("--paused-clock-probe",action="store_true")
     args = parser.parse_args()
     lock=json.loads((args.repo/'audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json').read_text())
     locked={p['name']:p['value'] for p in lock['parameters']}
@@ -62,6 +64,8 @@ def main():
     goal_arrival_pose=None
     minimum_goal_distance=float("inf")
     trajectory_counts = {"ok": 0, "failed": 0}
+    operator_sequence = 0
+    operator_last = None
     tracker_reasons = {}
     master_config = args.repo / "src/bringup/config/master_params.yaml"
     safety_config = args.repo / "src/bringup/config/research_safety_bridge.yaml"
@@ -78,6 +82,8 @@ def main():
         "reference": node.create_publisher(RosPath, "/research/road_reference", 10),
         "permission": node.create_publisher(OccupancyGrid, "/research/permission_grid", 10),
         "tf": node.create_publisher(TFMessage, "/tf", 10),
+        "operator": node.create_publisher(OperatorPermit,"/research/operator_permit",10),
+        "clock":node.create_publisher(Clock,"/clock",10),
     }
     competing_tf_node = rclpy.create_node("mock_competing_tf_owner")
     static_tf_pub=competing_tf_node.create_publisher(TFMessage,"/tf_static",QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -119,8 +125,22 @@ def main():
 
     def tick(fault="normal"):
         nonlocal last_physics_time,goal_stopped,goal_arrival_pose,minimum_goal_distance
+        nonlocal operator_sequence, operator_last
         stamp = node.get_clock().now().to_msg()
         now = stamp.sec * 1_000_000_000 + stamp.nanosec
+        if args.paused_clock_probe and fault!="paused_ros_clock":pubs["clock"].publish(Clock(clock=stamp))
+        if fault != "operator_heartbeat_lost":
+            if fault=="operator_duplicate" and operator_last is not None:
+                pubs["operator"].publish(operator_last)
+            else:
+                operator_sequence += 1
+                consent=OperatorPermit();consent.header.stamp,consent.header.frame_id=stamp,"odom"
+                consent.session_id,consent.sequence,consent.execution_mode="mock-only",operator_sequence,"live"
+                consent.map_version="m2" if fault=="operator_wrong_map" else "m1"
+                consent.state="STOP_LATCHED" if fault=="operator_stop" else "AUTONOMOUS"
+                consent.lease_active=True
+                consent.motion_requested=fault!="operator_stop"
+                pubs["operator"].publish(consent);operator_last=consent
         if args.ego_loop:
             dt = min((now-last_physics_time) * 1e-9, 0.1)
             simulated_velocity[0] += max(-1.20*dt, min(0.85*dt, wire_command[0]-simulated_velocity[0]))
@@ -272,6 +292,7 @@ def main():
                 "-p", "max_curvature_1pm:=1.0", "-p", "max_lateral_speed_mps:=0.05",
                 "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305))]))
         for package, binary, ros_args in commands:
+            if args.paused_clock_probe:ros_args += ["-p","use_sim_time:=true"]
             log = (args.output.parent / (args.output.stem+"-"+binary + "-mock.log")).open("w")
             logs.append(log)
             children.append(subprocess.Popen([str(args.install / package / "lib" / package / binary),
@@ -318,8 +339,10 @@ def main():
                       "map_version_changed", "grid_stream_lost", "odom_stream_lost", "unknown_ground",
                       "footprint_interior_obstacle", "stop_override", "stop_heartbeat_lost", "speed_permission_zero",
                       "wrong_odom_frame", "old_odom_stamp", "zero_quaternion", "pose_jump",
-                      "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout")
+                      "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
+                      "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map")
         if args.tf_static_fault:faults=("tf_static_competitor",)
+        if args.paused_clock_probe:faults=("paused_ros_clock",)
         if args.rtk_classifier:faults=("gnss_non_fixed","gnss_low_satellites","gnss_bad_hdop","gnss_heading_float","gnss_rtcm_stale")
         for fault in faults:
             normal = phase("normal", 8.0 if args.rtk_classifier else 1.5)

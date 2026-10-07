@@ -1,0 +1,13 @@
+# inspect/select existing registered-prior endpoints; no arbitrary coordinates.
+string action
+string request_id
+string map_version
+string start_node
+string goal_node
+---
+bool accepted
+string reason
+string task_id
+string start_node
+string goal_node
+string[] node_ids

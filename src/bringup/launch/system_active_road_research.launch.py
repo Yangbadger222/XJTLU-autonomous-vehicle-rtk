@@ -36,6 +36,9 @@ def generate_launch_description():
                                          description="Require explicit true plus execution_mode:=live for the physical serial sink")
     mission_arg = DeclareLaunchArgument("mission_execution_enabled",default_value="false",
         description="Explicit research task permission; does not grant RTK or physical KEY authority")
+    console_port = DeclareLaunchArgument("console_port",default_value="8765")
+    bag_catalog = DeclareLaunchArgument("bag_catalog_path",default_value="",
+        description="Read-only catalog of known original raw bags; replay environment only")
     session_arg=DeclareLaunchArgument("localization_session_id",default_value=uuid.uuid4().hex,
         description="Fresh identity per LIO initialization; evidence submap IDs must start with identity/")
     sim_time_arg = DeclareLaunchArgument("use_sim_time", default_value=PythonExpression(
@@ -106,6 +109,12 @@ def generate_launch_description():
                                  "odom_topic": "/lio/odom_vehicle",
                                  "obstacle_grid_topic": "/research/local_obstacle_grid",
                                  "map_version_topic": "/research/map_version"}, {"use_sim_time": simulated_time}])
+    console = Node(package="research_runtime",executable="research_operator_console",name="research_operator_console",
+        output="screen",parameters=[{"execution_mode":LaunchConfiguration("execution_mode"),
+            "actuator_enabled":ParameterValue(LaunchConfiguration("enable_serial"),value_type=bool),
+            "mission_execution_enabled":ParameterValue(LaunchConfiguration("mission_execution_enabled"),value_type=bool),
+            "http_port":ParameterValue(LaunchConfiguration("console_port"),value_type=int),
+            "bag_catalog_path":LaunchConfiguration("bag_catalog_path"),"use_sim_time":simulated_time}])
     livox = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("livox_ros_driver2"),
                                                               "launch_ROS2", "msg_MID360_launch.py"])]),
@@ -119,9 +128,9 @@ def generate_launch_description():
     )
     robot_description = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "robot_description.launch.py")))
-    return LaunchDescription([mode, enable_super, enable_serial, mission_arg, session_arg, sim_time_arg,
+    return LaunchDescription([mode, enable_super, enable_serial, mission_arg, console_port, bag_catalog, session_arg, sim_time_arg,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               robot_description, livox, rtk,
                               super_lio, adapter, cloud_frame, active_road_map, active_road_evidence, active_observation,
                               local_grid, ego_vehicle, tf_integrity,
-                              authority, cmd_guard, serial, research])
+                              authority, cmd_guard, serial, research, console])

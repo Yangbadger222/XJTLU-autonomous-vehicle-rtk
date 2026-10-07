@@ -16,7 +16,8 @@ import subprocess
 import sys
 import time
 import rclpy
-from research_interfaces.msg import ResearchStatus, TimedTrajectory2D, ObservationGoal
+from research_interfaces.msg import ResearchStatus, TimedTrajectory2D, ObservationGoal, OperatorPermit
+from std_msgs.msg import String
 from nav_msgs.msg import Odometry, OccupancyGrid, Path as RosPath
 from geometry_msgs.msg import AccelStamped
 import numpy as np
@@ -73,6 +74,10 @@ def trial(args,mode,index,manifest):
     config=args.repo/'src/bringup/config'
     rclpy.init();probe=rclpy.create_node("restricted_trial_evaluator")
     observations=[];reasons={};planning={}; inputs={}; failures=[]
+    operator_pub=probe.create_publisher(OperatorPermit,"/research/operator_permit",10)
+    current_version=["UNKNOWN"]
+    probe.create_subscription(String,"/research/map_version",lambda msg:current_version.__setitem__(0,msg.data),10)
+    operator_sequence=0
     def odom_cb(msg):
         q=msg.pose.pose.orientation
         inputs['state']=[msg.pose.pose.position.x,msg.pose.pose.position.y,2*math.atan2(q.z,q.w),
@@ -125,6 +130,11 @@ def trial(args,mode,index,manifest):
             '--sensor-fault',args.sensor_fault,'--fault-after-s',str(args.fault_after_s)],pass_fds=(master,))
         while time.monotonic()-start<args.budget_s+5 and all(child.poll() is None for _,child in children):
             rclpy.spin_once(probe,timeout_sec=.02)
+            operator_sequence+=1
+            permit=OperatorPermit();permit.header.stamp,permit.header.frame_id=probe.get_clock().now().to_msg(),"odom"
+            permit.session_id,permit.sequence,permit.execution_mode="simulation-evaluator-only",operator_sequence,"live"
+            permit.map_version,permit.state,permit.motion_requested=current_version[0],"AUTONOMOUS",True
+            permit.lease_active=True;operator_pub.publish(permit)
             # Evaluator-only termination reads policy status, never feeds truth back.
             if 'TASK_REACHED' in (root/'observer.log').read_text():break
         exits={name:child.poll() for name,child in children}

@@ -61,7 +61,10 @@ def main():
         dx,dy = b["position"][0]-new0["position"][0], b["position"][1]-new0["position"][1]
         transformed = (old0["position"][0]+c*dx-s*dy, old0["position"][1]+s*dx+c*dy)
         errors.append(math.dist(transformed, a["position"][:2]))
-    result = {"runs": runs, "raw_scan_count": 2867, "alignment": "one fixed initial planar yaw/translation, no segment realignment",
+    counts = [d.get("replay_contract", {}).get("expected_raw_counts", {}).get("/livox/lidar") for d in datasets]
+    if datasets[0]["bag"] != datasets[1]["bag"] or counts[0] != counts[1]:
+        raise ValueError("paired replay must use the same raw bag/count")
+    result = {"runs": runs, "raw_scan_count": counts[0], "alignment": "one fixed initial planar yaw/translation, no segment realignment",
               "paired_samples": len(pairs), "trajectory_discrepancy_m": {"rmse": math.sqrt(statistics.mean(e*e for e in errors)),
                     "p50": quantile(errors,.5), "p95": quantile(errors,.95), "max": max(errors), "last": errors[-1]},
               "limitations": ["FAST-LIO is not ground truth", "sensor/vehicle lever-arm equivalence remains unverified",

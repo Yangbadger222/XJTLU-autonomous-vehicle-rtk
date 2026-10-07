@@ -25,10 +25,16 @@ def main():
                   max_yaw_accel_rps2=acc[2],max_yaw_decel_rps2=-dec[2],max_lateral_accel_mps2=locked["corridor.guard.turn_product_limit"])
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     footprint = tuple(tuple(point) for point in locked["vehicle.corridor_footprint_xy"])
+    master_path = root/"src/bringup/config/master_params.yaml"
+    master = yaml.safe_load(master_path.read_text())["/rtk_map_odom_corrector"]["ros__parameters"]
+    stopped = (master["stopped_linear_rate_mps"], math.radians(master["stopped_yaw_rate_degps"]),
+               master["stopped_confirmation_s"])
     python = root/"src/research_runtime/research_runtime/physical_parameter_lock.py"
     python_text = (f'"""Generated from approved parameter lock; SHA256 {digest}."""\n'
         +f"PHYSICAL_LIMITS = {values!r}\n"
         +f"LOCKED_FOOTPRINT = {footprint!r}\n"
+        +f"STOP_CONFIRMATION = {stopped!r}\n"
+        +f"STOP_CONFIRMATION_SOURCE_SHA256 = {hashlib.sha256(master_path.read_bytes()).hexdigest()!r}\n"
         +'''\ndef require_locked_motion_parameters(actual):
     import math
     for key, expected in PHYSICAL_LIMITS.items():

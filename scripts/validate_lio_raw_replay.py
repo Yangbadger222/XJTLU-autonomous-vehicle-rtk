@@ -14,6 +14,8 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String
 from rclpy.qos import qos_profile_sensor_data
+from livox_ros_driver2.msg import CustomMsg
+from raw_replay_contract import replay_contract
 
 
 def stop(process):
@@ -34,12 +36,13 @@ def main():
     parser.add_argument("--bag", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    contract = replay_contract(args.bag)
     if os.environ.get("ROS_DOMAIN_ID") != "92" or os.environ.get("ROS_LOCALHOST_ONLY") != "1":
         raise SystemExit("requires domain 92 and localhost-only isolation")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     rclpy.init()
     node = rclpy.create_node("lio_raw_replay_probe", parameter_overrides=[rclpy.parameter.Parameter("use_sim_time", value=True)])
-    odometry, health, received_imu, resources = [], {}, [0], []
+    odometry, health, received_imu, received_lidar, resources = [], {}, [0], [0], []
 
     def odom_cb(msg):
         q, p = msg.pose.pose.orientation, msg.pose.pose.position
@@ -60,6 +63,7 @@ def main():
     node.create_subscription(Odometry, topic, odom_cb, 100)
     node.create_subscription(String, "/lio/health", health_cb, 100)
     node.create_subscription(Imu, "/livox/imu", imu_cb, qos_profile_sensor_data)
+    node.create_subscription(CustomMsg, "/livox/lidar", lambda msg: received_lidar.__setitem__(0, received_lidar[0]+1), qos_profile_sensor_data)
     command = [str(args.binary), "--ros-args", "--params-file", str(args.config), "-p", "use_sim_time:=true"]
     if args.kind == "fastlio":
         command += ["-r", "__ns:=/fastlio2"]
@@ -75,7 +79,7 @@ def main():
                                      "--topics", "/livox/lidar", "/livox/imu"],
                                     stdout=logs[1], stderr=subprocess.STDOUT, start_new_session=True)
         sample_at = time.monotonic()
-        deadline = started + 420.0
+        deadline = started + contract["wall_budget_s"]
         while playback.poll() is None and algorithm.poll() is None and time.monotonic() < deadline:
             rclpy.spin_once(node, timeout_sec=0.02)
             if time.monotonic() >= sample_at:
@@ -99,6 +103,8 @@ def main():
                   "bag": str(args.bag), "domain": 92, "play_rate": 1.0,
                   "topics_played": ["/livox/lidar", "/livox/imu"],
                   "playback_exit": playback_exit, "algorithm_exit_before_cleanup": algorithm.poll(),
+                  "replay_contract": contract, "timed_out": playback_exit is None and time.monotonic() >= deadline,
+                  "lidar_received": received_lidar[0],
                   "imu_received": received_imu[0], "odometry_count": len(odometry),
                   "health_counts": health, "wall_elapsed_s": time.monotonic() - started,
                   "resources": resources, "odometry": odometry,

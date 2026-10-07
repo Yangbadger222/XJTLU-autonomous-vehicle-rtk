@@ -33,6 +33,7 @@ def main():
             "nodes": ["ros2", "node", "list", "--no-daemon"],
             "topics": ["ros2", "topic", "list", "--no-daemon", "-t"],
             "safety_parameters": ["ros2", "param", "dump", "/research_safety_bridge"],
+            "console_parameters": ["ros2", "param", "dump", "/research_operator_console"],
             "ego_parameters": ["ros2", "param", "dump", "/ego_vehicle_adapter"],
             "authority_parameters": ["ros2", "param", "dump", "/rtk_map_odom_corrector"],
             "guard_parameters": ["ros2", "param", "dump", "/corridor_cmd_vel_guard"],
@@ -90,7 +91,7 @@ def main():
         expected = {"/research_tf_integrity_guard", "/super_lio_node", "/super_lio_vehicle_adapter", "/super_lio_cloud_frame_adapter",
                     "/active_road_map", "/active_road_evidence", "/active_observation", "/research_local_obstacle_grid",
                     "/ego_vehicle_adapter", "/rtk_map_odom_corrector", "/corridor_cmd_vel_guard",
-                    "/research_safety_bridge", "/robot_state_publisher", "/joint_state_publisher"}
+                    "/research_safety_bridge", "/research_operator_console", "/robot_state_publisher", "/joint_state_publisher"}
         rclpy.init()
         probe = rclpy.create_node("entry_acceptance_graph_probe")
         deadline = time.monotonic()+15
@@ -119,7 +120,7 @@ def main():
                   "launch_exit_before_cleanup": process.poll()}
         result["status"] = "PASS" if (not result["missing_expected_nodes"] and not result["forbidden_nodes"] and
                 process.poll() is None and all(c["status"]=="PASS" for c in override_results) and all(v["exit"] == 0 for v in evidence.values() if isinstance(v,dict) and "exit" in v)
-                and len(owned_pids) == 14 and all(p["alive"] for p in evidence["owned_child_processes"])
+                and len(owned_pids) == 15 and all(p["alive"] for p in evidence["owned_child_processes"])
                 and len(owners) == 1 and owners[0].node_name == "research_safety_bridge") else "FAIL"
     finally:
         if process.poll() is None:

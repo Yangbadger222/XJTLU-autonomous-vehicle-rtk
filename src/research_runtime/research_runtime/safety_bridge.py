@@ -11,17 +11,19 @@ import sys
 import time
 from .replay_sim import main as replay_main
 from .authority import AuthorityState, SafetyGate, SafetyCommand
+from .operator_gate import OperatorGate, consent_from_message
 
 try:
     import rclpy
     import math
     from rclpy.node import Node
     from rclpy.parameter import Parameter
+    from rclpy.clock import Clock, ClockType
     from geometry_msgs.msg import Twist
     from nav_msgs.msg import Odometry
     from nav_msgs.msg import OccupancyGrid
     from std_msgs.msg import Bool, String
-    from research_interfaces.msg import TimedTrajectory2D, ResearchStatus
+    from research_interfaces.msg import TimedTrajectory2D, ResearchStatus, OperatorPermit
 except ImportError:
     rclpy = None
 
@@ -116,6 +118,7 @@ if rclpy:
                 heading_gain=float(self.get_parameter("tracker_heading_gain").value),
                 preview_s=float(self.get_parameter("tracker_preview_s").value))
             self._allowed = False
+            self._operator_gate = OperatorGate()
             self._allowed_stamp = 0.0
             self._authority_mode,self._authority_mode_stamp = "UNKNOWN",0.0
             self._health = "UNKNOWN"
@@ -146,7 +149,14 @@ if rclpy:
             self.create_subscription(OccupancyGrid, str(self.get_parameter("permission_grid_topic").value),
                                      self._permission_cb, 10)
             self.create_subscription(Bool, "/research/tf_integrity", self._tf_cb, 10)
-            self.create_timer(0.05, self._tick)
+            self.create_subscription(OperatorPermit, "/research/operator_permit", self._operator_cb, 10)
+            self._steady_clock = Clock(clock_type=ClockType.STEADY_TIME)
+            self.create_timer(0.05, self._tick, clock=self._steady_clock)
+
+        def _operator_cb(self, msg):
+            age = self.get_clock().now().nanoseconds*1e-9-self._time_seconds(msg.header.stamp)
+            if msg.header.frame_id == "odom" and 0 <= age <= .5:
+                self._operator_gate.receive(consent_from_message(msg), time.monotonic())
 
         def _authority(self, msg):
             self._allowed = bool(msg.data)
@@ -300,6 +310,9 @@ if rclpy:
                          and (now - self._state_stamp) <= 0.25
                          and self._trajectory is not None
                          and self._trajectory.status == TimedTrajectory2D.STATUS_OK)
+            operator_ok = self._operator_gate.allowed(now, mode=self._mode, map_version=self._map_version,
+                sole_publisher=self.count_publishers("/research/operator_permit") == 1)
+            valid = valid and operator_ok
             rtk_mode_ok=rtk_mode_is_allowed(self._authority_mode,now-self._authority_mode_stamp,
                 float(self.get_parameter("authority_timeout_s").value))
             state = AuthorityState(self._allowed and rtk_mode_ok, self._allowed_stamp, now,
@@ -332,6 +345,7 @@ if rclpy:
             status.state = "TRACKING" if command.allowed else "STOPPED"
             status.motion_allowed, status.actuator_enabled = self._allowed and rtk_mode_ok, self._actuator_enabled
             status.reason = command.reason
+            if not operator_ok: status.reason += ";operator_consent_missing_stale_or_denied"
             if not rtk_mode_ok:status.reason+=";rtk_mode_or_age_denied:"+self._authority_mode
             if not grid_ready:
                 detail=[]

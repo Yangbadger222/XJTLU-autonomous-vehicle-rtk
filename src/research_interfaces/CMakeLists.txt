@@ -13,8 +13,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/RoadEvent.msg"
   "msg/ObservationGoal.msg"
   "msg/ResearchStatus.msg"
+  "msg/OperatorPermit.msg"
   "msg/RoadEvidence2D.msg"
   "srv/PlanRoadReference.srv"
+  "srv/ManageResearchTask.srv"
   DEPENDENCIES builtin_interfaces geometry_msgs std_msgs nav_msgs
 )
 ament_export_dependencies(rosidl_default_runtime)

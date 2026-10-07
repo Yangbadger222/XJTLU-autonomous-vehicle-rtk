@@ -18,12 +18,15 @@ from rclpy.time import Time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.clock import Clock, ClockType
 from rclpy.qos import QoSProfile,DurabilityPolicy
 from geometry_msgs.msg import Point, PoseStamped
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
 from std_msgs.msg import Bool, String
 from research_interfaces.msg import ObservationGoal, RoadEvent, RoadEvidence2D, ResearchStatus,RoadGraphUpdate2D
-from research_interfaces.srv import PlanRoadReference
+from research_interfaces.srv import PlanRoadReference, ManageResearchTask
+from research_interfaces.msg import OperatorPermit
+from research_runtime.operator_gate import OperatorGate, consent_from_message
 
 from research_runtime.active_observation import (FiniteObservationPolicy, frontier_events,
     planned_views, visible_fraction, prior_gap_events, task_impact, supported_gap_updates, save_snapshot, load_snapshot,
@@ -42,6 +45,9 @@ class ActiveObservationNode(Node):
         super().__init__("active_observation")
         self.execution_mode = str(self.declare_parameter("execution_mode","replay").value)
         self.mission_enabled = self.declare_parameter("mission_execution_enabled",False).value is True
+        self.operator_gate = OperatorGate()
+        self.last_tick = time.monotonic()
+        self.task_id = "startup"
         if self.execution_mode not in ("replay","shadow","live"):raise ValueError("invalid execution mode")
         self.stop_permission = self.create_publisher(Bool,"/gps_corridor/stop_override",10)
         self.mode = str(self.declare_parameter("policy", "TASK_AWARE_LOOK").value)
@@ -115,7 +121,56 @@ class ActiveObservationNode(Node):
         self.create_subscription(String, "/lio/vehicle_health", self._health, 10)
         self.create_subscription(Bool, "/localization_authority/motion_allowed", self._authority, 10)
         self.create_subscription(String,"/localization_authority/mode",self._authority_mode,10)
-        self.create_timer(.1, self._tick)
+        self.create_subscription(OperatorPermit,"/research/operator_permit",self._operator,10)
+        self.create_service(ManageResearchTask,"/research/manage_task",self._manage_task)
+        self.steady_clock = Clock(clock_type=ClockType.STEADY_TIME)
+        self.create_timer(.1, self._tick,clock=self.steady_clock)
+
+    def _operator(self,msg):
+        age=self.get_clock().now().nanoseconds*1e-9-(msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9)
+        if msg.header.frame_id=="odom" and 0<=age<=.5:
+            self.operator_gate.receive(consent_from_message(msg),time.monotonic())
+
+    def _operator_allowed(self,now):
+        return self.operator_gate.allowed(now,mode=self.execution_mode,map_version=self.version,
+            sole_publisher=self.count_publishers("/research/operator_permit")==1)
+
+    def _cancel_observation(self,now):
+        if self.pending:
+            self.pending=None
+            self.pending_future.cancel()
+        if self.active:
+            view,event,start=self.active
+            self.policy.record(view,actual_cost_s=max(0.,now-start),elapsed_s=now-self.started,resolved_geometry=False)
+            self._save_policy()
+        self.active,self.queue,self.views,self.dwell_start=None,[],[],None
+
+    def _manage_task(self,request,response):
+        response.node_ids=sorted(self.map_graph.nodes) if self.map_graph else []
+        response.accepted=False
+        response.reason="No registered prior/task endpoints"
+        if request.action=="inspect":
+            response.accepted=bool(self.map_graph)
+            response.reason="REGISTERED_PRIOR" if self.map_graph else response.reason
+        elif request.action=="select":
+            editable=self.operator_gate.editing_allowed(time.monotonic(),mode=self.execution_mode,map_version=self.version,
+                sole_publisher=self.count_publishers("/research/operator_permit")==1)
+            if not editable or request.map_version!=self.version:
+                response.reason="OPERATOR_PAUSE_OR_MAP_VERSION_REQUIRED"
+            elif (not request.request_id or len(request.request_id)>128 or self.map_graph is None or
+                    request.start_node not in self.map_graph.nodes or request.goal_node not in self.map_graph.nodes or
+                    request.start_node==request.goal_node):
+                response.reason="INVALID_REGISTERED_ENDPOINTS"
+            else:
+                self._cancel_observation(time.monotonic())
+                self.task_start,self.task_goal=request.start_node,request.goal_node
+                self.task_id=request.request_id
+                self.ready_started=None
+                self.started=time.monotonic()
+                self.policy.spent_s,self.policy.last_look_s=0.,-math.inf
+                response.accepted,response.reason=True,"TASK_SELECTED_REQUIRES_EXPLICIT_START"
+        response.task_id,response.start_node,response.goal_node=self.task_id,self.task_start,self.task_goal
+        return response
 
     def _version(self, msg):
         if msg.data != self.version:
@@ -292,12 +347,21 @@ class ActiveObservationNode(Node):
 
     def _can_request_motion(self,now):
         return (self.execution_mode=="live" and self.mission_enabled and self.allowed and
+                self._operator_allowed(now) and
                 rtk_mode_is_allowed(self.authority_mode,now-self.authority_mode_received) and
                 now-getattr(self,"authority_received",0)<=.5 and self._candidate_safety_ready(now))
 
     def _tick(self):
         now = time.monotonic()
+        elapsed=max(0.,now-self.last_tick)
+        self.last_tick=now
         reason = "WAITING_FOR_MEASURED_INPUTS"
+        if self.execution_mode=="live" and not self._operator_allowed(now):
+            if self.ready_started: self.ready_started+=elapsed
+            self._cancel_observation(now)
+            if self._ready(now): self._mission_update()  # Keep perception/evidence while stopped.
+            self._publish_status("OPERATOR_PAUSED_OR_PERMISSION_LOST")
+            return
         if self.ready_started and now-self.ready_started>=self.policy.budget_s:
             if self.active:
                 view,event,start=self.active

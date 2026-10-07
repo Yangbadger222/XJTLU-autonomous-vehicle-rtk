@@ -1,6 +1,6 @@
 # Super-LIO / EGO2D 研究交付
 
-研究分支：`codex/superlio-ego-active-road`。车辆基线严格使用 `corridor-authority-stability @ e54c6afbcb5a58db22d7c468085a87d658b0b932`；最终编译源码为 `08d1835cb3a91f3a4707da2a615c155794baa1d4`，后续报告提交不改变运行源码。原分支、生产工作区、固件、标定、串口协议、已测运动限值和安全权限保留。
+研究分支：`codex/superlio-ego-active-road`，已正常推送；草稿研究 [PR #22](https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22)，未合并生产分支。车辆基线严格使用 `corridor-authority-stability @ e54c6afbcb5a58db22d7c468085a87d658b0b932`；最终编译源码为 `08d1835cb3a91f3a4707da2a615c155794baa1d4`，后续报告提交不改变运行源码。原分支、生产工作区、固件、标定、串口协议、已测运动限值和安全权限保留。
 
 ## 软件验证
 

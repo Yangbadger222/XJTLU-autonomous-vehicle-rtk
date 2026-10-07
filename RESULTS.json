@@ -149,12 +149,13 @@
     "scope": "Pinned original test/environment failures retained: 191 PASS/3 FAIL authority-guard; 26 PASS/1 FAIL launch. No protected bytes changed to force green."
   },
   "DELIVERY_STATE": {
-    "status": "PENDING",
+    "status": "PASS",
     "evidence": [
-      "REPRODUCE.md",
+      "audit/remote_humble/publication.json",
+      "audit/FINAL_DELIVERY_STATIC.json",
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md"
     ],
-    "scope": "Executed source 08d1835, complete clean build/runtime/finite comparison and final documents; normal research-only publication is the remaining step."
+    "scope": "Implementation and actual audit/report commit 01c2fd3 confirmed by normal research-only push; baseline remains e54c6af. Draft PR22, no production merge. Runtime sources unchanged since compiled 08d1835. Completed negative policy experiment and physical PENDING gates remain independent."
   }
 }

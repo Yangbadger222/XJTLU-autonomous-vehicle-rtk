@@ -152,6 +152,7 @@ class OperatorConsole:
             self.tick()
             now = self.clock()
             return {"mode": self.mode, "actuator_enabled": self.actuator_enabled, "mission_enabled": self.mission_enabled,
+                    "operator_timeout_s":OperatorGate.TIMEOUT_S,
                     "state": self.state, "reason": self.reason, "owns_lease": bool(client and self.owner == client),
                     "lease_active": self.owner is not None, "stop_confirmed_from_odom": self._stopped(),
                     "blocked": self.blocked(), "task": dict(self.task), "replay": dict(self.replay),

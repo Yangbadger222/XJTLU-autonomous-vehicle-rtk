@@ -14,6 +14,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String
 from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import QoSProfile, ReliabilityPolicy
 from livox_ros_driver2.msg import CustomMsg
 from raw_replay_contract import replay_contract
 
@@ -62,7 +63,8 @@ def main():
     topic = "/fastlio2/lio_odom" if args.kind == "fastlio" else "/lio/odom"
     node.create_subscription(Odometry, topic, odom_cb, 100)
     node.create_subscription(String, "/lio/health", health_cb, 100)
-    node.create_subscription(Imu, "/livox/imu", imu_cb, qos_profile_sensor_data)
+    node.create_subscription(Imu, "/livox/imu", imu_cb,
+        QoSProfile(depth=1024,reliability=ReliabilityPolicy.BEST_EFFORT))
     node.create_subscription(CustomMsg, "/livox/lidar", lambda msg: received_lidar.__setitem__(0, received_lidar[0]+1), qos_profile_sensor_data)
     command = [str(args.binary), "--ros-args", "--params-file", str(args.config), "-p", "use_sim_time:=true"]
     if args.kind == "fastlio":

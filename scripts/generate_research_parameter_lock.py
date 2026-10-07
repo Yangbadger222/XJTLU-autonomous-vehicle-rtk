@@ -39,6 +39,7 @@ def main():
         +f"LOCKED_FOOTPRINT = {footprint!r}\n"
         +f"STOP_CONFIRMATION = {stopped!r}\n"
         +f"STOP_CONFIRMATION_SOURCE_SHA256 = {hashlib.sha256(master_path.read_bytes()).hexdigest()!r}\n"
+        +f"AUTHORITY_HEARTBEAT_TIMEOUT_S = {locked['authority.heartbeat_timeout_s']!r}\n"
         +'''\ndef require_locked_motion_parameters(actual):
     import math
     for key, expected in PHYSICAL_LIMITS.items():

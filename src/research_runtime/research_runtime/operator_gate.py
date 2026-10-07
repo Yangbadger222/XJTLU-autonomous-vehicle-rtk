@@ -5,6 +5,7 @@ The sole publisher is checked by the ROS adapters, outside this interface.
 """
 from dataclasses import dataclass
 import math
+from .physical_parameter_lock import AUTHORITY_HEARTBEAT_TIMEOUT_S
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class OperatorConsent:
 
 
 class OperatorGate:
-    TIMEOUT_S = .50  # Same locked corridor stop-heartbeat timeout.
+    TIMEOUT_S = AUTHORITY_HEARTBEAT_TIMEOUT_S
 
     def __init__(self):
         self._consent = None

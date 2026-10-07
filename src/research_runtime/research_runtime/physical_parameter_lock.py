@@ -3,6 +3,7 @@ PHYSICAL_LIMITS = {'max_speed_mps': 0.85, 'min_speed_mps': 0.0, 'max_yaw_rate_rp
 LOCKED_FOOTPRINT = ((0.33, 0.305), (0.33, -0.305), (-0.33, -0.305), (-0.33, 0.305))
 STOP_CONFIRMATION = (0.05, 0.03490658503988659, 1.0)
 STOP_CONFIRMATION_SOURCE_SHA256 = 'a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758'
+AUTHORITY_HEARTBEAT_TIMEOUT_S = 0.5
 
 def require_locked_motion_parameters(actual):
     import math

@@ -134,7 +134,16 @@ def main():
             # Release this test window so the human/browser can operate it.
             phase(.65,heartbeat=False)
             deadline=time.monotonic()+args.serve_seconds
-            while time.monotonic()<deadline:tick(heartbeat=False);time.sleep(.03)
+            sampled_at=0.;samples=[]
+            while time.monotonic()<deadline:
+                tick(heartbeat=False);time.sleep(.03)
+                if time.monotonic()-sampled_at>.2:
+                    sampled_at=time.monotonic()
+                    try:current=snapshot()
+                    except OSError:current={}
+                    samples.append({"time":time.time(),"state":current.get("state"),"reason":current.get("reason"),
+                        "serial_tail":wire[-5:],"nonzero_count":sum(line!="vcx=0.000,wc=0.000\n" for line in wire)})
+                    args.output.with_suffix('.samples.json').write_text(json.dumps(samples,indent=2))
             result={"status":"SERVE_COMPLETE","wire_tail":wire[-5:],"wire_nonzero_count":sum(line!="vcx=0.000,wc=0.000\n" for line in wire)}
         else:
             for action in ("pause","stop","takeover"):

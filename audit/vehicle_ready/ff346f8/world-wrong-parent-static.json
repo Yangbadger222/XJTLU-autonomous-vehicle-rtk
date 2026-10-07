@@ -1,0 +1,67 @@
+{
+  "domain": 91,
+  "sink": "allocated PTY; no physical device",
+  "serial_profile": "original master YAML, only port remapped",
+  "simulation_only_settings": {
+    "max_curvature_1pm": 1.0,
+    "max_lateral_speed_mps": 0.05
+  },
+  "scope": "actual original serial binary; physical KEY/joystick/firmware emergency stop remains pending",
+  "rtk_classifier": false,
+  "world_gauge_fault": "wrong-parent-static",
+  "authority_mode_counts": {
+    "RTK_AUTHORITATIVE": 94
+  },
+  "runtime_parameters": {
+    "research_safety_bridge": {
+      "exit": 0,
+      "yaml": "/research_safety_bridge:\n  ros__parameters:\n    actuator_enabled: true\n    authority_timeout_s: 0.5\n    footprint_xy:\n    - 0.33\n    - 0.305\n    - 0.33\n    - -0.305\n    - -0.33\n    - -0.305\n    - -0.33\n    - 0.305\n    grid_timeout_s: 0.5\n    health_timeout_s: 0.5\n    health_topic: /lio/vehicle_health\n    map_timeout_s: 0.5\n    map_version_topic: /research/map_version\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 1.0\n    max_decel_mps2: 1.2\n    max_lateral_accel_mps2: 0.25\n    max_lateral_speed_mps: 0.05\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    min_speed_mps: 0.0\n    mode: live\n    normal_slew_fraction: 0.5\n    obstacle_grid_topic: /research/local_obstacle_grid\n    odom_topic: /lio/odom_vehicle\n    permission_grid_topic: /research/permission_grid\n    state_timeout_s: 0.2\n    tracker_heading_gain: 1.0\n    tracker_lateral_gain: 1.5\n    tracker_longitudinal_gain: 0.8\n    tracker_preview_s: 0.1\n    use_sim_time: false\n\n"
+    },
+    "corridor_cmd_vel_guard": {
+      "exit": 0,
+      "yaml": "/corridor_cmd_vel_guard:\n  ros__parameters:\n    command_timeout_s: 0.25\n    heartbeat_timeout_s: 0.5\n    input_topic: /cmd_vel\n    min_turn_rate_radps: 0.05\n    motion_allowed_topic: /localization_authority/motion_allowed\n    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps\n    output_topic: /cmd_vel_guarded\n    require_speed_limit: true\n    road_rejoin_active_topic: /gps_nav/road_rejoin_active\n    road_rejoin_max_mps: 0.35\n    stop_override_topic: /gps_corridor/stop_override\n    straight_max_mps: 0.85\n    turn_product_limit: 0.25\n    use_sim_time: false\n\n"
+    },
+    "serial_twistctl_node": {
+      "exit": 0,
+      "yaml": "/serial_twistctl_node:\n  ros__parameters:\n    angular_z_scale: 1.0\n    baudrate: 115200\n    delay_between_attempts_ms: 0\n    port: /dev/pts/0\n    qos_overrides:\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    send_attempts: 1\n    use_sim_time: false\n\n"
+    }
+  },
+  "cases": [
+    {
+      "fault": "world_gauge_wrong-parent-static",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "world_gauge_wrong-parent-static:restored_without_reset",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "tracker_reason_counts": {
+    "rtk_authority_false;trajectory_invalid;operator_consent_missing_stale_or_denied": 30,
+    "rtk_authority_false;map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied:tf_integrity_or_age": 6,
+    "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied;rtk_mode_or_age_denied:RTK_AUTHORITATIVE:map_stale,grid_stale,tf_integrity_or_age,permission_missing_or_age": 49
+  },
+  "child_exit_before_cleanup": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "status": "PASS"
+}

@@ -357,6 +357,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             # Do not transiently fault a previously accepted pair merely
             # because DDS delivered the next odom before its certificate.
             # Without a matched pair, state/health freshness still expires.
+            if not source_health_current and time.monotonic()-self._source_health_received > .50:
+                self._reject("source observation certificate expired or absent")
             return
         if self._last_source_stamp is not None and source_stamp <= self._last_source_stamp:
             if source_stamp < self._last_source_stamp:

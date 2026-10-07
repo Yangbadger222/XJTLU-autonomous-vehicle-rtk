@@ -52,3 +52,22 @@ def test_certificate_validation_does_not_depend_on_navigation_point_selection():
         assert not node._source_health_ok and node._source_certificate_stamp is None and rejected
         node._health_callback(SimpleNamespace(data=certificate()))
         assert node._source_health_ok and node._source_certificate_stamp==123456789
+
+
+def test_unmatched_continuing_odom_expires_old_health_without_faulting_fresh_dds_ordering():
+    import time
+    from types import SimpleNamespace
+    from super_lio_vehicle_adapter.adapter_node import SuperLioVehicleAdapter
+    msg=SimpleNamespace(header=SimpleNamespace(frame_id='world',stamp=SimpleNamespace(sec=1,nanosec=0)),child_frame_id='imu')
+    for legacy in (True,False):
+        for age in (.01,1.):
+            node=object.__new__(SuperLioVehicleAdapter)
+            node._source_frame='world';node._source_child_frame='imu'
+            node._legacy_reference=legacy;node._verified=not legacy
+            node._source_health_ok=True;node._source_health_received=time.monotonic()-age
+            node._source_certificate_stamp=900_000_000;node._reference_fault=''
+            rejected=[];node._reject=rejected.append
+            node._callback(msg)
+            assert node._pending_odom is msg
+            assert bool(rejected)==(age>.5)
+            if rejected:assert 'expired' in rejected[-1]

@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "information",
+      "status": "PASS",
+      "source_sha256": "27d863d99146dac8808aacbf5114f9122b8332c8a792619705b4ebca01770089",
+      "binary_sha256": "fff37a19f58fd2da93c6086db2e6446ce237a5504beec4564486e79b6e47cb9b",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-ff346f8/native/information.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "failed_update",
+      "status": "PASS",
+      "source_sha256": "c7b20635585ba4b6723888abf19fcf403bb4500a800d808b8a7281be2603a6b2",
+      "binary_sha256": "8379b16a0223510b0eb04a9f272ae6926bba702bc28ac45af0361c4ee1e8fbae",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-ff346f8/native/failed_update.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "deskew",
+      "status": "PASS",
+      "source_sha256": "d7117fb08d4f62865c094e6bcf9d7114c0c79da739e9e4a9488c067217a593ea",
+      "binary_sha256": "03892552a38a6e00933e7698a3d20f9233e208dd9f38b1e14fb08d2164e0828e",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-ff346f8/native/deskew.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "packet",
+      "status": "PASS",
+      "source_sha256": "669f6d7dd8b15c5e4d5888b79360ac44a24fdf8e39090a4b476c9535a7a2d8f1",
+      "binary_sha256": "75b5502b9a34d93ac8393ce8ea81bf3b53c677f687008fbc10110edf533729ae",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-ff346f8/native/packet.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    }
+  ],
+  "workspace": "/home/badger/codex-research/superlio-ego-20261007/lio-ready-ff346f8-ws",
+  "scope": "native software equations and failure paths; synthetic inputs do not prove physical acceptance"
+}

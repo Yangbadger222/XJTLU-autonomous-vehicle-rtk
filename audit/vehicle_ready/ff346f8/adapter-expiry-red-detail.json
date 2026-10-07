@@ -1,0 +1,73 @@
+{
+  "status": "FAIL",
+  "checks": [
+    {
+      "case": "nonzero_measured_lever_90_degree_frames_body_velocity",
+      "status": "PASS",
+      "detail": {
+        "pose": [
+          7.0,
+          21.0,
+          200.0
+        ],
+        "count": 46
+      }
+    },
+    {
+      "case": "gravity_height_window_tilted_body_nonzero_altitude_nan_rejection",
+      "status": "PASS",
+      "detail": [
+        [
+          10.0,
+          21.0,
+          200.1999969482422
+        ],
+        [
+          10.0,
+          22.0,
+          200.8000030517578
+        ]
+      ]
+    },
+    {
+      "case": "regular_world_and_imu_body_cloud_same_gravity_filter",
+      "status": "PASS",
+      "detail": {
+        "world": [
+          [
+            0.0,
+            0.0,
+            100.05000305175781
+          ],
+          [
+            1.0,
+            0.0,
+            100.19999694824219
+          ]
+        ],
+        "body": [
+          [
+            -1.0,
+            -1.7311923503875732,
+            1.0027328729629517
+          ],
+          [
+            0.0,
+            -1.6592814922332764,
+            1.1343649625778198
+          ]
+        ]
+      }
+    },
+    {
+      "case": "source_health_receipt_expiry_with_continuing_odom",
+      "status": "FAIL",
+      "detail": {
+        "odom_before": 78,
+        "odom_after": 78,
+        "last_vehicle_health": "OK: measurement-matched observation bound and audited navigation reference applied"
+      }
+    }
+  ],
+  "scope": "actual ROS adapters, analytical rigid transforms/covariance/health only; real source health and physical extrinsics remain pending"
+}

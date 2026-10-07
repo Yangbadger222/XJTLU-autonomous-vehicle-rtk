@@ -71,7 +71,8 @@ def main():
               all(math.dist(tuple(map(float,p)),e)<1e-4 for p,e in zip(bp,expected)),
               {'world':[list(map(float,p)) for p in wp],'body':[list(map(float,p)) for p in bp]})
         phase(.7,send_health=False);count=len(received);phase(.3,send_health=False)
-        check('source_health_receipt_expiry_with_continuing_odom',len(received)==count and health_states and health_states[-1].startswith('UNKNOWN'))
+        check('source_health_receipt_expiry_with_continuing_odom',len(received)==count and health_states and health_states[-1].startswith('UNKNOWN'),
+              {'odom_before':count,'odom_after':len(received),'last_vehicle_health':health_states[-1] if health_states else None})
         result={'status':'PASS' if all(c['status']=='PASS' for c in checks) else 'FAIL','checks':checks,
             'scope':'actual ROS adapters, analytical rigid transforms/covariance/health only; real source health and physical extrinsics remain pending'}
     finally:

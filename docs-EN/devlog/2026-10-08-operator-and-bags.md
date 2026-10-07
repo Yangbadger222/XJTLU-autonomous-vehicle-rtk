@@ -107,3 +107,17 @@ Re-integrating a past segment with posterior acceleration can miss its saved pos
 
 #### Effect
 Finite history/real brackets/rollback/original safety limits remain. Green native regression and full raw replay still require execution; a successful compile is not continuous interface or physical acceptance.
+
+### Green full raw source replay and expired health reporting
+
+#### File
+Adapter callback/two-profile expiry regression; actual ROS adapter check; fresh upstream-patch byte verifier; `audit/vehicle_ready/ff346f8/`; diagnosis.
+
+#### Change
+Actualff SDK/14 build, four native probes and35 original-wire/eight world fault cases pass. FullJuly15 1x reachesEOF0 with57008 IMUs/2867 packets and2850 native/vehicle/cloud outputs; all23 strict checks pass, maximum gap .10548s, no pose latch, terminal healthOK. Retain five stale-history point denials. A separate real ROS fixture finds oldOK reporting on health loss: odom78→78 but noUNKNOWN. Emit explicit expiry denial while preserving quiet waiting for fresh reversed DDS order; both-profile regressions bring portable suite to164PASS.
+
+#### Reason
+Source mathematics needs actual native green regression and full original-input verification. This closes the MID parser/history diagnosis for this input without claiming physical accuracy or every bag. The final controller already stops on receipt freshness; the adapter should also correctly report expiry.
+
+#### Effect
+Installed green verification of the new Python adapter continues. Original firmware/calibration/serial/physical caps/RTK-loss stop remain unchanged. Ground/EGO deployment profile/target qualification remain incomplete. Non-Jetson software evidence, physical acceptance and research benefit stay separate; the goal continues.

@@ -1,0 +1,276 @@
+{
+  "branch": "codex/superlio-ego-active-road",
+  "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "runtime_source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+  "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / ROS2 Humble",
+  "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
+  "actuator_mode": "only allocated task PTYs; no physical actuator connection",
+  "physical_motion": "not_performed",
+  "production_source_workspaces": "not edited",
+  "logging_exception": "earlier unchanged original serial wrote native logs to non-Git fallback root containing only runtime-data; 128 retained; explicit final task-root logging proven",
+  "active_processes": [],
+  "process_evidence": [
+    "audit/remote_humble/entry.json",
+    "audit/remote_humble/running-history-final-processes.json",
+    "audit/remote_humble/native-log-isolation.json",
+    "audit/remote_humble/final-cleanup-processes.json"
+  ],
+  "command_exit_scope": "successful commands confirmed by set-e source-bound runner and per-command results; historical/red traces retained separately",
+  "publication": {
+    "status": "PASS",
+    "verified_at_utc": "2026-10-07T14:51:28.492627+00:00",
+    "published_implementation_and_report_commit": "01c2fd339b2b9c039cf71c4b741b0c4d957e0325",
+    "remote_research_branch_at_verification": "01c2fd339b2b9c039cf71c4b741b0c4d957e0325",
+    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "runtime_source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+    "push_mode": "normal fast-forward; no force; research branch only",
+    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+    "pull_request_mode": "draft; base corridor-authority-stability; no merge",
+    "receipt_scope": "Confirms the already-published implementation/report ancestor; receipt and one whitespace-only test-script cleanup are subsequent commits, not altered runtime sources."
+  },
+  "commands": [
+    {
+      "name": "clean SDK and 14 packages",
+      "command": "bash scripts/build_active_road_research.sh /home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/clean-final-build.json",
+      "detail": "exact source 08d1835, one worker, no inherited overlays"
+    },
+    {
+      "name": "native",
+      "command": "scripts/validate_ego_native.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/native.json",
+      "detail": "5 linked cases"
+    },
+    {
+      "name": "ego-interface",
+      "command": "scripts/validate_ego_vehicle_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/ego-interface.json",
+      "detail": "10 ROS cases"
+    },
+    {
+      "name": "faults",
+      "command": "scripts/validate_mock_serial_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/faults.json",
+      "detail": "27 final original serial fault cases"
+    },
+    {
+      "name": "static-tf",
+      "command": "scripts/validate_mock_serial_ros.py --tf-static-fault",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/static-tf.json",
+      "detail": "1 static competition case"
+    },
+    {
+      "name": "rtk-quality",
+      "command": "scripts/validate_mock_serial_ros.py --rtk-classifier",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/rtk-quality.json",
+      "detail": "5 classifier cases"
+    },
+    {
+      "name": "straight",
+      "command": "scripts/validate_mock_serial_ros.py --ego-loop --loop-budget-s 65",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/straight.json",
+      "detail": "measured straight goal-stop"
+    },
+    {
+      "name": "arc",
+      "command": "scripts/validate_mock_serial_ros.py --arc-loop --loop-budget-s 65",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/arc.json",
+      "detail": "measured R=3m arc goal-stop"
+    },
+    {
+      "name": "cache-progress",
+      "command": "scripts/validate_ego_cache_progress_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/cache-progress.json",
+      "detail": "2 captured map/time-progress cases"
+    },
+    {
+      "name": "adapter",
+      "command": "scripts/validate_lio_adapter_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/adapter.json",
+      "detail": "4 transformation/expiry cases"
+    },
+    {
+      "name": "anchors",
+      "command": "scripts/validate_evidence_anchor_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/anchors.json",
+      "detail": "9 anchor/session cases"
+    },
+    {
+      "name": "observer-session",
+      "command": "scripts/validate_observer_session_ros.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/observer-session.json",
+      "detail": "4 actual observer/history cases"
+    },
+    {
+      "name": "entry",
+      "command": "scripts/validate_research_launch.py --override-probes",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/entry.json",
+      "detail": "12 ROS nodes / 14 owned children, 7 deliberate override probes"
+    },
+    {
+      "name": "three-layer",
+      "command": "scripts/audit_research_runtime_parameters.py ",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/three-layer.json",
+      "detail": "122 checks"
+    },
+    {
+      "name": "six restricted policy trials",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/policy-comparison.json",
+      "detail": "all six execution protocols PASS; all six goals unreached; prior and foundation byte-preserved"
+    },
+    {
+      "name": "imu_lost",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault imu_lost --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/sensor-imu_lost.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
+    },
+    {
+      "name": "lidar_lost",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault lidar_lost --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/sensor-lidar_lost.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
+    },
+    {
+      "name": "depth_invalid",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault depth_invalid --fault-after-s 12",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/sensor-depth_invalid.json",
+      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
+    },
+    {
+      "name": "native log isolation correction",
+      "command": "explicit task-root FYP_RUNTIME_ROOT/FYP_LOG_SESSION_DIR/ROS_LOG_DIR; scripts/validate_mock_serial_ros.py",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/native-log-isolation.json",
+      "detail": "original binary/27 fault cases PASS; actual log FD inside task; 128 historical fallback files unchanged"
+    },
+    {
+      "name": "portable tests and generated constants",
+      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test; python3 scripts/generate_research_parameter_lock.py --check",
+      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/portable-tests.log",
+      "detail": "121 tests; lock/header/YAML check PASS"
+    },
+    {
+      "name": "raw pinned upstream EGO",
+      "command": "pinned raw motion_plan + original fake_sim in isolated Humble",
+      "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/ego-raw-simulation.json",
+      "detail": "raw source unmodified; GUI NOT_RUN_HEADLESS"
+    },
+    {
+      "name": "full original raw bag paired replay",
+      "command": "complete separate 1x FAST-LIO2 and Super-LIO replay",
+      "source_commit": "recorded component/binary provenance in evidence",
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "audit/remote_humble/lio-paired-metrics.json",
+      "detail": "binary SHAs belong to recorded replay, not relabelled as final rebuild; component source unchanged"
+    },
+    {
+      "name": "entry discovery red trace",
+      "command": "scripts/validate_research_launch.py --override-probes",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/default-entry-discovery-timeout-red.log",
+      "detail": "historical ROS service-discovery timeout; exact probe repeated successfully without changing physical thresholds"
+    },
+    {
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-qualified-history.json",
+      "detail": "complete prior dataset preserved; source identity separated"
+    },
+    {
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-circle-prefix.json",
+      "detail": "complete prior dataset preserved; source identity separated"
+    },
+    {
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-cache-interval-bound.json",
+      "detail": "complete prior dataset preserved; source identity separated"
+    },
+    {
+      "name": "retained previous six-trial protocol failure",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "source_commit": "historical",
+      "status": "FAIL",
+      "exit_code": 1,
+      "evidence": "audit/remote_humble/policy-before-history-load.json",
+      "detail": "complete prior dataset preserved; source identity separated"
+    }
+  ]
+}

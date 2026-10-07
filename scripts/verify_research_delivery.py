@@ -93,17 +93,23 @@ def main() -> int:
           patch_audit_data.get("matches_built_source") is True,
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
           "requires exact-commit sequential apply evidence for all four patches")
-    clean_path=Path("audit/remote_humble/clean-final-build.json")
+    clean_path=Path("audit/optimization_v2/clean-build.json")
     clean=json.loads(clean_path.read_text()) if clean_path.is_file() else {}
     clean_commit=clean.get("source_commit","")
     valid_commit=bool(re.fullmatch(r"[0-9a-f]{40}",clean_commit))
-    compiled_sources_match=(valid_commit and subprocess.run(["git","diff","--quiet",clean_commit,"HEAD","--",
-        "src","patches","dependencies.research.repos","scripts/build_active_road_research.sh",
-        "scripts/apply_ego_vehicle_patch.sh","scripts/apply_super_lio_patch.sh"]).returncode==0)
+    runtime_paths=["src","patches","dependencies.research.repos","scripts/build_active_road_research.sh",
+        "scripts/apply_ego_vehicle_patch.sh","scripts/apply_super_lio_patch.sh"]
+    # Compare the working tree too. Package README prose is not installed runtime
+    # code; every other source/build-input difference invalidates this evidence.
+    changed=run("git","diff","--name-only",clean_commit,"--",*runtime_paths).splitlines() if valid_commit else []
+    untracked=run("git","ls-files","--others","--exclude-standard","--",*runtime_paths).splitlines()
+    documentation_only={"src/research_interfaces/README.md"}
+    runtime_changes=[p for p in changed+untracked if p not in documentation_only]
+    compiled_sources_match=valid_commit and not runtime_changes
     check("current_clean_humble_build",clean.get("status")=="PASS" and clean.get("build_exit")==0 and
           clean.get("package_count")==14 and compiled_sources_match,
-          [str(clean_path),"audit/remote_humble/clean-final-build.log"],
-          "fresh isolated SDK/14-package build; runtime source tree unchanged since compiled source commit")
+          [str(clean_path),"audit/optimization_v2/clean-build.log"],
+          "fresh isolated SDK/14-package build; runtime changes since build: "+repr(runtime_changes))
 
     three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
     recipe_text = three_patch_recipe.read_text() if three_patch_recipe.is_file() else ""

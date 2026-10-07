@@ -1,0 +1,31 @@
+{
+  "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+  "ego_upstream_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "super_upstream_commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
+  "ego_patched_file_sha256": {
+    "src/EgoPlanner-ROS2/CMakeLists.txt": "d7a3cd78137dcf98c68410c149420512f37fd39df79cd668306f51072741e442",
+    "src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h": "3dcf072f92abf7c109d5d5c1d7570cc174d1ddedc3015ae169d0d2b786cb8fe5",
+    "src/EgoPlanner-ROS2/package.xml": "7bec023a2494e14e88a8f099836f8f33f35e415714bacee20c9e2a4c5b8222e4",
+    "src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h": "027988c7e3b095de19166b65a965d9a71c272ac89f141cbd118b5652e96ab1d5",
+    "src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp": "7c1d3f95d8a0d011046a2eb1bbd4d65962abb37f91a522441478836935d4f49a",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h": "de051fde332aa37a692de6a646bd0b0903bfd2f3494f5eba5832a48f011347b0",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h": "2d8346237e11c0be12a7b68bb3189b076fe6a85e593f1f4193cb31ff83b3e3f4",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp": "240a3c989d05d7ae530e6755d3b5cc3927eec8b35c246d60345c5551808e03e9",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp": "9061e7fb65bc5fca7385202c400c485c0d8df3bfcf71d6272e1c8124343456bc",
+    "src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt": "f8e7ce4adf4459494d619f1e05415d16de04f12fad5061dfefee3a5819e35a68",
+    "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp": "1e99375cf6ece63163c7e6221dba404a0f8c372960887fb903ef555706c28f8a",
+    "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h": "aea183469e4bade6806a4016fa9236ce41e6f837be11de2fe57825d68f4829f8",
+    "src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp": "b353a693248c0dde89124d67a14b709e70ebb7d6d3494e53064b93b99af88272",
+    "src/EgoPlanner-ROS2/src/research_tf_guard.cpp": "eb1e307f07da14053fc931c7b8f77e9d93b829bac9142ffd451bfd900406c06a",
+    "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp": "a342bcb08dbbb1640280e4feb4f1623a4261b97475b0f815f8a32c6083681650"
+  },
+  "build_types": {
+    "ego_planner": "",
+    "super_lio": "",
+    "livox_ros_driver2": "",
+    "serial_twistctl": ""
+  },
+  "historical_cpp_hashes_match": true,
+  "installed_console_sha256": "525ef8286316654f01b213fca673ae2a9824afe24c5f9e21e2dd91660962c504"
+}

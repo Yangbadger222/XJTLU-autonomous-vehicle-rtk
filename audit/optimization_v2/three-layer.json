@@ -1,0 +1,928 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "research_safety_bridge.max_speed_mps",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.min_speed_mps",
+      "locked": 0.0,
+      "parsed": 0.0,
+      "runtime": 0.0,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_rate_rps",
+      "locked": 0.7,
+      "parsed": 0.7,
+      "runtime": 0.7,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_accel_mps2",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_decel_mps2",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_accel_rps2",
+      "locked": 1.4,
+      "parsed": 1.4,
+      "runtime": 1.4,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_yaw_decel_rps2",
+      "locked": 1.8,
+      "parsed": 1.8,
+      "runtime": 1.8,
+      "status": "PASS"
+    },
+    {
+      "name": "research_safety_bridge.max_lateral_accel_mps2",
+      "locked": 0.25,
+      "parsed": 0.25,
+      "runtime": 0.25,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_speed_mps",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.min_speed_mps",
+      "locked": 0.0,
+      "parsed": 0.0,
+      "runtime": 0.0,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_rate_rps",
+      "locked": 0.7,
+      "parsed": 0.7,
+      "runtime": 0.7,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_accel_mps2",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_decel_mps2",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_accel_rps2",
+      "locked": 1.4,
+      "parsed": 1.4,
+      "runtime": 1.4,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_yaw_decel_rps2",
+      "locked": 1.8,
+      "parsed": 1.8,
+      "runtime": 1.8,
+      "status": "PASS"
+    },
+    {
+      "name": "ego_vehicle_adapter.max_lateral_accel_mps2",
+      "locked": 0.25,
+      "parsed": 0.25,
+      "runtime": 0.25,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor.footprint_xy",
+      "locked": [
+        0.33,
+        0.305,
+        0.33,
+        -0.305,
+        -0.33,
+        -0.305,
+        -0.33,
+        0.305
+      ],
+      "parsed": [
+        0.33,
+        0.305,
+        0.33,
+        -0.305,
+        -0.33,
+        -0.305,
+        -0.33,
+        0.305
+      ],
+      "runtime": [
+        0.33,
+        0.305,
+        0.33,
+        -0.305,
+        -0.33,
+        -0.305,
+        -0.33,
+        0.305
+      ],
+      "status": "PASS"
+    },
+    {
+      "name": "corridor.planner_footprint_circle",
+      "locked": 0.4493606569338264,
+      "parsed": 0.4493606569338264,
+      "runtime": 0.4493606569338264,
+      "status": "PASS"
+    },
+    {
+      "name": "lio.ros.imu_topic",
+      "locked": "/livox/imu",
+      "parsed": "/livox/imu",
+      "runtime": "/livox/imu",
+      "status": "PASS"
+    },
+    {
+      "name": "lio.ros.lidar_topic",
+      "locked": "/livox/lidar",
+      "parsed": "/livox/lidar",
+      "runtime": "/livox/lidar",
+      "status": "PASS"
+    },
+    {
+      "name": "lio.sensor.blind",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "lio.sensor.maxrange",
+      "locked": 25.0,
+      "parsed": 25.0,
+      "runtime": 25.0,
+      "status": "PASS"
+    },
+    {
+      "name": "lio.sensor.filter_rate",
+      "locked": 4,
+      "parsed": 4,
+      "runtime": 4,
+      "status": "PASS"
+    },
+    {
+      "name": "lio.extrinsic.lidar_imu",
+      "locked": [
+        -0.011,
+        -0.02329,
+        0.04412,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "parsed": [
+        -0.011,
+        -0.02329,
+        0.04412,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "runtime": [
+        -0.011,
+        -0.02329,
+        0.04412,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "status": "PASS"
+    },
+    {
+      "name": "serial.baudrate",
+      "locked": 115200,
+      "parsed": 115200,
+      "runtime": 115200,
+      "status": "PASS"
+    },
+    {
+      "name": "serial.angular_z_scale",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.map_frame",
+      "locked": "map",
+      "parsed": "map",
+      "runtime": "map",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.odom_frame",
+      "locked": "odom",
+      "parsed": "odom",
+      "runtime": "odom",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.base_frame",
+      "locked": "base_footprint",
+      "parsed": "base_footprint",
+      "runtime": "base_footprint",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.fix_topic",
+      "locked": "/fix",
+      "parsed": "/fix",
+      "runtime": "/fix",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_topic",
+      "locked": "/heading",
+      "parsed": "/heading",
+      "runtime": "/heading",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.nmea_topic",
+      "locked": "/rtk/nmea_sentence",
+      "parsed": "/rtk/nmea_sentence",
+      "runtime": "/rtk/nmea_sentence",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_health_topic",
+      "locked": "/rtk/health",
+      "parsed": "/rtk/health",
+      "runtime": "/rtk/health",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.lio_odom_topic",
+      "locked": "/lio/odom_vehicle",
+      "parsed": "/lio/odom_vehicle",
+      "runtime": "/lio/odom_vehicle",
+      "status": "PASS",
+      "conversion": "topic-only Super-LIO compatibility producer; original master unchanged"
+    },
+    {
+      "name": "rtk_map_odom_corrector.lio_degeneracy_topic",
+      "locked": "/fastlio2/degeneracy",
+      "parsed": "/fastlio2/degeneracy",
+      "runtime": "/fastlio2/degeneracy",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.alignment_topic",
+      "locked": "/gps_corridor/enu_to_map",
+      "parsed": "/gps_corridor/enu_to_map",
+      "runtime": "/gps_corridor/enu_to_map",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.mode_topic",
+      "locked": "/localization_authority/mode",
+      "parsed": "/localization_authority/mode",
+      "runtime": "/localization_authority/mode",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.status_topic",
+      "locked": "/localization_authority/status",
+      "parsed": "/localization_authority/status",
+      "runtime": "/localization_authority/status",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.diagnostics_topic",
+      "locked": "/localization_authority/diagnostics",
+      "parsed": "/localization_authority/diagnostics",
+      "runtime": "/localization_authority/diagnostics",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.motion_allowed_topic",
+      "locked": "/localization_authority/motion_allowed",
+      "parsed": "/localization_authority/motion_allowed",
+      "runtime": "/localization_authority/motion_allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.motion_speed_limit_topic",
+      "locked": "/localization_authority/max_linear_speed_mps",
+      "parsed": "/localization_authority/max_linear_speed_mps",
+      "runtime": "/localization_authority/max_linear_speed_mps",
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.enu_origin_lat",
+      "locked": 31.274927,
+      "parsed": 31.274927,
+      "runtime": 31.274927,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.enu_origin_lon",
+      "locked": 120.737548,
+      "parsed": 120.737548,
+      "runtime": 120.737548,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.enu_origin_alt",
+      "locked": 0.0,
+      "parsed": 0.0,
+      "runtime": 0.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_quaternion_yaw_is_compass",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.publish_period_s",
+      "locked": 0.1,
+      "parsed": 0.1,
+      "runtime": 0.1,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.observation_fifo_capacity",
+      "locked": 10,
+      "parsed": 10,
+      "runtime": 10,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_pending_observation_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.fix_quality_wait_s",
+      "locked": 0.25,
+      "parsed": 0.25,
+      "runtime": 0.25,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_quality_wait_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_future_stamp_s",
+      "locked": 0.1,
+      "parsed": 0.1,
+      "runtime": 0.1,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_odom_bracket_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_gga_heading_age_s",
+      "locked": 1.5,
+      "parsed": 1.5,
+      "runtime": 1.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_fix_age_s",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_heading_age_s",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_alignment_age_s",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_gga_age_s",
+      "locked": 1.5,
+      "parsed": 1.5,
+      "runtime": 1.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_rtk_health_age_s",
+      "locked": 1.5,
+      "parsed": 1.5,
+      "runtime": 1.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_control_stable_duration_s",
+      "locked": 5.0,
+      "parsed": 5.0,
+      "runtime": 5.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_control_min_samples",
+      "locked": 5,
+      "parsed": 5,
+      "runtime": 5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.low_speed_heading_strict_mps",
+      "locked": 0.1,
+      "parsed": 0.1,
+      "runtime": 0.1,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_min_satellites",
+      "locked": 10,
+      "parsed": 10,
+      "runtime": 10,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_max_hdop",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_max_rtcm_age_s",
+      "locked": 3.0,
+      "parsed": 3.0,
+      "runtime": 3.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_lio_age_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_heading_for_fix_age_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_translation_rate_mps",
+      "locked": 0.2,
+      "parsed": 0.2,
+      "runtime": 0.2,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_yaw_rate_degps",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_locked_innovation_deg",
+      "locked": 20.0,
+      "parsed": 20.0,
+      "runtime": 20.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.position_locked_innovation_m",
+      "locked": 1.5,
+      "parsed": 1.5,
+      "runtime": 1.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.heading_recovery_spread_deg",
+      "locked": 7.5,
+      "parsed": 7.5,
+      "runtime": 7.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.position_recovery_diameter_m",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.recovery_min_samples",
+      "locked": 5,
+      "parsed": 5,
+      "runtime": 5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.recovery_min_span_s",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.gate_max_candidates",
+      "locked": 20,
+      "parsed": 20,
+      "runtime": 20,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.gate_max_failures",
+      "locked": 10,
+      "parsed": 10,
+      "runtime": 10,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.gate_processable_timeout_s",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.backlog_translation_m",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.backlog_yaw_deg",
+      "locked": 5.0,
+      "parsed": 5.0,
+      "runtime": 5.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.fault_translation_m",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.fault_yaw_deg",
+      "locked": 20.0,
+      "parsed": 20.0,
+      "runtime": 20.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.stopped_linear_rate_mps",
+      "locked": 0.05,
+      "parsed": 0.05,
+      "runtime": 0.05,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.stopped_yaw_rate_degps",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.stopped_confirmation_s",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.recovery_translation_m",
+      "locked": 0.15,
+      "parsed": 0.15,
+      "runtime": 0.15,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.recovery_yaw_deg",
+      "locked": 2.0,
+      "parsed": 2.0,
+      "runtime": 2.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.recovery_confirmation_s",
+      "locked": 1.0,
+      "parsed": 1.0,
+      "runtime": 1.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.allow_moving_backlog_release",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.allow_bounded_backlog_motion",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.moving_reacquire_translation_rate_mps",
+      "locked": 0.05,
+      "parsed": 0.05,
+      "runtime": 0.05,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.moving_reacquire_yaw_rate_degps",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.enable_local_odom_bridge",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_step_translation_m",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_step_yaw_deg",
+      "locked": 15.0,
+      "parsed": 15.0,
+      "runtime": 15.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_duration_s",
+      "locked": 15.0,
+      "parsed": 15.0,
+      "runtime": 15.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_distance_m",
+      "locked": 3.0,
+      "parsed": 3.0,
+      "runtime": 3.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_yaw_change_deg",
+      "locked": 30.0,
+      "parsed": 30.0,
+      "runtime": 30.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.max_lio_degeneracy_age_s",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.lio_min_eig_healthy",
+      "locked": 75.0,
+      "parsed": 75.0,
+      "runtime": 75.0,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.lio_reject_regularized",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_authoritative_max_linear_speed_mps",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.local_bridge_max_linear_speed_mps",
+      "locked": 0.35,
+      "parsed": 0.35,
+      "runtime": 0.35,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.rtk_reacquire_max_linear_speed_mps",
+      "locked": 0.35,
+      "parsed": 0.35,
+      "runtime": 0.35,
+      "status": "PASS"
+    },
+    {
+      "name": "rtk_map_odom_corrector.authority_speed_recovery_accel_mps2",
+      "locked": 0.2,
+      "parsed": 0.2,
+      "runtime": 0.2,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.input_topic",
+      "locked": "/cmd_vel",
+      "parsed": "/cmd_vel",
+      "runtime": "/cmd_vel",
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.motion_allowed_topic",
+      "locked": "/localization_authority/motion_allowed",
+      "parsed": "/localization_authority/motion_allowed",
+      "runtime": "/localization_authority/motion_allowed",
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.motion_speed_limit_topic",
+      "locked": "/localization_authority/max_linear_speed_mps",
+      "parsed": "/localization_authority/max_linear_speed_mps",
+      "runtime": "/localization_authority/max_linear_speed_mps",
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.stop_override_topic",
+      "locked": "/gps_corridor/stop_override",
+      "parsed": "/gps_corridor/stop_override",
+      "runtime": "/gps_corridor/stop_override",
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.output_topic",
+      "locked": "/cmd_vel_guarded",
+      "parsed": "/cmd_vel_guarded",
+      "runtime": "/cmd_vel_guarded",
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.straight_max_mps",
+      "locked": 0.85,
+      "parsed": 0.85,
+      "runtime": 0.85,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.turn_product_limit",
+      "locked": 0.25,
+      "parsed": 0.25,
+      "runtime": 0.25,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.min_turn_rate_radps",
+      "locked": 0.05,
+      "parsed": 0.05,
+      "runtime": 0.05,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.command_timeout_s",
+      "locked": 0.25,
+      "parsed": 0.25,
+      "runtime": 0.25,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.heartbeat_timeout_s",
+      "locked": 0.5,
+      "parsed": 0.5,
+      "runtime": 0.5,
+      "status": "PASS"
+    },
+    {
+      "name": "corridor_cmd_vel_guard.require_speed_limit",
+      "locked": true,
+      "parsed": true,
+      "runtime": true,
+      "status": "PASS"
+    },
+    {
+      "name": "obstacle_height.obstacle_min_z_m",
+      "locked": 0.08,
+      "parsed": 0.08,
+      "runtime": 0.08,
+      "status": "PASS"
+    },
+    {
+      "name": "obstacle_height.obstacle_max_z_m",
+      "locked": 1.2,
+      "parsed": 1.2,
+      "runtime": 1.2,
+      "status": "PASS"
+    },
+    {
+      "name": "regular_cloud_height.publish_min_z_m",
+      "locked": -0.33,
+      "parsed": -0.33,
+      "runtime": -0.33,
+      "status": "PASS"
+    },
+    {
+      "name": "regular_cloud_height.publish_max_z_m",
+      "locked": 0.3,
+      "parsed": 0.3,
+      "runtime": 0.3,
+      "status": "PASS"
+    },
+    {
+      "name": "robot_description.protected_source_geometry",
+      "source": "src/bringup/urdf/rosbot/rosbot.urdf.xacro",
+      "status": "PASS",
+      "scope": "original model geometry equality, not a new physical six-wheel calibration"
+    },
+    {
+      "name": "serial.physical_alias",
+      "locked": "/dev/serial_twistctl",
+      "parsed": "/dev/serial_twistctl",
+      "runtime": "NOT_RUN: physical device excluded",
+      "status": "PASS",
+      "scope": "source/parsed alias only; runtime port is deliberately a PTY"
+    },
+    {
+      "name": "serial.mock_port_is_pty",
+      "runtime": "/dev/pts/0",
+      "status": "PASS"
+    }
+  ],
+  "scope": "source baseline/parsed research YAML/actual non-Jetson runtime",
+  "pending": [
+    "Jetson current deployment overlays, firmware runtime and measured hardware calibration"
+  ]
+}

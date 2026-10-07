@@ -1,0 +1,16 @@
+{
+  "scope": "20 s actual raw bag prefix; simultaneous audit receivers with real Livox deserialization workload; no estimator or motion",
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+  "domain": 92,
+  "prefix_header_interval_ns": [
+    1784588786616453163,
+    1784588806485818406
+  ],
+  "expected_imu_messages_in_interval": 3975,
+  "received_in_interval": {
+    "depth5": 3271,
+    "depth1024": 3975
+  },
+  "status": "PASS",
+  "interpretation": "Audit receiver QoS coverage only. Original paired runs are retained; estimator IMU consumption is not inferred from Python audit counts."
+}

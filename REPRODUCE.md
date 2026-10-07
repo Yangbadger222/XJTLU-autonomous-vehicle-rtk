@@ -1,6 +1,6 @@
 # Reproduce the isolated research delivery
 
-Use the published research branch and the source commit recorded in audit/remote_humble/clean-final-build.json. Do not start again from main or replace the production workspace.
+Use the published research branch and the source commit recorded in audit/optimization_v2/clean-build.json. Do not start again from main or replace the production workspace.
 
 ```bash
 git clone --branch codex/superlio-ego-active-road https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk.git research-checkout
@@ -54,3 +54,36 @@ Use a fresh trial directory and run comparisons without other ROS/build jobs. Th
 Raw bag identity and one-time alignment rules are in audit/remote_humble/lio-paired-metrics.json and lio-bag-fields.json. The raw July 15 bag contains 2867 scans / 57008 IMU samples over 287.37 s. Existing legacy odometry is not an estimator input. Replay scripts audit input identity, source measurement time and binary SHA. The paired discrepancy is not ground-truth error.
 
 Ordinary entry is `ros2 launch bringup system_active_road_research.launch.py`, default replay with simulated time and no drivers/serial. A new launch creates a fresh localization session ID; providers use its latched identity/submap namespace. Independent LIO reinitialization requires a new session. Default physical curvature/jerk/sensor model and verified extrinsics/health remain unresolved and block motion. Jetson deployment is not performed by these commands. Follow LIVE_ACCEPTANCE_CHECKLIST.md before any human-controlled live test.
+
+
+## Current cockpit and more-bag checks
+
+Current installed runtime source is ce4641836c265432c74086669fca8dbd6362b7d7. Build is a full clean SDK/all14-package build, not the earlier four-package HMI overlay. Earlier1f straight/arc and frozen08d paired estimator evidence remains explicitly source-bound. Current60s policy trials are ed4b7f6; same core with later same-value consent alias/UI/monitor updates is not labelled a policy rerun.
+
+```bash
+# Read-only sealed catalog; choose the actual recorded data root.
+python3 scripts/catalog_research_bags.py --help
+export ROS_DOMAIN_ID=99 ROS_LOCALHOST_ONLY=1
+/path/to/research-venv/bin/python scripts/validate_console_mock_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/console-http.json
+export ROS_DOMAIN_ID=91
+python3 scripts/validate_mock_serial_ros.py --repo "$PWD" --install /absolute/isolated/research-ws/install --output /absolute/logs/paused-clock.json --paused-clock-probe
+export ROS_DOMAIN_ID=100
+/path/to/research-venv/bin/python scripts/validate_console_raw_replay_ros.py --install /absolute/isolated/research-ws/install --catalog /absolute/sealed-bag-catalog.json --output /absolute/logs/console-raw-controls.json
+export ROS_DOMAIN_ID=92
+python3 scripts/validate_raw_transport_probe_ros.py --bag /absolute/original/raw-bag --output /absolute/logs/raw-monitor.json
+```
+
+The raw control probe requires domain100, port8766; it owns only a replay process and has no actuator. It tests a prefix, not a full EOF run. Pause uses SIGSTOP; resume may catch up scheduling time. Neither recorded authority/TF/commands nor old odometry is published. Catalog identity revalidation covers storage bytes and timestamps in addition to ordered sensor payloads.
+
+```bash
+# User preview, no sensor driver/physical serial and no motion permission.
+export ROS_DOMAIN_ID=100 ROS_LOCALHOST_ONLY=1
+export FYP_RUNTIME_ROOT=/absolute/task/runtime/operator-preview
+export FYP_LOG_SESSION_DIR=/absolute/task/logs/operator-preview/native
+export ROS_LOG_DIR=/absolute/task/logs/operator-preview/ros
+ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/absolute/sealed-bag-catalog.json
+# From the local computer, in a separate terminal:
+ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 badger@100.88.131.52
+```
+
+Open http://127.0.0.1:8765. The actual delivered preview is recorded in RUN_STATE and audit/optimization_v2/operator-preview.json; it is intentionally active with actuator/mission false and no player started. Stop only its recorded launch process group with SIGINT; never use a global ROS/process kill. The debug GET-fault proxy8787 is stopped and is not part of the delivered entry. See docs-CN/research_operator_console.md and docs-EN/research_operator_console.md for modes, readiness, task confirmation and failure behavior.

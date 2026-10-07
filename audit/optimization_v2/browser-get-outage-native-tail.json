@@ -1,0 +1,10 @@
+{
+  "scope": "original native serial TX log, corroborated by allocated PTY serve tail; browser failed GET prior to healthy-telemetry server cleanup",
+  "native_tail": [
+    "ROS_timestamp: 1791393880314971617, [SERIAL_TX] Sending command (1/1): vcx=0.000,wc=0.000",
+    "ROS_timestamp: 1791393880364911734, [SERIAL_TX] Sending command (1/1): vcx=0.000,wc=0.000",
+    "ROS_timestamp: 1791393880414933701, [SERIAL_TX] Sending command (1/1): vcx=0.000,wc=0.000",
+    "ROS_timestamp: 1791393880464983857, [SERIAL_TX] Sending command (1/1): vcx=0.000,wc=0.000",
+    "ROS_timestamp: 1791393880514785197, [SERIAL_TX] Sending command (1/1): vcx=0.000,wc=0.000"
+  ]
+}

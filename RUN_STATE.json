@@ -1,276 +1,186 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "runtime_source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-  "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / ROS2 Humble",
+  "runtime_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
   "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
-  "actuator_mode": "only allocated task PTYs; no physical actuator connection",
   "physical_motion": "not_performed",
   "production_source_workspaces": "not edited",
-  "logging_exception": "earlier unchanged original serial wrote native logs to non-Git fallback root containing only runtime-data; 128 retained; explicit final task-root logging proven",
-  "active_processes": [],
-  "process_evidence": [
-    "audit/remote_humble/entry.json",
-    "audit/remote_humble/running-history-final-processes.json",
-    "audit/remote_humble/native-log-isolation.json",
-    "audit/remote_humble/final-cleanup-processes.json"
+  "actuator_mode": "finite tests allocated PTYs only; current user preview has actuator_enabled=false",
+  "active_processes": [
+    {
+      "status": "RUNNING",
+      "launch_pid": 1356150,
+      "supervisor_pid": 1356149,
+      "process_group": 1356150,
+      "command": [
+        "ros2",
+        "launch",
+        "bringup",
+        "system_active_road_research.launch.py",
+        "bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json"
+      ],
+      "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+      "domain": 100,
+      "localhost_only": true,
+      "mode": "replay",
+      "actuator_enabled": false,
+      "mission_execution_enabled": false,
+      "owned_processes": [
+        {
+          "pid": 1356150,
+          "argv": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json "
+        },
+        {
+          "pid": 1356152,
+          "argv": "/opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args --params-file /tmp/launch_params_vj8ww4oa "
+        },
+        {
+          "pid": 1356154,
+          "argv": "/usr/bin/python3 /opt/ros/humble/lib/joint_state_publisher/joint_state_publisher --ros-args -r __node:=joint_state_publisher "
+        },
+        {
+          "pid": 1356156,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio/lib/super_lio/super_lio_node --ros-args -r __node:=super_lio_node --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_vehicle.yaml --params-file /tmp/launch_params_odiyu4mh "
+        },
+        {
+          "pid": 1356158,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter --ros-args -r __node:=super_lio_vehicle_adapter --params-file /tmp/launch_params_k729ra54 --params-file /tmp/launch_params_j3481fsb "
+        },
+        {
+          "pid": 1356160,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_cloud_frame_adapter --ros-args -r __node:=super_lio_cloud_frame_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_cloud_frame.yaml --params-file /tmp/launch_params_wb6q19zv "
+        },
+        {
+          "pid": 1356162,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_map --ros-args -r __node:=active_road_map --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_mapping.yaml --params-file /tmp/launch_params_zmyipgpa "
+        },
+        {
+          "pid": 1356164,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_evidence --ros-args -r __node:=active_road_evidence --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_evidence.yaml --params-file /tmp/launch_params_53eywfst "
+        },
+        {
+          "pid": 1356166,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_observation --ros-args -r __node:=active_observation --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_observation.yaml --params-file /tmp/launch_params_p6c5aehw "
+        },
+        {
+          "pid": 1356168,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_local_obstacle_grid --ros-args -r __node:=research_local_obstacle_grid --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_local_grid.yaml --params-file /tmp/launch_params_lnds_el1 "
+        },
+        {
+          "pid": 1356170,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/motion_plan --ros-args -r __node:=ego_vehicle_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/ego_vehicle_adapter.yaml --params-file /tmp/launch_params_igyn6o6w "
+        },
+        {
+          "pid": 1356172,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/research_tf_guard --ros-args -r __node:=research_tf_integrity_guard --params-file /tmp/launch_params_ya6vbbpo "
+        },
+        {
+          "pid": 1356174,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/rtk_map_odom_corrector_node --ros-args -r __node:=rtk_map_odom_corrector --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_6_6p_vpz --params-file /tmp/launch_params_xha47my7 "
+        },
+        {
+          "pid": 1356176,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node --ros-args -r __node:=corridor_cmd_vel_guard --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_1vsa7ywr "
+        },
+        {
+          "pid": 1356178,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_safety_bridge --ros-args -r __node:=research_safety_bridge --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_safety_bridge.yaml --params-file /tmp/launch_params_fed4aw8m --params-file /tmp/launch_params_06q8m63f "
+        },
+        {
+          "pid": 1356180,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_operator_console --ros-args -r __node:=research_operator_console --params-file /tmp/launch_params_nyq5tisj "
+        }
+      ],
+      "logs": "/home/badger/codex-research/superlio-ego-20261007/logs/operator-preview",
+      "scope": "User-facing actuator-free replay cockpit; no raw player started, no sensor driver or physical serial. Stop only this recorded process group."
+    }
   ],
-  "command_exit_scope": "successful commands confirmed by set-e source-bound runner and per-command results; historical/red traces retained separately",
-  "publication": {
-    "status": "PASS",
-    "verified_at_utc": "2026-10-07T14:51:28.492627+00:00",
-    "published_implementation_and_report_commit": "01c2fd339b2b9c039cf71c4b741b0c4d957e0325",
-    "remote_research_branch_at_verification": "01c2fd339b2b9c039cf71c4b741b0c4d957e0325",
-    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-    "runtime_source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-    "push_mode": "normal fast-forward; no force; research branch only",
-    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "pull_request_mode": "draft; base corridor-authority-stability; no merge",
-    "receipt_scope": "Confirms the already-published implementation/report ancestor; receipt and one whitespace-only test-script cleanup are subsequent commits, not altered runtime sources."
-  },
+  "historical_state": "audit/delivery_v1/RUN_STATE.json",
+  "logging_exception": "Historical 128 native fallback log files retained unchanged; all v2 runs and preview use explicit task-only FYP/ROS roots. No original serial source/protocol changes.",
   "commands": [
     {
-      "name": "clean SDK and 14 packages",
-      "command": "bash scripts/build_active_road_research.sh /home/badger/codex-research/superlio-ego-20261007/clean-08d1835-ws",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "clean SDK/14 packages",
+      "command": "bash scripts/build_active_road_research.sh /absolute/clean-ws",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/clean-final-build.json",
-      "detail": "exact source 08d1835, one worker, no inherited overlays"
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/clean-build.json"
     },
     {
-      "name": "native",
-      "command": "scripts/validate_ego_native.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "35 original serial faults",
+      "command": "scripts/validate_mock_serial_ros.py",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/native.json",
-      "detail": "5 linked cases"
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-serial-faults.json"
     },
     {
-      "name": "ego-interface",
-      "command": "scripts/validate_ego_vehicle_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "paused measurement clock",
+      "command": "scripts/validate_mock_serial_ros.py --paused-clock-probe",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/ego-interface.json",
-      "detail": "10 ROS cases"
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-paused-clock.json"
     },
     {
-      "name": "faults",
-      "command": "scripts/validate_mock_serial_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/faults.json",
-      "detail": "27 final original serial fault cases"
-    },
-    {
-      "name": "static-tf",
-      "command": "scripts/validate_mock_serial_ros.py --tf-static-fault",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/static-tf.json",
-      "detail": "1 static competition case"
-    },
-    {
-      "name": "rtk-quality",
-      "command": "scripts/validate_mock_serial_ros.py --rtk-classifier",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/rtk-quality.json",
-      "detail": "5 classifier cases"
-    },
-    {
-      "name": "straight",
-      "command": "scripts/validate_mock_serial_ros.py --ego-loop --loop-budget-s 65",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/straight.json",
-      "detail": "measured straight goal-stop"
-    },
-    {
-      "name": "arc",
-      "command": "scripts/validate_mock_serial_ros.py --arc-loop --loop-budget-s 65",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/arc.json",
-      "detail": "measured R=3m arc goal-stop"
-    },
-    {
-      "name": "cache-progress",
-      "command": "scripts/validate_ego_cache_progress_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/cache-progress.json",
-      "detail": "2 captured map/time-progress cases"
-    },
-    {
-      "name": "adapter",
-      "command": "scripts/validate_lio_adapter_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/adapter.json",
-      "detail": "4 transformation/expiry cases"
-    },
-    {
-      "name": "anchors",
-      "command": "scripts/validate_evidence_anchor_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/anchors.json",
-      "detail": "9 anchor/session cases"
-    },
-    {
-      "name": "observer-session",
-      "command": "scripts/validate_observer_session_ros.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/observer-session.json",
-      "detail": "4 actual observer/history cases"
-    },
-    {
-      "name": "entry",
+      "name": "default entry/overrides",
       "command": "scripts/validate_research_launch.py --override-probes",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/entry.json",
-      "detail": "12 ROS nodes / 14 owned children, 7 deliberate override probes"
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-entry.json"
     },
     {
-      "name": "three-layer",
-      "command": "scripts/audit_research_runtime_parameters.py ",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "HTTP seven faults",
+      "command": "scripts/validate_console_mock_ros.py",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/three-layer.json",
-      "detail": "122 checks"
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-console-http.json"
     },
     {
-      "name": "six restricted policy trials",
+      "name": "CUA actual GET-only outage",
+      "command": "scripts/validate_console_mock_ros.py --serve-seconds 300 + scripts/console_browser_fault_proxy.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/browser-acceptance.json"
+    },
+    {
+      "name": "raw cockpit controls",
+      "command": "scripts/validate_console_raw_replay_ros.py --catalog /absolute/sealed-bag-catalog.json",
+      "status": "PASS",
+      "runtime_source": "ce46418 installed runtime; test script added after build",
+      "evidence": "audit/optimization_v2/console-raw-controls.json"
+    },
+    {
+      "name": "raw receiver queue diagnosis",
+      "command": "scripts/validate_raw_transport_probe_ros.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/raw-transport-monitor.json"
+    },
+    {
+      "name": "six 60s policy tasks",
       "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/policy-comparison.json",
-      "detail": "all six execution protocols PASS; all six goals unreached; prior and foundation byte-preserved"
+      "runtime_source": "ed4b7f6",
+      "evidence": "audit/optimization_v2/policy-comparison.json"
     },
     {
-      "name": "imu_lost",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault imu_lost --fault-after-s 12",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "straight EGO loop",
+      "command": "scripts/validate_mock_serial_ros.py --ego-loop",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/sensor-imu_lost.json",
-      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
+      "runtime_source": "1f110dc",
+      "evidence": "audit/optimization_v2/final-ego-straight.json"
     },
     {
-      "name": "lidar_lost",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault lidar_lost --fault-after-s 12",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
+      "name": "arc EGO loop",
+      "command": "scripts/validate_mock_serial_ros.py --arc-loop",
       "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/sensor-lidar_lost.json",
-      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
-    },
-    {
-      "name": "depth_invalid",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 25 --strategies PASSIVE --tasks 1 --sensor-fault depth_invalid --fault-after-s 12",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/sensor-depth_invalid.json",
-      "detail": "final fault-phase PTY zeros before cleanup denies RTK"
-    },
-    {
-      "name": "native log isolation correction",
-      "command": "explicit task-root FYP_RUNTIME_ROOT/FYP_LOG_SESSION_DIR/ROS_LOG_DIR; scripts/validate_mock_serial_ros.py",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/native-log-isolation.json",
-      "detail": "original binary/27 fault cases PASS; actual log FD inside task; 128 historical fallback files unchanged"
-    },
-    {
-      "name": "portable tests and generated constants",
-      "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test; python3 scripts/generate_research_parameter_lock.py --check",
-      "source_commit": "08d1835cb3a91f3a4707da2a615c155794baa1d4",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/portable-tests.log",
-      "detail": "121 tests; lock/header/YAML check PASS"
-    },
-    {
-      "name": "raw pinned upstream EGO",
-      "command": "pinned raw motion_plan + original fake_sim in isolated Humble",
-      "source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/ego-raw-simulation.json",
-      "detail": "raw source unmodified; GUI NOT_RUN_HEADLESS"
-    },
-    {
-      "name": "full original raw bag paired replay",
-      "command": "complete separate 1x FAST-LIO2 and Super-LIO replay",
-      "source_commit": "recorded component/binary provenance in evidence",
-      "status": "PASS",
-      "exit_code": 0,
-      "evidence": "audit/remote_humble/lio-paired-metrics.json",
-      "detail": "binary SHAs belong to recorded replay, not relabelled as final rebuild; component source unchanged"
-    },
-    {
-      "name": "entry discovery red trace",
-      "command": "scripts/validate_research_launch.py --override-probes",
-      "source_commit": "historical",
-      "status": "FAIL",
-      "exit_code": 1,
-      "evidence": "audit/remote_humble/default-entry-discovery-timeout-red.log",
-      "detail": "historical ROS service-discovery timeout; exact probe repeated successfully without changing physical thresholds"
-    },
-    {
-      "name": "retained previous six-trial protocol failure",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
-      "source_commit": "historical",
-      "status": "FAIL",
-      "exit_code": 1,
-      "evidence": "audit/remote_humble/policy-before-qualified-history.json",
-      "detail": "complete prior dataset preserved; source identity separated"
-    },
-    {
-      "name": "retained previous six-trial protocol failure",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
-      "source_commit": "historical",
-      "status": "FAIL",
-      "exit_code": 1,
-      "evidence": "audit/remote_humble/policy-before-circle-prefix.json",
-      "detail": "complete prior dataset preserved; source identity separated"
-    },
-    {
-      "name": "retained previous six-trial protocol failure",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
-      "source_commit": "historical",
-      "status": "FAIL",
-      "exit_code": 1,
-      "evidence": "audit/remote_humble/policy-before-cache-interval-bound.json",
-      "detail": "complete prior dataset preserved; source identity separated"
-    },
-    {
-      "name": "retained previous six-trial protocol failure",
-      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
-      "source_commit": "historical",
-      "status": "FAIL",
-      "exit_code": 1,
-      "evidence": "audit/remote_humble/policy-before-history-load.json",
-      "detail": "complete prior dataset preserved; source identity separated"
+      "runtime_source": "1f110dc",
+      "evidence": "audit/optimization_v2/final-ego-arc.json"
     }
-  ]
+  ],
+  "publication": {
+    "status": "PENDING",
+    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+    "mode": "draft, research only, no merge or force"
+  },
+  "lineage": "Paired estimator binaries remain frozen 08d1835. Actual 60s policy runs use full ed4b7f6 foundation; ce46418 changes only same-value locked operator timeout, stale UI confirmation and monitoring/test scripts. Core planner/map/safety code unchanged between ed4 and ce. Previous straight/arc 1f results remain explicitly source-bound historical components; current final-wire/HTTP/default-entry repeat is ce."
 }

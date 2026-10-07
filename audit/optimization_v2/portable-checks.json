@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "command": "PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test scripts/test_research_bag_contract.py",
+  "result": "........................................................................ [ 56%]\n........................................................                 [100%]\n128 passed in 1.34s",
+  "generated_parameter_lock": "PASS",
+  "javascript_syntax": "PASS",
+  "test_script_py_compile": "PASS",
+  "scope": "128 current runtime/bag-contract tests; no ROS or physical acceptance inference"
+}

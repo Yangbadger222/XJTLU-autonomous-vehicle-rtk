@@ -1,0 +1,87 @@
+{
+  "status": "RUNNING",
+  "launch_pid": 1356150,
+  "supervisor_pid": 1356149,
+  "process_group": 1356150,
+  "command": [
+    "ros2",
+    "launch",
+    "bringup",
+    "system_active_road_research.launch.py",
+    "bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json"
+  ],
+  "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "domain": 100,
+  "localhost_only": true,
+  "mode": "replay",
+  "actuator_enabled": false,
+  "mission_execution_enabled": false,
+  "owned_processes": [
+    {
+      "pid": 1356150,
+      "argv": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json "
+    },
+    {
+      "pid": 1356152,
+      "argv": "/opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args --params-file /tmp/launch_params_vj8ww4oa "
+    },
+    {
+      "pid": 1356154,
+      "argv": "/usr/bin/python3 /opt/ros/humble/lib/joint_state_publisher/joint_state_publisher --ros-args -r __node:=joint_state_publisher "
+    },
+    {
+      "pid": 1356156,
+      "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio/lib/super_lio/super_lio_node --ros-args -r __node:=super_lio_node --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_vehicle.yaml --params-file /tmp/launch_params_odiyu4mh "
+    },
+    {
+      "pid": 1356158,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter --ros-args -r __node:=super_lio_vehicle_adapter --params-file /tmp/launch_params_k729ra54 --params-file /tmp/launch_params_j3481fsb "
+    },
+    {
+      "pid": 1356160,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_cloud_frame_adapter --ros-args -r __node:=super_lio_cloud_frame_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_cloud_frame.yaml --params-file /tmp/launch_params_wb6q19zv "
+    },
+    {
+      "pid": 1356162,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_map --ros-args -r __node:=active_road_map --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_mapping.yaml --params-file /tmp/launch_params_zmyipgpa "
+    },
+    {
+      "pid": 1356164,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_evidence --ros-args -r __node:=active_road_evidence --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_evidence.yaml --params-file /tmp/launch_params_53eywfst "
+    },
+    {
+      "pid": 1356166,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_observation --ros-args -r __node:=active_observation --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_observation.yaml --params-file /tmp/launch_params_p6c5aehw "
+    },
+    {
+      "pid": 1356168,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_local_obstacle_grid --ros-args -r __node:=research_local_obstacle_grid --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_local_grid.yaml --params-file /tmp/launch_params_lnds_el1 "
+    },
+    {
+      "pid": 1356170,
+      "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/motion_plan --ros-args -r __node:=ego_vehicle_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/ego_vehicle_adapter.yaml --params-file /tmp/launch_params_igyn6o6w "
+    },
+    {
+      "pid": 1356172,
+      "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/research_tf_guard --ros-args -r __node:=research_tf_integrity_guard --params-file /tmp/launch_params_ya6vbbpo "
+    },
+    {
+      "pid": 1356174,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/rtk_map_odom_corrector_node --ros-args -r __node:=rtk_map_odom_corrector --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_6_6p_vpz --params-file /tmp/launch_params_xha47my7 "
+    },
+    {
+      "pid": 1356176,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node --ros-args -r __node:=corridor_cmd_vel_guard --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_1vsa7ywr "
+    },
+    {
+      "pid": 1356178,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_safety_bridge --ros-args -r __node:=research_safety_bridge --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_safety_bridge.yaml --params-file /tmp/launch_params_fed4aw8m --params-file /tmp/launch_params_06q8m63f "
+    },
+    {
+      "pid": 1356180,
+      "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_operator_console --ros-args -r __node:=research_operator_console --params-file /tmp/launch_params_nyq5tisj "
+    }
+  ],
+  "logs": "/home/badger/codex-research/superlio-ego-20261007/logs/operator-preview",
+  "scope": "User-facing actuator-free replay cockpit; no raw player started, no sensor driver or physical serial. Stop only this recorded process group."
+}

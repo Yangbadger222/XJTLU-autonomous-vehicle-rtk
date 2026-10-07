@@ -893,3 +893,17 @@ python3 scripts/generate_research_parameter_lock.py --check
 ```
 
 replay 无真实串口或驱动。shadow 仍不连接执行器，live 必须另经人工现场验收、原 KEY/RTK 权限与显式 enable_serial。provider 从持久化会话 topic 取得新 LIO identity，不能把旧 odom 的证据套用新原点。软件、策略、实车状态分别见 RESULTS.json。
+
+
+## 研究驾驶舱与原始回放（v2）
+
+人工模式、任务确认、回放身份和失联行为见 [研究驾驶舱](research_operator_console.md)。仅在独立研究安装与 localhost domain 中启动；以下默认关闭物理执行器和任务执行。
+
+```bash
+export ROS_DOMAIN_ID=100 ROS_LOCALHOST_ONLY=1
+ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/absolute/sealed-bag-catalog.json
+# 本机终端转发远端的 loopback 界面：
+ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 badger@100.88.131.52
+```
+
+打开 http://127.0.0.1:8765。FYP/ROS 日志根、只读清单生成与实际 HTTP/PTY 验证命令见 [REPRODUCE](../REPRODUCE.md)。操作席只能请求许可，不能改环境、串口或车参。原始播放器暂停使用 SIGSTOP，恢复可能追赶调度；不用它做严格墙钟性能对照。

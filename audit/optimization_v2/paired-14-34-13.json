@@ -1,0 +1,69 @@
+{
+  "runs": [
+    {
+      "kind": "fastlio",
+      "binary_sha256": "a7261870148c55f2f0be5c54ea0c91278ca2f2582513dcb93ee3e693b75ec7cb",
+      "config_sha256": "a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758",
+      "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+      "playback_exit": 0,
+      "odometry_count": 4159,
+      "imu_received": 64918,
+      "health_counts": {},
+      "status": "PASS",
+      "output_rate_hz": 9.99739331160138,
+      "cpu_percent_one_core": 36.53277821668129,
+      "rss_peak_mib": 214.5078125,
+      "sim_clock_minus_stamp_s": {
+        "p50": 0.03995227813720703,
+        "p95": 0.05999946594238281,
+        "p99": 0.060074567794799805
+      },
+      "nonfinite_positions": 0,
+      "header_monotonic": false,
+      "duplicate_adjacent_stamps": 1,
+      "decreasing_adjacent_stamps": 0
+    },
+    {
+      "kind": "superlio",
+      "binary_sha256": "466b0a088e42ef874746f18818b4b1a39fc2b443bd10c422ca5d7d356622dc35",
+      "config_sha256": "e1c2569b6caab03fc975fb371dcd8f082216efed889afbaaa1b438243b54ded1",
+      "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+      "playback_exit": 0,
+      "odometry_count": 4153,
+      "imu_received": 67640,
+      "health_counts": {
+        "UNKNOWN: Super-LIO has no equivalent FAST-LIO2 degeneracy metric": 4153
+      },
+      "status": "PASS",
+      "output_rate_hz": 10.000013096960679,
+      "cpu_percent_one_core": 15.182384334818964,
+      "rss_peak_mib": 84.359375,
+      "sim_clock_minus_stamp_s": {
+        "p50": -0.007439136505126953,
+        "p95": -0.0016374588012695312,
+        "p99": 0.048956871032714844
+      },
+      "nonfinite_positions": 0,
+      "header_monotonic": false,
+      "duplicate_adjacent_stamps": 1,
+      "decreasing_adjacent_stamps": 0
+    }
+  ],
+  "raw_scan_count": 4175,
+  "alignment": "one fixed initial planar yaw/translation, no segment realignment",
+  "paired_samples": 4153,
+  "trajectory_discrepancy_m": {
+    "rmse": 0.07233594466681065,
+    "p50": 0.059446833740198435,
+    "p95": 0.12736581950231296,
+    "max": 0.1364138393656716,
+    "last": 0.12799038392801476
+  },
+  "limitations": [
+    "FAST-LIO is not ground truth",
+    "sensor/vehicle lever-arm equivalence remains unverified",
+    "RTK reference accuracy and static-period identification not evaluated",
+    "sim-clock minus source stamp includes scan-end convention and 50 Hz clock quantization; it is not compute latency",
+    "raw input scan count minus output count includes initialization; not labelled packet loss"
+  ]
+}

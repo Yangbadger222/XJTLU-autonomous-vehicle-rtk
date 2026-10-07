@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "package_count": 14,
+  "build_exit": 0,
+  "SDK": "fresh task-local compile/install",
+  "workspace": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws",
+  "source_checkout": "/home/badger/codex-research/superlio-ego-20261007/vehicle-ce46418-clean",
+  "scope": "Clean x86_64 ROS2 Humble task-only SDK and all 14 source packages; no Jetson/physical motion",
+  "build_log": "audit/optimization_v2/clean-build.log",
+  "binary_sha256": {
+    "ego_planner": "a0f6fc3dd7de2b13f45938b470d87b94c17c15455b24319266b00e22db60efe5",
+    "serial_twistctl": "9a4546a3f5358305020b03cfd637e10c1a9b99eb8a62c758900995124c093636",
+    "console_node": "525ef8286316654f01b213fca673ae2a9824afe24c5f9e21e2dd91660962c504",
+    "super_lio": "c5eb4c21841a0075e78788a6fce16684b03a5c0e50c25bdc2ce32498e6f483dc"
+  },
+  "executable_paths": {
+    "super_lio": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio/lib/super_lio/super_lio_node",
+    "ego_planner": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/motion_plan"
+  }
+}

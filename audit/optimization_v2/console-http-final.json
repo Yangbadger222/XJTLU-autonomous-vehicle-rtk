@@ -1,0 +1,99 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "http_pause",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "PAUSED",
+      "status": "PASS"
+    },
+    {
+      "case": "http_stop",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "http_takeover",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "TAKEOVER_WAIT",
+      "status": "PASS"
+    },
+    {
+      "case": "browser_heartbeat_lost",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "rtk_loss_with_healthy_lio",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "rtk_return_does_not_auto_resume",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "console_backend_crash",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": null,
+      "status": "PASS"
+    }
+  ],
+  "scope": "Actual HTTP/typed consent/observer/task service/tracker/original guard/original serial PTY; synthetic odom, floor, RTK, health and trajectory only. Physical stop/KEY/joystick not validated.",
+  "domain": 99,
+  "source_commit": "1f110dccf228df22b00e661c7c20fa7869b110a7"
+}

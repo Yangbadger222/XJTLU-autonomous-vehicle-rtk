@@ -7,22 +7,19 @@
       "audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json",
       "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json",
       "audit/remote_humble/three-layer.json",
-      "audit/remote_humble/entry.json",
-      "audit/optimization_v2/current-entry.json",
-      "audit/optimization_v2/three-layer.json"
+      "audit/remote_humble/entry.json"
     ],
     "scope": "1011 original bytes protected; source/parsed/Humble runtime 122 checks and deliberate override failures. Actual Jetson effective overlays and flashed hardware identity PENDING."
   },
   "SUPER_LIO_BUILD_AND_RUNTIME": {
     "status": "PASS",
-    "detail": "Actual task-only SDK/14-package Humble build at ce46418. Three independent raw streams have sequential full 1x FAST/Super comparisons; estimator runs retain frozen 08d1835 binary identities and UNKNOWN source health. No ground-truth accuracy claim.",
     "evidence": [
-      "audit/optimization_v2/clean-build.json",
-      "audit/optimization_v2/source-provenance.json",
-      "audit/optimization_v2/paired-07-06-18.json",
-      "audit/optimization_v2/paired-14-34-13.json",
+      "audit/remote_humble/clean-final-build.json",
+      "audit/remote_humble/clean-final-build.log",
+      "audit/remote_humble/source-provenance.json",
       "audit/remote_humble/lio-paired-metrics.json"
-    ]
+    ],
+    "scope": "Pinned Super-LIO ros2, actual SDK/driver clean build, complete original raw bag replay and sensor-driven restricted simulation. Health remains UNKNOWN on actual bag; physical deployment separate."
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PENDING",
@@ -42,9 +39,7 @@
       "audit/remote_humble/clean-final-build.json",
       "audit/remote_humble/source-provenance.json",
       "audit/ego_four_patch_source_verification.json",
-      "audit/UPSTREAM_PATCH_VERIFICATION.json",
-      "audit/optimization_v2/clean-build.json",
-      "audit/optimization_v2/source-provenance.json"
+      "audit/UPSTREAM_PATCH_VERIFICATION.json"
     ],
     "scope": "Untouched pinned planner + upstream fake simulator actually ran; current four sequential vehicle patches compile and byte-match. Rendered RViz GUI NOT_RUN_HEADLESS; no ROS1/3D port."
   },
@@ -64,24 +59,19 @@
       "audit/remote_humble/native.json",
       "audit/remote_humble/straight.json",
       "audit/remote_humble/arc.json",
-      "audit/remote_humble/route-prefix.json",
-      "audit/optimization_v2/final-ego-straight.json",
-      "audit/optimization_v2/final-ego-arc.json"
+      "audit/remote_humble/route-prefix.json"
     ],
     "scope": "Analytical continuous certificate, Euclidean derivative/turn/footprint bounds, dynamic repair/rejection and actual PTY-driven straight/arc goal-stop loops. Original eight physical caps preserved, including |v*w| <= .25; quantized final wire checked. Curvature/jerk/lateral/slip/braking/physical wheel geometry are simulation-only or PENDING live qualification. Local references match the original circle/AABB envelope and fixed road sampling; captured-input actual EGO red/green regression."
   },
   "COMMAND_AUTHORITY_AND_STOP": {
     "status": "PASS",
-    "detail": "Current 35 final original-serial PTY faults, paused-clock stop, seven actual HTTP faults and CUA GET-only outage. Lost/competing/stale consent latches; fresh autonomous permits or RTK recovery cannot rearm without READY then AUTO. Physical firmware/brake/KEY acceptance remains pending.",
     "evidence": [
-      "audit/optimization_v2/current-serial-faults.json",
-      "audit/optimization_v2/current-paused-clock.json",
-      "audit/optimization_v2/current-console-http.json",
-      "audit/optimization_v2/browser-acceptance.json",
+      "audit/remote_humble/faults.json",
       "audit/remote_humble/static-tf.json",
       "audit/remote_humble/rtk-quality.json",
       "audit/remote_humble/sensor-faults.json"
-    ]
+    ],
+    "scope": "27 actual original-guard/original-serial final PTY fault cases + static-TF competition + five original GNSS-classifier cases + three raw sensor faults. RTK false/stale/bridge still stops despite healthy simulation LIO. Physical KEY/joystick/firmware/e-stop acceptance PENDING."
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
     "status": "PASS",
@@ -103,29 +93,31 @@
   },
   "POLICY_COMPARISON_EXECUTION": {
     "status": "PASS",
-    "detail": "Six actual 60 s tasks on full ed4b7f6 build, same foundation/perception/prior byte hashes across strategies. Explicit operator fixture READY then AUTO. Historical accidental 45 s cohort is retained remotely and is not compared as 60 s.",
     "evidence": [
-      "audit/optimization_v2/policy-comparison.json"
-    ]
+      "audit/remote_humble/policy-comparison.json",
+      "audit/remote_humble/policy-before-qualified-history.json",
+      "audit/remote_humble/policy-before-circle-prefix.json",
+      "audit/remote_humble/policy-before-cache-interval-bound.json",
+      "audit/remote_humble/policy-before-history-load.json"
+    ],
+    "scope": "All six source-08d1835 same-foundation limited-view trials executed and passed the unchanged protocol, including >10 actual nonzero PTY commands, final zeros, and qualified second-task history reuse. Four complete earlier protocol-failure datasets retained."
   },
   "POLICY_EFFECT_SIMULATION": {
     "status": "FAIL",
-    "detail": "No benefit established: 0/6 goals; protocol PASS is distinct. Single finite scene, synthetic sensors/health/extrinsics/support/prior; no statistical, novelty or real-world claim.",
     "evidence": [
-      "audit/optimization_v2/policy-comparison.json"
-    ]
+      "audit/remote_humble/policy-comparison.json",
+      "audit/remote_humble/policy-behavior-audit.json",
+      "audit/remote_humble/policy-termination-audit.json"
+    ],
+    "scope": "Completed finite negative experiment: 0/6 total goals reached within 60 s; no established mission/real-world benefit. TASK_AWARE_LOOK advances farther in this single scene, with one transient geometry resolution; final resolved counts are zero. All outcomes retained. This is not a postponed test or software protocol failure."
   },
   "VEHICLE_BAG_REPLAY": {
     "status": "PASS",
-    "detail": "Read-only 122 metadata entries, three independent ordered raw CDR inputs; derived identical payloads are deduplicated. Two additional full 1x paired trials finished EOF. Current actual HTTP start/pause/resume/stop exercised only raw topics plus clock; prefix controls are not full EOF trials.",
     "evidence": [
-      "audit/optimization_v2/sealed-bag-catalog.json",
-      "audit/optimization_v2/paired-07-06-18.json",
-      "audit/optimization_v2/paired-14-34-13.json",
-      "audit/optimization_v2/raw-transport-monitor.json",
-      "audit/optimization_v2/console-raw-controls.json",
+      "audit/remote_humble/lio-bag-fields.json",
       "audit/remote_humble/lio-paired-metrics.json"
-    ]
+    ],
+    "scope": "Original July 15 raw Livox/IMU bag, full sequential 1x FAST/Super replay, SHA-bound source data. Single initial alignment discrepancy RMSE .0450 m is not accuracy. Not an alternative-view policy experiment."
   },
   "JETSON_SHADOW_VALIDATION": {
     "status": "PENDING",
@@ -157,24 +149,13 @@
     "scope": "Pinned original test/environment failures retained: 191 PASS/3 FAIL authority-guard; 26 PASS/1 FAIL launch. No protected bytes changed to force green."
   },
   "DELIVERY_STATE": {
-    "status": "PENDING",
-    "detail": "Current implementation and evidence are locally complete; final normal research-branch push and PR-head verification are recorded in the subsequent publication receipt. Default actuator-free replay preview is active; all finite mock tests stopped.",
+    "status": "PASS",
     "evidence": [
-      "audit/optimization_v2/clean-build.json",
-      "audit/optimization_v2/operator-preview.json",
+      "audit/remote_humble/publication.json",
+      "audit/FINAL_DELIVERY_STATIC.json",
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md"
-    ]
-  },
-  "OPERATOR_CONSOLE_AND_TASK_MODES": {
-    "status": "PASS",
-    "detail": "Actual loopback browser, typed OperatorPermit and registered-task service; live startup flags cannot be enabled from browser. Finite mock/HTTP/ROS acceptance only; no web joystick or physical handoff acceptance.",
-    "evidence": [
-      "audit/optimization_v2/current-console-http.json",
-      "audit/optimization_v2/browser-acceptance.json",
-      "audit/optimization_v2/console-raw-controls.json",
-      "docs-CN/research_operator_console.md",
-      "docs-EN/research_operator_console.md"
-    ]
+    ],
+    "scope": "Implementation and actual audit/report commit 01c2fd3 confirmed by normal research-only push; baseline remains e54c6af. Draft PR22, no production merge. Runtime sources unchanged since compiled 08d1835. Completed negative policy experiment and physical PENDING gates remain independent."
   }
 }

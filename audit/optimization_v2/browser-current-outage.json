@@ -1,0 +1,67 @@
+[
+  {
+    "time": 1791395332.7255142,
+    "state": "STOP_LATCHED",
+    "reason": "\u64cd\u4f5c\u5e2d\u5fc3\u8df3\u4e22\u5931\uff1b\u9700\u8981\u505c\u8f66\u786e\u8ba4\u3001\u590d\u4f4d\u548c\u91cd\u65b0\u542f\u52a8",
+    "serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_count": 161
+  },
+  {
+    "time": 1791395332.944557,
+    "state": "STOP_LATCHED",
+    "reason": "\u64cd\u4f5c\u5e2d\u5fc3\u8df3\u4e22\u5931\uff1b\u9700\u8981\u505c\u8f66\u786e\u8ba4\u3001\u590d\u4f4d\u548c\u91cd\u65b0\u542f\u52a8",
+    "serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_count": 161
+  },
+  {
+    "time": 1791395333.165821,
+    "state": "STOP_LATCHED",
+    "reason": "\u64cd\u4f5c\u5e2d\u5fc3\u8df3\u4e22\u5931\uff1b\u9700\u8981\u505c\u8f66\u786e\u8ba4\u3001\u590d\u4f4d\u548c\u91cd\u65b0\u542f\u52a8",
+    "serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_count": 161
+  },
+  {
+    "time": 1791395333.387341,
+    "state": "STOP_LATCHED",
+    "reason": "\u64cd\u4f5c\u5e2d\u5fc3\u8df3\u4e22\u5931\uff1b\u9700\u8981\u505c\u8f66\u786e\u8ba4\u3001\u590d\u4f4d\u548c\u91cd\u65b0\u542f\u52a8",
+    "serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_count": 161
+  },
+  {
+    "time": 1791395333.6066833,
+    "state": "STOP_LATCHED",
+    "reason": "\u64cd\u4f5c\u5e2d\u5fc3\u8df3\u4e22\u5931\uff1b\u9700\u8981\u505c\u8f66\u786e\u8ba4\u3001\u590d\u4f4d\u548c\u91cd\u65b0\u542f\u52a8",
+    "serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_count": 161
+  }
+]

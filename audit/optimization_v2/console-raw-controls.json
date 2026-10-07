@@ -1,0 +1,180 @@
+{
+  "status": "PASS",
+  "scope": "Actual raw bag prefix, HTTP controls, owned rosbag process and ROS subscriptions; no estimator, actuator or closed-loop policy claim.",
+  "checks": {
+    "actual_raw_lidar_and_imu": true,
+    "clock_and_raw_counts_frozen_while_paused": true,
+    "raw_and_clock_resume": true,
+    "owned_player_exited": true,
+    "unrelated_task_sentinel_survives": true,
+    "no_motion_permit": true,
+    "no_recorded_command_topics": true
+  },
+  "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+  "player_argv": "/usr/bin/python3 /opt/ros/humble/bin/ros2 bag play /home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil --rate 1.0 --clock 50 --topics /livox/lidar /livox/imu ",
+  "player_pid": 1354554,
+  "playing": {
+    "counts": {
+      "lidar": 30,
+      "imu": 600,
+      "clock": 149,
+      "motion_permits": 0
+    },
+    "clock": 1784588789.595059,
+    "replay": {
+      "state": "PLAYING",
+      "bags": [
+        {
+          "id": "7905018de7741795ef729b694672ed416744bef0073e60920a27aac0130a548d",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+          "duration_s": 287.369579396
+        },
+        {
+          "id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+          "duration_s": 338.16911392900005
+        },
+        {
+          "id": "0eb62a671db2a44b1ded4f179c6b616e1104051a9bb1be0bdc5f67a995ed919f",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+          "duration_s": 418.53079676500005
+        }
+      ],
+      "reason": "\u5b8c\u6574\u539f\u59cb\u8f93\u5165\u8eab\u4efd\u5df2\u6838\u5b9e\uff1b1\u00d7 \u6d4b\u91cf\u65f6\u949f",
+      "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+      "pid": 1354554
+    }
+  },
+  "paused_start": {
+    "counts": {
+      "lidar": 30,
+      "imu": 607,
+      "clock": 151,
+      "motion_permits": 0
+    },
+    "clock": 1784588789.6350765,
+    "replay": {
+      "state": "PAUSED",
+      "bags": [
+        {
+          "id": "7905018de7741795ef729b694672ed416744bef0073e60920a27aac0130a548d",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+          "duration_s": 287.369579396
+        },
+        {
+          "id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+          "duration_s": 338.16911392900005
+        },
+        {
+          "id": "0eb62a671db2a44b1ded4f179c6b616e1104051a9bb1be0bdc5f67a995ed919f",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+          "duration_s": 418.53079676500005
+        }
+      ],
+      "reason": "\u672c\u754c\u9762\u56de\u653e\u8fdb\u7a0b\u5df2\u6682\u505c",
+      "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+      "pid": 1354554
+    }
+  },
+  "paused_end": {
+    "counts": {
+      "lidar": 30,
+      "imu": 607,
+      "clock": 151,
+      "motion_permits": 0
+    },
+    "clock": 1784588789.6350765,
+    "replay": {
+      "state": "PAUSED",
+      "bags": [
+        {
+          "id": "7905018de7741795ef729b694672ed416744bef0073e60920a27aac0130a548d",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+          "duration_s": 287.369579396
+        },
+        {
+          "id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+          "duration_s": 338.16911392900005
+        },
+        {
+          "id": "0eb62a671db2a44b1ded4f179c6b616e1104051a9bb1be0bdc5f67a995ed919f",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+          "duration_s": 418.53079676500005
+        }
+      ],
+      "reason": "\u672c\u754c\u9762\u56de\u653e\u8fdb\u7a0b\u5df2\u6682\u505c",
+      "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+      "pid": 1354554
+    }
+  },
+  "resumed": {
+    "counts": {
+      "lidar": 54,
+      "imu": 1189,
+      "clock": 251,
+      "motion_permits": 0
+    },
+    "clock": 1784588793.5150583,
+    "replay": {
+      "state": "PLAYING",
+      "bags": [
+        {
+          "id": "7905018de7741795ef729b694672ed416744bef0073e60920a27aac0130a548d",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+          "duration_s": 287.369579396
+        },
+        {
+          "id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+          "duration_s": 338.16911392900005
+        },
+        {
+          "id": "0eb62a671db2a44b1ded4f179c6b616e1104051a9bb1be0bdc5f67a995ed919f",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+          "duration_s": 418.53079676500005
+        }
+      ],
+      "reason": "\u5df2\u6062\u590d\u672c\u754c\u9762\u56de\u653e",
+      "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+      "pid": 1354554
+    }
+  },
+  "stopped": {
+    "counts": {
+      "lidar": 55,
+      "imu": 1192,
+      "clock": 252,
+      "motion_permits": 0
+    },
+    "clock": 1784588793.5349748,
+    "replay": {
+      "state": "STOPPED",
+      "bags": [
+        {
+          "id": "7905018de7741795ef729b694672ed416744bef0073e60920a27aac0130a548d",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+          "duration_s": 287.369579396
+        },
+        {
+          "id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+          "duration_s": 338.16911392900005
+        },
+        {
+          "id": "0eb62a671db2a44b1ded4f179c6b616e1104051a9bb1be0bdc5f67a995ed919f",
+          "label": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+          "duration_s": 418.53079676500005
+        }
+      ],
+      "reason": "\u5df2\u7ed3\u675f\u672c\u754c\u9762\u56de\u653e/\u6821\u9a8c",
+      "bag_id": "56e6c8ab93ab306de4ee6be99d856d9d34d32e5ca7cbfb4e13a18326c44fa107",
+      "pid": 1354554
+    }
+  },
+  "installed_runtime_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "runner_sha256": "9cc3cf982adf8f7bbd23408570336efe52bf7ec49c788550608ced0c45a8d736",
+  "runner_location_at_execution": "/home/badger/codex-research/superlio-ego-20261007/validate_console_raw_replay_ros.py",
+  "pause_pacing_limit": "SIGSTOP pauses publishing; resume can catch up wall scheduling. Not a strict post-resume wall pacing or EOF test."
+}

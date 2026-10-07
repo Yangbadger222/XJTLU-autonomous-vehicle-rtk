@@ -1,19 +1,3 @@
-# Current v2 audit
-
-The current installed source is ce4641836c265432c74086669fca8dbd6362b7d7, clean task SDK and all14 Humble packages. See audit/optimization_v2/clean-build.json/log and source-provenance.json. All15 EGO patch file hashes still match the original audited four-patch set. Subsequent report/test-script changes are not installed code.
-
-Current original-wire safety:35 faults; paused-clock stop;7 actual HTTP cases; actual browser GET-only outage with a reachable POST_stop rejected after lease expiration. The fault-phase original serial tail is zero before cleanup. READY then AUTO is mandatory after transport loss or competition. Original serial wall watchdog only logs; the original headerless guard now runs SystemClock. RTK loss still stops even healthy synthetic LIO. Source/parsed/runtime122 checks and1011 protected bytes remain intact; Jetson overrides remain pending.
-
-The default current replay entry includes15 child processes and the loopback cockpit, unique final command owner, no old navigation/task stack or physical actuator. Current128 portable runtime/bag-contract tests pass. The actual raw console controls exercise start/pause/resume/owned stop without movement. SIGSTOP resume may catch up scheduling; strict post-resume pacing was not claimed. Browser desktop/tablet checks have no horizontal overflow; stale stillness reads unknown, recovery remains stopped. User-facing preview is intentionally active (RUN_STATE), unlike finite tests.
-
-Read-only122 metadata entries yield3 independent raw streams. Two additional full paired estimator runs retain frozen08d binary identities. CPU/RSS must be read FAST/Super: v1 narrative inverted the labels; JSON was correct. Current morning33.73/13.77% and176.09/75.13MiB; afternoon36.53/15.18% and214.51/84.36MiB. One fixed initial alignment gives discrepancy RMSE .04760/.07234m; FAST is not truth and source health remains UNKNOWN. Shallow monitor IMU undercounts are not estimator packet loss: actual same20s input yielded3271 at depth5 versus3975/3975 at depth1024.
-
-Six actual new60s policy tasks use full ed4b7f6 build, same foundation hashes, no truth policy input, explicit synthetic assumptions. All protocolPASS,0/6 goals; benefitFAIL/not established. Historical45s run retained separately. ce changes only same-value timeout reference, UI stale label and monitor/test scripts; this policy data is not relabelled ce. Old straight/arc1f component proofs remain source-bound.
-
-Independent final Spec review found no new P1/P2 and verified the current source/evidence distinctions. Standards found no P1/P2; three P3 documentation/verifier issues were corrected (devlog format, command index, explicit README-only exception). Physical acceptance stays PENDING for the concrete items in LIVE_ACCEPTANCE_CHECKLIST. Original baseline regression failures are retained; no protected-file edits mask them. No production merge, Jetson edit, physical driving, firmware flash or force push.
-
-## Historical v1 audit (frozen wording; current evidence above)
-
 # Research audit
 
 ## Scope and source

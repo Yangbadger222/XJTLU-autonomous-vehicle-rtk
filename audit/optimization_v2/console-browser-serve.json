@@ -1,0 +1,11 @@
+{
+  "status": "SERVE_COMPLETE",
+  "wire_tail": [
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n"
+  ],
+  "wire_nonzero_count": 1200
+}

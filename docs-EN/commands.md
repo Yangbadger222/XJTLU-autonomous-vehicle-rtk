@@ -891,3 +891,17 @@ python3 scripts/generate_research_parameter_lock.py --check
 ```
 
 Replay has no physical serial or drivers. Shadow has no actuator. Live requires on-site human acceptance, original KEY/RTK permission and explicit enable_serial. Evidence providers use the latched new LIO session identity; historical odom coordinates cannot receive a new origin's TF. Software, policy and physical statuses are separate in RESULTS.json.
+
+
+## Research cockpit and raw replay (v2)
+
+See [Operator cockpit](research_operator_console.md) for human modes, task confirmation, bag identity and connection-loss behavior. Start only with an isolated research install and localhost domain; this entry defaults to disabled physical actuator and task execution.
+
+```bash
+export ROS_DOMAIN_ID=100 ROS_LOCALHOST_ONLY=1
+ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/absolute/sealed-bag-catalog.json
+# In a local terminal, forward the remote loopback cockpit:
+ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 badger@100.88.131.52
+```
+
+Open http://127.0.0.1:8765. See [REPRODUCE](../REPRODUCE.md) for FYP/ROS logging roots, read-only catalog generation and actual HTTP/PTY probes. Consent cannot change environment, serial configuration or physical parameters. SIGSTOP raw pause may catch up scheduling after resume; do not use it as a strict wall-clock performance comparison.

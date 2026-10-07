@@ -1,0 +1,7 @@
+{
+  "first_failed_state_get_epoch_s": 1791393590.893754,
+  "failed_state_get_count": 298,
+  "heartbeat_posts_after_lease_deadline": 0,
+  "post_transport_remained_reachable": "NOT_RUN in historical ed4 browser trial; see ce46418 browser-current-proxy.json for actual POST_stop",
+  "status": "PASS"
+}

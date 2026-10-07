@@ -1,0 +1,90 @@
+{
+  "status": "PASS",
+  "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "scope": "Actual CUA browser -> HTTP -> typed consent -> original guard/serial PTY. Synthetic HMI odom/RTK/health/trajectory fixture; no physical chassis",
+  "nominal_nonzero_serial": true,
+  "get_outage_start": 1791395296.59376,
+  "post_stop_during_get_outage": true,
+  "post_response_visible": "请先接管操作席 (expired lease rejected by actual backend)",
+  "heartbeats_after_outage_plus_0_5s": 0,
+  "last_outage_samples": [
+    {
+      "time": 1791395332.7255142,
+      "state": "STOP_LATCHED",
+      "reason": "操作席心跳丢失；需要停车确认、复位和重新启动",
+      "serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_count": 161
+    },
+    {
+      "time": 1791395332.944557,
+      "state": "STOP_LATCHED",
+      "reason": "操作席心跳丢失；需要停车确认、复位和重新启动",
+      "serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_count": 161
+    },
+    {
+      "time": 1791395333.165821,
+      "state": "STOP_LATCHED",
+      "reason": "操作席心跳丢失；需要停车确认、复位和重新启动",
+      "serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_count": 161
+    },
+    {
+      "time": 1791395333.387341,
+      "state": "STOP_LATCHED",
+      "reason": "操作席心跳丢失；需要停车确认、复位和重新启动",
+      "serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_count": 161
+    },
+    {
+      "time": 1791395333.6066833,
+      "state": "STOP_LATCHED",
+      "reason": "操作席心跳丢失；需要停车确认、复位和重新启动",
+      "serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "nonzero_count": 161
+    }
+  ],
+  "recovery_visible": "STOP_LATCHED / STOPPED; no automatic rearm",
+  "stale_stillness_visible": "等待测量静止确认",
+  "responsive_no_horizontal_overflow": {
+    "desktop": {
+      "viewport": 1466,
+      "document": 1466
+    },
+    "tablet": {
+      "viewport": 792,
+      "document": 792
+    }
+  },
+  "screenshots": "task outputs/operator-console-mock-desktop.jpg and operator-console-mock-tablet.jpg; explicit SIM fixture labels"
+}

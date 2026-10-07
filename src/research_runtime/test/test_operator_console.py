@@ -96,7 +96,9 @@ def test_task_edit_is_bounded_to_registered_ids_and_is_acknowledged_separately()
 
 def test_operator_gate_requires_order_freshness_version_and_single_owner():
     gate = OperatorGate()
-    consent = OperatorConsent("session", 1, "live", "m1", "AUTONOMOUS", True, True)
+    gate.receive(OperatorConsent("session",1,"live","m1","READY",False,True),9.9)
+    assert not gate.allowed(9.9,mode="live",map_version="m1")
+    consent = OperatorConsent("session", 2, "live", "m1", "AUTONOMOUS", True, True)
     assert gate.receive(consent, 10.)
     assert gate.allowed(10.1, mode="live", map_version="m1")
     assert not gate.receive(consent, 10.4)
@@ -105,6 +107,30 @@ def test_operator_gate_requires_order_freshness_version_and_single_owner():
     assert not gate.allowed(10.1, mode="live", map_version="m1", sole_publisher=False)
     assert not gate.allowed(10.1, mode="shadow", map_version="m1")
     assert not gate.receive(OperatorConsent("session", 0, "live", "m1", "AUTONOMOUS", True, True), 10.4)
+
+
+def test_nonfinite_display_never_breaks_snapshot_or_state_reading():
+    _,console=prepared()
+    console.command("window-a","start",request_id="start")
+    assert not console.update("road",{"points":[[float("nan"),0.]]})
+    json.dumps(console.snapshot("window-a"),allow_nan=False)
+    assert "road" not in console.inputs
+
+
+@pytest.mark.parametrize("fault",["expired","competing"])
+def test_restored_transport_cannot_rearm_without_ready_then_explicit_start(fault):
+    gate=OperatorGate()
+    gate.receive(OperatorConsent("s",1,"live","m1","READY",False,True),10.)
+    gate.allowed(10.,mode="live",map_version="m1")
+    gate.receive(OperatorConsent("s",2,"live","m1","AUTONOMOUS",True,True),10.1)
+    assert gate.allowed(10.1,mode="live",map_version="m1")
+    assert not gate.allowed(10.7 if fault=="expired" else 10.2,mode="live",map_version="m1",sole_publisher=fault!="competing")
+    gate.receive(OperatorConsent("s",3,"live","m1","AUTONOMOUS",True,True),10.8)
+    assert not gate.allowed(10.8,mode="live",map_version="m1")
+    gate.receive(OperatorConsent("s",4,"live","m1","READY",False,True),10.9)
+    assert not gate.allowed(10.9,mode="live",map_version="m1")
+    gate.receive(OperatorConsent("s",5,"live","m1","AUTONOMOUS",True,True),11.)
+    assert gate.allowed(11.,mode="live",map_version="m1")
 
 
 def test_http_origin_and_same_cookie_different_window_exclusive_lease():

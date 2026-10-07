@@ -9,6 +9,27 @@ import threading
 import time
 
 
+class BoundedHTTPServer(ThreadingHTTPServer):
+    daemon_threads=True
+    def __init__(self,*args):
+        self.slots=threading.BoundedSemaphore(16)
+        super().__init__(*args)
+
+    def process_request(self,request,address):
+        if not self.slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        request.settimeout(.5)
+        try:super().process_request(request,address)
+        except BaseException:
+            self.slots.release()
+            raise
+
+    def process_request_thread(self,request,address):
+        try:super().process_request_thread(request,address)
+        finally:self.slots.release()
+
+
 class ConsoleHTTP:
     def __init__(self, console, assets, port=8765):
         self.console, self.assets = console, Path(assets)
@@ -79,10 +100,11 @@ class ConsoleHTTP:
                     if not isinstance(data, dict) or set(data)-{"action", "payload", "request_id"}: raise ValueError()
                     if not isinstance(data.get("action"), str) or not isinstance(data.get("payload", {}), dict) or not isinstance(data.get("request_id", ""), str): raise ValueError()
                     result = outer.console.command(self._identity(key), data["action"], data.get("payload"), data.get("request_id", ""))
+                except TimeoutError:return self._reply(408,{"reason":"request read deadline"})
                 except (ValueError, TypeError, KeyError): return self._reply(400, {"reason": "invalid bounded request"})
                 self._reply(200 if result["accepted"] else 409, result)
 
-        self.server = ThreadingHTTPServer(("127.0.0.1", int(port)), Handler)
+        self.server = BoundedHTTPServer(("127.0.0.1", int(port)), Handler)
         self.server.daemon_threads = True
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)

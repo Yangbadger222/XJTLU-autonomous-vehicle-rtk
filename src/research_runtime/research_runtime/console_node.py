@@ -8,6 +8,7 @@ from pathlib import Path
 import signal
 import subprocess
 import time
+import threading
 
 from ament_index_python.packages import get_package_share_directory
 import rclpy
@@ -23,6 +24,7 @@ from .operator_console import OperatorConsole
 from .physical_parameter_lock import STOP_CONFIRMATION
 from .runtime_paths import research_path
 from .safety_bridge import _parameter_bool
+from .bag_identity import verify_cataloged_bag
 
 
 class ConsoleNode(Node):
@@ -54,6 +56,9 @@ class ConsoleNode(Node):
         self.inspect_at=0.
         self.player,self.player_log=None,None
         self.bags={}
+        self.bag_rows={}
+        self.replay_generation=0
+        self.validation=None
         catalog=str(self.declare_parameter("bag_catalog_path","").value)
         if catalog:
             payload=json.loads(Path(catalog).read_text())
@@ -61,6 +66,7 @@ class ConsoleNode(Node):
                 if row.get("selected_original"):
                     identity=row["raw_input_sha256"]
                     self.bags[identity]=Path(row["bag_path"])
+                    self.bag_rows[identity]=row
                     self.console.replay["bags"].append({"id":identity,"label":row["bag_path"],"duration_s":row["duration_s"]})
         self.steady_clock=Clock(clock_type=ClockType.STEADY_TIME)
         self.create_timer(.05,self._tick,clock=self.steady_clock)
@@ -116,7 +122,7 @@ class ConsoleNode(Node):
     def _task(self,identity,action,payload):
         if self.task_pending or not self.client.service_is_ready():
             if action!="inspect":self.console.task["reason"]="任务接口忙或离线"
-            return
+            return False
         request=ManageResearchTask.Request()
         request.action,request.request_id=action,identity
         request.map_version=self.console._fresh("map_version") or "UNKNOWN"
@@ -129,35 +135,50 @@ class ConsoleNode(Node):
             with self.console.lock:
                 if f.cancelled() or f.exception():
                     self.console.task["reason"]="任务接口失败"
+                    if action=="select":self.console.finish_request(identity,False,"任务接口失败")
                     return
                 response=f.result()
                 self.console.task.update(node_ids=list(response.node_ids),task_id=response.task_id,
                     start_node=response.start_node,goal_node=response.goal_node,reason=response.reason)
                 if action=="select":
                     self.console.task["accepted"]=bool(response.accepted)
-                    self.console.events.append({"time":time.time(),"state":"TASK_RESULT","reason":response.reason})
+                    self.console.finish_request(identity,response.accepted,response.reason)
         future.add_done_callback(done)
+        return True
 
     def _replay(self,action,payload):
         state=self.console.replay
         try:
             if action=="replay_start":
                 if self.player and self.player.poll() is None:raise ValueError("当前已有回放，请先停止")
+                if self.validation and self.validation.is_alive():raise ValueError("正在核对原始数据身份")
                 if os.environ.get("ROS_LOCALHOST_ONLY")!="1":raise ValueError("回放需要 localhost-only 隔离环境")
-                path=self.bags[payload["bag_id"]]
-                if not path.joinpath("metadata.yaml").is_file():raise ValueError("原始 bag 已不可用")
-                log_path=research_path("runtime-data/research/active_road/operator-replay.log")
-                log_path.parent.mkdir(parents=True,exist_ok=True)
-                self.player_log=log_path.open("a")
-                self.player=subprocess.Popen(["ros2","bag","play",str(path),"--rate","1.0","--clock","50",
-                    "--topics","/livox/lidar","/livox/imu"],stdout=self.player_log,stderr=subprocess.STDOUT,start_new_session=True)
-                state.update(state="PLAYING",bag_id=payload["bag_id"],pid=self.player.pid,reason="仅原始 LiDAR/IMU；1× 测量时钟")
+                identity=payload["bag_id"]
+                self.replay_generation+=1
+                generation=self.replay_generation
+                state.update(state="VALIDATING",reason="只读核对完整原始输入哈希")
+                def verified():
+                    try:path=verify_cataloged_bag(self.bag_rows[identity]);error=None
+                    except (OSError,ValueError,KeyError) as exc:path=None;error=str(exc)
+                    with self.console.lock:
+                        if generation!=self.replay_generation:return
+                        if error:state.update(state="ERROR",reason=error);return
+                        try:
+                            log_path=research_path("runtime-data/research/active_road/operator-replay.log")
+                            log_path.parent.mkdir(parents=True,exist_ok=True)
+                            self.player_log=log_path.open("a")
+                            self.player=subprocess.Popen(["ros2","bag","play",str(path),"--rate","1.0","--clock","50",
+                                "--topics","/livox/lidar","/livox/imu"],stdout=self.player_log,stderr=subprocess.STDOUT,start_new_session=True)
+                            state.update(state="PLAYING",bag_id=identity,pid=self.player.pid,reason="完整原始输入身份已核实；1× 测量时钟")
+                        except OSError as exc:state.update(state="ERROR",reason=str(exc))
+                self.validation=threading.Thread(target=verified,daemon=True);self.validation.start()
+            elif action=="replay_stop":
+                self.replay_generation+=1;self._stop_player();state.update(state="STOPPED",reason="已结束本界面回放/校验")
             elif not self.player or self.player.poll() is not None:raise ValueError("没有运行中的本界面回放")
             elif action=="replay_pause":
                 os.killpg(self.player.pid,signal.SIGSTOP);state.update(state="PAUSED",reason="本界面回放进程已暂停")
             elif action=="replay_resume":
                 os.killpg(self.player.pid,signal.SIGCONT);state.update(state="PLAYING",reason="已恢复本界面回放")
-            elif action=="replay_stop":self._stop_player();state.update(state="STOPPED",reason="已结束本界面回放")
         except (OSError,ValueError,KeyError) as exc:state.update(reason=str(exc),state="ERROR")
 
     def _stop_player(self):
@@ -182,9 +203,15 @@ class ConsoleNode(Node):
         self.pub.publish(msg)
         with self.console.lock:
             if self.console.pending:
-                identity,action,payload=self.console.pending.popleft()
-                if action=="task":self._task(identity,"select",payload)
-                else:self._replay(action,payload)
+                identity,action,payload,queued_at=self.console.pending[0]
+                if action=="task":
+                    if self._task(identity,"select",payload):self.console.pending.popleft()
+                    elif time.monotonic()-queued_at>.5:
+                        self.console.pending.popleft()
+                        self.console.finish_request(identity,False,"任务接口忙或离线，未选择任务")
+                else:
+                    self.console.pending.popleft();self._replay(action,payload)
+                    self.console.finish_request(identity,self.console.replay["state"]!="ERROR",self.console.replay["reason"])
             if time.monotonic()-self.inspect_at>2.:
                 self.inspect_at=time.monotonic();self._task("inspect","inspect",{})
             if self.task_pending and time.monotonic()-self.task_pending[1]>.5:
@@ -194,8 +221,11 @@ class ConsoleNode(Node):
                 self.console.replay.update(state="FINISHED" if self.player.returncode==0 else "ERROR",reason="回放退出码："+str(self.player.returncode))
 
     def close(self):
-        with self.console.lock:self.console._set("STOP_LATCHED","界面后端退出")
-        self._tick()
+        with self.console.lock:
+            self.console._set("STOP_LATCHED","界面后端退出")
+            self.console.pending.clear()
+            self.replay_generation+=1
+        if rclpy.ok(): self._tick()
         self.http.close()
         self._stop_player()
 

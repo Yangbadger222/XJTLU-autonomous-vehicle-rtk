@@ -6,6 +6,7 @@ explicit, and consent is withheld until current measured readiness holds.
 """
 from collections import deque
 import math
+import json
 import secrets
 import threading
 import time
@@ -36,6 +37,12 @@ class OperatorConsole:
 
     def update(self, name, value):
         with self.lock:
+            try:json.dumps(value,allow_nan=False)
+            except (ValueError,TypeError):
+                self.inputs.pop(name,None)
+                if name=="odom":self.still_since=None
+                self.tick()
+                return False
             self.inputs[name] = (value, self.clock())
             if name == "odom":
                 v, w = value.get("v"), value.get("w")
@@ -46,6 +53,7 @@ class OperatorConsole:
             if name == "observer" and value.get("state") in ("TASK_REACHED", "BUDGET_EXHAUSTED", "SYSTEM_FAULT"):
                 self.task["accepted"] = False
             self.tick()
+            return True
 
     def _fresh(self, name, age=.5):
         value, stamp = self.inputs.get(name, (None, -math.inf))
@@ -127,12 +135,17 @@ class OperatorConsole:
                       payload["bag_id"] not in [b["id"] for b in self.replay["bags"]]): result["reason"] = "仅允许目录清单中的原始 bag"
                 elif action.startswith("replay_") and action!="replay_start" and payload: result["reason"] = "该回放操作不接受额外字段"
                 else:
-                    self.pending.append((request_id, action, dict(payload)))
+                    self.pending.append((request_id, action, dict(payload), self.clock()))
                     if action == "task": self.task["accepted"] = False
                     result = {"accepted": True, "pending": True, "reason": "请求已提交，等待系统确认"}
             self.history[request_id] = result
             if len(self.history) > 128: self.history.pop(next(iter(self.history)))
             return result
+
+    def finish_request(self,identity,accepted,reason):
+        with self.lock:
+            self.history[identity]={"accepted":bool(accepted),"pending":False,"reason":reason}
+            self.events.append({"time":time.time(),"state":"REQUEST_RESULT","reason":reason})
 
     def snapshot(self, client=None):
         with self.lock:

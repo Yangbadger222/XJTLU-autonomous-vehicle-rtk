@@ -15,42 +15,9 @@ import sqlite3
 import yaml
 
 
-RAW_TYPES = {"/livox/lidar": "livox_ros_driver2/msg/CustomMsg",
-             "/livox/imu": "sensor_msgs/msg/Imu"}
-
-
-def raw_fingerprint(directory: Path, info: dict) -> dict:
-    paths = [directory / name for name in info["relative_file_paths"]]
-    signatures = {name: hashlib.sha256() for name in RAW_TYPES}
-    counts = {name: 0 for name in RAW_TYPES}
-    identity = []
-    for path in paths:
-        before = path.stat()
-        with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True) as db:
-            topics = {name: (identity, kind) for identity, name, kind in
-                      db.execute("SELECT id,name,type FROM topics")}
-            for name, kind in RAW_TYPES.items():
-                if name not in topics or topics[name][1] != kind:
-                    raise ValueError("raw sensor topic/type missing: " + name)
-                for (blob,) in db.execute(
-                        "SELECT data FROM messages WHERE topic_id=? ORDER BY timestamp,id",
-                        (topics[name][0],)):
-                    signatures[name].update(len(blob).to_bytes(8, "little"))
-                    signatures[name].update(blob)
-                    counts[name] += 1
-        after = path.stat()
-        if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
-            raise ValueError("bag changed while hashing; not sealed")
-        identity.append({"file": path.name, "size_bytes": after.st_size,
-                         "mtime_ns": after.st_mtime_ns})
-    streams = {name: {"type": RAW_TYPES[name], "count": counts[name],
-                       "ordered_cdr_sha256": signatures[name].hexdigest()}
-               for name in RAW_TYPES}
-    if not all(counts.values()):
-        raise ValueError("empty raw sensor stream")
-    return {"streams": streams, "files": identity,
-            "raw_input_sha256": hashlib.sha256(
-                json.dumps(streams, sort_keys=True).encode()).hexdigest()}
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"src/research_runtime"))
+from research_runtime.bag_identity import RAW_TYPES,raw_fingerprint
 
 
 def catalog(records: list[dict]) -> dict:
@@ -75,7 +42,6 @@ def catalog(records: list[dict]) -> dict:
                 derived = any(part.startswith("replay") or part in {"derived", "converted", "resampled"}
                               for part in path.parts)
                 row["category"] = "REPLAY_DERIVED_RAW" if derived else "ORIGINAL_RAW_LIO"
-                groups.setdefault(row["raw_input_sha256"], []).append(row)
             elif complete_raw:
                 row["category"] = "RAW_STORAGE_UNSUPPORTED"
             elif any(value["count"] and value["type"] == "nav_msgs/msg/Odometry"
@@ -83,8 +49,13 @@ def catalog(records: list[dict]) -> dict:
                 row["category"] = "LOCALIZATION_LOG_ONLY"
             else:
                 row["category"] = "NO_COMPLETE_RAW_PAIR"
+            if path.read_bytes()!=content:
+                raise ValueError("metadata changed while cataloging; not sealed")
+            if row["category"] in ("ORIGINAL_RAW_LIO","REPLAY_DERIVED_RAW"):
+                groups.setdefault(row["raw_input_sha256"], []).append(row)
         except (OSError, KeyError, TypeError, ValueError, sqlite3.Error, yaml.YAMLError) as exc:
             row["error"] = str(exc)
+            row["category"] = "UNREADABLE"
         bags.append(row)
     selected = []
     for members in groups.values():

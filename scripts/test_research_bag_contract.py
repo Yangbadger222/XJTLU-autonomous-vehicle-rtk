@@ -9,6 +9,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 from catalog_research_bags import catalog, RAW_TYPES
 from raw_replay_contract import replay_contract
+from research_runtime.bag_identity import verify_cataloged_bag
 
 
 def fixture(path, duration=418.53, shift=0):
@@ -47,3 +48,19 @@ def test_missing_raw_storage_refuses_full_replay(tmp_path):
     fixture(tmp_path/"raw")
     (tmp_path/"raw/raw.db3").unlink()
     with pytest.raises(ValueError,match="incomplete"):replay_contract(tmp_path/"raw")
+
+
+def test_catalog_refuses_incomplete_count_metadata(tmp_path):
+    record=fixture(tmp_path/"raw")
+    with sqlite3.connect(tmp_path/"raw/raw.db3") as db:db.execute("DELETE FROM messages WHERE topic_id=1")
+    result=catalog([record])
+    assert result["distinct_raw_input_count"]==0
+    assert result["bags"][0]["category"]=="UNREADABLE"
+
+
+def test_player_rechecks_full_cdr_identity_after_catalog(tmp_path):
+    record=fixture(tmp_path/"raw")
+    row=catalog([record])["bags"][0]
+    assert verify_cataloged_bag(row)==tmp_path/"raw"
+    with sqlite3.connect(tmp_path/"raw/raw.db3") as db:db.execute("UPDATE messages SET data=? WHERE id=1",(b"changed",))
+    with pytest.raises(ValueError,match="identity changed"):verify_cataloged_bag(row)

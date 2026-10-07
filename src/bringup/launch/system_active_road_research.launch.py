@@ -94,7 +94,10 @@ def generate_launch_description():
     cmd_guard = Node(package="gps_waypoint_dispatcher", executable="corridor_cmd_vel_guard_node",
                      name="corridor_cmd_vel_guard", output="screen",
 
-                     parameters=[master, {"use_sim_time": simulated_time}])
+                     # Headerless command/receipt watchdog must keep running
+                     # when bag measurement time pauses. Original callbacks,
+                     # frequency, thresholds and source remain unchanged.
+                     parameters=[master, {"use_sim_time": False}])
     serial = Node(package="serial_twistctl", executable="serial_twistctl_node",
                   name="serial_twistctl_node", output="screen",
                   condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),

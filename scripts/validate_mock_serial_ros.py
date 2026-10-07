@@ -66,6 +66,7 @@ def main():
     trajectory_counts = {"ok": 0, "failed": 0}
     operator_sequence = 0
     operator_last = None
+    previous_fault = None
     tracker_reasons = {}
     master_config = args.repo / "src/bringup/config/master_params.yaml"
     safety_config = args.repo / "src/bringup/config/research_safety_bridge.yaml"
@@ -126,6 +127,7 @@ def main():
     def tick(fault="normal"):
         nonlocal last_physics_time,goal_stopped,goal_arrival_pose,minimum_goal_distance
         nonlocal operator_sequence, operator_last
+        nonlocal previous_fault
         stamp = node.get_clock().now().to_msg()
         now = stamp.sec * 1_000_000_000 + stamp.nanosec
         if args.paused_clock_probe and fault!="paused_ros_clock":pubs["clock"].publish(Clock(clock=stamp))
@@ -137,10 +139,18 @@ def main():
                 consent=OperatorPermit();consent.header.stamp,consent.header.frame_id=stamp,"odom"
                 consent.session_id,consent.sequence,consent.execution_mode="mock-only",operator_sequence,"live"
                 consent.map_version="m2" if fault=="operator_wrong_map" else "m1"
-                consent.state="STOP_LATCHED" if fault=="operator_stop" else "AUTONOMOUS"
+                consent.state=("READY" if (previous_fault!="normal" and fault=="normal") or fault=="authority_false" else
+                               "STOP_LATCHED" if fault=="operator_stop" else "AUTONOMOUS")
                 consent.lease_active=True
-                consent.motion_requested=fault!="operator_stop"
+                consent.motion_requested=consent.state=="AUTONOMOUS"
                 pubs["operator"].publish(consent);operator_last=consent
+                if consent.state=="READY" and fault=="normal":
+                    # Keep READY long enough for both downstream periodic gates
+                    # to observe the explicit fixture reset before starting.
+                    if previous_fault!="ready_dwell":
+                        previous_fault="ready_dwell"
+                        return
+        previous_fault=fault
         if args.ego_loop:
             dt = min((now-last_physics_time) * 1e-9, 0.1)
             simulated_velocity[0] += max(-1.20*dt, min(0.85*dt, wire_command[0]-simulated_velocity[0]))
@@ -267,11 +277,14 @@ def main():
 
     def phase(fault, seconds):
         start = len(wire)
+        competing_operator_pub=(competing_tf_node.create_publisher(OperatorPermit,"/research/operator_permit",10)
+            if fault=="operator_competing_publisher" else None)
         deadline = time.monotonic() + seconds
         while time.monotonic() < deadline:
             tick(fault)
             time.sleep(0.025)
             if args.ego_loop and fault=="normal" and goal_stopped and max(map(abs,simulated_velocity))<.01:break
+        if competing_operator_pub:competing_tf_node.destroy_publisher(competing_operator_pub)
         return wire[start:]
 
     try:
@@ -292,7 +305,7 @@ def main():
                 "-p", "max_curvature_1pm:=1.0", "-p", "max_lateral_speed_mps:=0.05",
                 "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305))]))
         for package, binary, ros_args in commands:
-            if args.paused_clock_probe:ros_args += ["-p","use_sim_time:=true"]
+            if args.paused_clock_probe:ros_args += ["-p","use_sim_time:="+("false" if binary=="corridor_cmd_vel_guard_node" else "true")]
             log = (args.output.parent / (args.output.stem+"-"+binary + "-mock.log")).open("w")
             logs.append(log)
             children.append(subprocess.Popen([str(args.install / package / "lib" / package / binary),
@@ -340,7 +353,7 @@ def main():
                       "footprint_interior_obstacle", "stop_override", "stop_heartbeat_lost", "speed_permission_zero",
                       "wrong_odom_frame", "old_odom_stamp", "zero_quaternion", "pose_jump",
                       "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
-                      "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map")
+                      "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher")
         if args.tf_static_fault:faults=("tf_static_competitor",)
         if args.paused_clock_probe:faults=("paused_ros_clock",)
         if args.rtk_classifier:faults=("gnss_non_fixed","gnss_low_satellites","gnss_bad_hdop","gnss_heading_float","gnss_rtcm_stale")
@@ -352,6 +365,12 @@ def main():
             zero_ok = len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail)
             cases.append({"fault": fault, "nominal_nonzero_reached_serial": nominal_ok,
                           "final_serial_tail": tail, "status": "PASS" if nominal_ok and zero_ok else "FAIL"})
+            if fault in ("operator_heartbeat_lost","operator_duplicate","operator_competing_publisher"):
+                restored=phase("operator_restored_without_reset",.8)
+                restore_tail=restored[-5:]
+                cases.append({"fault":fault+":restored_without_reset","nominal_nonzero_reached_serial":nominal_ok,
+                    "final_serial_tail":restore_tail,"status":"PASS" if nominal_ok and len(restore_tail)==5 and
+                    all(line=="vcx=0.000,wc=0.000\n" for line in restore_tail) else "FAIL"})
             if any(child.poll() is not None for child in children):
                 break
         if not args.tf_static_fault and not args.rtk_classifier:

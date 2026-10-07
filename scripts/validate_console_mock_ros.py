@@ -104,6 +104,7 @@ def main():
     def spawn(package,executable,extra):
         log=(args.output.parent/("console-"+executable+".log")).open("w");logs.append(log)
         cmd=[str(args.install/package/"lib"/package/executable),"--ros-args"]+extra
+        if package in ("research_runtime","active_road_mapping","gps_waypoint_dispatcher"):cmd.insert(0,sys.executable)
         child=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);children.append(child);return child
     def rearm():
         phase(1.2)

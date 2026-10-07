@@ -133,7 +133,8 @@ def trial(args,mode,index,manifest):
             operator_sequence+=1
             permit=OperatorPermit();permit.header.stamp,permit.header.frame_id=probe.get_clock().now().to_msg(),"odom"
             permit.session_id,permit.sequence,permit.execution_mode="simulation-evaluator-only",operator_sequence,"live"
-            permit.map_version,permit.state,permit.motion_requested=current_version[0],"AUTONOMOUS",True
+            preparing=time.monotonic()-start<3.
+            permit.map_version,permit.state,permit.motion_requested=current_version[0],"READY" if preparing else "AUTONOMOUS",not preparing
             permit.lease_active=True;operator_pub.publish(permit)
             # Evaluator-only termination reads policy status, never feeds truth back.
             if 'TASK_REACHED' in (root/'observer.log').read_text():break

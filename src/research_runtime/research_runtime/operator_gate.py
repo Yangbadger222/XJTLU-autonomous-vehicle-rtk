@@ -25,6 +25,8 @@ class OperatorGate:
         self._consent = None
         self._received = -math.inf
         self._sessions = {}  # Keep high-water marks across session changes.
+        self._latched = True
+        self._armed_session = ""
 
     def receive(self, consent, received_at):
         if (not isinstance(consent, OperatorConsent) or not consent.session_id or
@@ -34,15 +36,30 @@ class OperatorGate:
             return False
         if len(self._sessions) >= 100 and consent.session_id not in self._sessions:
             return False  # Restart an exhausted isolated test session safely.
+        if received_at-self._received > self.TIMEOUT_S or (self._consent and consent.session_id!=self._consent.session_id):
+            self._latched=True
         self._sessions[consent.session_id] = consent.sequence
         self._consent, self._received = consent, received_at
         return True
 
     def allowed(self, now, *, mode, map_version, sole_publisher=True):
         c = self._consent
-        return bool(sole_publisher and c and 0 <= now-self._received <= self.TIMEOUT_S and
-                    mode == "live" and c.mode == mode and map_version not in ("", "UNKNOWN") and
-                    c.map_version == map_version and c.state == "AUTONOMOUS" and c.motion_requested is True and c.lease_active is True)
+        transport=bool(sole_publisher and c and 0<=now-self._received<=self.TIMEOUT_S and
+                       mode=="live" and c.mode==mode and c.lease_active is True)
+        if not transport:
+            self._latched=True
+            return False
+        # Evidence versions advance during a task. Deny a mismatched snapshot
+        # until both inputs agree; this cannot renew a lost operator lease.
+        if map_version in ("","UNKNOWN") or c.map_version!=map_version:return False
+        if c.state=="READY" and c.motion_requested is False:
+            self._latched=False
+            self._armed_session=c.session_id
+            return False
+        if c.state!="AUTONOMOUS" or c.motion_requested is not True:
+            self._latched=True
+            return False
+        return not self._latched and c.session_id==self._armed_session
 
     def editing_allowed(self, now, *, mode, map_version, sole_publisher=True):
         c = self._consent

@@ -26,6 +26,10 @@ def main():
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     footprint = tuple(tuple(point) for point in locked["vehicle.corridor_footprint_xy"])
     master_path = root/"src/bringup/config/master_params.yaml"
+    protected = dict(line.split(None, 1)[::-1] for line in
+        (root/"audit/vehicle_baseline/PROTECTED_FILES.sha256").read_text().splitlines())
+    if hashlib.sha256(master_path.read_bytes()).hexdigest() != protected["src/bringup/config/master_params.yaml"]:
+        raise SystemExit("protected master source differs; refusing to regenerate stop confirmation")
     master = yaml.safe_load(master_path.read_text())["/rtk_map_odom_corrector"]["ros__parameters"]
     stopped = (master["stopped_linear_rate_mps"], math.radians(master["stopped_yaw_rate_degps"]),
                master["stopped_confirmation_s"])

@@ -21,6 +21,7 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import TransformStamped
 from tf2_msgs.msg import TFMessage
 from std_msgs.msg import Bool, Float32, String, Float32MultiArray, Float64MultiArray
+from std_msgs.msg import Header
 from sensor_msgs.msg import NavSatFix
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from nmea_msgs.msg import Sentence
@@ -250,8 +251,12 @@ def main():
             grid.data = [-1 if fault == "unknown_ground" else 0] * 1600
             if fault == "footprint_interior_obstacle":
                 grid.data[20 * 40 + 20] = 100
-            pubs["grid"].publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version="m1",
-                localization_session_id="mock-only",support_model="analytical_fixture_v1"))
+            wrapped=LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version="old-map" if fault=='grid_old_payload_version' else "m1",
+                localization_session_id="old-session" if fault=='grid_wrong_payload_session' else "mock-only",
+                support_model="unsupported-model" if fault=='grid_wrong_support_model' else "analytical_fixture_v1")
+            if fault=='grid_mismatched_acquisition':
+                wrapped.header=Header(stamp=grid.header.stamp,frame_id='wrong')
+            pubs["grid"].publish(wrapped)
         if fault != "permission_stream_lost":
             permission = OccupancyGrid()
             permission.header.frame_id, permission.header.stamp = "odom", stamp
@@ -369,7 +374,8 @@ def main():
                       "footprint_interior_obstacle", "stop_override", "stop_heartbeat_lost", "speed_permission_zero",
                       "wrong_odom_frame", "old_odom_stamp", "zero_quaternion", "pose_jump",
                       "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
-                      "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher")
+                      "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher",
+                      "grid_old_payload_version","grid_wrong_payload_session","grid_wrong_support_model","grid_mismatched_acquisition")
         if args.tf_static_fault:faults=("tf_static_competitor",)
         if args.world_gauge_fault:faults=("world_gauge_"+args.world_gauge_fault,)
         if args.paused_clock_probe:faults=("paused_ros_clock",)

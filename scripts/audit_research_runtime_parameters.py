@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -96,6 +97,30 @@ def audit(root, default_entry, serial):
     checked("tf_guard.protect_world_gauge",True,
             "\"protect_world_gauge\": True" in (root/"src/bringup/launch/system_active_road_research.launch.py").read_text(),
             parameters(evidence["tf_guard_parameters"]["output"]).get("protect_world_gauge"))
+    if "ground_parameters" in evidence:
+        import sys
+        sys.path.insert(0,str(root/"src/research_runtime"))
+        from research_runtime.physical_parameter_lock import MID360_GROUND_REFERENCE
+        ground=parameters(evidence["ground_parameters"]["output"])
+        local=parameters(evidence["local_grid_parameters"]["output"])
+        parsed_ground=yaml.safe_load((root/"src/bringup/config/research_observed_ground.yaml").read_text())["research_observed_ground"]["ros__parameters"]
+        recorded_height=float(re.search(r'安装高度 \(相对地面\) \| \*\*([0-9.]+) m\*\*',
+            (root/"docs-CN/hardware_spec.md").read_text()).group(1))
+        checked("ground.recorded_lidar_height_m",recorded_height,MID360_GROUND_REFERENCE["lidar_height_m"],ground.get("lidar_height_m"))
+        checked("ground.factory_lidar_in_imu_m",locked["lio.t_il"],list(MID360_GROUND_REFERENCE["lidar_in_imu_m"]),ground.get("lidar_in_imu_m"))
+        nav_baseline=yaml.safe_load((root/"src/bringup/config/nav2_corridor_rtk.yaml").read_text())
+        original_resolution=nav_baseline["local_costmap"]["local_costmap"]["ros__parameters"]["resolution"]
+        # Grid resolution belongs to the new EGO representation. It is not a
+        # vehicle calibration or an equivalent carry-over of Nav2's 0.05 m grid.
+        checked("ground.research_resolution",parsed_ego["map_resolution_m"],parsed_ground["resolution_m"],ground.get("resolution_m"))
+        checks[-1].update({"class":"NEW_ALGORITHM_SETTING","original_nav2_local_resolution_m":original_resolution})
+        for label in ("ego_parameters","safety_parameters","local_grid_parameters"):
+            checked(label+".fixture_gate_default",False,False,parameters(evidence[label]["output"]).get("allow_analytical_grid_fixture"))
+        sessions=[ground.get("localization_session_id"),local.get("localization_session_id"),
+            parameters(evidence["ego_parameters"]["output"]).get("localization_session_id"),
+            parameters(evidence["safety_parameters"]["output"]).get("localization_session_id")]
+        checks.append({"name":"local_evidence.shared_current_session","runtime":sessions,
+            "status":"PASS" if len(set(sessions))==1 and sessions[0] not in (None,"","UNKNOWN") else "FAIL"})
     # Compare the actual robot_description geometry with expansion of the
     # protected original Xacro, ignoring only nonsemantic comments/formatting.
     source=root/"src/bringup/urdf/rosbot/rosbot.urdf.xacro"

@@ -39,3 +39,16 @@ def test_deep_malformed_json_denies_health_without_terminating_the_node():
     assert _source_certificate('['*1100+']'*1100) is None
     assert _source_certificate(certificate(iterations=True)) is None
     assert _source_certificate(certificate(effective_points=50.5)) is None
+
+
+def test_certificate_validation_does_not_depend_on_navigation_point_selection():
+    from types import SimpleNamespace
+    from super_lio_vehicle_adapter.adapter_node import SuperLioVehicleAdapter
+    for legacy in (True,False):
+        node=object.__new__(SuperLioVehicleAdapter)
+        node._legacy_reference=legacy;node._pending_odom=None
+        rejected=[];node._reject=rejected.append
+        node._health_callback(SimpleNamespace(data="OK: unqualified"))
+        assert not node._source_health_ok and node._source_certificate_stamp is None and rejected
+        node._health_callback(SimpleNamespace(data=certificate()))
+        assert node._source_health_ok and node._source_certificate_stamp==123456789

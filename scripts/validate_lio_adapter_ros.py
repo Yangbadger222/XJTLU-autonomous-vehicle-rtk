@@ -39,7 +39,11 @@ def main():
             msg.twist.twist.angular.z=1.
             msg.pose.covariance=[.01 if i%7==0 else 0. for i in range(36)];msg.twist.covariance=list(msg.pose.covariance)
             odom.publish(msg)
-            if send_health:health.publish(String(data='OK: ANALYTICAL_TEST_SOURCE'))
+            if send_health:health.publish(String(data=json.dumps(dict(
+                source="super_lio/f89f48dc",certificate="fixed_extrinsic_observation_lower_bound_v1",
+                twist_convention="imu_body_full_state_v1",stamp_ns=stamp.sec*1_000_000_000+stamp.nanosec,
+                status="OK",minimum_observation_information=100.,legacy_min_eig_lower_bound=100.,
+                effective_points=100,iterations=2,reason="ANALYTICAL_TEST_ONLY"))))
             if send_cloud:cloud.publish(point_cloud2.create_cloud_xyz32(msg.header,[(0.,0.,100.05),(1.,0.,100.2),(2.,0.,100.8),(3.,0.,101.3),(float('nan'),0.,0.)]))
 
             for _ in range(7):rclpy.spin_once(node,timeout_sec=.002)

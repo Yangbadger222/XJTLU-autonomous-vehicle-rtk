@@ -293,14 +293,13 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._health.publish(String(data=text))
 
     def _health_callback(self, msg):
-        if self._legacy_reference:
-            certificate = _source_certificate(str(msg.data))
-            self._source_certificate_stamp = certificate["stamp_ns"] if certificate else None
-            self._source_health_ok = bool(certificate and certificate["eligible"])
-            if not self._source_health_ok:
-                self._reject("source observation certificate not eligible")
-        else:
-            self._source_health_ok = str(msg.data).upper().startswith("OK")
+        # Native observation/covariance qualification is independent of the
+        # navigation point convention or a measured rigid-body extrinsic.
+        certificate = _source_certificate(str(msg.data))
+        self._source_certificate_stamp = certificate["stamp_ns"] if certificate else None
+        self._source_health_ok = bool(certificate and certificate["eligible"])
+        if not self._source_health_ok:
+            self._reject("source observation certificate not eligible")
         self._source_health_received=time.monotonic()
         pending = self._pending_odom
         if pending is not None and self._source_certificate_stamp == pending.header.stamp.sec*1_000_000_000+pending.header.stamp.nanosec:
@@ -350,21 +349,20 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             return
         source_health_current=self._source_health_ok and 0<=time.monotonic()-self._source_health_received<=.50
         source_stamp = msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
-        if self._legacy_reference:
-            if self._reference_fault:
+        if self._reference_fault:
+            self._reject(self._reference_fault)
+            return
+        if self._source_certificate_stamp != source_stamp:
+            self._pending_odom = msg
+            # Do not transiently fault a previously accepted pair merely
+            # because DDS delivered the next odom before its certificate.
+            # Without a matched pair, state/health freshness still expires.
+            return
+        if self._last_source_stamp is not None and source_stamp <= self._last_source_stamp:
+            if source_stamp < self._last_source_stamp:
+                self._reference_fault = "source clock regressed; restart with a new localization session"
                 self._reject(self._reference_fault)
-                return
-            if self._source_certificate_stamp != source_stamp:
-                self._pending_odom = msg
-                # Do not transiently fault a previously accepted pair merely
-                # because DDS delivered the next odom before its certificate.
-                # Without a matched pair, state/health freshness still expires.
-                return
-            if self._last_source_stamp is not None and source_stamp <= self._last_source_stamp:
-                if source_stamp < self._last_source_stamp:
-                    self._reference_fault = "source clock regressed; restart with a new localization session"
-                    self._reject(self._reference_fault)
-                return
+            return
         if self._require_source_health_ok and not source_health_current and not self._publish_unhealthy:
             self._reject("Super-LIO source health is not OK")
             return
@@ -438,8 +436,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = body_velocity
         output.twist.twist.angular.x, output.twist.twist.angular.y, output.twist.twist.angular.z = body_angular
         self._odom.publish(output)
+        self._last_source_stamp = source_stamp
         if self._legacy_reference:
-            self._last_source_stamp = source_stamp
             self._last_source_pose = ((position.x, position.y, position.z), q_wi)
         transform = TransformStamped()
         transform.header, transform.child_frame_id = output.header, output.child_frame_id

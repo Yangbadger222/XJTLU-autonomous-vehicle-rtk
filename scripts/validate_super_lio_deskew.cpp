@@ -42,7 +42,7 @@ int main() {
     assert(!probe.run(input));assert(probe.time()==1.01 && (probe.covariance()-cov).norm()==0);
     assert(probe.quality().reason=="insufficient_synchronized_imu_samples");
   }
-  for(int fault=0;fault<6;++fault) {
+  for(int fault=0;fault<7;++fault) {
     Probe probe;auto input=fixture();const auto cov=probe.covariance();
     if(fault==0)input.lidar.end_time=1.;
     if(fault==1)input.lidar.start_time=.9;
@@ -50,6 +50,7 @@ int main() {
     if(fault==3)input.imu[1].gyr[0]=std::numeric_limits<BASIC::scalar>::quiet_NaN();
     if(fault==4)input.imu_after_scan.reset();
     if(fault==5)input.imu_after_scan->secs=1.039;
+    if(fault==6) {input.imu[0].secs=.8;input.imu[1].secs=.9;input.imu[2].secs=1.;}
     assert(!probe.run(input));assert(probe.time()==1.01 && (probe.covariance()-cov).norm()==0);
     assert(!probe.quality().valid && !probe.quality().eligible);
   }

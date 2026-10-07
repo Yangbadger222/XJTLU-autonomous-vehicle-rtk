@@ -316,7 +316,7 @@ index f7a64d2..bee8611 100644
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..9016f8c 100644
+index d1a3ae7..b58cc06 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
 @@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
@@ -347,7 +347,7 @@ index d1a3ae7..9016f8c 100644
    Output();
    caceData();
  }
-@@ -358,21 +362,74 @@ inline double get_cpu_time_seconds() {
+@@ -358,21 +362,77 @@ inline double get_cpu_time_seconds() {
  }
  
  
@@ -373,6 +373,9 @@ index d1a3ae7..9016f8c 100644
 +      return reject("invalid_synchronized_imu_interval");
 +    previous = imu.secs;
 +  }
++  const auto current_samples = std::count_if(measures_.imu.begin(), measures_.imu.end(),
++      [this](const IMUData& imu) { return imu.secs > kf_->GetTime(); });
++  if (current_samples < 3) return reject("insufficient_current_interval_imu_samples");
 +  for (const auto& point : measures_.lidar.pc->points) {
 +    const double query = start_time + point.offset_time;
 +    if (!std::isfinite(query) || !std::isfinite(point.x) || !std::isfinite(point.y) ||
@@ -427,7 +430,7 @@ index d1a3ae7..9016f8c 100644
    auto& raw_pc = measures_.lidar.pc;
  
    std::size_t ptsize = raw_pc->points.size();
-@@ -386,23 +443,15 @@ void SuperLIO::Propagation_Undistort(){
+@@ -386,23 +446,15 @@ void SuperLIO::Propagation_Undistort(){
        auto& pt_full = scan_undistort_full_->points[idx];
        const auto& pt = raw_pc->points[idx];
        pt_full.intensity = pt.intensity;
@@ -460,7 +463,7 @@ index d1a3ae7..9016f8c 100644
        auto match_iter_n = std::next(match_iter);
        double dt = match_iter_n->time - match_iter->time;
        double tau = query_time - match_iter->time;
-@@ -423,6 +472,7 @@ void SuperLIO::Propagation_Undistort(){
+@@ -423,6 +475,7 @@ void SuperLIO::Propagation_Undistort(){
        pt_full.z = eigen_point[2];
      }
    });
@@ -468,7 +471,7 @@ index d1a3ae7..9016f8c 100644
  }
  
  
-@@ -435,12 +485,17 @@ void SuperLIO::DownSample(){
+@@ -435,12 +488,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
    V6d HTVr = V6d::Zero();
@@ -487,7 +490,7 @@ index d1a3ae7..9016f8c 100644
    
    static std::vector<float> _lengths;
    points_body_v3_.resize(ptsize);
-@@ -458,7 +513,7 @@ void SuperLIO::Observe(){
+@@ -458,7 +516,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
  
@@ -496,7 +499,7 @@ index d1a3ae7..9016f8c 100644
      const SE3 pose = kf_state.pose;
      const bool need_converge = kf_state.need_converge;
      const M3d R_transpose = (pose.R_.transpose()).cast<double>();
-@@ -504,18 +559,22 @@ void SuperLIO::Observe(){
+@@ -504,18 +562,22 @@ void SuperLIO::Observe(){
        
              local_acc.HTVH += J * 1000 * J.transpose();
              local_acc.HTVr -= J * 1000 * error;
@@ -519,7 +522,7 @@ index d1a3ae7..9016f8c 100644
  
      if(need_converge) return;
  
-@@ -534,6 +593,7 @@ void SuperLIO::Observe(){
+@@ -534,6 +596,7 @@ void SuperLIO::Observe(){
    });
  
    frame_num_++;
@@ -527,7 +530,7 @@ index d1a3ae7..9016f8c 100644
  }
  
  
-@@ -589,4 +649,4 @@ void SuperLIO::printTimeRecord(){
+@@ -589,4 +652,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
  

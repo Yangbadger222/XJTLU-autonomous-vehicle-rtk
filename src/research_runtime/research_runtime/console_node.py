@@ -128,7 +128,7 @@ class ConsoleNode(Node):
         request.map_version=self.console._fresh("map_version") or "UNKNOWN"
         request.start_node,request.goal_node=payload.get("start_node",""),payload.get("goal_node","")
         future=self.client.call_async(request)
-        self.task_pending=(future,time.monotonic(),action)
+        self.task_pending=(future,time.monotonic(),action,identity)
         def done(f):
             if not self.task_pending or f is not self.task_pending[0]:return
             self.task_pending=None
@@ -146,7 +146,7 @@ class ConsoleNode(Node):
         future.add_done_callback(done)
         return True
 
-    def _replay(self,action,payload):
+    def _replay(self,action,payload,request_id):
         state=self.console.replay
         try:
             if action=="replay_start":
@@ -162,7 +162,10 @@ class ConsoleNode(Node):
                     except (OSError,ValueError,KeyError) as exc:path=None;error=str(exc)
                     with self.console.lock:
                         if generation!=self.replay_generation:return
-                        if error:state.update(state="ERROR",reason=error);return
+                        if error:
+                            state.update(state="ERROR",reason=error)
+                            self.console.finish_request(request_id,False,error)
+                            return
                         try:
                             log_path=research_path("runtime-data/research/active_road/operator-replay.log")
                             log_path.parent.mkdir(parents=True,exist_ok=True)
@@ -170,7 +173,10 @@ class ConsoleNode(Node):
                             self.player=subprocess.Popen(["ros2","bag","play",str(path),"--rate","1.0","--clock","50",
                                 "--topics","/livox/lidar","/livox/imu"],stdout=self.player_log,stderr=subprocess.STDOUT,start_new_session=True)
                             state.update(state="PLAYING",bag_id=identity,pid=self.player.pid,reason="完整原始输入身份已核实；1× 测量时钟")
-                        except OSError as exc:state.update(state="ERROR",reason=str(exc))
+                            self.console.finish_request(request_id,True,state["reason"])
+                        except OSError as exc:
+                            state.update(state="ERROR",reason=str(exc))
+                            self.console.finish_request(request_id,False,str(exc))
                 self.validation=threading.Thread(target=verified,daemon=True);self.validation.start()
             elif action=="replay_stop":
                 self.replay_generation+=1;self._stop_player();state.update(state="STOPPED",reason="已结束本界面回放/校验")
@@ -210,13 +216,15 @@ class ConsoleNode(Node):
                         self.console.pending.popleft()
                         self.console.finish_request(identity,False,"任务接口忙或离线，未选择任务")
                 else:
-                    self.console.pending.popleft();self._replay(action,payload)
-                    self.console.finish_request(identity,self.console.replay["state"]!="ERROR",self.console.replay["reason"])
+                    self.console.pending.popleft();self._replay(action,payload,identity)
+                    if self.console.replay["state"]!="VALIDATING":
+                        self.console.finish_request(identity,self.console.replay["state"]!="ERROR",self.console.replay["reason"])
             if time.monotonic()-self.inspect_at>2.:
                 self.inspect_at=time.monotonic();self._task("inspect","inspect",{})
             if self.task_pending and time.monotonic()-self.task_pending[1]>.5:
-                future=self.task_pending[0];self.task_pending=None;future.cancel()
+                future,_,action,identity=self.task_pending;self.task_pending=None;future.cancel()
                 self.console.task.update(accepted=False,reason="任务接口超时")
+                if action=="select":self.console.finish_request(identity,False,"任务接口超时，未确认任务选择")
             if self.player and self.player.poll() is not None and self.console.replay["state"] in ("PLAYING","PAUSED"):
                 self.console.replay.update(state="FINISHED" if self.player.returncode==0 else "ERROR",reason="回放退出码："+str(self.player.returncode))
 

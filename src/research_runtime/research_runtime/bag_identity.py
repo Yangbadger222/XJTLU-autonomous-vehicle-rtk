@@ -31,11 +31,14 @@ def raw_fingerprint(directory: Path, info: dict) -> dict:
                     signatures[name].update(len(blob).to_bytes(8, "little"))
                     signatures[name].update(blob)
                     counts[name] += 1
+        storage_hash=hashlib.sha256()
+        with path.open("rb") as source:
+            for block in iter(lambda:source.read(4*1024*1024),b""):storage_hash.update(block)
         after = path.stat()
         if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
             raise ValueError("bag changed while hashing; not sealed")
         identity.append({"file": path.name, "size_bytes": after.st_size,
-                         "mtime_ns": after.st_mtime_ns})
+                         "mtime_ns": after.st_mtime_ns,"storage_sha256":storage_hash.hexdigest()})
     streams = {name: {"type": RAW_TYPES[name], "count": counts[name],
                        "ordered_cdr_sha256": signatures[name].hexdigest()}
                for name in RAW_TYPES}
@@ -61,6 +64,8 @@ def verify_cataloged_bag(row):
         result=raw_fingerprint(directory,info)
     except (sqlite3.Error,yaml.YAMLError,KeyError,TypeError) as exc:
         raise ValueError("unreadable cataloged storage: "+str(exc)) from exc
+    if result["files"]!=row.get("files"):
+        raise ValueError("sealed bag storage identity changed since catalog; rebuild catalog if missing storage SHA")
     if metadata.read_bytes()!=content or result["raw_input_sha256"]!=row["raw_input_sha256"]:
         raise ValueError("raw input identity changed since catalog")
     return directory

@@ -64,3 +64,12 @@ def test_player_rechecks_full_cdr_identity_after_catalog(tmp_path):
     assert verify_cataloged_bag(row)==tmp_path/"raw"
     with sqlite3.connect(tmp_path/"raw/raw.db3") as db:db.execute("UPDATE messages SET data=? WHERE id=1",(b"changed",))
     with pytest.raises(ValueError,match="identity changed"):verify_cataloged_bag(row)
+
+
+def test_same_raw_payload_with_changed_playback_clock_invalidates_seal(tmp_path):
+    record=fixture(tmp_path/"raw")
+    row=catalog([record])["bags"][0]
+    with sqlite3.connect(tmp_path/"raw/raw.db3") as db:db.execute("UPDATE messages SET timestamp=timestamp+3000000000")
+    updated=catalog([record])["bags"][0]
+    assert updated["raw_input_sha256"]==row["raw_input_sha256"]  # Same inputs for deduplication.
+    with pytest.raises(ValueError,match="storage identity changed"):verify_cataloged_bag(row)

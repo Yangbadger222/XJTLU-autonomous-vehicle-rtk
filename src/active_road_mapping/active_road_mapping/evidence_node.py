@@ -74,6 +74,14 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
         self.declare_parameter("reload_period_s", 0.20)
         self.declare_parameter("global_anchor_uncertainty_verified", False)
         self.declare_parameter("global_anchor_uncertainty_m", -1.0)
+        self.declare_parameter("localization_session_id", "")
+        self._session_id=str(self.get_parameter("localization_session_id").value)
+        # Producers namespace submap IDs with this LIO initialization epoch.
+        # An unknown epoch can retain local evidence but cannot global-anchor it.
+        from rclpy.qos import QoSProfile,DurabilityPolicy
+        self._session_pub=self.create_publisher(String,"/research/localization_session_id",
+            QoSProfile(depth=1,durability=DurabilityPolicy.TRANSIENT_LOCAL))
+        self._session_pub.publish(String(data=self._session_id))
         self._authority = False
         self._authority_received = None
         self._authority_mode,self._mode_received="UNKNOWN",0.
@@ -137,16 +145,21 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
                          abs(q.z*q.z+q.w*q.w-1.) < 1e-3)
             except Exception:
                 valid = False
+        current_submaps={e.local_submap_id for e in self._store.evidence()
+            if self._session_id and e.local_submap_id.startswith(self._session_id+"/")}
         changed = False
         if not valid:
-            changed = self._store.mark_anchors_stale()
+            changed = self._store.mark_anchors_stale(current_submaps)
         else:
             p,q = transform.transform.translation,transform.transform.rotation
             xy_yaw = (p.x,p.y,2*math.atan2(q.z,q.w))
             # Anchor a new submap once. Recovery reanchors stale local UUIDs;
             # equal transforms do not rewrite versions; verified RTK corrections
             # update the existing anchor while preserving every local UUID.
-            for identity in {e.local_submap_id for e in self._store.evidence()}:
+            # A current map->odom belongs only to the current LIO epoch.
+            # Historical epochs retain their own verified anchors. Reanchoring
+            # a historical epoch requires independent registration, never this TF.
+            for identity in current_submaps:
                 anchor = self._store.submap_anchors.get(identity)
                 if (anchor is None or anchor["state"] == "STALE" or
                     math.dist(anchor["map_from_local_xyyaw"][:2],xy_yaw[:2])>1e-6 or
@@ -226,6 +239,9 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
 
     def _graph_update_callback(self,msg):
         if self._store is None or msg.header.frame_id!="odom" or not _stamp_is_set(msg.header.stamp):return
+        if not self._session_id or not msg.local_submap_id.startswith(self._session_id+"/"):
+            self._reject("graph update does not belong to current localization session")
+            return
         now=self.get_clock().now().nanoseconds*1e-9
         stamp=_stamp_seconds(msg.header.stamp)
         if not 0<=now-stamp<=.50:return

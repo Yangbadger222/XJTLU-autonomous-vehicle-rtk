@@ -169,9 +169,11 @@ class TruthSensor(Node):
 
 
 class MeasuredPerception(Node):
-    def __init__(self, output, seed_grid=None, seed_evidence=None):
+    def __init__(self, output, seed_grid=None, seed_evidence=None,localization_session_id=""):
         super().__init__('restricted_measured_perception')
         self.output=Path(output);self.history=deque(maxlen=100);self.pending=deque(maxlen=20)
+        if not localization_session_id:raise ValueError("explicit simulated LIO session identity required")
+        self.localization_session_id=localization_session_id
         self.encoder_samples=deque(maxlen=100);self.imu_samples=deque(maxlen=200)
         self.unacked_evidence={};self.last_evidence_retry=0.
         self.create_subscription(String,'/research/road_evidence_ack',lambda msg:self.unacked_evidence.pop(msg.data,None),1000)
@@ -180,7 +182,7 @@ class MeasuredPerception(Node):
         if seed_evidence and Path(seed_evidence).exists():
             from research_runtime.active_road import EvidenceStore
             for evidence in EvidenceStore.load(seed_evidence).evidence():
-                if evidence.evidence_id.startswith('synthetic-depth-cell:'):
+                if evidence.evidence_id.startswith(self.localization_session_id+':synthetic-depth-cell:'):
                     self.ledger_cells[int(evidence.evidence_id.split(':')[-1])]=0
         self.tf=TransformBroadcaster(self)
         self.acceleration=self.create_publisher(AccelStamped,"/research/vehicle_acceleration",10)
@@ -257,8 +259,8 @@ class MeasuredPerception(Node):
             if len(points)>=4 and max(p[0] for p in points)-min(p[0] for p in points)>=.18 and max(p[1] for p in points)-min(p[1] for p in points)>=.18:
                 if self.ledger_cells[index]!=0:
                     evidence=RoadEvidence2D();evidence.header=Header(stamp=msg.header.stamp,frame_id='odom')
-                    evidence.evidence_id='synthetic-depth-cell:'+str(index)
-                    evidence.source='measured_synthetic_depth_support';evidence.local_submap_id='synthetic-fixed-odom-origin-v1'
+                    evidence.evidence_id=self.localization_session_id+':synthetic-depth-cell:'+str(index)
+                    evidence.source='measured_synthetic_depth_support';evidence.local_submap_id=self.localization_session_id+'/depth-submap'
                     evidence.pose_uncertainty_m=.03;evidence.state='OBSERVED_GEOMETRY'
                     evidence.valid_depth_min_m=min(p[2] for p in points);evidence.valid_depth_max_m=max(p[2] for p in points)
                     low,high=min(p[0] for p in points),max(p[0] for p in points);mean_y=sum(p[1] for p in points)/len(points)
@@ -305,9 +307,10 @@ def main():
     parser.add_argument('--output',required=True);parser.add_argument('--pty-fd',type=int);parser.add_argument('--seed-grid');parser.add_argument('--seed-evidence')
     parser.add_argument('--sensor-fault',choices=['none','imu_lost','lidar_lost','depth_invalid'],default='none')
     parser.add_argument('--fault-after-s',type=float,default=12.)
+    parser.add_argument('--localization-session-id',default='')
     args=parser.parse_args()
     if os.environ.get('ROS_DOMAIN_ID')!='94' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':raise SystemExit('requires isolated domain 94')
-    rclpy.init(signal_handler_options=SignalHandlerOptions.NO);node=TruthSensor(args.pty_fd,args.output,args.sensor_fault,args.fault_after_s) if args.role=='truth' else MeasuredPerception(args.output,args.seed_grid,args.seed_evidence)
+    rclpy.init(signal_handler_options=SignalHandlerOptions.NO);node=TruthSensor(args.pty_fd,args.output,args.sensor_fault,args.fault_after_s) if args.role=='truth' else MeasuredPerception(args.output,args.seed_grid,args.seed_evidence,args.localization_session_id)
     try:rclpy.spin(node)
     except KeyboardInterrupt:
         if args.role=='truth':

@@ -111,7 +111,7 @@
     "/lio/cloud_odom": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "odom",
-      "producer": "super_lio_cloud_frame_adapter",
+      "producer": "timestamped super_lio_cloud_frame_adapter",
       "policy": "original obstacle height window; acquisition-time source-world-to-odom transform"
     },
     "/research/tf_integrity": {

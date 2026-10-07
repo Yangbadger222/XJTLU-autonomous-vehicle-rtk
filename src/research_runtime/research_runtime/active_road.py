@@ -232,9 +232,10 @@ class EvidenceStore:
             "source":"selected_rtk_map_odom_authority"}
         self._update_version()
 
-    def mark_anchors_stale(self):
+    def mark_anchors_stale(self,submap_ids=None):
         changed=False
-        for anchor in self.submap_anchors.values():
+        for identity,anchor in self.submap_anchors.items():
+            if submap_ids is not None and identity not in submap_ids:continue
             if anchor["state"]!="STALE":anchor["state"]="STALE";changed=True
         if changed:self._update_version()
         return changed

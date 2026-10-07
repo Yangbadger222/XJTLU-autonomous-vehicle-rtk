@@ -11,6 +11,7 @@ p.add_argument('--repo', type=Path, required=True)
 p.add_argument('--workspace', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
+a.repo,a.workspace,a.output=a.repo.resolve(),a.workspace.resolve(),a.output.resolve()
 build = a.workspace/'build/ego_planner'
 flags = {}
 for line in (build/'CMakeFiles/motion_plan.dir/flags.make').read_text().splitlines():

@@ -5,6 +5,7 @@ existing authority and command guard, and the adapter's unverified-frame gate
 keeps it stopped until measured vehicle extrinsics are supplied.
 """
 import os
+import uuid
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -35,6 +36,8 @@ def generate_launch_description():
                                          description="Require explicit true plus execution_mode:=live for the physical serial sink")
     mission_arg = DeclareLaunchArgument("mission_execution_enabled",default_value="false",
         description="Explicit research task permission; does not grant RTK or physical KEY authority")
+    session_arg=DeclareLaunchArgument("localization_session_id",default_value=uuid.uuid4().hex,
+        description="Fresh identity per LIO initialization; evidence submap IDs must start with identity/")
     sim_time_arg = DeclareLaunchArgument("use_sim_time", default_value=PythonExpression(
         ["'", LaunchConfiguration("execution_mode"), "' == 'replay'"]))
     simulated_time = ParameterValue(LaunchConfiguration("use_sim_time"), value_type=bool)
@@ -73,7 +76,8 @@ def generate_launch_description():
         package="active_road_mapping", executable="active_road_evidence",
         name="active_road_evidence", output="screen",
 
-        parameters=[active_road_evidence_config, {"use_sim_time": simulated_time}])
+        parameters=[active_road_evidence_config, {"use_sim_time": simulated_time,
+                    "localization_session_id":LaunchConfiguration("localization_session_id")}])
     active_observation = Node(package="active_road_mapping", executable="active_observation",
         name="active_observation", output="screen",
         parameters=[os.path.join(bringup_share, "config", "active_observation.yaml"),
@@ -115,7 +119,7 @@ def generate_launch_description():
     )
     robot_description = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "robot_description.launch.py")))
-    return LaunchDescription([mode, enable_super, enable_serial, mission_arg, sim_time_arg,
+    return LaunchDescription([mode, enable_super, enable_serial, mission_arg, session_arg, sim_time_arg,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
                               robot_description, livox, rtk,
                               super_lio, adapter, cloud_frame, active_road_map, active_road_evidence, active_observation,

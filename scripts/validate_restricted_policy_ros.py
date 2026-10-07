@@ -56,6 +56,7 @@ def trial(args,mode,index,manifest):
     before=EvidenceStore.load(store)
     prior_ids={e.evidence_id for e in before.evidence()}
     before_graph_count=len(before.graph_updates)
+    session_id=f'{mode}-task-{index}'
     children=[];logs=[];master,slave=pty.openpty();port=os.ttyname(slave)
     def spawn(name,command,pass_fds=()):
         log=(root/f'{name}.log').open('w');logs.append(log)
@@ -97,8 +98,10 @@ def trial(args,mode,index,manifest):
         spawn('map',python_node('active_road_mapping','active_road_map',config/'active_road_mapping.yaml',
             ['-p',f'evidence_store_path:={store}']))
         spawn('evidence',python_node('active_road_mapping','active_road_evidence',config/'active_road_evidence.yaml',
-            ['-p',f'evidence_store_path:={store}','-p','global_anchor_uncertainty_verified:=true','-p','global_anchor_uncertainty_m:=0.03']))
-        spawn('perception',[sys.executable,str(args.repo/'scripts/research_restricted_sim.py'),'perception','--output',str(root/'perception.json')]+(
+            ['-p',f'evidence_store_path:={store}','-p','global_anchor_uncertainty_verified:=true','-p','global_anchor_uncertainty_m:=0.03',
+             '-p','localization_session_id:='+session_id]))
+        spawn('perception',[sys.executable,str(args.repo/'scripts/research_restricted_sim.py'),'perception','--output',str(root/'perception.json'),
+            '--localization-session-id',session_id]+(
             ['--seed-evidence',str(store)] if index>1 else []))
         spawn('local-grid',python_node('research_runtime','research_local_obstacle_grid',config/'research_local_grid.yaml'))
         spawn('ego',binary('ego_planner','motion_plan',config/'ego_vehicle_adapter.yaml',
@@ -123,6 +126,13 @@ def trial(args,mode,index,manifest):
             # Evaluator-only termination reads policy status, never feeds truth back.
             if 'TASK_REACHED' in (root/'observer.log').read_text():break
         exits={name:child.poll() for name,child in children}
+        # Export the actually verified map before the deliberate shutdown RTK
+        # fault. The next task consumes that immutable last-authoritative
+        # snapshot, never reanchors historical odom using its new session TF.
+        reusable=None
+        if args.sensor_fault=='none':
+            reusable=EvidenceStore.load(store)
+            reusable.save(root/'last-authoritative-evidence.json')
         terminate(truth);truth=None
         # Keep the original guard/serial alive while simulated RTK permission
         # falls; the truth role records actual final PTY zeros before exiting.
@@ -143,6 +153,9 @@ def trial(args,mode,index,manifest):
             'persisted_graph_increment_count':len(evidence.graph_updates),'anchored_graph_increment_count':len(evidence.graph_updates_in_map()),
             'previous_graph_increment_count':before_graph_count,
             'previous_evidence_uuid_count':len(prior_ids),'previous_evidence_uuids_preserved':prior_ids<={e.evidence_id for e in evidence.evidence()},
+            'localization_session_id':session_id,
+            'saved_verified_graph_count':len(reusable.graph_updates_in_map()) if reusable else 0,
+            'saved_map_version_before_shutdown_fault':reusable.map_version if reusable else None,
             'planned_observation_cost_s':sum(v['cost'] for v in observations),
             'resolved_event_correctness':{'correct':sum(str(e).startswith('gap:') for e in saved.get('resolved_geometry',[])),
                 'incorrect':0,'unscored':sum(not str(e).startswith('gap:') for e in saved.get('resolved_geometry',[])),
@@ -159,6 +172,7 @@ def trial(args,mode,index,manifest):
         if args.sensor_fault!='none':
             result['status']='PASS' if result['nonzero_before_fault']>10 and result['fault_phase_final_serial_tail']==['vcx=0.000,wc=0.000\n']*5 else 'FAIL'
         result['protocol_status']=result.pop('status')
+        if reusable is not None:reusable.save(store)
     finally:
         for _,child in reversed(children):
             if child.poll() is None:terminate(child)

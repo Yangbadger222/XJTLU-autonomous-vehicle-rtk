@@ -5,6 +5,7 @@ from super_lio_vehicle_adapter.adapter_node import _navigation_reference_valid, 
 
 def certificate(**override):
     data=dict(source="super_lio/f89f48dc",certificate="fixed_extrinsic_observation_lower_bound_v1",
+              twist_convention="imu_body_full_state_v1",
               stamp_ns=123456789,status="OK",minimum_observation_information=80.,
               legacy_min_eig_lower_bound=80.,effective_points=50,iterations=2,reason="valid")
     data.update(override)
@@ -31,3 +32,10 @@ def test_fabricated_legacy_metric_nonfinite_and_headerless_healthy_are_rejected(
     assert _source_certificate(certificate(minimum_observation_information=10.,legacy_min_eig_lower_bound=80.)) is None
     assert _source_certificate(certificate(minimum_observation_information=math.nan)) is None
     assert _source_certificate(certificate(stamp_ns=0)) is None
+    assert _source_certificate(certificate(twist_convention="mixed_world_body")) is None
+
+
+def test_deep_malformed_json_denies_health_without_terminating_the_node():
+    assert _source_certificate('['*1100+']'*1100) is None
+    assert _source_certificate(certificate(iterations=True)) is None
+    assert _source_certificate(certificate(effective_points=50.5)) is None

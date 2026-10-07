@@ -37,7 +37,13 @@ It adds the read-only candidate planning service and native dynamic/static TF
 ownership guard. Optimizer speed/acceleration/turn fractions are explicitly new
 algorithm settings; the shared eight physical caps are never relaxed.
 
-All four patches apply sequentially to the pinned raw commit. See
+`0005-protect-owned-local-world-gauge.patch` follows the unchanged four
+planner patches. The current vehicle entry requires one static publisher for
+the audited identity `odom <- world` gauge. A competing static owner, any
+dynamic world edge, wrong parent or nonidentity transform latches denial.
+Historical four-patch evidence does not validate this new guard.
+
+All five patches apply sequentially to the pinned raw commit. See
 `audit/UPSTREAM_PATCH_VERIFICATION.json` and the exact source comparison in
 `audit/ego_four_patch_source_verification.json`. Current Humble validation is reported in
 `AUDIT_REPORT.md`; it is not a physical vehicle acceptance.

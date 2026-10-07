@@ -72,6 +72,7 @@ def _stamp_is_set(stamp) -> bool:
 
 REFERENCE_CONTRACT = "corridor_e54c6af_fast_imu_origin_v1"
 SOURCE_CERTIFICATE = "fixed_extrinsic_observation_lower_bound_v1"
+SOURCE_TWIST_CONVENTION = "imu_body_full_state_v1"
 
 
 def _navigation_reference_valid(convention, contract_id, translation, quaternion):
@@ -86,7 +87,9 @@ def _source_certificate(text):
         if len(text) > 4096:
             return None
         data = json.loads(text)
-        if not isinstance(data, dict) or data.get("source") != "super_lio/f89f48dc" or data.get("certificate") != SOURCE_CERTIFICATE:
+        if (not isinstance(data, dict) or data.get("source") != "super_lio/f89f48dc" or
+                data.get("certificate") != SOURCE_CERTIFICATE or
+                data.get("twist_convention") != SOURCE_TWIST_CONVENTION):
             return None
         stamp = data["stamp_ns"]
         observed = float(data["minimum_observation_information"])
@@ -100,7 +103,7 @@ def _source_certificate(text):
         eligible = (data.get("status") == "OK" and int(data["iterations"]) >= 1 and
                     int(data["effective_points"]) >= 50 and bound >= 75.)
         return {"stamp_ns": stamp, "eligible": eligible, "reason": str(data.get("reason", "unknown"))}
-    except (ValueError, TypeError, KeyError, OverflowError):
+    except (ValueError, TypeError, KeyError, OverflowError, RecursionError):
         return None
 
 
@@ -156,12 +159,15 @@ def _rotate_covariance(covariance, quaternion, angular_quaternion=None):
     return tuple(value for row in output for value in row)
 
 
-def _source_twist_to_base(q_world_imu, q_imu_base, linear_world, angular_imu, translation_imu_base=(0.,0.,0.)):
-    """v_B=R_IB^T(R_WI^T v_W + omega_I cross r_IB)."""
+def _source_twist_to_base(q_imu_base, linear_imu, angular_imu, translation_imu_base=(0.,0.,0.)):
+    """v_B=R_IB^T(v_I + omega_I cross r_IB).
+
+    The patched native source supplies both twist blocks in IMU coordinates
+    and includes estimated attitude uncertainty in its full-state covariance.
+    """
     r=translation_imu_base;w=angular_imu
     cross=(w[1]*r[2]-w[2]*r[1],w[2]*r[0]-w[0]*r[2],w[0]*r[1]-w[1]*r[0])
-    imu_velocity=_qrotate(_qconj(q_world_imu),linear_world)
-    return (_qrotate(_qconj(q_imu_base),tuple(imu_velocity[i]+cross[i] for i in range(3))),
+    return (_qrotate(_qconj(q_imu_base),tuple(linear_imu[i]+cross[i] for i in range(3))),
             _qrotate(_qconj(q_imu_base),angular_imu))
 
 
@@ -172,8 +178,8 @@ def _transform_covariance(covariance, jacobian):
 
 
 def _lever_covariance(covariance,q_world_imu,q_imu_base,translation,*,pose=False,q_target_world=(0.,0.,0.,1.)):
-    # First-order fixed-axis pose errors; mixed world-linear/IMU-angular twist
-    # convention is pinned to ROSWrapper.cpp. Every cross block is retained.
+    # First-order fixed-axis pose errors and native IMU/body twist convention
+    # are pinned to ROSWrapper.cpp. Every cross block is retained.
     columns=[]
     for axis in range(6):
         v=[0.,0.,0.];w=[0.,0.,0.]
@@ -183,7 +189,7 @@ def _lever_covariance(covariance,q_world_imu,q_imu_base,translation,*,pose=False
             cross=(w[1]*lever[2]-w[2]*lever[1],w[2]*lever[0]-w[0]*lever[2],w[0]*lever[1]-w[1]*lever[0])
             dv=_qrotate(q_target_world,tuple(v[i]+cross[i] for i in range(3)))
             dw=_qrotate(q_target_world,w)
-        else:dv,dw=_source_twist_to_base(q_world_imu,q_imu_base,v,w,translation)
+        else:dv,dw=_source_twist_to_base(q_imu_base,v,w,translation)
         columns.append(dv+dw)
     jacobian=[[columns[j][i] for j in range(6)] for i in range(6)]
     return _transform_covariance(covariance,jacobian)
@@ -422,7 +428,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.pose.covariance = list(rotated_pose_covariance)
         output.twist = copy.deepcopy(msg.twist)
         body_velocity, body_angular = _source_twist_to_base(
-            q_wi, q_ib, (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z),
+            q_ib, (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z),
             (msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z),self._translation)
         rotated_twist_covariance = _lever_covariance(msg.twist.covariance,q_wi,q_ib,self._translation)
         if rotated_twist_covariance is None or not _finite(body_velocity + body_angular):

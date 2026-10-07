@@ -913,3 +913,12 @@ See [Repository evidence correction](../audit/vehicle_contract_review/REVIEW.md)
 python3 scripts/audit_recorded_chassis_response.py --catalog /absolute/sealed-bag-catalog.json --serial-log-root /absolute/rosbag-analysis --output /absolute/audit/recorded-response.json
 python3 -m pytest -q scripts/test_recorded_chassis_response.py
 ```
+
+Native source-health checks require the isolated current Humble build (not the older cockpit install):
+
+```bash
+python3 scripts/run_super_lio_native_checks.py --repo /absolute/current-repo --workspace /absolute/current-research-ws --output /absolute/task-logs/native-checks
+ROS_DOMAIN_ID=91 ROS_LOCALHOST_ONLY=1 python3 scripts/validate_mock_serial_ros.py --install /absolute/current-research-ws/install --repo /absolute/current-repo --output /absolute/task-logs/world-owner.json --world-gauge-fault second-static-owner
+```
+
+Repeat the final PTY case with `nonidentity-static`, `wrong-parent-static` and `dynamic-world`. Each run starts a fresh guard because the fault is latched. These commands allocate only mock PTYs.

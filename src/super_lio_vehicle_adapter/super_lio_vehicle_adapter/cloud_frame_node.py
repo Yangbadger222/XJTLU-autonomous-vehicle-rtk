@@ -45,6 +45,7 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
         self.declare_parameter("source_frame", "world")
         self.declare_parameter("target_frame", "odom")
         self.declare_parameter("tf_timeout_s", 0.05)
+        self._owned_identity_gauge = self.declare_parameter("require_owned_identity_gauge",False).value
         self.declare_parameter("height_odom_topic", "/lio/odom")
         self._source_poses=deque(maxlen=100)
         self.create_subscription(Odometry,str(self.get_parameter("height_odom_topic").value),self._source_poses.append,100)
@@ -85,6 +86,13 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
             transform = self._buffer.lookup_transform(
                 self._target_frame, self._input_frame, msg.header.stamp,
                 timeout=Duration(seconds=self._tf_timeout_s))
+            if self._owned_identity_gauge:
+                p, q = transform.transform.translation, transform.transform.rotation
+                values = (p.x,p.y,p.z,q.x,q.y,q.z,q.w)
+                if (not all(math.isfinite(value) for value in values) or
+                    abs(p.x)+abs(p.y)+abs(p.z)>1e-9 or
+                    abs(q.x)+abs(q.y)+abs(q.z)>1e-9 or abs(abs(q.w)-1)>1e-9):
+                    raise ValueError("lookup TF conflicts with owned local-world identity gauge")
             stamp=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
             poses=[p for p in self._source_poses if p.header.frame_id==self._input_frame and p.child_frame_id=="imu" and
                    abs(p.header.stamp.sec+p.header.stamp.nanosec*1e-9-stamp)<=.05]

@@ -1,5 +1,27 @@
+diff --git a/src/super_lio/include/common/ds.h b/src/super_lio/include/common/ds.h
+index 4a32e22..68c3522 100644
+--- a/src/super_lio/include/common/ds.h
++++ b/src/super_lio/include/common/ds.h
+@@ -5,6 +5,7 @@
+ #include <queue>
+ #include <deque>
+ #include <string>
++#include <optional>
+ 
+ #include "basic/alias.h"
+ #include "basic/Manifold.h"
+@@ -130,6 +131,9 @@ struct LidarData
+ struct MeasureGroup {
+   LidarData lidar;
+   std::deque<IMUData> imu;
++  // The first unconsumed IMU brackets scan end. It remains in the input queue
++  // for the next scan; an interpolated end sample avoids extrapolated deskew.
++  std::optional<IMUData> imu_after_scan;
+ };
+ 
+ 
 diff --git a/src/super_lio/include/lio/ESKF.h b/src/super_lio/include/lio/ESKF.h
-index 1e07c22..2df987c 100644
+index 1e07c22..599e854 100644
 --- a/src/super_lio/include/lio/ESKF.h
 +++ b/src/super_lio/include/lio/ESKF.h
 @@ -5,6 +5,7 @@
@@ -30,7 +52,16 @@ index 1e07c22..2df987c 100644
    float imu_scale_ = 1.0;
    IMUData last_imu_;
    double current_time_ = 0.0;
-@@ -126,4 +133,4 @@ private:
+@@ -106,6 +113,8 @@ private:
+   BASIC::V3 g_{0, 0, - (BASIC::scalar)g_gravity_norm};
+   BASIC::V3 global_acc_  = BASIC::V3::Zero();
+   BASIC::V3 body_omega_  = BASIC::V3::Zero();
++  BASIC::V3 body_gyro_measurement_ = BASIC::V3::Zero();
++  BASIC::V3 body_acc_measurement_ = BASIC::V3::Zero();
+ 
+   STATE dx_ = STATE::Zero();
+ 
+@@ -126,4 +135,4 @@ private:
  }
  
  
@@ -39,10 +70,10 @@ index 1e07c22..2df987c 100644
 +#endif
 diff --git a/src/super_lio/include/lio/observation_quality.h b/src/super_lio/include/lio/observation_quality.h
 new file mode 100644
-index 0000000..870140e
+index 0000000..f6f53dd
 --- /dev/null
 +++ b/src/super_lio/include/lio/observation_quality.h
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,93 @@
 +#pragma once
 +#include <Eigen/Core>
 +#include <Eigen/Eigenvalues>
@@ -118,9 +149,17 @@ index 0000000..870140e
 +}
 +
 +inline Eigen::Matrix<double, 6, 6> twistCovariance(
-+    const Eigen::Matrix<double, 18, 18>& covariance, double gyro_sample_variance) {
++    const Eigen::Matrix<double, 18, 18>& covariance, const Eigen::Matrix3d& world_from_imu,
++    const Eigen::Vector3d& world_velocity, double gyro_sample_variance) {
 +  Eigen::Matrix<double, 6, 18> jacobian = Eigen::Matrix<double, 6, 18>::Zero();
-+  jacobian.block<3,3>(0,6).setIdentity();
++  const Eigen::Vector3d body_velocity = world_from_imu.transpose()*world_velocity;
++  Eigen::Matrix3d skew;
++  skew << 0,-body_velocity.z(),body_velocity.y(),body_velocity.z(),0,-body_velocity.x(),
++          -body_velocity.y(),body_velocity.x(),0;
++  // v_I = R_WI^T v_W; right rotation error contributes [v_I]x dtheta.
++  // Preserve theta/v/bg cross blocks by using the complete native state.
++  jacobian.block<3,3>(0,0) = skew;
++  jacobian.block<3,3>(0,6) = world_from_imu.transpose();
 +  jacobian.block<3,3>(3,9) = -Eigen::Matrix3d::Identity();  // omega = measured gyro - bias
 +  Eigen::Matrix<double, 6, 6> result = jacobian * covariance * jacobian.transpose();
 +  // Conditional native white-noise model; retains state cross blocks.
@@ -129,22 +168,26 @@ index 0000000..870140e
 +}
 +}  // namespace LI2Sup
 diff --git a/src/super_lio/include/lio/super_lio.h b/src/super_lio/include/lio/super_lio.h
-index 15bf038..e2e457f 100644
+index 15bf038..d7c8181 100644
 --- a/src/super_lio/include/lio/super_lio.h
 +++ b/src/super_lio/include/lio/super_lio.h
-@@ -45,7 +45,7 @@ protected:
+@@ -43,9 +43,9 @@ protected:
+   void stateProcess();
+   virtual bool kf_init();
    virtual bool map_init();
-   void Propagation_Undistort();
+-  void Propagation_Undistort();
++  bool Propagation_Undistort();
    void DownSample();
 -  void Observe();
 +  bool Observe();
    virtual void UpdateMap();
    virtual void Output();
    void caceData();
-@@ -87,4 +87,3 @@ protected:
+@@ -86,5 +86,3 @@ protected:
+ } // namespace END.
  
  #endif
- 
+-
 -
 diff --git a/src/super_lio/include/ros/ROSWrapper.h b/src/super_lio/include/ros/ROSWrapper.h
 index d0ffe51..2fdcf68 100644
@@ -159,18 +202,49 @@ index d0ffe51..2fdcf68 100644
    void pub_cloud2planner(const BASIC::CloudPtr& pc, double time);
    void pub_cloud_world_pose(const BASIC::CloudPtr& pc, 
 diff --git a/src/super_lio/src/lio/ESKF.cpp b/src/super_lio/src/lio/ESKF.cpp
-index f7a64d2..cd1d827 100644
+index f7a64d2..bee8611 100644
 --- a/src/super_lio/src/lio/ESKF.cpp
 +++ b/src/super_lio/src/lio/ESKF.cpp
-@@ -258,6 +258,19 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -125,6 +125,8 @@ void ESKF::Update() {
+ 
+   g_ += dx_.template block<3, 1>(15, 0);
+   g_ = g_gravity_norm * (g_.normalized());
++  body_omega_ = body_gyro_measurement_ - bg_;
++  global_acc_ = R_.R_ * (body_acc_measurement_ - ba_) + g_;
+ 
+   fw_R_ = R_;
+   fw_p_ = p_;
+@@ -212,8 +214,10 @@ bool ESKF::Predict(const IMUData& imu) {
+ 
+   V3 acc = 0.5 * (imu.acc + last_imu_.acc);
+   acc = imu_scale_ * acc;
++  body_acc_measurement_ = acc;
+   acc = acc - ba_;
+-  body_omega_ = 0.5 * (imu.gyr + last_imu_.gyr) - bg_;
++  body_gyro_measurement_ = 0.5 * (imu.gyr + last_imu_.gyr);
++  body_omega_ = body_gyro_measurement_ - bg_;
+   M3 Jr_dt = (dt * RightJacobianSO3(body_omega_, dt)).cast<scalar>();   // J_l(-phi) = J_r(phi)
+ 
+   M3 R_m3 = R_.R_;
+@@ -258,6 +262,29 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    V3  g_pred = g_;
  
    M18 P_pred = P_;
++  const auto forward_R_pred = fw_R_;
++  const auto forward_p_pred = fw_p_;
++  const auto forward_v_pred = fw_v_;
++  const auto forward_time_pred = forward_time_;
++  const auto forward_imu_pred = forward_last_imu_;
++  const auto omega_pred = body_omega_;
++  const auto acceleration_pred = global_acc_;
 +  observation_quality_ = ObservationQuality();
 +  const auto rollback = [&]() {
 +    observation_quality_.valid = observation_quality_.eligible = false;
 +    R_ = R_pred; p_ = p_pred; v_ = v_pred; bg_ = bg_pred; ba_ = ba_pred; g_ = g_pred;
 +    P_ = P_pred; dx_.setZero();
++    fw_R_ = forward_R_pred; fw_p_ = forward_p_pred; fw_v_ = forward_v_pred;
++    forward_time_ = forward_time_pred; forward_last_imu_ = forward_imu_pred;
++    body_omega_ = omega_pred; global_acc_ = acceleration_pred;
 +    return false;
 +  };
 +  const Eigen::LDLT<Eigen::Matrix<double,18,18>> prior_ldlt(
@@ -182,7 +256,7 @@ index f7a64d2..cd1d827 100644
  
    M6 HTVH;
    V6 HTVr;
-@@ -274,6 +287,13 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -274,6 +301,13 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
      }
  
      obs(GetKFState(), HTVH, HTVr);
@@ -196,7 +270,7 @@ index f7a64d2..cd1d827 100644
  
      V18 dx_prior = V18::Zero();
      dx_prior.template block<3,1>(0,0)  = (R_pred.inverse() * R_).log_vee();
-@@ -301,6 +321,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -301,6 +335,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
      // information form
      M18 A = Pk.inverse() + HTRH;
      Qk = A.inverse();
@@ -209,7 +283,7 @@ index f7a64d2..cd1d827 100644
  
      V18 b = V18::Zero();
      b.template head<6>() = HTVr;
-@@ -309,6 +335,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -309,6 +349,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
  
      // dx = K_h + (K_x - I) * dx_prior
      dx_ = Qk * b + (K_x - M18::Identity()) * dx_prior;
@@ -222,7 +296,7 @@ index f7a64d2..cd1d827 100644
  
      Update();
  
-@@ -328,6 +360,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -328,6 +374,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    P_ = G_reset * P_ * G_reset.transpose();
  
    P_ = 0.5 * (P_ + P_.transpose());
@@ -234,7 +308,7 @@ index f7a64d2..cd1d827 100644
  
    dx_.setZero();
  
-@@ -335,4 +372,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -335,4 +386,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    return true;
  }
  
@@ -242,23 +316,27 @@ index f7a64d2..cd1d827 100644
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..72699c0 100644
+index d1a3ae7..9016f8c 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
-@@ -193,17 +193,19 @@ bool SuperLIO::map_init(){
+@@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
  
  void SuperLIO::stateProcess(){
    frame_num_++;
++  bool propagated = false;
 +  bool observed = false;
    if(g_time_eva){
-     time_record_.Evaluate([this](){Propagation_Undistort();}, "[Undistort]");
+-    time_record_.Evaluate([this](){Propagation_Undistort();}, "[Undistort]");
++    time_record_.Evaluate([this, &propagated](){propagated = Propagation_Undistort();}, "[Undistort]");
++    if (!propagated) { data_wrapper_->pub_observation_health(); return; }
      time_record_.Evaluate([this]() { DownSample(); }, "[DownSample]");
 -    time_record_.Evaluate([this]() { Observe(); }, "[Observe]");
 -    time_record_.Evaluate([this]() { UpdateMap(); }, "[UpdateMap]");
 +    time_record_.Evaluate([this, &observed]() { observed = Observe(); }, "[Observe]");
 +    if (observed) time_record_.Evaluate([this]() { UpdateMap(); }, "[UpdateMap]");
    }else{
-     Propagation_Undistort();
+-    Propagation_Undistort();
++    if (!Propagation_Undistort()) { data_wrapper_->pub_observation_health(); return; }
      DownSample();
 -    Observe();
 -    UpdateMap();
@@ -269,7 +347,128 @@ index d1a3ae7..72699c0 100644
    Output();
    caceData();
  }
-@@ -435,12 +437,21 @@ void SuperLIO::DownSample(){
+@@ -358,21 +362,74 @@ inline double get_cpu_time_seconds() {
+ }
+ 
+ 
+-void SuperLIO::Propagation_Undistort(){
++bool SuperLIO::Propagation_Undistort(){
++  auto reject = [this](const std::string& reason) {
++    kf_->RejectObservation(reason);
++    return false;
++  };
++  // Validate before any filter mutation or interpolation. In particular, the
++  // synchronizer can consume zero samples when its first IMU is after a scan.
++  if (measures_.imu.size() < 3) return reject("insufficient_synchronized_imu_samples");
++  const double start_time = measures_.lidar.start_time;
++  const double end_time = measures_.lidar.end_time;
++  if (!measures_.lidar.pc || measures_.lidar.pc->empty() ||
++      !std::isfinite(start_time) || !std::isfinite(end_time) || start_time <= 0 ||
++      end_time <= start_time || end_time <= kf_->GetTime())
++    return reject("invalid_scan_time_interval");
++  double previous = -1.;
++  for (const auto& imu : measures_.imu) {
++    if (!std::isfinite(imu.secs) || imu.secs <= previous || imu.secs > end_time ||
++        !imu.acc.allFinite() || !imu.gyr.allFinite())
++      return reject("invalid_synchronized_imu_interval");
++    previous = imu.secs;
++  }
++  for (const auto& point : measures_.lidar.pc->points) {
++    const double query = start_time + point.offset_time;
++    if (!std::isfinite(query) || !std::isfinite(point.x) || !std::isfinite(point.y) ||
++        !std::isfinite(point.z) || point.offset_time < 0 ||
++        query < kf_->GetTime() - 1e-6 || query > end_time + 1e-6)
++      return reject("point_outside_scan_state_interval");
++  }
++  // Actual bracketing samples, not an assumed IMU period or a latest-TF guess.
++  IMUData end_imu = measures_.imu.back();
++  if (end_imu.secs < end_time) {
++    if (!measures_.imu_after_scan) return reject("scan_end_not_bracketed_by_imu");
++    const auto& after = *measures_.imu_after_scan;
++    if (!std::isfinite(after.secs) || after.secs < end_time ||
++        after.secs <= end_imu.secs || !after.acc.allFinite() || !after.gyr.allFinite())
++      return reject("invalid_scan_end_imu_bracket");
++    const double fraction = (end_time - end_imu.secs)/(after.secs - end_imu.secs);
++    end_imu.acc += fraction*(after.acc - end_imu.acc);
++    end_imu.gyr += fraction*(after.gyr - end_imu.gyr);
++    end_imu.secs = end_time;
++  }
++  const ESKF before = *kf_;
++  auto rollback = [&](const std::string& reason) { *kf_ = before; return reject(reason); };
+   propagate_states_.clear();
+   propagate_states_.emplace_back(kf_->GetDynamicState());
+-  kf_->SetObsTime(measures_.lidar.end_time);
++  kf_->SetObsTime(end_time);
+   for (auto &imu : measures_.imu) {
+-    kf_->Predict(imu);
+-    propagate_states_.emplace_back(kf_->GetDynamicState());
++    if (kf_->Predict(imu)) {
++      const auto state = kf_->GetDynamicState();
++      if (state.time <= propagate_states_.back().time || !state.R.allFinite() ||
++          !state.p.allFinite() || !state.v.allFinite() || !state.a.allFinite() || !state.w.allFinite())
++        return rollback("invalid_propagated_imu_state");
++      propagate_states_.emplace_back(state);
++    }
+   }
++  if (kf_->GetTime() < end_time && kf_->Predict(end_imu))
++    propagate_states_.emplace_back(kf_->GetDynamicState());
++  if (propagate_states_.size() < 2 || kf_->GetTime() != end_time || !kf_->GetCov().allFinite())
++    return rollback("incomplete_scan_state_interval");
++  const auto& last = propagate_states_.back();
++  if (!last.R.allFinite() || !last.p.allFinite() || !last.v.allFinite() || !last.a.allFinite() || !last.w.allFinite())
++    return rollback("invalid_scan_end_state");
+ 
+   static const M3 TLI_R = g_lidar_imu.R_;
+   static const V3 TLI_t = g_lidar_imu.t_;
+   const SE3 T_end = kf_->GetSE3();
+   const M3  R_inv = T_end.R_.transpose();
+   const V3  T_end_t = T_end.t_;
+-  const double start_time = measures_.lidar.start_time;
+   auto& raw_pc = measures_.lidar.pc;
+ 
+   std::size_t ptsize = raw_pc->points.size();
+@@ -386,23 +443,15 @@ void SuperLIO::Propagation_Undistort(){
+       auto& pt_full = scan_undistort_full_->points[idx];
+       const auto& pt = raw_pc->points[idx];
+       pt_full.intensity = pt.intensity;
+-      double query_time = start_time + pt.offset_time;
+-      if (query_time > propagate_states_.back().time) {
+-        V3 raw(pt.x, pt.y, pt.z);
+-        V3 eigen_point = TLI_R * raw + TLI_t;
+-        pt_full.x = eigen_point[0];
+-        pt_full.y = eigen_point[1];
+-        pt_full.z = eigen_point[2];
+-        continue;
+-      }
+-      auto match_iter = propagate_states_.begin();
+-      for (auto iter = propagate_states_.begin(); iter != propagate_states_.end(); ++iter) {
+-        auto next_iter = std::next(iter);
+-        if (iter->time < query_time && next_iter->time >= query_time) {
+-          match_iter = iter;
+-          break;
+-        }
+-      }
++      // Float point offsets and double epoch seconds can differ by <1us at
++      // their endpoints. Clamp only that representational roundoff, checked
++      // above; never extrapolate a point outside the measured state interval.
++      const double query_time = std::clamp(start_time + pt.offset_time,
++          propagate_states_.front().time, propagate_states_.back().time);
++      auto upper = std::upper_bound(propagate_states_.begin(), propagate_states_.end(), query_time,
++          [](double time, const DynamicState& state) { return time < state.time; });
++      if (upper == propagate_states_.end()) --upper;
++      auto match_iter = std::prev(upper);
+       auto match_iter_n = std::next(match_iter);
+       double dt = match_iter_n->time - match_iter->time;
+       double tau = query_time - match_iter->time;
+@@ -423,6 +472,7 @@ void SuperLIO::Propagation_Undistort(){
+       pt_full.z = eigen_point[2];
+     }
+   });
++  return true;
+ }
+ 
+ 
+@@ -435,12 +485,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
    V6d HTVr = V6d::Zero();
@@ -285,14 +484,10 @@ index d1a3ae7..72699c0 100644
 +    kf_->RejectObservation("scan_feature_count_out_of_bounds");
 +    return false;
 +  }
-+  if (measures_.imu.size() < 3) {
-+    kf_->RejectObservation("insufficient_synchronized_imu_samples");
-+    return false;
-+  }
    
    static std::vector<float> _lengths;
    points_body_v3_.resize(ptsize);
-@@ -458,7 +469,7 @@ void SuperLIO::Observe(){
+@@ -458,7 +513,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
  
@@ -301,7 +496,7 @@ index d1a3ae7..72699c0 100644
      const SE3 pose = kf_state.pose;
      const bool need_converge = kf_state.need_converge;
      const M3d R_transpose = (pose.R_.transpose()).cast<double>();
-@@ -504,18 +515,22 @@ void SuperLIO::Observe(){
+@@ -504,18 +559,22 @@ void SuperLIO::Observe(){
        
              local_acc.HTVH += J * 1000 * J.transpose();
              local_acc.HTVr -= J * 1000 * error;
@@ -324,7 +519,7 @@ index d1a3ae7..72699c0 100644
  
      if(need_converge) return;
  
-@@ -534,6 +549,7 @@ void SuperLIO::Observe(){
+@@ -534,6 +593,7 @@ void SuperLIO::Observe(){
    });
  
    frame_num_++;
@@ -332,7 +527,7 @@ index d1a3ae7..72699c0 100644
  }
  
  
-@@ -589,4 +605,4 @@ void SuperLIO::printTimeRecord(){
+@@ -589,4 +649,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
  
@@ -340,7 +535,7 @@ index d1a3ae7..72699c0 100644
 \ No newline at end of file
 +} // namespace END.
 diff --git a/src/super_lio/src/ros/ROSWrapper.cpp b/src/super_lio/src/ros/ROSWrapper.cpp
-index 7745912..460f639 100644
+index 7745912..dc53751 100644
 --- a/src/super_lio/src/ros/ROSWrapper.cpp
 +++ b/src/super_lio/src/ros/ROSWrapper.cpp
 @@ -1,6 +1,8 @@
@@ -352,7 +547,22 @@ index 7745912..460f639 100644
  
  
  using namespace BASIC;
-@@ -568,6 +570,25 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+@@ -554,12 +556,14 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+ 
+   double imu_time = imu_buffer_.front().secs;
+   meas.imu.clear();
++  meas.imu_after_scan.reset();
+   while ((!imu_buffer_.empty()) && (imu_time < meas.lidar.end_time)) {
+     imu_time = imu_buffer_.front().secs;
+     if (imu_time > meas.lidar.end_time) break;
+     meas.imu.push_back(imu_buffer_.front());
+     imu_buffer_.pop_front();
+   }
++  if (!imu_buffer_.empty()) meas.imu_after_scan = imu_buffer_.front();
+ 
+   last_timestamp_lidar_ = meas.lidar.end_time;
+   lidar_buffer_.pop_front();
+@@ -568,6 +572,26 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
  }
  
  
@@ -363,6 +573,7 @@ index 7745912..460f639 100644
 +  std::ostringstream json;
 +  json << std::setprecision(17)
 +       << "{\"source\":\"super_lio/f89f48dc\",\"certificate\":\"fixed_extrinsic_observation_lower_bound_v1\","
++       << "\"twist_convention\":\"imu_body_full_state_v1\","
 +       << "\"stamp_ns\":" << (static_cast<int64_t>(stamp.sec)*1000000000LL+stamp.nanosec)
 +       << ",\"status\":\"" << (quality.valid && quality.eligible ? "OK" : "FAIL")
 +       << "\",\"legacy_min_eig_lower_bound\":" << quality.legacy_lower_bound
@@ -378,7 +589,23 @@ index 7745912..460f639 100644
  void ROSWrapper::pub_odom(const NavState& state){
    nav_msgs::msg::Odometry odom;
    odom.header.frame_id = "world";
-@@ -594,26 +615,22 @@ void ROSWrapper::pub_odom(const NavState& state){
+@@ -584,9 +608,12 @@ void ROSWrapper::pub_odom(const NavState& state){
+   odom.pose.pose.orientation.z = temp_q[2];
+   odom.pose.pose.orientation.w = temp_q[3];
+ 
+-  odom.twist.twist.linear.x = state.v[0];
+-  odom.twist.twist.linear.y = state.v[1];
+-  odom.twist.twist.linear.z = state.v[2];
++  // ROS Odometry twist belongs to child_frame_id (imu), unlike the raw
++  // upstream mixed world-linear/body-angular output.
++  const V3 body_velocity = state.R.R_.transpose()*state.v;
++  odom.twist.twist.linear.x = body_velocity[0];
++  odom.twist.twist.linear.y = body_velocity[1];
++  odom.twist.twist.linear.z = body_velocity[2];
+ 
+   if (eskf_ != nullptr) {
+     const auto dynamic = eskf_->GetDynamicState();
+@@ -594,26 +621,23 @@ void ROSWrapper::pub_odom(const NavState& state){
      odom.twist.twist.angular.y = dynamic.w[1];
      odom.twist.twist.angular.z = dynamic.w[2];
  
@@ -391,7 +618,8 @@ index 7745912..460f639 100644
 -          odom.pose.covariance[(row + 3) * 6 + col + 3] = covariance(row, col);
 -          odom.twist.covariance[row * 6 + col] = covariance(row + 6, col + 6);
 +      const auto pose_covariance = poseCovariance(covariance, state.R.R_.cast<double>());
-+      const auto twist_covariance = twistCovariance(covariance, eskf_->GetGyroSampleVariance());
++      const auto twist_covariance = twistCovariance(covariance, state.R.R_.cast<double>(),
++          state.v.cast<double>(), eskf_->GetGyroSampleVariance());
 +      for (int row = 0; row < 6; ++row) {
 +        for (int col = 0; col < 6; ++col) {
 +          odom.pose.covariance[row * 6 + col] = pose_covariance(row,col);

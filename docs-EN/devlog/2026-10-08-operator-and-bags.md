@@ -51,3 +51,17 @@ Permanent UNKNOWN and an unconnected reference prevent useful shadow operation. 
 
 #### Effect
 Original firmware/calibration/caps/RTK-loss stop unchanged. Actual native C++/Humble/replay/final-wire evidence is still required; this source progress does not finish the goal. Ground and EGO source-constraint integration and target shadow qualification remain incomplete, with no automatic physical driving.
+
+### Native failure paths, body covariance and world ownership
+
+#### File
+Super patch0002; EGO patch0005/application recipe; vehicle/cloud adapters; native probes/runner; mock-wire TF cases; reference contract and patch READMEs.
+
+#### Change
+Check IMU count/time/point coverage before propagation; interpolate scan end from real bracketing samples, retain the lookahead, and use valid interpolation pairs. Restore dynamic/forward caches on failed iterations and use posterior gyro bias. Publish both twist blocks in IMU coordinates with the complete18-state attitude/velocity/bias Jacobian. Reject incompatible covariance convention and deeply nested malformed health JSON. Guard unique static identity world ownership and independently validate cloud lookups. Add four world-fault/latching cases at the original PTY sink.
+
+#### Reason
+Independent reviews found an end-iterator dereference before the late IMU guard, incomplete rollback/posterior rate, omitted attitude covariance, and competing-world TF behavior. These are software correctness defects despite valid original mounting records.
+
+#### Effect
+156 portable checks pass. The earlier b40 SDK/14-package build is superseded evidence; this revision requires a separate source-bound Humble build, native probes, raw replay and final serial cases. Original protected settings and production assets remain preserved; no physical result is inferred.

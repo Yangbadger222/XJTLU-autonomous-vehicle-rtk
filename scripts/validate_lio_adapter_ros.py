@@ -48,7 +48,8 @@ def main():
     try:
         spawn('super_lio_vehicle_adapter','super_lio_vehicle_adapter',['-p','imu_to_base_extrinsic_verified:=true','-p','imu_to_base_translation_m:=[1.0,0.0,0.0]',
             '-p','imu_to_base_quaternion_xyzw:=[0.0,0.0,0.7071067811865476,0.7071067811865476]'])
-        spawn('super_lio_vehicle_adapter','super_lio_cloud_frame_adapter',['--params-file',str(a.repo/'src/bringup/config/super_lio_cloud_frame.yaml')])
+        spawn('super_lio_vehicle_adapter','super_lio_cloud_frame_adapter',['--params-file',str(a.repo/'src/bringup/config/super_lio_cloud_frame.yaml'),
+            '-p','require_owned_identity_gauge:=false'])
         phase(2.)
         m=received[-1] if received else None
         pose=[m.pose.pose.position.x,m.pose.pose.position.y,m.pose.pose.position.z] if m else []

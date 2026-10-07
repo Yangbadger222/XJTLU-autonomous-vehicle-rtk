@@ -53,10 +53,40 @@ int main() {
   p(0,3)=p(3,0)=.2; p(6,9)=p(9,6)=.3;
   const auto quarter_turn=Eigen::AngleAxisd(M_PI/2,Eigen::Vector3d::UnitZ()).toRotationMatrix();
   const auto pose=LI2Sup::poseCovariance(p,quarter_turn);
-  const auto twist=LI2Sup::twistCovariance(p,.01);
+  const auto twist=LI2Sup::twistCovariance(p,Eigen::Matrix3d::Identity(),Eigen::Vector3d::Zero(),.01);
   assert(std::abs(pose(0,4)-.2)<1e-10 && std::abs(pose(0,3))<1e-10);
   assert(std::abs(twist(0,3)+.3)<1e-10 && std::abs(twist(3,3)-1.01)<1e-10);
   assert(Eigen::SelfAdjointEigenSolver<Matrix6>(pose).eigenvalues().minCoeff()>0);
   assert(Eigen::SelfAdjointEigenSolver<Matrix6>(twist).eigenvalues().minCoeff()>0);
-  std::cout << "PASS: actual Jacobian,100 PSD-prior bounds,plane degeneration,insufficient/nonfinite features,worst iteration,full pose/twist covariance\n";
+  // Review counterexample: body velocity depends on estimated attitude even
+  // with identity extrinsics. The earlier mixed 6x6 rotation omitted .85^2.
+  Eigen::Matrix<double,18,18> attitude=Eigen::Matrix<double,18,18>::Identity();
+  attitude.block<3,3>(6,6)=1e-6*Eigen::Matrix3d::Identity();
+  auto body=LI2Sup::twistCovariance(attitude,Eigen::Matrix3d::Identity(),Eigen::Vector3d(.85,0,0),.01);
+  assert(std::abs(body(1,1)-.722501)<1e-10);
+  // Independent central differences through exp(right-error), v and gyro
+  // bias exercise all theta/v/bg columns and their signed cross blocks.
+  Eigen::Matrix<double,6,18> numerical=Eigen::Matrix<double,6,18>::Zero();
+  Eigen::Vector3d velocity(.85,.13,-.07);
+  const double epsilon=1e-6;
+  auto value=[&](const Eigen::Matrix<double,18,1>& error) {
+    Eigen::Vector3d angle=error.head<3>();
+    const Eigen::Matrix3d perturbed=rotation*(angle.norm()>0 ?
+        Eigen::AngleAxisd(angle.norm(),angle.normalized()).toRotationMatrix() : Eigen::Matrix3d::Identity());
+    Eigen::Matrix<double,6,1> result;
+    result.head<3>()=perturbed.transpose()*(velocity+error.segment<3>(6));
+    result.tail<3>()=-error.segment<3>(9);
+    return result;
+  };
+  for(int column=0;column<18;++column) {
+    Eigen::Matrix<double,18,1> error=Eigen::Matrix<double,18,1>::Zero();error[column]=epsilon;
+    numerical.col(column)=(value(error)-value(-error))/(2.*epsilon);
+  }
+  Eigen::Matrix<double,18,18> factor;
+  for(int r=0;r<18;++r)for(int c=0;c<18;++c)factor(r,c)=std::sin(r*13+c*7+.2);
+  auto joint=(factor*factor.transpose()+.01*Eigen::Matrix<double,18,18>::Identity()).eval();
+  auto expected=(numerical*joint*numerical.transpose()).eval();
+  expected.block<3,3>(3,3)+=.01*Eigen::Matrix3d::Identity();
+  assert((LI2Sup::twistCovariance(joint,rotation,velocity,.01)-expected).norm()<1e-7);
+  std::cout << "PASS: actual Jacobian,100 PSD-prior bounds,plane degeneration,insufficient/nonfinite features,worst iteration,full pose/body-twist covariance and independent attitude/cross-block finite differences\n";
 }

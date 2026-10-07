@@ -14,9 +14,9 @@ def test_identity_transform_preserves_vector():
     assert _qrotate((0.0, 0.0, 0.0, 1.0), (1.0, 2.0, 3.0)) == (1.0, 2.0, 3.0)
 
 
-def test_world_velocity_is_transformed_into_vehicle_body_at_ninety_degree_yaw():
+def test_imu_velocity_is_transformed_into_vehicle_body_at_ninety_degree_extrinsic_yaw():
     q = (0.0, 0.0, math.sin(math.pi / 4), math.cos(math.pi / 4))
-    v, w = _source_twist_to_base(q, (0, 0, 0, 1), (0, 1, 0), (0, 0, 0.2))
+    v, w = _source_twist_to_base(q, (0, 1, 0), (0, 0, 0.2))
     assert math.isclose(v[0], 1.0, abs_tol=1e-9)
     assert abs(v[1]) < 1e-9
     assert math.isclose(w[2], 0.2)
@@ -123,11 +123,20 @@ def test_zero_or_malformed_stamps_are_not_usable_for_tf():
 def test_nonzero_lever_arm_rotating_vehicle_changes_linear_velocity():
     from super_lio_vehicle_adapter.adapter_node import _lever_covariance
     q=(0.,0.,math.sin(math.pi/4),math.cos(math.pi/4))
-    v,w=_source_twist_to_base(q,q,(0.,0.,0.),(0.,0.,2.),(1.,0.,0.))
+    v,w=_source_twist_to_base(q,(0.,0.,0.),(0.,0.,2.),(1.,0.,0.))
     assert math.isclose(v[0],2.,abs_tol=1e-9) and abs(v[1])<1e-9 and w[2]==2.
     covariance=[0.]*36;covariance[35]=.25
     transformed=_lever_covariance(covariance,(0,0,0,1),(0,0,0,1),(1,0,0))
     assert transformed[7]==.25 and transformed[11]==.25 and transformed[31]==.25
+
+
+def test_body_twist_covariance_has_no_second_estimated_attitude_rotation():
+    from super_lio_vehicle_adapter.adapter_node import _lever_covariance
+    covariance=[0.]*36
+    covariance[0]=1e-6;covariance[7]=.722501
+    yaw=(0.,0.,math.sin(math.pi/4),math.cos(math.pi/4))
+    result=_lever_covariance(covariance,yaw,(0,0,0,1),(0,0,0))
+    assert result==tuple(covariance)
 
 
 def test_pose_lever_covariance_propagates_orientation_position_cross_terms():

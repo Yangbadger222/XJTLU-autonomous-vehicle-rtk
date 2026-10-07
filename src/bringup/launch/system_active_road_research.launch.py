@@ -54,7 +54,8 @@ def generate_launch_description():
 
                        parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml"), {"use_sim_time": simulated_time}])
     tf_integrity = Node(package="ego_planner", executable="research_tf_guard",
-        name="research_tf_integrity_guard", output="screen", parameters=[{"use_sim_time": simulated_time}])
+        name="research_tf_integrity_guard", output="screen", parameters=[{"use_sim_time": simulated_time,
+                                                                         "protect_world_gauge": True}])
     adapter = Node(package="super_lio_vehicle_adapter", executable="super_lio_vehicle_adapter",
                    name="super_lio_vehicle_adapter", output="screen",
 

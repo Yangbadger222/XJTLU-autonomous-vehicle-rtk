@@ -1,0 +1,56 @@
+diff --git a/src/EgoPlanner-ROS2/src/research_tf_guard.cpp b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+index 49a77a4..c989a4c 100644
+--- a/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
++++ b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+@@ -15,21 +15,40 @@ class ResearchTfGuard : public rclcpp::Node {
+   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr input_;
+   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr static_input_;
+   bool protected_static_edge_=false;
++  bool protect_world_gauge_=false;
++  bool dynamic_world_edge_=false;
++  bool invalid_world_static_=false;
++  std::unordered_map<std::string,bool> world_static_owners_;
+   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr output_;
+   rclcpp::TimerBase::SharedPtr timer_;
+ public:
+   ResearchTfGuard() : Node("research_tf_integrity_guard") {
++    protect_world_gauge_=declare_parameter<bool>("protect_world_gauge",false);
+     output_=create_publisher<std_msgs::msg::Bool>("/research/tf_integrity",10);
+     static_input_=create_subscription<tf2_msgs::msg::TFMessage>("/tf_static",rclcpp::QoS(100).reliable().transient_local(),
+-      [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message) {
+-        for(const auto& t:message->transforms)
++      [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message, const rclcpp::MessageInfo& info) {
++        const auto& gid=info.get_rmw_message_info().publisher_gid;
++        std::string key(reinterpret_cast<const char*>(gid.data),RMW_GID_STORAGE_SIZE);
++        for(const auto& t:message->transforms) {
+           if(t.child_frame_id=="odom" || t.child_frame_id=="base_footprint")protected_static_edge_=true;
++          if(protect_world_gauge_ && t.child_frame_id=="world") {
++            const auto& p=t.transform.translation;const auto& q=t.transform.rotation;
++            const bool identity=t.header.frame_id=="odom" &&
++              std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z) &&
++              std::isfinite(q.x) && std::isfinite(q.y) && std::isfinite(q.z) && std::isfinite(q.w) &&
++              std::abs(p.x)+std::abs(p.y)+std::abs(p.z)<1e-9 &&
++              std::abs(q.x)+std::abs(q.y)+std::abs(q.z)<1e-9 && std::abs(std::abs(q.w)-1.)<1e-9;
++            world_static_owners_.insert_or_assign(key,identity);
++            invalid_world_static_=invalid_world_static_ || !identity;
++          }
++        }
+       });
+     input_=create_subscription<tf2_msgs::msg::TFMessage>("/tf",rclcpp::SensorDataQoS(),
+       [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message, const rclcpp::MessageInfo& info) {
+         const auto& gid=info.get_rmw_message_info().publisher_gid;
+         std::string key(reinterpret_cast<const char*>(gid.data),RMW_GID_STORAGE_SIZE);
+         for (const auto& t : message->transforms) {
++          if(protect_world_gauge_ && t.child_frame_id=="world")dynamic_world_edge_=true;
+           if (t.child_frame_id!="odom" && t.child_frame_id!="base_footprint") continue;
+           const auto& q=t.transform.rotation; const auto& p=t.transform.translation;
+           const double norm=q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w;
+@@ -41,6 +60,8 @@ public:
+       });
+     timer_=create_wall_timer(std::chrono::milliseconds(50),[this]() {
+       bool valid=!protected_static_edge_; const auto receipt=std::chrono::steady_clock::now();
++      if(protect_world_gauge_)valid=valid && !dynamic_world_edge_ && !invalid_world_static_ &&
++        world_static_owners_.size()==1 && world_static_owners_.begin()->second;
+       for (const std::string child : {"odom","base_footprint"}) {
+         size_t fresh=0;
+         for (const auto& item : owners_[child]) {

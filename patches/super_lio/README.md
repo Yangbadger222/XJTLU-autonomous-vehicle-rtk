@@ -13,7 +13,10 @@ unchanged legacy75 test under locked fixed extrinsics. Every native iteration
 must pass; a plane, insufficient matches/IMU or invalid matrices deny health.
 Invalid observations do not insert a predicted scan into the map or publish
 valid measured odometry. Full pose/twist covariance includes signed cross
-blocks and coordinate conversion. The native stamp and certificate identity
+blocks, estimated attitude uncertainty and body-coordinate conversion. IMU
+and time guards precede propagation; actual bracketing IMUs interpolate scan
+end while preserving the lookahead for the next scan. Invalid iterations
+restore all nominal/dynamic/forward caches and revoke eligibility. The native stamp and certificate identity
 are published as structured source health, matched exactly by the adapter.
 
 See `audit/vehicle_ready/SOURCE_HEALTH_CONTRACT.md` for the equation and its

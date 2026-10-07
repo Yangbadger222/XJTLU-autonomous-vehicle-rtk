@@ -40,6 +40,7 @@ def main():
     parser.add_argument("--arc-angle",type=float,default=math.pi/3)
     parser.add_argument("--rtk-classifier",action="store_true")
     parser.add_argument("--tf-static-fault",action="store_true")
+    parser.add_argument("--world-gauge-fault",choices=("second-static-owner","nonidentity-static","wrong-parent-static","dynamic-world"))
     parser.add_argument("--loop-budget-s", type=float, default=30.0)
     parser.add_argument("--paused-clock-probe",action="store_true")
     args = parser.parse_args()
@@ -88,6 +89,11 @@ def main():
     }
     competing_tf_node = rclpy.create_node("mock_competing_tf_owner")
     static_tf_pub=competing_tf_node.create_publisher(TFMessage,"/tf_static",QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
+    owned_world_pub=node.create_publisher(TFMessage,"/tf_static",QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
+    if args.world_gauge_fault:
+        world=TransformStamped();world.header.stamp=node.get_clock().now().to_msg()
+        world.header.frame_id,world.child_frame_id="odom","world";world.transform.rotation.w=1.
+        owned_world_pub.publish(TFMessage(transforms=[world]))
     gnss={"fix":node.create_publisher(NavSatFix,"/fix",10),
           "heading":node.create_publisher(QuaternionStamped,"/heading",10),
           "nmea":node.create_publisher(Sentence,"/rtk/nmea_sentence",10),
@@ -227,6 +233,12 @@ def main():
             if fault=="tf_static_competitor":static_tf_pub.publish(TFMessage(transforms=transforms))
             if fault == "tf_double_publisher":
                 competing_tf_pub.publish(TFMessage(transforms=transforms))
+            if fault.startswith("world_gauge_"):
+                world=TransformStamped();world.header.stamp=stamp
+                world.header.frame_id,world.child_frame_id="odom","world";world.transform.rotation.w=1.
+                if args.world_gauge_fault=="nonidentity-static":world.transform.translation.x=1.
+                if args.world_gauge_fault=="wrong-parent-static":world.header.frame_id="map"
+                (competing_tf_pub if args.world_gauge_fault=="dynamic-world" else static_tf_pub).publish(TFMessage(transforms=[world]))
         if fault != "grid_stream_lost":
             grid = OccupancyGrid()
             grid.header.frame_id, grid.header.stamp = "odom", stamp
@@ -296,7 +308,7 @@ def main():
             ("serial_twistctl", "serial_twistctl_node", ["--params-file", str(master_config),
                 "-p", "port:=" + slave_path, "-r", "/cmd_vel:=/cmd_vel_guarded"]),
         ]
-        commands.append(("ego_planner", "research_tf_guard", []))
+        commands.append(("ego_planner", "research_tf_guard", ["-p","protect_world_gauge:=true"] if args.world_gauge_fault else []))
         if args.rtk_classifier:
             commands.append(("gps_waypoint_dispatcher","rtk_map_odom_corrector_node",["--params-file",str(master_config),"-p","lio_odom_topic:=/lio/odom_vehicle"]))
         if args.ego_loop:
@@ -355,6 +367,7 @@ def main():
                       "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
                       "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher")
         if args.tf_static_fault:faults=("tf_static_competitor",)
+        if args.world_gauge_fault:faults=("world_gauge_"+args.world_gauge_fault,)
         if args.paused_clock_probe:faults=("paused_ros_clock",)
         if args.rtk_classifier:faults=("gnss_non_fixed","gnss_low_satellites","gnss_bad_hdop","gnss_heading_float","gnss_rtcm_stale")
         for fault in faults:
@@ -365,7 +378,7 @@ def main():
             zero_ok = len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail)
             cases.append({"fault": fault, "nominal_nonzero_reached_serial": nominal_ok,
                           "final_serial_tail": tail, "status": "PASS" if nominal_ok and zero_ok else "FAIL"})
-            if fault in ("operator_heartbeat_lost","operator_duplicate","operator_competing_publisher"):
+            if fault in ("operator_heartbeat_lost","operator_duplicate","operator_competing_publisher") or fault.startswith("world_gauge_"):
                 restored=phase("operator_restored_without_reset",.8)
                 restore_tail=restored[-5:]
                 cases.append({"fault":fault+":restored_without_reset","nominal_nonzero_reached_serial":nominal_ok,
@@ -373,7 +386,7 @@ def main():
                     all(line=="vcx=0.000,wc=0.000\n" for line in restore_tail) else "FAIL"})
             if any(child.poll() is not None for child in children):
                 break
-        if not args.tf_static_fault and not args.rtk_classifier:
+        if not args.tf_static_fault and not args.rtk_classifier and not args.world_gauge_fault:
             normal = phase("normal", 1.5)
             os.killpg(children[0].pid, signal.SIGINT)
             children[0].wait(timeout=5)
@@ -386,7 +399,8 @@ def main():
         result = {"domain": 91, "sink": "allocated PTY; no physical device", "serial_profile": "original master YAML, only port remapped",
                   "simulation_only_settings": {"max_curvature_1pm": 1.0, "max_lateral_speed_mps": 0.05},
                   "scope": "actual original serial binary; physical KEY/joystick/firmware emergency stop remains pending",
-                  "rtk_classifier":args.rtk_classifier,"authority_mode_counts":{mode:authority_modes.count(mode) for mode in set(authority_modes)},
+                  "rtk_classifier":args.rtk_classifier,"world_gauge_fault":args.world_gauge_fault,
+                  "authority_mode_counts":{mode:authority_modes.count(mode) for mode in set(authority_modes)},
                   "runtime_parameters": runtime_parameters, "cases": cases, "tracker_reason_counts": tracker_reasons,
                   "child_exit_before_cleanup": [child.poll() for child in children],
                   "status": "PASS" if all(case["status"] == "PASS" for case in cases) else "FAIL"}

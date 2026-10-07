@@ -56,6 +56,8 @@ def trial(args,mode,index,manifest):
     before=EvidenceStore.load(store)
     prior_ids={e.evidence_id for e in before.evidence()}
     before_graph_count=len(before.graph_updates)
+    historical_exports=[EvidenceStore.load(path) for path in common.joinpath('verified_history').glob('*.json')]
+    before_verified_graph_count=sum(len(s.graph_updates_in_map()) for s in historical_exports)
     session_id=f'{mode}-task-{index}'
     children=[];logs=[];master,slave=pty.openpty();port=os.ttyname(slave)
     def spawn(name,command,pass_fds=()):
@@ -126,13 +128,14 @@ def trial(args,mode,index,manifest):
             # Evaluator-only termination reads policy status, never feeds truth back.
             if 'TASK_REACHED' in (root/'observer.log').read_text():break
         exits={name:child.poll() for name,child in children}
-        # Export the actually verified map before the deliberate shutdown RTK
-        # fault. The next task consumes that immutable last-authoritative
-        # snapshot, never reanchors historical odom using its new session TF.
+        # The writer retains the last actually verified epoch snapshot, even
+        # if the working store is already STALE at this exact shutdown instant.
         reusable=None
         if args.sensor_fault=='none':
-            reusable=EvidenceStore.load(store)
-            reusable.save(root/'last-authoritative-evidence.json')
+            qualified=common/'verified_history'/(hashlib.sha256(session_id.encode()).hexdigest()+'.json')
+            if qualified.exists():
+                reusable=EvidenceStore.load(qualified)
+                reusable.save(root/'last-authoritative-evidence.json')
         terminate(truth);truth=None
         # Keep the original guard/serial alive while simulated RTK permission
         # falls; the truth role records actual final PTY zeros before exiting.
@@ -152,6 +155,7 @@ def trial(args,mode,index,manifest):
             'observed_evidence_count':len(evidence.evidence()),
             'persisted_graph_increment_count':len(evidence.graph_updates),'anchored_graph_increment_count':len(evidence.graph_updates_in_map()),
             'previous_graph_increment_count':before_graph_count,
+            'previous_verified_graph_count':before_verified_graph_count,
             'previous_evidence_uuid_count':len(prior_ids),'previous_evidence_uuids_preserved':prior_ids<={e.evidence_id for e in evidence.evidence()},
             'localization_session_id':session_id,
             'saved_verified_graph_count':len(reusable.graph_updates_in_map()) if reusable else 0,
@@ -172,7 +176,6 @@ def trial(args,mode,index,manifest):
         if args.sensor_fault!='none':
             result['status']='PASS' if result['nonzero_before_fault']>10 and result['fault_phase_final_serial_tail']==['vcx=0.000,wc=0.000\n']*5 else 'FAIL'
         result['protocol_status']=result.pop('status')
-        if reusable is not None:reusable.save(store)
     finally:
         for _,child in reversed(children):
             if child.poll() is None:terminate(child)

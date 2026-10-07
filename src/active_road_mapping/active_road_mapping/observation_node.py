@@ -431,13 +431,28 @@ class ActiveObservationNode(Node):
                 # They influence topology; local execution always rechecks the
                 # current ground/permission grid through confirmed_route_prefix.
                 historical=[]
-                for update in store.graph_updates_in_map():
+                registered=list(store.graph_updates_in_map())
+                # Historical exports were captured by the sole writer only
+                # under verified RTK/TF/uncertainty gates. Keep current local
+                # evidence even if it was never globally qualified.
+                for path in sorted(self.evidence_store_path.parent.joinpath('verified_history').glob('*.json'))[:100]:
+                    try:
+                        snapshot=EvidenceStore.load(path)
+                        if snapshot.prior_version!=store.prior_version:continue
+                        registered.extend(update for update in snapshot.graph_updates_in_map()
+                            if self.localization_session_id and not update['local_submap_id'].startswith(self.localization_session_id+'/'))
+                    except (OSError,ValueError,KeyError,TypeError):continue
+                seen=set()
+                for update in registered:
+                    if update['update_id'] in seen:continue
+                    seen.add(update['update_id'])
+                    if update['update_id'] in store.rolled_back_graph_updates:continue
                     a,b=update['start_node_id'],update['end_node_id']
                     if a not in self.map_graph.nodes or b not in self.map_graph.nodes:continue
                     geometry=tuple(tuple(point) for point in update['geometry_xy'])
                     if math.dist(geometry[0],self.map_graph.nodes[a])>1e-6 or math.dist(geometry[-1],self.map_graph.nodes[b])>1e-6:
                         continue # Registration change requires new verified support; do not snap/extend old evidence.
-                    historical.append(GraphEdge(update['update_id'],a,b,geometry,'OBSERVED_GEOMETRY',update['source']))
+                    historical.append(GraphEdge(update['update_id'],a,b,geometry,'OBSERVED_GEOMETRY','historical_verified_graph'))
                 historical=transform_graph(RoadGraph(historical),(p.x,p.y,2*math.atan2(q.z,q.w)))
                 self.odom_graph=RoadGraph(list(self.odom_graph.edges.values())+
                     [edge for key,edge in historical.edges.items() if key not in self.odom_graph.edges])

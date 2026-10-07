@@ -67,6 +67,10 @@ def main():
         checked('same_uuid_replay_idempotent',EvidenceStore.load(store_path).map_version==version)
         phase(False,(10.,20.),.7);store=EvidenceStore.load(store_path)
         checked('rtk_loss_local_evidence_retained_global_edges_withheld',len(store.evidence())==1 and len(store.graph_updates)==1 and not store.graph_updates_in_map())
+        import hashlib
+        qualified=store_path.parent/'verified_history'/(hashlib.sha256(b'session-1').hexdigest()+'.json')
+        saved=EvidenceStore.load(qualified)
+        checked('last_verified_export_survives_current_authority_loss',len(saved.graph_updates_in_map())==1)
         phase(True,(11.,20.),.8);store=EvidenceStore.load(store_path);geometry=store.graph_updates_in_map()
         checked('rtk_recovery_reanchors_without_duplicate',len(geometry)==1 and math.dist(geometry[0]['geometry_xy'][1],(11.,21.))<1e-8 and len(store.evidence())==1,geometry)
         os.killpg(writer.pid,signal.SIGINT);writer.wait(timeout=5)
@@ -86,6 +90,12 @@ def main():
         phase(False,(100.,200.),.7);loaded=EvidenceStore.load(store_path)
         checked('authority_loss_marks_only_current_session_stale',loaded.geometry_in_map('measured-fixture-uuid')==historical and
             loaded.geometry_in_map('new-session-uuid') is None)
+        e.evidence_id='authority-lost-local-uuid';e.header.stamp=node.get_clock().now().to_msg()
+        pubs['evidence'].publish(e);phase(False,(100.,200.),.7);loaded=EvidenceStore.load(store_path)
+        qualified_old=EvidenceStore.load(qualified)
+        checked('lost_authority_new_uuid_retained_local_without_promoting_verified_history',
+            len(loaded.evidence())==3 and loaded.geometry_in_map(e.evidence_id) is None and
+            e.evidence_id not in {item.evidence_id for item in qualified_old.evidence()})
         result={'status':'PASS' if all(c['status']=='PASS' for c in checks) else 'FAIL','checks':checks,
             'scope':'actual Humble typed writer/native TF guard/persistence; analytical support and RTK registration fixtures only'}
     finally:

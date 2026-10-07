@@ -10,6 +10,7 @@ from pathlib import Path
 import math
 import os
 import tempfile
+import hashlib
 
 try:
     import rclpy
@@ -93,6 +94,8 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
         self.create_subscription(Bool,"/research/tf_integrity",self._tf_callback,10)
         self.create_subscription(String,"/localization_authority/mode",self._mode_callback,10)
         self._path = research_path(str(self.get_parameter("evidence_store_path").value))
+        self._verified_path=self._path.parent/"verified_history"/(hashlib.sha256(self._session_id.encode()).hexdigest()+".json")
+        self._verified_version=None
         self._store: EvidenceStore | None = None
         self._store_mtime_ns: int | None = None
         self._last_rejection = ""
@@ -171,6 +174,13 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
         if changed:
             _atomic_save(self._store,self._path)
             self._store_mtime_ns = self._path.stat().st_mtime_ns
+        # Keep the last actually verified registration for this LIO epoch.
+        # A later authority/TF loss updates the working store to STALE but never
+        # destroys this historical map or promotes newer unanchored evidence.
+        if valid and self._session_id and self._store.map_version!=self._verified_version and any(
+                update['local_submap_id'] in current_submaps for update in self._store.graph_updates_in_map()):
+            _atomic_save(self._store,self._verified_path)
+            self._verified_version=self._store.map_version
 
     def _reload(self) -> None:
         try:

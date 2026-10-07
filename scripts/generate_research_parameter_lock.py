@@ -57,7 +57,7 @@ def main():
                 if count!=1:raise SystemExit("one physical parameter row required: "+key)
             config.write_text(text)
         if name=="ego_vehicle_adapter":
-            radius=max(math.hypot(x,y) for x,y in footprint)
+            radius=max(math.sqrt(x*x+y*y) for x,y in footprint)
             if args.check and actual["inflate_radius_m"]!=radius:raise SystemExit("planner footprint circle differs from source polygon")
             if not args.check:
                 text=re.sub(r"^(    inflate_radius_m:) .*$",rf"\1 {radius!r}",text,flags=re.MULTILINE)

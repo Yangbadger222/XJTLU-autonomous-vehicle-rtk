@@ -48,7 +48,7 @@ def audit(root, default_entry, serial):
     checked("corridor.footprint_xy",expected_footprint,parsed_safety["footprint_xy"],
             parameters(evidence["safety_parameters"]["output"])["footprint_xy"])
     parsed_ego=yaml.safe_load((root/"src/bringup/config/ego_vehicle_adapter.yaml").read_text())["ego_vehicle_adapter"]["ros__parameters"]
-    checked("corridor.planner_footprint_circle",max(math.hypot(*point) for point in locked["vehicle.corridor_footprint_xy"]),
+    checked("corridor.planner_footprint_circle",max(math.sqrt(x*x+y*y) for x,y in locked["vehicle.corridor_footprint_xy"]),
             parsed_ego["inflate_radius_m"],parameters(evidence["ego_parameters"]["output"])["inflate_radius_m"])
     super_params=parameters(evidence["superlio_parameters"]["output"])
     super_yaml=yaml.safe_load((root/"src/bringup/config/super_lio_vehicle.yaml").read_text())["/**"]["ros__parameters"]

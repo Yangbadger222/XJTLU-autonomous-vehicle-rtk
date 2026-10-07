@@ -18,6 +18,7 @@ from rclpy.time import Time
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile,DurabilityPolicy
 from geometry_msgs.msg import Point, PoseStamped
 from nav_msgs.msg import Odometry, OccupancyGrid, Path
 from std_msgs.msg import Bool, String
@@ -26,7 +27,7 @@ from research_interfaces.srv import PlanRoadReference
 
 from research_runtime.active_observation import (FiniteObservationPolicy, frontier_events,
     planned_views, visible_fraction, prior_gap_events, task_impact, supported_gap_updates, save_snapshot, load_snapshot,
-    RoadGraph,GraphEdge)
+    RoadGraph,GraphEdge,current_session_evidence)
 from research_runtime.active_road import RoadEvidence, EvidenceState,EvidenceStore
 from research_runtime.physical_parameter_lock import LOCKED_FOOTPRINT
 from research_runtime.runtime_paths import research_path
@@ -67,6 +68,10 @@ class ActiveObservationNode(Node):
         self.snapshot_path = research_path(str(self.declare_parameter("policy_snapshot_path",
             "runtime-data/research/active_road/observation_policy.json").value))
         self.recorded_evidence = []
+        self.localization_session_id=""
+        self.create_subscription(String,"/research/localization_session_id",
+            lambda msg:setattr(self,"localization_session_id",str(msg.data)),
+            QoSProfile(depth=1,durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.evidence_store_path=research_path(str(self.declare_parameter("evidence_store_path",
             "runtime-data/research/active_road/evidence.json").value))
         self.published_updates=set()
@@ -439,10 +444,11 @@ class ActiveObservationNode(Node):
                 if self._candidate_safety_ready(time.monotonic()):
                     for edge in self.odom_graph.edges.values():
                         if edge.source!='current_supported_ground' or edge.edge_id in self.published_updates:continue
-                        local_ids={e.local_submap_id for e in self.recorded_evidence}
+                        current=current_session_evidence(self.recorded_evidence,self.localization_session_id)
+                        local_ids={e.local_submap_id for e in current}
                         if len(local_ids)!=1:continue # Never invent an odom-session identity from mixed submaps.
                         local_id=next(iter(local_ids))
-                        identities=[e.evidence_id for e in self.recorded_evidence if e.local_submap_id==local_id]
+                        identities=[e.evidence_id for e in current if e.local_submap_id==local_id]
                         if not identities:continue
                         msg=RoadGraphUpdate2D();msg.header.frame_id='odom';msg.header.stamp=self.grid_stamp
                         msg.update_id,msg.prior_version=edge.edge_id,store.prior_version

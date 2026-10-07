@@ -25,7 +25,7 @@ ego_vehicle_adapter:
     max_curvature_1pm: 0.0
     max_lateral_speed_mps: 0.0
     max_jerk_mps3: 0.0
-    inflate_radius_m: 0.4493606569338263
+    inflate_radius_m: 0.4493606569338264
     initial_map_version: "UNKNOWN"
     map_resolution_m: 0.30
     grid_unknown_is_occupied: true

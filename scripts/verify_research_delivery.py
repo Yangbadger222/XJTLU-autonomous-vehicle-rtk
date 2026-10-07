@@ -84,15 +84,26 @@ def main() -> int:
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(super_patch), str(ego_one), str(ego_two)],
           json.dumps({"expected": expected_hashes, "actual": actual_hashes}, sort_keys=True))
 
-    patch_audit = Path("audit/ego_patch_check_current.log")
-    patch_audit_text = patch_audit.read_text() if patch_audit.is_file() else ""
+    patch_audit = Path("audit/ego_four_patch_source_verification.json")
+    patch_audit_data = json.loads(patch_audit.read_text()) if patch_audit.is_file() else {}
     check("ego_patch_apply_audit",
-          verification["ego_planner_2d_ros2"].get("apply_check") == "PASS_SEQUENTIAL" and
-          "sequential patches: 0001, 0002, 0003, 0004" in patch_audit_text and
-          "git apply --check and apply: PASS" in patch_audit_text and
-          "map-version ESDF reset" in patch_audit_text,
+          verification["ego_planner_2d_ros2"].get("apply_check") == "PASS_SEQUENTIAL_ALL_FOUR" and
+          patch_audit_data.get("status")=="PASS" and patch_audit_data.get("pinned_commit")==EGO and
+          patch_audit_data.get("patches")==verification["ego_planner_2d_ros2"]["patches"] and
+          patch_audit_data.get("matches_built_source") is True,
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
           "requires exact-commit sequential apply evidence for all four patches")
+    clean_path=Path("audit/remote_humble/clean-final-build.json")
+    clean=json.loads(clean_path.read_text()) if clean_path.is_file() else {}
+    clean_commit=clean.get("source_commit","")
+    valid_commit=bool(re.fullmatch(r"[0-9a-f]{40}",clean_commit))
+    compiled_sources_match=(valid_commit and subprocess.run(["git","diff","--quiet",clean_commit,"HEAD","--",
+        "src","patches","dependencies.research.repos","scripts/build_active_road_research.sh",
+        "scripts/apply_ego_vehicle_patch.sh","scripts/apply_super_lio_patch.sh"]).returncode==0)
+    check("current_clean_humble_build",clean.get("status")=="PASS" and clean.get("build_exit")==0 and
+          clean.get("package_count")==14 and compiled_sources_match,
+          [str(clean_path),"audit/remote_humble/clean-final-build.log"],
+          "fresh isolated SDK/14-package build; runtime source tree unchanged since compiled source commit")
 
     three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
     recipe_text = three_patch_recipe.read_text() if three_patch_recipe.is_file() else ""
@@ -217,7 +228,7 @@ def main() -> int:
 
     payload = {"schema": 1, "branch": branch, "tip": tip, "base": BASE,
                "checks": checks, "overall_static_status": "PASS" if all(c["status"] == "PASS" for c in checks) else "FAIL",
-               "runtime_gates": "PENDING outside this static verifier"}
+               "runtime_gates": "Executed runtime evidence is reported in RESULTS.json; this verifier only checks provenance/invariants"}
     rendered = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
     if args.output:
         args.output.write_text(rendered)

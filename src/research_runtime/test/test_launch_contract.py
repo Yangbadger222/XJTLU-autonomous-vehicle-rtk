@@ -119,7 +119,7 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
     assert "max_curvature_1pm: 0.0" in config
     assert "max_lateral_speed_mps: 0.0" in config
     import math
-    assert yaml.safe_load(config)["ego_vehicle_adapter"]["ros__parameters"]["inflate_radius_m"]==math.hypot(.33,.305)
+    assert yaml.safe_load(config)["ego_vehicle_adapter"]["ros__parameters"]["inflate_radius_m"]==math.sqrt(.33*.33+.305*.305)
     assert "map_resolution_m: 0.30" in config
     assert "grid_unknown_is_occupied: true" in config
     safety = (Path(__file__).parents[3] / "src" / "bringup" / "config" /

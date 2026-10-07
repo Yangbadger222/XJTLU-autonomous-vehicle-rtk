@@ -327,6 +327,12 @@ class FiniteObservationPolicy:
             self.resolved.add(view.event_id)
 
 
+def current_session_evidence(evidence,localization_session_id):
+    """Historical local coordinates cannot support a new odom-session increment."""
+    if not localization_session_id:return []
+    return [e for e in evidence if e.local_submap_id.startswith(localization_session_id+"/")]
+
+
 def save_snapshot(path, prior: MaGRoadPrior, evidence: list[RoadEvidence], policy: FiniteObservationPolicy):
     """Atomic content-addressed overlay; never changes the prior asset."""
     payload = {"schema": 1, "prior": {"path": prior.path, "crs": prior.crs,

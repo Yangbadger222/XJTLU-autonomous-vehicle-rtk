@@ -47,3 +47,19 @@ def test_disk_cell_aabb_unknown_and_map_boundary_are_blocked():
     assert grid.disk_occupied(0.,.15,.60)
     assert grid.disk_occupied(-2.9,0.,.2)
     assert grid.disk_occupied(float('nan'),0.,.1)
+
+
+def test_circle_contact_detects_each_of_four_neighbor_cell_sides():
+    for col,row in [(0,1),(2,1),(1,0),(1,2)]:
+        cells=[0]*16;cells[row*4+col]=-1
+        grid=LocalObstacleGrid('odom','map',1.,0.,0.,4,4,tuple(cells))
+        assert grid.disk_occupied(1.5,1.5,.5)
+
+
+def test_unchanged_grid_and_road_keep_prefix_goal_stable_under_measured_pose_jitter():
+    cells=[0 if col<16 else -1 for row in range(40) for col in range(40)]
+    grid=fixture(cells)
+    graph=RoadGraph([GraphEdge('road','start','goal',((0.,0.),(3.,0.)))])
+    a,_=confirmed_route_prefix(graph,'start','goal',(.002,0,0),grid,LOCKED_FOOTPRINT)
+    b,_=confirmed_route_prefix(graph,'start','goal',(.003,0,0),grid,LOCKED_FOOTPRINT)
+    assert a[0]!=b[0] and a[-1]==b[-1]

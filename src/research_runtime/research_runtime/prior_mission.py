@@ -67,21 +67,26 @@ def confirmed_route_prefix(graph, start, goal, pose, grid, footprint):
         length=dx*dx+dy*dy
         t=max(0.,min(1.,((pose[0]-a[0])*dx+(pose[1]-a[1])*dy)/length)) if length else 0.
         projection=(a[0]+t*dx,a[1]+t*dy)
-        value=(distance(pose,projection),index,projection)
+        value=(distance(pose,projection),index,projection,t)
         if nearest is None or value[0]<nearest[0]:nearest=value
     if nearest is None or nearest[0]>.30:return (), 'POSE_OUTSIDE_CONFIRMED_ROAD'
-    remaining=[nearest[2]]+points[nearest[1]+1:]
+    # Sample from immutable road vertices. Resampling a segment from every
+    # slightly changed measured projection moves its endpoint even on an
+    # unchanged grid, needlessly restarting the timed EGO plan/cache.
+    remaining=points[nearest[1]:]
     result=[]
     # EGO uses the original footprint's circumscribed circle against complete
     # occupied-cell AABBs. A merely polygon-free reference endpoint can still
     # be rejected by that existing planner contract. Match its envelope here.
     radius=max(math.sqrt(x*x+y*y) for x,y in footprint)
-    for a,b in zip(remaining,remaining[1:]):
+    for segment,(a,b) in enumerate(zip(remaining,remaining[1:])):
         yaw=math.atan2(b[1]-a[1],b[0]-a[0]);c,s=math.cos(yaw),math.sin(yaw)
         steps=max(1,math.ceil(distance(a,b)/(grid.resolution_m*.25)))
         sweep_margin=distance(a,b)/steps*.5
-        for i in range(steps+1):
-            xy=(a[0]+(b[0]-a[0])*i/steps,a[1]+(b[1]-a[1])*i/steps)
+        candidates=[(i/steps,(a[0]+(b[0]-a[0])*i/steps,a[1]+(b[1]-a[1])*i/steps)) for i in range(steps+1)]
+        if segment==0:
+            candidates=[(nearest[3],nearest[2])]+[(t,xy) for t,xy in candidates if t>=nearest[3]]
+        for _,xy in candidates:
             polygon=[(xy[0]+c*x-s*y,xy[1]+s*x+c*y) for x,y in footprint]
             if grid.polygon_occupied(polygon) or grid.disk_occupied(xy[0],xy[1],radius+sweep_margin):
                 return tuple(result), 'LOCAL_SUPPORT_BOUNDARY'

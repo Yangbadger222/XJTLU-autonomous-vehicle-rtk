@@ -78,14 +78,16 @@ class LocalObstacleGrid:
             x_m+radius_m>self.origin_x_m+self.width*self.resolution_m or
             y_m+radius_m>self.origin_y_m+self.height*self.resolution_m):
             return True
-        col0=math.floor((x_m-radius_m-self.origin_x_m)/self.resolution_m)
-        col1=math.floor((x_m+radius_m-self.origin_x_m)/self.resolution_m)
-        row0=math.floor((y_m-radius_m-self.origin_y_m)/self.resolution_m)
-        row1=math.floor((y_m+radius_m-self.origin_y_m)/self.resolution_m)
+        # Include the adjacent cell on both sides of an exact grid boundary.
+        # floor alone misses a left/bottom AABB touching the circle.
+        col0=math.floor((x_m-radius_m-self.origin_x_m)/self.resolution_m)-1
+        col1=math.floor((x_m+radius_m-self.origin_x_m)/self.resolution_m)+1
+        row0=math.floor((y_m-radius_m-self.origin_y_m)/self.resolution_m)-1
+        row1=math.floor((y_m+radius_m-self.origin_y_m)/self.resolution_m)+1
         for row in range(row0,row1+1):
             for col in range(col0,col1+1):
                 if not 0<=row<self.height or not 0<=col<self.width:
-                    return True
+                    continue  # Bounds above already reject circles crossing outside.
                 if self.cells[row*self.width+col]==0:
                     continue
                 left=self.origin_x_m+col*self.resolution_m

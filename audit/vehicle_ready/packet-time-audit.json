@@ -1,0 +1,203 @@
+{
+  "scope": "actual read-only sealed raw CDR; protected MID filter; distinguishes unordered packet end and old-bag turn dynamics, no clock rewrite or motion",
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "scan_count": 2867,
+  "last_not_max_over_1us_count": 248,
+  "max_minus_last_ns": {
+    "max": 394855,
+    "median": 0
+  },
+  "minimum_point_before_previous_max_end_count": 1147,
+  "fault_window_scans": [
+    {
+      "header_stamp_ns": 1784111529715452711,
+      "accepted_points": 1776,
+      "min_offset_ns": 0,
+      "last_offset_ns": 100135927,
+      "max_offset_ns": 100135927,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111529815578713,
+      "accepted_points": 1746,
+      "min_offset_ns": 1960377,
+      "last_offset_ns": 99908202,
+      "max_offset_ns": 99908202,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111529915433316,
+      "accepted_points": 1786,
+      "min_offset_ns": 1079014,
+      "last_offset_ns": 98769352,
+      "max_offset_ns": 98769352,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530015548598,
+      "accepted_points": 1815,
+      "min_offset_ns": 500311,
+      "last_offset_ns": 98520115,
+      "max_offset_ns": 98520115,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530115695625,
+      "accepted_points": 1803,
+      "min_offset_ns": 257244,
+      "last_offset_ns": 100038124,
+      "max_offset_ns": 100038124,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530215835548,
+      "accepted_points": 1864,
+      "min_offset_ns": 535771,
+      "last_offset_ns": 100319903,
+      "max_offset_ns": 100319903,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530315641253,
+      "accepted_points": 1759,
+      "min_offset_ns": 0,
+      "last_offset_ns": 99747294,
+      "max_offset_ns": 99747294,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": true
+    },
+    {
+      "header_stamp_ns": 1784111530414943136,
+      "accepted_points": 1838,
+      "min_offset_ns": 152528,
+      "last_offset_ns": 100113273,
+      "max_offset_ns": 100113273,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": true
+    },
+    {
+      "header_stamp_ns": 1784111530515694404,
+      "accepted_points": 1871,
+      "min_offset_ns": 0,
+      "last_offset_ns": 100360704,
+      "max_offset_ns": 100360704,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530615405930,
+      "accepted_points": 1856,
+      "min_offset_ns": 0,
+      "last_offset_ns": 99084683,
+      "max_offset_ns": 99084683,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": true
+    },
+    {
+      "header_stamp_ns": 1784111530715603423,
+      "accepted_points": 1854,
+      "min_offset_ns": 1025525,
+      "last_offset_ns": 98380489,
+      "max_offset_ns": 98476714,
+      "max_minus_last_ns": 96225,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530815428553,
+      "accepted_points": 1861,
+      "min_offset_ns": 485724,
+      "last_offset_ns": 98092998,
+      "max_offset_ns": 98246840,
+      "max_minus_last_ns": 153842,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111530915252690,
+      "accepted_points": 1839,
+      "min_offset_ns": 115844,
+      "last_offset_ns": 100097689,
+      "max_offset_ns": 100097689,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531015447847,
+      "accepted_points": 1843,
+      "min_offset_ns": 0,
+      "last_offset_ns": 98985482,
+      "max_offset_ns": 98985482,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531115732990,
+      "accepted_points": 1847,
+      "min_offset_ns": 1094571,
+      "last_offset_ns": 98275389,
+      "max_offset_ns": 98498314,
+      "max_minus_last_ns": 222925,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531215692267,
+      "accepted_points": 1869,
+      "min_offset_ns": 316608,
+      "last_offset_ns": 98139733,
+      "max_offset_ns": 98139733,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531315613976,
+      "accepted_points": 1849,
+      "min_offset_ns": 296820,
+      "last_offset_ns": 100429099,
+      "max_offset_ns": 100429099,
+      "max_minus_last_ns": 0,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531415858254,
+      "accepted_points": 1890,
+      "min_offset_ns": 0,
+      "last_offset_ns": 99020576,
+      "max_offset_ns": 99155698,
+      "max_minus_last_ns": 135122,
+      "begins_before_previous_max_end": true
+    },
+    {
+      "header_stamp_ns": 1784111531515833564,
+      "accepted_points": 1859,
+      "min_offset_ns": 2097734,
+      "last_offset_ns": 98408552,
+      "max_offset_ns": 98522827,
+      "max_minus_last_ns": 114275,
+      "begins_before_previous_max_end": false
+    },
+    {
+      "header_stamp_ns": 1784111531615427615,
+      "accepted_points": 1881,
+      "min_offset_ns": 1056839,
+      "last_offset_ns": 98216539,
+      "max_offset_ns": 98266659,
+      "max_minus_last_ns": 50120,
+      "begins_before_previous_max_end": false
+    }
+  ],
+  "fault_window_gyro": {
+    "count": 400,
+    "median_z_rps": 0.7725554704666138,
+    "max_abs_z_rps": 1.160844326019287
+  },
+  "filter": {
+    "stride": 4,
+    "blind2": 0.25,
+    "range2": 625.0
+  }
+}

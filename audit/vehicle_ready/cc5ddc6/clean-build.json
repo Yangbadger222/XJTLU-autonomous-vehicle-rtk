@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "runtime_source_commit": "cc5ddc6eafde57936bab263a22241670dabd8230",
+  "workspace": "/home/badger/codex-research/superlio-ego-20261007/lio-ready-cc5ddc6-ws",
+  "clean_workspace": true,
+  "SDK_build": "fresh task-local original SDK compile/install",
+  "package_count": 14,
+  "build_exit": 0,
+  "build_log_sha256": "98b225718e5909d91d089ae9d0f0130b56ff9512c54f5c6f09f76580e4ff5649",
+  "host": "x86_64",
+  "ROS": "Humble",
+  "compiler": "g++ (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0",
+  "binary_hashes": {
+    "install/super_lio/lib/super_lio/super_lio_node": "b50b35ebec0ec20ef8efa6c0bd9299208e0cf4f884544b523ad5713e3eca6b7d",
+    "install/super_lio/lib/liblio.so": "b8bad6dc6d45888a05756988ed8a63f5fdbae55e71324fc37230b5af500cbd34",
+    "install/ego_planner/lib/ego_planner/motion_plan": "48be7905ef30788f9e97b4170e910024d45ba0d3735c798ae3edcf6980ffcc73",
+    "install/ego_planner/lib/ego_planner/research_tf_guard": "93f087c60c446492e055718daa70da597eec88b4a6ff12560e2634187046c7d6",
+    "install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node": "56f3226aac54c302089a7b8ab9488657a5d5c9a085ebe3c7d19dc112a6768adf"
+  },
+  "runtime_patch_hashes": {
+    "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
+    "patches/ego_planner_2d/0005-protect-owned-local-world-gauge.patch": "f4155b8d1ede8b6cd2b0ead08f0b099177bbdb3c1d3d4a9c91a9f4d472326d06",
+    "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
+    "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
+    "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch": "59f6a009e022a6fa8474ae9b1f7a4d99eeafb2aad5c04200c4375b96c5f8852b",
+    "patches/super_lio/0001-publish-source-aware-odom-health.patch": "f4e2f980c3e231d14d656eadba03d800daecc644b678803b21832d03c835fca1",
+    "patches/super_lio/0002-certify-source-observations-and-covariance.patch": "4d0acea631bec62154f3de8586df319c149b2aa4bbb752e47facc035a085014c"
+  },
+  "scope": "Fresh isolated non-Jetson SDK/14 package build; no physical calibration, deployment or acceptance"
+}

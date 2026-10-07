@@ -4,10 +4,18 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <thread>
 
 int main(int argc,char** argv) {
+  const char* domain=std::getenv("ROS_DOMAIN_ID");
+  const char* local=std::getenv("ROS_LOCALHOST_ONLY");
+  if(!domain || !local || std::strcmp(domain,"105") || std::strcmp(local,"1")) {
+    std::cerr << "packet probe requires isolated domain105 and localhost-only before ROS init\n";
+    return 2;
+  }
   rclcpp::init(argc,argv);
   rclcpp::NodeOptions options;
   options.parameter_overrides({rclcpp::Parameter("lio.sensor.lidar_type",1),

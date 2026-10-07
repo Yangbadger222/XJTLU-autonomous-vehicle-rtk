@@ -1,0 +1,1 @@
+deskew: /home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-cc5ddc6/test-tools/scripts/validate_super_lio_deskew.cpp:70: int main(): Assertion `overlap.run(overlapping)' failed.

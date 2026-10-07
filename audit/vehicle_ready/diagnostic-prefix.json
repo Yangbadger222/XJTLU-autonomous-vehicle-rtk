@@ -1,0 +1,542 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "all_children_alive": true,
+    "EOF_or_requested_prefix": true,
+    "actual_raw_inputs": true,
+    "source_observations": true,
+    "native_certificate_decode": true,
+    "healthy_observations_exist": true,
+    "native_vehicle_exact_stamp_pairs": true,
+    "sustained_vehicle_odom_coverage": false,
+    "terminal_vehicle_measurement_present": false,
+    "no_reference_fault_latched": false,
+    "identity_reference_mean_covariance": true,
+    "finite_PSD_covariances": true,
+    "frames": true,
+    "owned_identity_world": true,
+    "acquisition_transformed_cloud": true,
+    "vehicle_healthy_received": true
+  },
+  "counts": {
+    "imu": 16446,
+    "lidar": 838,
+    "native_odom": 531,
+    "vehicle_odom": 363,
+    "cloud_odom": 531
+  },
+  "source_health_counts": {
+    "FAIL": 295,
+    "OK": 531
+  },
+  "source_reasons": {
+    "point_outside_scan_state_interval": 295,
+    "observation_lower_bound_pass": 531
+  },
+  "vehicle_health_counts": {
+    "UNKNOWN": 464,
+    "OK": 363
+  },
+  "vehicle_health_reasons": {
+    "UNKNOWN: Super-LIO source health/IMU-to-base equivalence is not verified": 1,
+    "UNKNOWN: source observation certificate not eligible": 295,
+    "OK: measurement-matched observation bound and audited navigation reference applied": 363,
+    "UNKNOWN: source pose step exceeds locked bridge guards; restart with a new session": 168
+  },
+  "reference_fault_capture": [
+    {
+      "reason": "UNKNOWN: source pose step exceeds locked bridge guards; restart with a new session",
+      "last_vehicle_stamp_ns": 1784111530616055011,
+      "native_odometry_cdr_base64": [
+        "AAEAAKphV2rjQLgkBgAAAHdvcmxkAAAABAAAAGltdQAAAAAAAAAAgGfa/j8AAAAAyVruvwAAAADGxp0/AAAAYD2BOb8AAAAAgHNoPwAAAIBu58a/AAAAoMF77z8AAACgrOe5PgAAAADib1M+AAAAoK6Ulr5AViLtCkBOvtgLW0ZbH3a+/CkWuEjPVb4AAAAA4m9TPgAAAACZUMA+AAAAgM6biD608g4axhhqPkTdR2aRNyM+cY17l85Qbb4AAADArpSWvgAAAIDOm4g+AAAAYIOcvz7Nwn/tLXt/PlmgLwkcRnw+IKlRIg8vQb7ATEVHC0BOvrTyDhrGGGo+tZp57S17fz7nWvlDJolwPuw2K0nld00+OtMvutvyB774dk5kWx92vkDdR2aRNyM+me8vCRxGfD74k0RJ5XdNPpCsa4Vfomk+VG0bKfwPM75eEtq3SM9VvnGNe5fOUG2+QI9RQg8vQb6qTmzY2/IHvszX30n8DzO+ZsYY6ywdYz4AAAAgJSDjPwAAAICXqbw/AAAAoKA8wz8AAABAy6uLvwAAAID3uZW/AAAAoIFc7z+e5kng/asLPywxhfEm076+sDLt8IpN274ApeHRHHE2PutXmbKNsJy+Gj2F0cDVYT4xxP2BJtO+vuqEATIBvA4/pqBjdMAOpT4VvAokZX+bPqZzRXroLVG+kP2FSCbKcL5+Cy80i03bvsbMATfADqU+lT+inyxADj8D316tgb5wPoWz1r0CC3s+dHYjGho2Ub6AW32IEnE2PpH73TZlf5s+xyeQbIG+cD57FC778IaEPwAAACBaBEg+AAAAgK44Oj6rSczFjbCcvhBVVBHrLVG+gHMcYgMLez4AAABgWgRIPnsUrszwhoQ/AAAAQIcoLr4Z9cHvwNVhPuAImMsmynC+vdnAGho2Ub4AAACArjg6PgAAAECHKC6+exT+OfOGhD8=",
+        "AAEAAKthV2pFOuoABgAAAHdvcmxkAAAABAAAAGltdQAAAAAAAAAAoLYsAUAAAACAEIzwvwAAAACHbZk/AAAAIIl3Qz8AAABASKZRPwAAACDHmpk/AAAAAHH97z8AAACAeQjEPgAAAMDKO4q+AAAAgCdFo77YPKmAQIZjvhckmbqZvYO+zmKR7/n0UL4AAADAyjuKvgAAAIDUN8g+AAAAAHWYlT54/S7VbDV3PhjmCESC01c+ekLbJ2UTc74AAACgJ0WjvgAAAAB1mJU+AAAA4IvyyD4/0uOU9LyEPj6FMX7InoY+8pEnp+SoSb7YPKmAQIZjvri8JPVsNXc+P9LjlPS8hD7PtRqCaB9yPuqyNoFKe1U+zcrj70/nIL4XJJm6mb2DvrAgb0qC01c+PoUxfsiehj7ssjaBSntVPuRgpc8jAHA+NxEC0EcBJb7OYpHv+fRQvjKp7CdlE3O+8pEnp+SoSb7MyuPvT+cgvjgRAtBHASW+hftlXljTYz4AAACALtzfPwAAACCCDtC/AAAAgEVdub8AAABgseGTvwAAAMCWHbq/AAAAIPVe7T8z4uH3mm48PzWd971tWKO+ZuPnJgU0/L6I/Knc0seOvh5WqsW6op2+bvP6QLMcgj45zIJRbFijvhF9sj2ZdT4/6xvWU7ZA8D4GvnQxJa2iPiGAUHz2O4m+94kxoefKej79y3jPBDT8vgDhvZ+1QPA+icqz7J4rPj9xE34AvQqJvtUYKB6ZPoS+/1/ORtP5TD5WynMJ0seOvo0IkE4kraI+P2jdXr0Kib57FO5EnIuEPwAAAACR60c+AAAAQFtfOz4ckQ6Ku6Kdvjp0+yj3O4m+GYUnfpk+hL4AAAAAketHPnsULgKci4Q/AAAAgK0ULL5zqsemshyCPkPS6pDoyno+wywPP9P5TD4AAABAW187PgAAAICtFCy+exROsp6LhD8="
+      ],
+      "certificates": [
+        {
+          "stamp_ns": 1784111530616055011,
+          "eligible": false,
+          "reason": "point_outside_scan_state_interval"
+        },
+        {
+          "stamp_ns": 1784111531015350341,
+          "eligible": true,
+          "reason": "observation_lower_bound_pass"
+        }
+      ]
+    }
+  ],
+  "information_bound_summary": {
+    "min": 99999.99999999999,
+    "median": 99999.99999999999,
+    "max": 99999.99999999999
+  },
+  "paired_odom_count": 363,
+  "covariance_failures": [],
+  "reference_mismatches": [],
+  "playback_exit_before_cleanup": null,
+  "child_exits_before_cleanup": [
+    null,
+    null,
+    null
+  ],
+  "duration_s": 85.0,
+  "replay_scope": "PREFIX",
+  "rate": 1.0,
+  "domain": 104,
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "topics": [
+    "/livox/lidar",
+    "/livox/imu"
+  ],
+  "replay_contract": {
+    "duration_s": 287.369579396,
+    "expected_raw_counts": {
+      "/livox/lidar": 2867,
+      "/livox/imu": 57008
+    },
+    "wall_budget_s": 318.1065373356,
+    "rule": "2 s startup + full recorded duration at 1x + max(20 s, 10%) EOF margin"
+  },
+  "resources": [
+    {
+      "elapsed_s": 0.010393765987828374,
+      "cpu_s": 0.1,
+      "rss_kb": 57356
+    },
+    {
+      "elapsed_s": 1.0012132629635744,
+      "cpu_s": 0.15,
+      "rss_kb": 57648
+    },
+    {
+      "elapsed_s": 2.0012576279696077,
+      "cpu_s": 0.19,
+      "rss_kb": 57648
+    },
+    {
+      "elapsed_s": 3.0323741089669056,
+      "cpu_s": 0.25,
+      "rss_kb": 59140
+    },
+    {
+      "elapsed_s": 4.010835544962902,
+      "cpu_s": 0.4,
+      "rss_kb": 64564
+    },
+    {
+      "elapsed_s": 5.000581880973186,
+      "cpu_s": 0.55,
+      "rss_kb": 65468
+    },
+    {
+      "elapsed_s": 6.000563898007385,
+      "cpu_s": 0.66,
+      "rss_kb": 65564
+    },
+    {
+      "elapsed_s": 7.000726339989342,
+      "cpu_s": 0.77,
+      "rss_kb": 65608
+    },
+    {
+      "elapsed_s": 8.000531847006641,
+      "cpu_s": 0.9,
+      "rss_kb": 65680
+    },
+    {
+      "elapsed_s": 9.000678217969835,
+      "cpu_s": 0.99,
+      "rss_kb": 65728
+    },
+    {
+      "elapsed_s": 10.00036700599594,
+      "cpu_s": 1.1,
+      "rss_kb": 65780
+    },
+    {
+      "elapsed_s": 11.000692447007168,
+      "cpu_s": 1.21,
+      "rss_kb": 65856
+    },
+    {
+      "elapsed_s": 12.0005319659831,
+      "cpu_s": 1.31,
+      "rss_kb": 65888
+    },
+    {
+      "elapsed_s": 13.00063466996653,
+      "cpu_s": 1.41,
+      "rss_kb": 65848
+    },
+    {
+      "elapsed_s": 14.000567184004467,
+      "cpu_s": 1.51,
+      "rss_kb": 66016
+    },
+    {
+      "elapsed_s": 15.00060356996255,
+      "cpu_s": 1.6,
+      "rss_kb": 66056
+    },
+    {
+      "elapsed_s": 16.000169585982803,
+      "cpu_s": 1.7,
+      "rss_kb": 65964
+    },
+    {
+      "elapsed_s": 17.000530631979927,
+      "cpu_s": 1.8,
+      "rss_kb": 66112
+    },
+    {
+      "elapsed_s": 18.0002030399628,
+      "cpu_s": 1.88,
+      "rss_kb": 66144
+    },
+    {
+      "elapsed_s": 19.00041193398647,
+      "cpu_s": 1.98,
+      "rss_kb": 65932
+    },
+    {
+      "elapsed_s": 20.00053088500863,
+      "cpu_s": 2.08,
+      "rss_kb": 66244
+    },
+    {
+      "elapsed_s": 21.000510654004756,
+      "cpu_s": 2.17,
+      "rss_kb": 66264
+    },
+    {
+      "elapsed_s": 22.002292029967066,
+      "cpu_s": 2.26,
+      "rss_kb": 66284
+    },
+    {
+      "elapsed_s": 23.00049075600691,
+      "cpu_s": 2.35,
+      "rss_kb": 66304
+    },
+    {
+      "elapsed_s": 24.000566926959436,
+      "cpu_s": 2.44,
+      "rss_kb": 66320
+    },
+    {
+      "elapsed_s": 25.00127479695948,
+      "cpu_s": 2.55,
+      "rss_kb": 66076
+    },
+    {
+      "elapsed_s": 26.001813915965613,
+      "cpu_s": 2.65,
+      "rss_kb": 66356
+    },
+    {
+      "elapsed_s": 27.00078201800352,
+      "cpu_s": 2.75,
+      "rss_kb": 66368
+    },
+    {
+      "elapsed_s": 28.000420072989073,
+      "cpu_s": 2.84,
+      "rss_kb": 66376
+    },
+    {
+      "elapsed_s": 29.00043342099525,
+      "cpu_s": 2.93,
+      "rss_kb": 66376
+    },
+    {
+      "elapsed_s": 30.00080059398897,
+      "cpu_s": 3.03,
+      "rss_kb": 66388
+    },
+    {
+      "elapsed_s": 31.00061948999064,
+      "cpu_s": 3.13,
+      "rss_kb": 66388
+    },
+    {
+      "elapsed_s": 32.000598357990384,
+      "cpu_s": 3.24,
+      "rss_kb": 66396
+    },
+    {
+      "elapsed_s": 33.0008744779625,
+      "cpu_s": 3.33,
+      "rss_kb": 66396
+    },
+    {
+      "elapsed_s": 34.00061557098525,
+      "cpu_s": 3.44,
+      "rss_kb": 66396
+    },
+    {
+      "elapsed_s": 35.00087381701451,
+      "cpu_s": 3.55,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 36.000191600993276,
+      "cpu_s": 3.65,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 37.00056008901447,
+      "cpu_s": 3.75,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 38.00106581597356,
+      "cpu_s": 3.87,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 39.000632546958514,
+      "cpu_s": 3.99,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 40.00074234895874,
+      "cpu_s": 4.11,
+      "rss_kb": 66408
+    },
+    {
+      "elapsed_s": 41.001099868968595,
+      "cpu_s": 4.24,
+      "rss_kb": 66420
+    },
+    {
+      "elapsed_s": 42.00082014297368,
+      "cpu_s": 4.36,
+      "rss_kb": 66472
+    },
+    {
+      "elapsed_s": 43.001387919997796,
+      "cpu_s": 4.47,
+      "rss_kb": 66468
+    },
+    {
+      "elapsed_s": 44.00537898298353,
+      "cpu_s": 4.57,
+      "rss_kb": 66512
+    },
+    {
+      "elapsed_s": 45.00083256600192,
+      "cpu_s": 4.67,
+      "rss_kb": 66160
+    },
+    {
+      "elapsed_s": 46.00061138998717,
+      "cpu_s": 4.79,
+      "rss_kb": 66468
+    },
+    {
+      "elapsed_s": 47.00062035699375,
+      "cpu_s": 4.91,
+      "rss_kb": 66520
+    },
+    {
+      "elapsed_s": 48.00080270698527,
+      "cpu_s": 5.01,
+      "rss_kb": 66472
+    },
+    {
+      "elapsed_s": 49.000720281968825,
+      "cpu_s": 5.1,
+      "rss_kb": 66520
+    },
+    {
+      "elapsed_s": 50.000892459996976,
+      "cpu_s": 5.22,
+      "rss_kb": 66520
+    },
+    {
+      "elapsed_s": 51.00115900498349,
+      "cpu_s": 5.32,
+      "rss_kb": 66524
+    },
+    {
+      "elapsed_s": 52.00066539697582,
+      "cpu_s": 5.44,
+      "rss_kb": 66628
+    },
+    {
+      "elapsed_s": 53.00536692200694,
+      "cpu_s": 5.56,
+      "rss_kb": 66672
+    },
+    {
+      "elapsed_s": 54.00017304497305,
+      "cpu_s": 5.68,
+      "rss_kb": 66680
+    },
+    {
+      "elapsed_s": 55.000724378973246,
+      "cpu_s": 5.77,
+      "rss_kb": 66672
+    },
+    {
+      "elapsed_s": 56.00102079100907,
+      "cpu_s": 5.89,
+      "rss_kb": 66940
+    },
+    {
+      "elapsed_s": 57.00102310796501,
+      "cpu_s": 6.02,
+      "rss_kb": 66620
+    },
+    {
+      "elapsed_s": 58.00082344800467,
+      "cpu_s": 6.15,
+      "rss_kb": 67012
+    },
+    {
+      "elapsed_s": 59.00085248798132,
+      "cpu_s": 6.26,
+      "rss_kb": 67788
+    },
+    {
+      "elapsed_s": 60.001020600961056,
+      "cpu_s": 6.39,
+      "rss_kb": 67788
+    },
+    {
+      "elapsed_s": 61.000953866983764,
+      "cpu_s": 6.51,
+      "rss_kb": 67788
+    },
+    {
+      "elapsed_s": 62.00016985699767,
+      "cpu_s": 6.64,
+      "rss_kb": 67420
+    },
+    {
+      "elapsed_s": 63.00026334100403,
+      "cpu_s": 6.78,
+      "rss_kb": 67544
+    },
+    {
+      "elapsed_s": 64.00091141596204,
+      "cpu_s": 6.93,
+      "rss_kb": 68080
+    },
+    {
+      "elapsed_s": 65.00104114197893,
+      "cpu_s": 7.07,
+      "rss_kb": 68168
+    },
+    {
+      "elapsed_s": 66.0006636409671,
+      "cpu_s": 7.21,
+      "rss_kb": 67696
+    },
+    {
+      "elapsed_s": 67.00084558798699,
+      "cpu_s": 7.34,
+      "rss_kb": 68172
+    },
+    {
+      "elapsed_s": 68.0009575340082,
+      "cpu_s": 7.49,
+      "rss_kb": 67744
+    },
+    {
+      "elapsed_s": 69.0008987300098,
+      "cpu_s": 7.64,
+      "rss_kb": 67760
+    },
+    {
+      "elapsed_s": 70.0010605599964,
+      "cpu_s": 7.76,
+      "rss_kb": 68280
+    },
+    {
+      "elapsed_s": 71.00095672399038,
+      "cpu_s": 7.89,
+      "rss_kb": 68388
+    },
+    {
+      "elapsed_s": 72.00072624499444,
+      "cpu_s": 8.04,
+      "rss_kb": 68404
+    },
+    {
+      "elapsed_s": 73.00305209500948,
+      "cpu_s": 8.2,
+      "rss_kb": 68852
+    },
+    {
+      "elapsed_s": 74.00083549297415,
+      "cpu_s": 8.35,
+      "rss_kb": 68852
+    },
+    {
+      "elapsed_s": 75.00095534900902,
+      "cpu_s": 8.51,
+      "rss_kb": 68716
+    },
+    {
+      "elapsed_s": 76.00068534200545,
+      "cpu_s": 8.67,
+      "rss_kb": 69756
+    },
+    {
+      "elapsed_s": 77.00113060401054,
+      "cpu_s": 8.82,
+      "rss_kb": 69872
+    },
+    {
+      "elapsed_s": 78.00092085299548,
+      "cpu_s": 9.0,
+      "rss_kb": 69872
+    },
+    {
+      "elapsed_s": 79.00101396400714,
+      "cpu_s": 9.16,
+      "rss_kb": 70124
+    },
+    {
+      "elapsed_s": 80.00100315298187,
+      "cpu_s": 9.32,
+      "rss_kb": 70124
+    },
+    {
+      "elapsed_s": 81.0011896819924,
+      "cpu_s": 9.49,
+      "rss_kb": 70132
+    },
+    {
+      "elapsed_s": 82.00149670999963,
+      "cpu_s": 9.67,
+      "rss_kb": 70900
+    },
+    {
+      "elapsed_s": 83.0009104469791,
+      "cpu_s": 9.81,
+      "rss_kb": 70908
+    },
+    {
+      "elapsed_s": 84.00122418400133,
+      "cpu_s": 9.95,
+      "rss_kb": 70928
+    },
+    {
+      "elapsed_s": 85.00098282296676,
+      "cpu_s": 10.11,
+      "rss_kb": 70944
+    }
+  ],
+  "runtime_source_commit": "9f1516fa10229d56626cf9b72d29aeb5aa14dbd9",
+  "source_binary_sha256": "d6c8e4b2839a2c9871731bec01738b4e8017d5c1f1ef7dd430a4f7ef8b07be7f",
+  "input_hashes": {
+    "patches/super_lio/0002-certify-source-observations-and-covariance.patch": "957754ec9447f7e8bca182d79ad0f2f74963ce6fcb796b4df800f8cf9430dba7",
+    "src/bringup/config/super_lio_vehicle.yaml": "0aa0d5162bd56ac1c8e48e01a11172ecddf41916f816c10dc32e5aa27f948649",
+    "src/bringup/config/super_lio_reference.yaml": "adb0853466ecbd2b28012cda90c6c25ff1e6fcee288ae21c1877dce2ce40b5d7",
+    "src/bringup/config/super_lio_cloud_frame.yaml": "7c4dc53deca656cc4f19d001d59247f4adc0cf7f790cbcffc0bed84800f29668"
+  },
+  "wall_elapsed_s": 89.1841865760507,
+  "scope": "Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim"
+}

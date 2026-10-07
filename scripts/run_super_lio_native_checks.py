@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import shlex
 import subprocess
 from pathlib import Path
@@ -14,7 +15,10 @@ def main():
     parser.add_argument('--workspace',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--only',choices=('information','failed_update','deskew','packet'))
-    args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
+    args=parser.parse_args()
+    if (not args.only or args.only=='packet') and (os.environ.get('ROS_DOMAIN_ID')!='105' or os.environ.get('ROS_LOCALHOST_ONLY')!='1'):
+        raise SystemExit('packet probe requires isolated domain105 and localhost-only before any native execution')
+    args.output.mkdir(parents=True,exist_ok=True)
     build=args.workspace/'build/super_lio'
     make=(build/'CMakeFiles/lio.dir/flags.make').read_text().splitlines()
     flags={line.split(' = ',1)[0]:shlex.split(line.split(' = ',1)[1]) for line in make if ' = ' in line}

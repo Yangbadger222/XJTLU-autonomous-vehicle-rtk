@@ -22,6 +22,12 @@ public:
   auto covariance() const { return kf_->GetCov(); }
   auto quality() const { return kf_->GetObservationQuality(); }
   auto output() const { return scan_undistort_full_; }
+  void shiftPosterior() {
+    auto state=kf_->GetSysState();
+    state.p+=BASIC::V3(.2,.1,.05);
+    state.R=BASIC::SO3(Eigen::AngleAxis<BASIC::scalar>(.2,BASIC::V3::UnitZ()).toRotationMatrix())*state.R;
+    kf_->SetX(state);
+  }
 };
 
 LI2Sup::MeasureGroup fixture() {
@@ -64,5 +70,21 @@ int main() {
   second.imu.front()=*fixture().imu_after_scan;
   second.imu_after_scan->secs+=.03;
   assert(valid.run(second));assert(valid.time()==1.07);
-  std::cout << "PASS: actual native deskew rejects 0/1/2 IMUs,backward/overlap/duplicate/nonfinite/unbracketed times before mutation; exact endpoints and reused real lookahead produce finite scan-end output\n";
+  Probe overlap;assert(overlap.run(fixture()));
+  auto overlapping=second;overlapping.lidar.start_time=1.035;
+  overlapping.lidar.pc->points.back().offset_time=.035;
+  assert(overlap.run(overlapping));assert(overlap.time()==1.07);
+  for(const auto& point:overlap.output()->points) assert(std::isfinite(point.x)&&std::isfinite(point.y)&&std::isfinite(point.z));
+  Probe shifted;assert(shifted.run(fixture()));shifted.shiftPosterior();
+  assert(shifted.run(overlapping));
+  for(std::size_t i=0;i<overlap.output()->size();++i) {
+    const auto& a=overlap.output()->points[i];const auto& b=shifted.output()->points[i];
+    assert(std::abs(a.x-b.x)+std::abs(a.y-b.y)+std::abs(a.z-b.z)<1e-4);
+  }
+  const auto before=overlap.covariance();const double time=overlap.time();
+  auto too_old=overlapping;too_old.lidar.start_time=.9;too_old.lidar.end_time=1.1;
+  for(auto& imu:too_old.imu)imu.secs+=.03;too_old.imu_after_scan->secs+=.03;
+  assert(!overlap.run(too_old));assert(overlap.time()==time && (overlap.covariance()-before).norm()==0);
+  assert(overlap.quality().reason=="point_before_retained_state_interval");
+  std::cout << "PASS: actual native deskew rejects 0/1/2 IMUs,backward/duplicate/nonfinite/unbracketed/stale-history times before mutation; exact endpoints, retained overlap, posterior alignment and reused real lookahead produce finite scan-end output\n";
 }

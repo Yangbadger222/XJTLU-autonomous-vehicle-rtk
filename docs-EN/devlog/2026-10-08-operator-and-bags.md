@@ -79,3 +79,17 @@ The first replay check incorrectly passed1866 source/363 vehicle frames. A tight
 
 #### Effect
 No stop threshold/clock/calibration/cap relaxation. Three native probes,35 original faults,8 world fault/latch cases and136 triple-layer checks are concrete evidence; sustained source integration remains FAIL until the tightened replay is rerun. Jetson connectivity is currently unavailable. This is ongoing authorized goal work, not completion or physical acceptance.
+
+### Actual overlapping scans and replay terminal audit
+
+#### File
+Super patch0002; native deskew/packet probes; `scripts/replay_acceptance.py` and counterexamples; strict raw replay; `audit/vehicle_ready/cc5ddc6/`; reference contract/commands.
+
+#### Change
+Actualcc5 clean SDK/14-package build and four native probes pass; the parser red regression is green. An85s raw prefix has627/627 paired outputs and no reference latch but200 overlapping scans denied and terminal health FAIL, so overall FAIL remains. Retain9f captured actual CDR/packet audit and old red fixtures. Test both raw input tails, sustained span/gaps, terminal health, quaternion and pre-cleanup PREFIX success; six false-PASS counterexamples pass. Packet Python/native entries enforce105/localhost before ROS initialization; actual unisolated native execution exits2.
+
+#### Reason
+A subset of good frames does not prove a continuous usable interface. Original MID arrival-clock packets overlap, while the current native deskew rejects every point before the current state. The minimal actual-native fixture fails on a1.035 point after a1.04 state. Keep real integrated history and posterior endpoints instead of relaxing the original15deg/.50m protection or rewriting time.
+
+#### Effect
+The next source revision adds finite historical deskew while still requiring3 current IMUs, actual endpoint brackets and rejection of older points; actual build/green regression/full replay remain required. Original firmware/protocol/calibration/physical limits/RTK-loss stopping are unchanged. Ground/EGO/target qualification and benefit remain unfinished; the goal continues with no automatic physical motion.

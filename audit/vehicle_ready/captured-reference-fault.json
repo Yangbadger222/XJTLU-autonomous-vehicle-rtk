@@ -1,0 +1,34 @@
+{
+  "status": "FAIL",
+  "callback_fault": "source pose step exceeds locked bridge guards; restart with a new session",
+  "native_inputs": 2,
+  "vehicle_outputs": 1,
+  "measured_native_steps": [
+    {
+      "dt_s": 0.39929533,
+      "translation_m": 0.23468454512738965,
+      "yaw_degrees": 23.48188544293314,
+      "native_body_yaw_rates_rps": [
+        0.9800422787666321,
+        0.9178414940834045
+      ],
+      "positions": [
+        [
+          1.928321361541748,
+          -0.9485821723937988,
+          0.029078572988510132
+        ],
+        [
+          2.1468327045440674,
+          -1.0341954231262207,
+          0.024831876158714294
+        ]
+      ]
+    }
+  ],
+  "health": [
+    "UNKNOWN: Super-LIO source health has no validated equivalence",
+    "UNKNOWN: source pose step exceeds locked bridge guards; restart with a new session"
+  ],
+  "scope": "Captured native odometry and parsed certificates; actual installed adapter callback, no graph/actuator or modified guard threshold"
+}

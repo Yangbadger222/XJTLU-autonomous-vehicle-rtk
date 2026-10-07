@@ -919,7 +919,7 @@ python3 -m pytest -q scripts/test_recorded_chassis_response.py
 新源健康原生检查须使用当前独立Humble构建（旧驾驶舱install不覆盖这些改动）：
 
 ```bash
-python3 scripts/run_super_lio_native_checks.py --repo /absolute/current-repo --workspace /absolute/current-research-ws --output /absolute/task-logs/native-checks
+ROS_DOMAIN_ID=105 ROS_LOCALHOST_ONLY=1 python3 scripts/run_super_lio_native_checks.py --repo /absolute/current-repo --workspace /absolute/current-research-ws --output /absolute/task-logs/native-checks
 ROS_DOMAIN_ID=91 ROS_LOCALHOST_ONLY=1 python3 scripts/validate_mock_serial_ros.py --install /absolute/current-research-ws/install --repo /absolute/current-repo --output /absolute/task-logs/world-owner.json --world-gauge-fault second-static-owner
 ```
 

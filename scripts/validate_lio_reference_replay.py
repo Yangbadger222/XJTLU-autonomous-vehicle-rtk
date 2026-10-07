@@ -23,6 +23,7 @@ from std_msgs.msg import String
 from tf2_msgs.msg import TFMessage
 from livox_ros_driver2.msg import CustomMsg
 from raw_replay_contract import replay_contract
+from replay_acceptance import quaternion_distance, requested_prefix_completed, stream_continuity
 from super_lio_vehicle_adapter.adapter_node import _covariance_is_known, _source_certificate
 
 
@@ -40,6 +41,7 @@ def main():
     stamp=lambda msg:msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
     native={};vehicle={};certificates={};health=Counter();reasons=Counter();vehicle_health=Counter()
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
+    raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
     children=[];logs=[];player=None
     def odometry(msg,label,collection):
         counts[label]+=1;collection[stamp(msg)]=msg
@@ -50,7 +52,9 @@ def main():
                 msg.twist.twist.angular.x,msg.twist.twist.angular.y,msg.twist.twist.angular.z)
         if not all(map(math.isfinite,values)) or not _covariance_is_known(cov):covariance_failures.append([label,stamp(msg)])
     def source_health(msg):
+        nonlocal last_source_health
         data=json.loads(msg.data);health[data['status']]+=1;reasons[data['reason']]+=1
+        last_source_health=data
         certificate=_source_certificate(msg.data)
         if certificate:certificates[certificate['stamp_ns']]=certificate
         else:counts['invalid_native_certificate']+=1
@@ -59,6 +63,8 @@ def main():
     node.create_subscription(Odometry,'/lio/odom_vehicle',lambda msg:odometry(msg,'vehicle_odom',vehicle),100)
     node.create_subscription(String,'/lio/health',source_health,100)
     def adapter_health(msg):
+        nonlocal last_vehicle_health
+        last_vehicle_health=msg.data
         vehicle_health.update([msg.data])
         if 'restart with a new' in msg.data and not fault_capture and native and vehicle:
             last_vehicle=max(vehicle)
@@ -67,8 +73,10 @@ def main():
                 'native_odometry_cdr_base64':[base64.b64encode(serialize_message(native[key])).decode() for key in selected],
                 'certificates':[certificates.get(key) for key in selected]})
     node.create_subscription(String,'/lio/vehicle_health',adapter_health,100)
-    node.create_subscription(Imu,'/livox/imu',lambda msg:counts.update(['imu']),QoSProfile(depth=1024,reliability=ReliabilityPolicy.BEST_EFFORT))
-    node.create_subscription(CustomMsg,'/livox/lidar',lambda msg:counts.update(['lidar']),QoSProfile(depth=100,reliability=ReliabilityPolicy.BEST_EFFORT))
+    def raw_input(msg,label,stamps):
+        counts.update([label]);stamps.append(stamp(msg))
+    node.create_subscription(Imu,'/livox/imu',lambda msg:raw_input(msg,'imu',raw_imu_stamps),QoSProfile(depth=1024,reliability=ReliabilityPolicy.BEST_EFFORT))
+    node.create_subscription(CustomMsg,'/livox/lidar',lambda msg:raw_input(msg,'lidar',raw_lidar_stamps),QoSProfile(depth=100,reliability=ReliabilityPolicy.BEST_EFFORT))
     node.create_subscription(PointCloud2,'/lio/cloud_odom',lambda msg:counts.update(['cloud_odom' if msg.header.frame_id=='odom' else 'wrong_cloud_frame']),20)
     node.create_subscription(TFMessage,'/tf_static',lambda msg:world_edges.extend(t for t in msg.transforms if t.child_frame_id=='world'),
                              QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -100,6 +108,7 @@ def main():
                                   'rss_kb':int(next(line.split()[1] for line in status if line.startswith('VmRSS:')))})
                 sample_at+=1.
         playback_exit=player.poll();child_exits=[child.poll() for child in children]
+        prefix_completed=requested_prefix_completed(args.duration_s,deadline,time.monotonic(),playback_exit,child_exits)
         # Stop a requested prefix before draining; do not call it an EOF replay.
         if player.poll() is None:os.killpg(player.pid,signal.SIGINT);player.wait(timeout=5)
         spin(2.)
@@ -112,6 +121,10 @@ def main():
             bv=(b.pose.pose.position.x,b.pose.pose.position.y,b.pose.pose.position.z,b.twist.twist.linear.x,b.twist.twist.linear.y,b.twist.twist.linear.z,
                 b.twist.twist.angular.x,b.twist.twist.angular.y,b.twist.twist.angular.z,*b.pose.covariance,*b.twist.covariance)
             if max(abs(x-y) for x,y in zip(av,bv))>1e-8:mismatches.append(key)
+            qa,qb=a.pose.pose.orientation,b.pose.pose.orientation
+            quaternions=((qa.x,qa.y,qa.z,qa.w),(qb.x,qb.y,qb.z,qb.w))
+            if quaternion_distance(*quaternions)>1e-6:mismatches.append(key)
+        continuity=stream_continuity(raw_lidar_stamps,raw_imu_stamps,native,vehicle)
         frame_ok=all(msg.header.frame_id=='world' and msg.child_frame_id=='imu' for msg in native.values()) and all(
             msg.header.frame_id=='odom' and msg.child_frame_id=='base_footprint' for msg in vehicle.values())
         identity=lambda t:t.header.frame_id=='odom' and abs(t.transform.translation.x)+abs(t.transform.translation.y)+abs(t.transform.translation.z)<1e-9 and (
@@ -119,7 +132,7 @@ def main():
         health_labels=Counter()
         for value,count in vehicle_health.items():health_labels[value.split(':',1)[0]]+=count
         checks={'all_children_alive':all(value is None for value in child_exits),
-                'EOF_or_requested_prefix':playback_exit==0 or (args.duration_s>0 and time.monotonic()>=deadline),
+                'EOF_or_requested_prefix':playback_exit==0 or prefix_completed,
                 'actual_raw_inputs':counts['imu']>100 and counts['lidar']>10,'source_observations':counts['native_odom']>50,
                 'native_certificate_decode':counts['invalid_native_certificate']==0,'healthy_observations_exist':health['OK']>0,
                 'native_vehicle_exact_stamp_pairs':len(matched)>50 and len(matched)==len(vehicle),
@@ -129,14 +142,19 @@ def main():
                 'identity_reference_mean_covariance':not mismatches,'finite_PSD_covariances':not covariance_failures,
                 'frames':frame_ok,'owned_identity_world':bool(world_edges) and all(map(identity,world_edges)),
                 'acquisition_transformed_cloud':counts['cloud_odom']>10 and counts['wrong_cloud_frame']==0,
-                'vehicle_healthy_received':health_labels['OK']>0}
+                'vehicle_healthy_received':health_labels['OK']>0,
+                'source_terminal_health_OK':bool(last_source_health) and last_source_health['status']=='OK',
+                'vehicle_terminal_health_OK':bool(last_vehicle_health) and last_vehicle_health.split(':',1)[0]=='OK',
+                **continuity['checks']}
         executable=args.install/'super_lio/lib/super_lio/super_lio_node'
         result={'status':'PASS' if all(checks.values()) else 'FAIL','checks':checks,'counts':dict(counts),
                 'source_health_counts':dict(health),'source_reasons':dict(reasons),'vehicle_health_counts':dict(health_labels),
                 'vehicle_health_reasons':dict(vehicle_health),'reference_fault_capture':fault_capture,
+                'measurement_continuity':continuity,'terminal_source_health':last_source_health,'terminal_vehicle_health':last_vehicle_health,
                 'information_bound_summary':{'min':min(bounds),'median':statistics.median(bounds),'max':max(bounds)} if bounds else None,
                 'paired_odom_count':len(matched),'covariance_failures':covariance_failures,'reference_mismatches':mismatches,
                 'playback_exit_before_cleanup':playback_exit,'child_exits_before_cleanup':child_exits,'duration_s':args.duration_s,
+                'requested_prefix_completed_before_cleanup':prefix_completed,
                 'replay_scope':'PREFIX' if args.duration_s else 'FULL_EOF','rate':1.,'domain':104,'bag':str(args.bag),
                 'topics':['/livox/lidar','/livox/imu'],'replay_contract':contract,'resources':resources,
                 'runtime_source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),

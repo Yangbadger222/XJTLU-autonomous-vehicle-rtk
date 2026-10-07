@@ -168,7 +168,7 @@ index 0000000..f6f53dd
 +}
 +}  // namespace LI2Sup
 diff --git a/src/super_lio/include/lio/super_lio.h b/src/super_lio/include/lio/super_lio.h
-index 15bf038..d7c8181 100644
+index 15bf038..ea35012 100644
 --- a/src/super_lio/include/lio/super_lio.h
 +++ b/src/super_lio/include/lio/super_lio.h
 @@ -43,9 +43,9 @@ protected:
@@ -183,7 +183,17 @@ index 15bf038..d7c8181 100644
    virtual void UpdateMap();
    virtual void Output();
    void caceData();
-@@ -86,5 +86,3 @@ protected:
+@@ -64,6 +64,9 @@ protected:
+   bool flg_init_ = false;
+   bool flg_first_scan_ = true;
+   std::vector<DynamicState> propagate_states_;
++  // Previous actually integrated IMU trajectory, for packet overlap only.
++  // This is never a replacement for a current observation or its covariance.
++  std::vector<DynamicState> deskew_history_;
+   BASIC::CloudPtr scan_undistort_full_;
+   BASIC::CloudPtr ds_undistort_;
+   BASIC::CloudPtr point_map_, world_pc_, ds_world_;
+@@ -86,5 +89,3 @@ protected:
  } // namespace END.
  
  #endif
@@ -316,7 +326,7 @@ index f7a64d2..bee8611 100644
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..ea85172 100644
+index d1a3ae7..79aa04d 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
 @@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
@@ -347,11 +357,14 @@ index d1a3ae7..ea85172 100644
    Output();
    caceData();
  }
-@@ -358,21 +362,78 @@ inline double get_cpu_time_seconds() {
+@@ -358,21 +362,100 @@ inline double get_cpu_time_seconds() {
  }
  
  
 -void SuperLIO::Propagation_Undistort(){
+-  propagate_states_.clear();
+-  propagate_states_.emplace_back(kf_->GetDynamicState());
+-  kf_->SetObsTime(measures_.lidar.end_time);
 +bool SuperLIO::Propagation_Undistort(){
 +  auto reject = [this](const std::string& reason) {
 +    kf_->RejectObservation(reason);
@@ -376,12 +389,33 @@ index d1a3ae7..ea85172 100644
 +  const auto current_samples = std::count_if(measures_.imu.begin(), measures_.imu.end(),
 +      [this](const IMUData& imu) { return imu.secs > kf_->GetTime(); });
 +  if (current_samples < 3) return reject("insufficient_current_interval_imu_samples");
++  // MID360 packet headers are arrival-clock stamps in the protected driver;
++  // adjacent packets can therefore overlap. Keep the real past trajectory,
++  // then align it to the posterior at its endpoint instead of extrapolating
++  // every earlier point from the present state or discarding the whole scan.
++  auto history = deskew_history_;
++  const auto current = kf_->GetDynamicState();
++  if (history.size() < 2 || history.back().time != current.time) history.clear();
++  if (!history.empty()) {
++    const auto endpoint = history.back();
++    const M3 correction_R = current.R * endpoint.R.transpose();
++    const V3 correction_p = current.p - correction_R * endpoint.p;
++    for (auto& state : history) {
++      state.R = correction_R * state.R;
++      state.p = correction_R * state.p + correction_p;
++      state.v = correction_R * state.v;
++      state.a = correction_R * state.a;
++    }
++    // Use the exact posterior on the current side of the shared boundary.
++    history.back() = current;
++  }
++  const double earliest_state_time = history.empty() ? current.time : history.front().time;
 +  for (const auto& point : measures_.lidar.pc->points) {
 +    const double query = start_time + point.offset_time;
 +    if (!std::isfinite(query) || !std::isfinite(point.x) || !std::isfinite(point.y) ||
 +        !std::isfinite(point.z) || point.offset_time < 0)
 +      return reject("nonfinite_point_or_offset");
-+    if (query < kf_->GetTime() - 1e-6) return reject("point_before_current_state_interval");
++    if (query < earliest_state_time - 1e-6) return reject("point_before_retained_state_interval");
 +    if (query > end_time + 1e-6) return reject("point_after_declared_scan_end");
 +  }
 +  // Actual bracketing samples, not an assumed IMU period or a latest-TF guess.
@@ -399,9 +433,9 @@ index d1a3ae7..ea85172 100644
 +  }
 +  const ESKF before = *kf_;
 +  auto rollback = [&](const std::string& reason) { *kf_ = before; return reject(reason); };
-   propagate_states_.clear();
-   propagate_states_.emplace_back(kf_->GetDynamicState());
--  kf_->SetObsTime(measures_.lidar.end_time);
++  propagate_states_ = std::move(history);
++  if (propagate_states_.empty()) propagate_states_.emplace_back(current);
++  const std::size_t current_interval_start = propagate_states_.size() - 1;
 +  kf_->SetObsTime(end_time);
    for (auto &imu : measures_.imu) {
 -    kf_->Predict(imu);
@@ -431,7 +465,7 @@ index d1a3ae7..ea85172 100644
    auto& raw_pc = measures_.lidar.pc;
  
    std::size_t ptsize = raw_pc->points.size();
-@@ -386,23 +447,15 @@ void SuperLIO::Propagation_Undistort(){
+@@ -386,23 +469,15 @@ void SuperLIO::Propagation_Undistort(){
        auto& pt_full = scan_undistort_full_->points[idx];
        const auto& pt = raw_pc->points[idx];
        pt_full.intensity = pt.intensity;
@@ -464,15 +498,23 @@ index d1a3ae7..ea85172 100644
        auto match_iter_n = std::next(match_iter);
        double dt = match_iter_n->time - match_iter->time;
        double tau = query_time - match_iter->time;
-@@ -423,6 +476,7 @@ void SuperLIO::Propagation_Undistort(){
+@@ -423,6 +498,15 @@ void SuperLIO::Propagation_Undistort(){
        pt_full.z = eigen_point[2];
      }
    });
++  // Retain one successful integration interval, at most 0.5s plus one actual
++  // left bracket. This finite deskew window changes no physical limit. Never
++  // cache failed propagation or manufacture a missing historical bracket.
++  deskew_history_.assign(propagate_states_.begin() + current_interval_start,
++                        propagate_states_.end());
++  const auto cutoff = std::lower_bound(deskew_history_.begin(), deskew_history_.end(), end_time - .5,
++      [](const DynamicState& state, double time) { return state.time < time; });
++  if (cutoff != deskew_history_.begin()) deskew_history_.erase(deskew_history_.begin(), std::prev(cutoff));
 +  return true;
  }
  
  
-@@ -435,12 +489,17 @@ void SuperLIO::DownSample(){
+@@ -435,12 +519,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
    V6d HTVr = V6d::Zero();
@@ -491,7 +533,7 @@ index d1a3ae7..ea85172 100644
    
    static std::vector<float> _lengths;
    points_body_v3_.resize(ptsize);
-@@ -458,7 +517,7 @@ void SuperLIO::Observe(){
+@@ -458,7 +547,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
  
@@ -500,7 +542,7 @@ index d1a3ae7..ea85172 100644
      const SE3 pose = kf_state.pose;
      const bool need_converge = kf_state.need_converge;
      const M3d R_transpose = (pose.R_.transpose()).cast<double>();
-@@ -504,18 +563,22 @@ void SuperLIO::Observe(){
+@@ -504,18 +593,22 @@ void SuperLIO::Observe(){
        
              local_acc.HTVH += J * 1000 * J.transpose();
              local_acc.HTVr -= J * 1000 * error;
@@ -523,7 +565,7 @@ index d1a3ae7..ea85172 100644
  
      if(need_converge) return;
  
-@@ -534,6 +597,7 @@ void SuperLIO::Observe(){
+@@ -534,6 +627,7 @@ void SuperLIO::Observe(){
    });
  
    frame_num_++;
@@ -531,7 +573,7 @@ index d1a3ae7..ea85172 100644
  }
  
  
-@@ -589,4 +653,4 @@ void SuperLIO::printTimeRecord(){
+@@ -589,4 +683,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
  

@@ -1,0 +1,596 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "all_children_alive": true,
+    "EOF_or_requested_prefix": true,
+    "actual_raw_inputs": true,
+    "source_observations": true,
+    "native_certificate_decode": true,
+    "healthy_observations_exist": true,
+    "native_vehicle_exact_stamp_pairs": true,
+    "sustained_vehicle_odom_coverage": true,
+    "terminal_vehicle_measurement_present": true,
+    "no_reference_fault_latched": true,
+    "identity_reference_mean_covariance": true,
+    "finite_PSD_covariances": true,
+    "frames": true,
+    "owned_identity_world": true,
+    "acquisition_transformed_cloud": true,
+    "vehicle_healthy_received": true,
+    "source_terminal_health_OK": false,
+    "vehicle_terminal_health_OK": false,
+    "native_input_terminal_covered": true,
+    "native_input_span_covered": true,
+    "native_no_prolonged_output_gap": true,
+    "vehicle_input_terminal_covered": true,
+    "vehicle_input_span_covered": true,
+    "vehicle_no_prolonged_output_gap": true
+  },
+  "counts": {
+    "imu": 16448,
+    "lidar": 838,
+    "native_odom": 627,
+    "vehicle_odom": 627,
+    "cloud_odom": 627
+  },
+  "source_health_counts": {
+    "OK": 627,
+    "FAIL": 200
+  },
+  "source_reasons": {
+    "observation_lower_bound_pass": 627,
+    "point_before_current_state_interval": 200
+  },
+  "vehicle_health_counts": {
+    "UNKNOWN": 201,
+    "OK": 627
+  },
+  "vehicle_health_reasons": {
+    "UNKNOWN: Super-LIO source health/IMU-to-base equivalence is not verified": 1,
+    "OK: measurement-matched observation bound and audited navigation reference applied": 627,
+    "UNKNOWN: source observation certificate not eligible": 200
+  },
+  "reference_fault_capture": [],
+  "measurement_continuity": {
+    "checks": {
+      "native_input_terminal_covered": true,
+      "native_input_span_covered": true,
+      "native_no_prolonged_output_gap": true,
+      "vehicle_input_terminal_covered": true,
+      "vehicle_input_span_covered": true,
+      "vehicle_no_prolonged_output_gap": true
+    },
+    "streams": {
+      "raw_lidar": {
+        "count": 838,
+        "first_ns": 1784111475568625108,
+        "last_ns": 1784111557715534092,
+        "span_s": 82.146908984,
+        "max_gap_s": 0.104162375
+      },
+      "raw_imu": {
+        "count": 16448,
+        "first_ns": 1784111475580979012,
+        "last_ns": 1784111557815830147,
+        "span_s": 82.234851135,
+        "max_gap_s": 0.00981738
+      },
+      "native": {
+        "count": 627,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111557716739416,
+        "span_s": 81.745063782,
+        "max_gap_s": 0.20104265200000002,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": -0.001205324,
+        "ahead_of_last_imu_s": -0.099090731,
+        "post_start_span_ratio": 1.0000147451322061
+      },
+      "vehicle": {
+        "count": 627,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111557716739416,
+        "span_s": 81.745063782,
+        "max_gap_s": 0.20104265200000002,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": -0.001205324,
+        "ahead_of_last_imu_s": -0.099090731,
+        "post_start_span_ratio": 1.0000147451322061
+      }
+    },
+    "tolerances": {
+      "terminal_and_internal_gap_s": 0.5,
+      "initialization_allowance_s": 5.0,
+      "minimum_post_start_span_ratio": 0.95
+    },
+    "scope": "actual received input/output stamps; tolerances grant no motion or authority"
+  },
+  "terminal_source_health": {
+    "source": "super_lio/f89f48dc",
+    "certificate": "fixed_extrinsic_observation_lower_bound_v1",
+    "twist_convention": "imu_body_full_state_v1",
+    "stamp_ns": 1784111557716739416,
+    "status": "FAIL",
+    "legacy_min_eig_lower_bound": 0,
+    "minimum_observation_information": 0,
+    "effective_points": 0,
+    "iterations": 0,
+    "reason": "point_before_current_state_interval"
+  },
+  "terminal_vehicle_health": "UNKNOWN: source observation certificate not eligible",
+  "information_bound_summary": {
+    "min": 99999.99999999999,
+    "median": 99999.99999999999,
+    "max": 99999.99999999999
+  },
+  "paired_odom_count": 627,
+  "covariance_failures": [],
+  "reference_mismatches": [],
+  "playback_exit_before_cleanup": null,
+  "child_exits_before_cleanup": [
+    null,
+    null,
+    null
+  ],
+  "duration_s": 85.0,
+  "requested_prefix_completed_before_cleanup": true,
+  "replay_scope": "PREFIX",
+  "rate": 1.0,
+  "domain": 104,
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "topics": [
+    "/livox/lidar",
+    "/livox/imu"
+  ],
+  "replay_contract": {
+    "duration_s": 287.369579396,
+    "expected_raw_counts": {
+      "/livox/lidar": 2867,
+      "/livox/imu": 57008
+    },
+    "wall_budget_s": 318.1065373356,
+    "rule": "2 s startup + full recorded duration at 1x + max(20 s, 10%) EOF margin"
+  },
+  "resources": [
+    {
+      "elapsed_s": 0.010389910952653736,
+      "cpu_s": 0.08,
+      "rss_kb": 57320
+    },
+    {
+      "elapsed_s": 1.0083520119660534,
+      "cpu_s": 0.11,
+      "rss_kb": 57616
+    },
+    {
+      "elapsed_s": 2.0084371709963307,
+      "cpu_s": 0.15,
+      "rss_kb": 57616
+    },
+    {
+      "elapsed_s": 3.0053335749544203,
+      "cpu_s": 0.19,
+      "rss_kb": 59140
+    },
+    {
+      "elapsed_s": 4.005582255951595,
+      "cpu_s": 0.36,
+      "rss_kb": 64484
+    },
+    {
+      "elapsed_s": 5.00127116497606,
+      "cpu_s": 0.54,
+      "rss_kb": 65416
+    },
+    {
+      "elapsed_s": 6.0009465659968555,
+      "cpu_s": 0.69,
+      "rss_kb": 65524
+    },
+    {
+      "elapsed_s": 7.001305837999098,
+      "cpu_s": 0.82,
+      "rss_kb": 65284
+    },
+    {
+      "elapsed_s": 8.003331950982101,
+      "cpu_s": 0.96,
+      "rss_kb": 65712
+    },
+    {
+      "elapsed_s": 9.001089167955797,
+      "cpu_s": 1.07,
+      "rss_kb": 65772
+    },
+    {
+      "elapsed_s": 10.00101436598925,
+      "cpu_s": 1.19,
+      "rss_kb": 65460
+    },
+    {
+      "elapsed_s": 11.00197062495863,
+      "cpu_s": 1.32,
+      "rss_kb": 65864
+    },
+    {
+      "elapsed_s": 12.00139055895852,
+      "cpu_s": 1.46,
+      "rss_kb": 65936
+    },
+    {
+      "elapsed_s": 13.000145290978253,
+      "cpu_s": 1.59,
+      "rss_kb": 65996
+    },
+    {
+      "elapsed_s": 14.003425144997891,
+      "cpu_s": 1.71,
+      "rss_kb": 66044
+    },
+    {
+      "elapsed_s": 15.003470905998256,
+      "cpu_s": 1.83,
+      "rss_kb": 66040
+    },
+    {
+      "elapsed_s": 16.000173741951585,
+      "cpu_s": 1.95,
+      "rss_kb": 65780
+    },
+    {
+      "elapsed_s": 17.00016355398111,
+      "cpu_s": 2.08,
+      "rss_kb": 66128
+    },
+    {
+      "elapsed_s": 18.000219517969526,
+      "cpu_s": 2.21,
+      "rss_kb": 66164
+    },
+    {
+      "elapsed_s": 19.00024158298038,
+      "cpu_s": 2.33,
+      "rss_kb": 65884
+    },
+    {
+      "elapsed_s": 20.00349356100196,
+      "cpu_s": 2.45,
+      "rss_kb": 66256
+    },
+    {
+      "elapsed_s": 21.00026313099079,
+      "cpu_s": 2.57,
+      "rss_kb": 66276
+    },
+    {
+      "elapsed_s": 22.00014179298887,
+      "cpu_s": 2.68,
+      "rss_kb": 66296
+    },
+    {
+      "elapsed_s": 23.000174632004928,
+      "cpu_s": 2.81,
+      "rss_kb": 66260
+    },
+    {
+      "elapsed_s": 24.0001892199507,
+      "cpu_s": 2.92,
+      "rss_kb": 66284
+    },
+    {
+      "elapsed_s": 25.000201213988476,
+      "cpu_s": 3.01,
+      "rss_kb": 65992
+    },
+    {
+      "elapsed_s": 26.003586798964534,
+      "cpu_s": 3.11,
+      "rss_kb": 66308
+    },
+    {
+      "elapsed_s": 27.00032736599678,
+      "cpu_s": 3.22,
+      "rss_kb": 66376
+    },
+    {
+      "elapsed_s": 28.00025404500775,
+      "cpu_s": 3.33,
+      "rss_kb": 66384
+    },
+    {
+      "elapsed_s": 29.00037603196688,
+      "cpu_s": 3.43,
+      "rss_kb": 66392
+    },
+    {
+      "elapsed_s": 30.000619088998064,
+      "cpu_s": 3.55,
+      "rss_kb": 66344
+    },
+    {
+      "elapsed_s": 31.00057787098922,
+      "cpu_s": 3.65,
+      "rss_kb": 66396
+    },
+    {
+      "elapsed_s": 32.00342157197883,
+      "cpu_s": 3.75,
+      "rss_kb": 66348
+    },
+    {
+      "elapsed_s": 33.00073715200415,
+      "cpu_s": 3.86,
+      "rss_kb": 66400
+    },
+    {
+      "elapsed_s": 34.0008655609563,
+      "cpu_s": 3.97,
+      "rss_kb": 66408
+    },
+    {
+      "elapsed_s": 35.0007785219932,
+      "cpu_s": 4.08,
+      "rss_kb": 66364
+    },
+    {
+      "elapsed_s": 36.00044985098066,
+      "cpu_s": 4.2,
+      "rss_kb": 66420
+    },
+    {
+      "elapsed_s": 37.000134586996865,
+      "cpu_s": 4.3,
+      "rss_kb": 66412
+    },
+    {
+      "elapsed_s": 38.003477289981674,
+      "cpu_s": 4.42,
+      "rss_kb": 66368
+    },
+    {
+      "elapsed_s": 39.000826206000056,
+      "cpu_s": 4.53,
+      "rss_kb": 66416
+    },
+    {
+      "elapsed_s": 40.00058481900487,
+      "cpu_s": 4.66,
+      "rss_kb": 66420
+    },
+    {
+      "elapsed_s": 41.00077890098328,
+      "cpu_s": 4.78,
+      "rss_kb": 66372
+    },
+    {
+      "elapsed_s": 42.00085031799972,
+      "cpu_s": 4.9,
+      "rss_kb": 66524
+    },
+    {
+      "elapsed_s": 43.00076929695206,
+      "cpu_s": 5.02,
+      "rss_kb": 66512
+    },
+    {
+      "elapsed_s": 44.00092123297509,
+      "cpu_s": 5.13,
+      "rss_kb": 66464
+    },
+    {
+      "elapsed_s": 45.0003280119854,
+      "cpu_s": 5.23,
+      "rss_kb": 66512
+    },
+    {
+      "elapsed_s": 46.000117856950965,
+      "cpu_s": 5.35,
+      "rss_kb": 66512
+    },
+    {
+      "elapsed_s": 47.00113044597674,
+      "cpu_s": 5.47,
+      "rss_kb": 66804
+    },
+    {
+      "elapsed_s": 48.000294870988,
+      "cpu_s": 5.59,
+      "rss_kb": 66600
+    },
+    {
+      "elapsed_s": 49.00031516898889,
+      "cpu_s": 5.7,
+      "rss_kb": 66552
+    },
+    {
+      "elapsed_s": 50.00350511597935,
+      "cpu_s": 5.81,
+      "rss_kb": 66604
+    },
+    {
+      "elapsed_s": 51.00151375797577,
+      "cpu_s": 5.91,
+      "rss_kb": 66384
+    },
+    {
+      "elapsed_s": 52.00061565596843,
+      "cpu_s": 6.04,
+      "rss_kb": 66744
+    },
+    {
+      "elapsed_s": 53.00032183597796,
+      "cpu_s": 6.15,
+      "rss_kb": 66744
+    },
+    {
+      "elapsed_s": 54.00042575999396,
+      "cpu_s": 6.27,
+      "rss_kb": 66848
+    },
+    {
+      "elapsed_s": 55.00372749695089,
+      "cpu_s": 6.39,
+      "rss_kb": 66856
+    },
+    {
+      "elapsed_s": 56.00335075199837,
+      "cpu_s": 6.48,
+      "rss_kb": 66856
+    },
+    {
+      "elapsed_s": 57.000655272975564,
+      "cpu_s": 6.61,
+      "rss_kb": 66956
+    },
+    {
+      "elapsed_s": 58.0008153480012,
+      "cpu_s": 6.74,
+      "rss_kb": 67980
+    },
+    {
+      "elapsed_s": 59.00050247297622,
+      "cpu_s": 6.87,
+      "rss_kb": 67984
+    },
+    {
+      "elapsed_s": 60.00372060696827,
+      "cpu_s": 6.99,
+      "rss_kb": 67988
+    },
+    {
+      "elapsed_s": 61.003852025954984,
+      "cpu_s": 7.09,
+      "rss_kb": 67988
+    },
+    {
+      "elapsed_s": 62.00060913700145,
+      "cpu_s": 7.2,
+      "rss_kb": 67988
+    },
+    {
+      "elapsed_s": 63.000939025951084,
+      "cpu_s": 7.33,
+      "rss_kb": 68088
+    },
+    {
+      "elapsed_s": 64.00030816096114,
+      "cpu_s": 7.45,
+      "rss_kb": 68088
+    },
+    {
+      "elapsed_s": 65.00081077998038,
+      "cpu_s": 7.58,
+      "rss_kb": 68092
+    },
+    {
+      "elapsed_s": 66.00096213398501,
+      "cpu_s": 7.72,
+      "rss_kb": 67852
+    },
+    {
+      "elapsed_s": 67.00113667495316,
+      "cpu_s": 7.84,
+      "rss_kb": 67944
+    },
+    {
+      "elapsed_s": 68.0002117039985,
+      "cpu_s": 7.97,
+      "rss_kb": 67944
+    },
+    {
+      "elapsed_s": 69.00016820599558,
+      "cpu_s": 8.11,
+      "rss_kb": 68048
+    },
+    {
+      "elapsed_s": 70.0002391829621,
+      "cpu_s": 8.26,
+      "rss_kb": 68304
+    },
+    {
+      "elapsed_s": 71.00017020100495,
+      "cpu_s": 8.42,
+      "rss_kb": 68328
+    },
+    {
+      "elapsed_s": 72.0001333609689,
+      "cpu_s": 8.57,
+      "rss_kb": 68344
+    },
+    {
+      "elapsed_s": 73.00364415097283,
+      "cpu_s": 8.71,
+      "rss_kb": 68348
+    },
+    {
+      "elapsed_s": 74.00048759795027,
+      "cpu_s": 8.88,
+      "rss_kb": 68348
+    },
+    {
+      "elapsed_s": 75.00012548995437,
+      "cpu_s": 9.04,
+      "rss_kb": 68448
+    },
+    {
+      "elapsed_s": 76.0003099659807,
+      "cpu_s": 9.2,
+      "rss_kb": 68676
+    },
+    {
+      "elapsed_s": 77.00056892400607,
+      "cpu_s": 9.35,
+      "rss_kb": 68684
+    },
+    {
+      "elapsed_s": 78.0002145699691,
+      "cpu_s": 9.52,
+      "rss_kb": 68688
+    },
+    {
+      "elapsed_s": 79.00037720799446,
+      "cpu_s": 9.68,
+      "rss_kb": 68824
+    },
+    {
+      "elapsed_s": 80.00031651399331,
+      "cpu_s": 9.83,
+      "rss_kb": 69968
+    },
+    {
+      "elapsed_s": 81.00036656600423,
+      "cpu_s": 9.98,
+      "rss_kb": 70104
+    },
+    {
+      "elapsed_s": 82.00048551196232,
+      "cpu_s": 10.13,
+      "rss_kb": 70228
+    },
+    {
+      "elapsed_s": 83.00053151499014,
+      "cpu_s": 10.27,
+      "rss_kb": 70236
+    },
+    {
+      "elapsed_s": 84.00058566499501,
+      "cpu_s": 10.41,
+      "rss_kb": 70792
+    },
+    {
+      "elapsed_s": 85.00063479196979,
+      "cpu_s": 10.58,
+      "rss_kb": 70792
+    }
+  ],
+  "runtime_source_commit": "cc5ddc6eafde57936bab263a22241670dabd8230",
+  "source_binary_sha256": "b50b35ebec0ec20ef8efa6c0bd9299208e0cf4f884544b523ad5713e3eca6b7d",
+  "input_hashes": {
+    "patches/super_lio/0002-certify-source-observations-and-covariance.patch": "4d0acea631bec62154f3de8586df319c149b2aa4bbb752e47facc035a085014c",
+    "src/bringup/config/super_lio_vehicle.yaml": "0aa0d5162bd56ac1c8e48e01a11172ecddf41916f816c10dc32e5aa27f948649",
+    "src/bringup/config/super_lio_reference.yaml": "adb0853466ecbd2b28012cda90c6c25ff1e6fcee288ae21c1877dce2ce40b5d7",
+    "src/bringup/config/super_lio_cloud_frame.yaml": "7c4dc53deca656cc4f19d001d59247f4adc0cf7f790cbcffc0bed84800f29668"
+  },
+  "wall_elapsed_s": 89.18733470101142,
+  "scope": "Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim"
+}

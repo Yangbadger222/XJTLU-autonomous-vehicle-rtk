@@ -60,7 +60,8 @@ class TimedTrajectoryTracker:
     """Feedback tracker with explicit speed/yaw-rate limits and no side slip."""
 
     def __init__(self, limits: VehicleLimits, *, longitudinal_gain: float = 0.8,
-                 lateral_gain: float = 1.5, heading_gain: float = 1.0):
+                 lateral_gain: float = 1.5, heading_gain: float = 1.0,
+                 preview_s: float = 0.0):
         gains = (longitudinal_gain, lateral_gain, heading_gain)
         if not all(math.isfinite(float(gain)) and gain >= 0.0 for gain in gains):
             raise ValueError("tracker gains must be finite and non-negative")
@@ -68,23 +69,41 @@ class TimedTrajectoryTracker:
         self.longitudinal_gain = float(longitudinal_gain)
         self.lateral_gain = float(lateral_gain)
         self.heading_gain = float(heading_gain)
+        if not math.isfinite(preview_s) or not 0.0 <= preview_s <= 0.25:
+            raise ValueError("tracker preview must be finite and within the trajectory validity window")
+        self.preview_s = float(preview_s)
+        self.last_rejection = ""
 
     def command(self, trajectory: TimedTrajectory, state: TrackerState, *, now: float,
                 expected_map_version: str | None = None,
                 footprint: Sequence[tuple[float, float]] | None = None,
                 occupied: Callable[[float, float], bool] | None = None,
-                resolution: float | None = None) -> TrackerCommand | None:
+                resolution: float | None = None,
+                occupied_polygon: Callable | None = None) -> TrackerCommand | None:
         if not all(math.isfinite(float(value)) for value in
                    (state.x, state.y, state.yaw, now)):
+            self.last_rejection = "nonfinite_state"
             return None
         checked = validate_trajectory(trajectory, self.limits, now=now,
                                       expected_map_version=expected_map_version,
                                       footprint=footprint, occupied=occupied,
-                                      resolution=resolution)
+                                      resolution=resolution, occupied_polygon=occupied_polygon)
         if not checked.valid:
+            self.last_rejection = ";".join(dict.fromkeys(checked.reasons))[:250]
             return None
+        if footprint and occupied_polygon:
+            c,s=math.cos(state.yaw),math.sin(state.yaw)
+            actual=[(state.x+c*x-s*y,state.y+s*x+c*y) for x,y in footprint]
+            radius=max(math.hypot(x,y) for x,y in footprint)
+            # Over the original 0.25 s command timeout any bounded feedback
+            # command stays inside this conservative measured-pose envelope.
+            # A collision-free nominal path alone does not certify feedback.
+            margin=.25*(self.limits.max_speed_mps+radius*self.limits.max_yaw_rate_rps)
+            if occupied_polygon(actual,margin):
+                self.last_rejection="measured_footprint_or_feedback_sweep_blocked"
+                return None
         elapsed = now - trajectory.generated_at
-        target = _interpolate(trajectory.points, elapsed)
+        target = _interpolate(trajectory.points, elapsed + self.preview_s)
         dx = target.x - state.x
         dy = target.y - state.y
         longitudinal_error = math.cos(state.yaw) * dx + math.sin(state.yaw) * dy
@@ -94,9 +113,17 @@ class TimedTrajectoryTracker:
         requested_w = (target.w + self.lateral_gain * lateral_error +
                        self.heading_gain * heading_error)
         if not math.isfinite(requested_v) or not math.isfinite(requested_w):
+            self.last_rejection = "nonfinite_feedback"
             return None
-        requested_v = max(self.limits.min_speed_mps,
-                          min(self.limits.max_speed_mps, requested_v))
-        requested_w = max(-self.limits.max_yaw_rate_rps,
-                          min(self.limits.max_yaw_rate_rps, requested_w))
+        # Saturation hides tracking failure. The caller must stop/replan when
+        # feedback requires a command beyond the locked motion envelope.
+        if (requested_v < self.limits.min_speed_mps or requested_v > self.limits.max_speed_mps or
+                abs(requested_w) > self.limits.max_yaw_rate_rps):
+            self.last_rejection = f"feedback_limit:v={requested_v:.6g},w={requested_w:.6g}"
+            return None
+        if (self.limits.max_curvature_1pm is not None and
+                abs(requested_w)>self.limits.max_curvature_1pm*abs(requested_v)+1e-9):
+            self.last_rejection="feedback_curvature_limit"
+            return None
+        self.last_rejection = ""
         return TrackerCommand(requested_v, requested_w, target)

@@ -37,17 +37,22 @@
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
         "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
-        "apply_check": "PASS"
+        "check_apply": "PASS"
       },
       {
         "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
         "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
-        "apply_check": "PASS_AFTER_0001"
+        "check_apply": "PASS"
       },
       {
         "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
         "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
-        "apply_check": "PASS_AFTER_0002"
+        "check_apply": "PASS"
+      },
+      {
+        "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+        "sha256": "10df1cad14dfd5cd1046d0b24c2237c3323e9077807e2fdee118220d1e6d201e",
+        "check_apply": "PASS"
       }
     ],
     "raw_reproduction": {
@@ -84,6 +89,7 @@
       "research_interfaces built before ego_planner; RMW compile environment selected rmw_fastrtps_cpp",
       "compile proof only; ordinary container startup and Jetson runtime remain pending",
       "current compile log predates 0003; sequential apply-check for all three patches is audit/ego_patch_check_current.log"
-    ]
+    ],
+    "patched_source_byte_equality": true
   }
 }

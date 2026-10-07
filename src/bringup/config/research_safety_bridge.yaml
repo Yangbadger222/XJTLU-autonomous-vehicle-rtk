@@ -7,6 +7,14 @@ research_safety_bridge:
     health_timeout_s: 0.50
     map_timeout_s: 0.50
     grid_timeout_s: 0.50
+    # NEW_ALGORITHM_SETTING: stricter tracker freshness; original authority
+    # max_lio_age_s remains 0.30 s in the unchanged master configuration.
+    state_timeout_s: 0.20
+    # NEW_ALGORITHM_SETTING: one EGO planning period of preview, offline only.
+    tracker_preview_s: 0.10
+    # NEW_ALGORITHM_SETTING: reserve for normal tracking, below physical bounds.
+    # Denied authority/safety still bypasses slew and emits immediate zero.
+    normal_slew_fraction: 0.50
     max_speed_mps: 0.85
     min_speed_mps: 0.0
     max_yaw_rate_rps: 0.70

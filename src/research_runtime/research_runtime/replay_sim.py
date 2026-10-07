@@ -13,43 +13,16 @@ from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
 
 
 def compare_policies() -> dict:
-    """Run a truth-blind policy loop and evaluator-side scoring.
+    """Labels for the required experiment, not a synthetic benefit claim.
 
-    The ``truth`` dictionary is created only in this harness's evaluator; it is
-    never passed to candidate generation or scoring. This is a bounded
-    synthetic comparison, not a vehicle or bag result.
+    Hand-picked candidate scores do not constitute an interactive same-base
+    policy comparison. That experiment must use the actual Super-LIO/EGO,
+    restricted sensor simulator and evaluator in a separate runtime harness.
     """
-    events = [
-        RoadEvent("entry-1", "prior_gap", (2.0, 0.0), 0.8, 1.2, EvidenceState.UNOBSERVED, 2.0),
-        RoadEvent("entry-2", "new_channel", (4.0, 1.0), 0.0, 2.0, EvidenceState.UNOBSERVED, 1.0),
-    ]
-    candidates = {
-        "entry-1": [
-            ObservationCandidate("periodic-1", "entry-1", True, True, True, True, 2.0, 0.3, 4.0),
-            ObservationCandidate("task-1", "entry-1", True, True, True, True, 2.0, 0.8, 2.0),
-        ],
-        "entry-2": [
-            ObservationCandidate("periodic-2", "entry-2", True, True, True, True, 1.0, 0.2, 3.0),
-            ObservationCandidate("task-2", "entry-2", True, True, True, True, 1.0, 0.7, 1.5),
-        ],
-    }
-    # Hidden evaluator labels only; policy code above never reads this map.
-    truth = {"entry-1": "open", "entry-2": "blocked"}
-    selected = {
-        "PASSIVE": [],
-        "PERIODIC_LOOK": [candidates[e.event_id][0] for e in events],
-        "TASK_AWARE_LOOK": [choose_observation(candidates[e.event_id]) for e in events],
-    }
-    results = {}
-    for name, choices in selected.items():
-        choices = [c for c in choices if c is not None]
-        # A bounded evaluator metric: a high observable fraction resolves the
-        # event geometry, while truth is used only for correctness accounting.
-        resolved = sum(c.observable_fraction >= 0.5 for c in choices)
-        correct = sum((truth[c.event_id] == "open") == (c.event_id == "entry-1") for c in choices)
-        results[name] = {"observations": len(choices), "cost": sum(c.cost for c in choices),
-                         "resolved_geometry": resolved, "correct_evaluator_labels": correct}
-    return {"truth_is_evaluator_only": True, "policies": results}
+    return {"status": "NOT_RUN", "truth_is_evaluator_only": True,
+            "policies": {name: {"status": "NOT_RUN"} for name in
+                         ("PASSIVE", "PERIODIC_LOOK", "TASK_AWARE_LOOK")},
+            "reason": "contract smoke does not measure policy effect"}
 
 
 def run() -> dict:

@@ -9,14 +9,16 @@ vehicle odometry.
 This keeps the original RTK authority stop policy fail-closed.
 """
 from __future__ import annotations
+import time
 
 try:
     import rclpy
     from rclpy.duration import Duration
     from nav_msgs.msg import Odometry
+    from geometry_msgs.msg import TransformStamped
     from std_msgs.msg import String
     from rclpy.node import Node
-    from tf2_ros import Buffer, TransformException, TransformListener
+    from tf2_ros import Buffer, TransformBroadcaster, TransformException, TransformListener
 except ImportError:  # allows static linting on the developer laptop
     rclpy = None
     Duration = Buffer = TransformException = TransformListener = object
@@ -75,14 +77,14 @@ def _normalize_quaternion(q):
     return tuple(float(value) / norm for value in q)
 
 
-def _rotate_covariance(covariance, quaternion):
+def _rotate_covariance(covariance, quaternion, angular_quaternion=None):
     """Rotate a 6x6 pose covariance by a source->target quaternion.
 
     Odometry pose covariance is ordered as xyz/rpy. The same 3x3 rotation is
     applied to both blocks; this keeps the covariance contract honest when a
-    stamped ``world -> odom`` transform has a non-zero yaw. Twist covariance is
-    left in the child frame because the measured IMU->base transform is gated
-    to the identity whenever covariance checking is enabled.
+    stamped ``world -> odom`` transform has a non-zero yaw. The optional
+    second rotation handles the pinned source's mixed twist convention:
+    linear velocity in world, angular velocity in IMU coordinates.
     """
     import math
     if len(covariance) != 36:
@@ -96,6 +98,13 @@ def _rotate_covariance(covariance, quaternion):
         (2.0 * (x * y + z * w), 1.0 - 2.0 * (x * x + z * z), 2.0 * (y * z - x * w)),
         (2.0 * (x * z - y * w), 2.0 * (y * z + x * w), 1.0 - 2.0 * (x * x + y * y)),
     )
+    angular_q = _normalize_quaternion(angular_quaternion) if angular_quaternion is not None else q
+    if angular_q is None:
+        return None
+    columns = [_qrotate(angular_q, axis) for axis in
+               ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))]
+    angular_rotation = tuple(tuple(columns[col][row] for col in range(3)) for row in range(3))
+    rotations = (rotation, angular_rotation)
     matrix = [list(float(value) for value in covariance[row * 6:(row + 1) * 6])
               for row in range(6)]
     output = [[0.0] * 6 for _ in range(6)]
@@ -104,10 +113,43 @@ def _rotate_covariance(covariance, quaternion):
             for row in range(3):
                 for col in range(3):
                     output[3 * block_row + row][3 * block_col + col] = sum(
-                        rotation[row][i] * matrix[3 * block_row + i][3 * block_col + j] *
-                        rotation[col][j]
+                        rotations[block_row][row][i] * matrix[3 * block_row + i][3 * block_col + j] *
+                        rotations[block_col][col][j]
                         for i in range(3) for j in range(3))
     return tuple(value for row in output for value in row)
+
+
+def _source_twist_to_base(q_world_imu, q_imu_base, linear_world, angular_imu, translation_imu_base=(0.,0.,0.)):
+    """v_B=R_IB^T(R_WI^T v_W + omega_I cross r_IB)."""
+    r=translation_imu_base;w=angular_imu
+    cross=(w[1]*r[2]-w[2]*r[1],w[2]*r[0]-w[0]*r[2],w[0]*r[1]-w[1]*r[0])
+    imu_velocity=_qrotate(_qconj(q_world_imu),linear_world)
+    return (_qrotate(_qconj(q_imu_base),tuple(imu_velocity[i]+cross[i] for i in range(3))),
+            _qrotate(_qconj(q_imu_base),angular_imu))
+
+
+def _transform_covariance(covariance, jacobian):
+    if len(covariance)!=36 or not _finite(covariance):return None
+    return tuple(sum(jacobian[i][k]*covariance[6*k+l]*jacobian[j][l]
+                     for k in range(6) for l in range(6)) for i in range(6) for j in range(6))
+
+
+def _lever_covariance(covariance,q_world_imu,q_imu_base,translation,*,pose=False,q_target_world=(0.,0.,0.,1.)):
+    # First-order fixed-axis pose errors; mixed world-linear/IMU-angular twist
+    # convention is pinned to ROSWrapper.cpp. Every cross block is retained.
+    columns=[]
+    for axis in range(6):
+        v=[0.,0.,0.];w=[0.,0.,0.]
+        (v if axis<3 else w)[axis%3]=1.
+        if pose:
+            lever=_qrotate(q_world_imu,translation)
+            cross=(w[1]*lever[2]-w[2]*lever[1],w[2]*lever[0]-w[0]*lever[2],w[0]*lever[1]-w[1]*lever[0])
+            dv=_qrotate(q_target_world,tuple(v[i]+cross[i] for i in range(3)))
+            dw=_qrotate(q_target_world,w)
+        else:dv,dw=_source_twist_to_base(q_world_imu,q_imu_base,v,w,translation)
+        columns.append(dv+dw)
+    jacobian=[[columns[j][i] for j in range(6)] for i in range(6)]
+    return _transform_covariance(covariance,jacobian)
 
 
 def _covariance_is_known(covariance):
@@ -115,12 +157,25 @@ def _covariance_is_known(covariance):
     if len(covariance) != 72 or not _finite(covariance):
         return False
     for offset in (0, 36):
-        diagonal = (covariance[offset], covariance[offset + 7],
-                    covariance[offset + 14], covariance[offset + 21],
-                    covariance[offset + 28], covariance[offset + 35])
-        if any(float(value) < 0.0 for value in diagonal):
-            return False
-    return any(abs(float(value)) > 0.0 for value in covariance)
+        matrix=[[float(covariance[offset+6*r+c]) for c in range(6)] for r in range(6)]
+        scale=max(1.,max(abs(value) for row in matrix for value in row))
+        tolerance=1e-10*scale
+        if sum(matrix[i][i] for i in range(6))<=tolerance:return False
+        if any(abs(matrix[r][c]-matrix[c][r])>tolerance for r in range(6) for c in range(6)):return False
+        # Pivot-free LDL factorization handles PSD zero eigenvalues. A zero
+        # pivot requires its residual column to be zero; otherwise indefinite.
+        lower=[[0.]*6 for _ in range(6)];diagonal=[0.]*6
+        for i in range(6):
+            diagonal[i]=matrix[i][i]-sum(lower[i][k]**2*diagonal[k] for k in range(i))
+            if diagonal[i]<-tolerance:return False
+            lower[i][i]=1.
+            for j in range(i+1,6):
+                residual=matrix[j][i]-sum(lower[j][k]*lower[i][k]*diagonal[k] for k in range(i))
+                if abs(diagonal[i])<=tolerance:
+                    if abs(residual)>tolerance:return False
+                else:lower[j][i]=residual/diagonal[i]
+    return True
+
 
 
 class SuperLioVehicleAdapter(Node if rclpy else object):
@@ -154,7 +209,9 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             self.get_parameter("require_covariance").value)
         self._buffer = Buffer()
         self._listener = TransformListener(self._buffer, self)
+        self._vehicle_tf = TransformBroadcaster(self)
         self._source_health_ok = False
+        self._source_health_received=0.
         self._health = self.create_publisher(String, str(self.get_parameter("health_topic").value), 10)
         self._odom = self.create_publisher(Odometry, str(self.get_parameter("vehicle_odom_topic").value), 10)
         self.create_subscription(String, str(self.get_parameter("source_health_topic").value), self._health_callback, 10)
@@ -166,6 +223,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
 
     def _health_callback(self, msg):
         self._source_health_ok = str(msg.data).upper().startswith("OK")
+        self._source_health_received=time.monotonic()
 
     def _reject(self, reason: str):
         self._publish_health("UNKNOWN: " + reason)
@@ -208,7 +266,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if not self._verified:
             self._reject("missing measured IMU-to-base extrinsic")
             return
-        if self._require_source_health_ok and not self._source_health_ok:
+        source_health_current=self._source_health_ok and 0<=time.monotonic()-self._source_health_received<=.50
+        if self._require_source_health_ok and not source_health_current:
             self._reject("Super-LIO source health is not OK")
             return
         if len(self._translation) != 3 or not _finite(self._translation):
@@ -222,22 +281,10 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         if q_wi is None or q_ib is None:
             self._reject("invalid IMU-to-base or source pose quaternion")
             return
-        # A non-zero lever arm requires a covariance/velocity transform that
-        # includes angular-rate cross terms. Refuse until that measured path is
-        # explicitly implemented; never relabel the frame or copy covariance.
-        if any(abs(value) > 1e-9 for value in self._translation):
-            self._reject("non-zero lever arm covariance transform is not verified")
-            return
         covariance = tuple(msg.pose.covariance) + tuple(msg.twist.covariance)
         if self._require_covariance:
             if not _covariance_is_known(covariance):
                 self._reject("Super-LIO covariance is unavailable or non-finite")
-                return
-            # The message covariance is still expressed in the IMU frame.
-            # No 6x6 rotation/adjoint transform is implemented here, so a
-            # non-identity verified rotation must remain motion-blocking.
-            if any(abs(value) > 1e-9 for value in q_ib[:3]):
-                self._reject("non-identity IMU-to-base covariance transform is not verified")
                 return
         source_to_target = self._source_to_target_transform(msg.header.stamp)
         if source_to_target is None:
@@ -263,22 +310,32 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.pose.pose.position.z = target_position[2] + tf_translation[2]
         output.pose.pose.orientation.x, output.pose.pose.orientation.y = q_target_base[0], q_target_base[1]
         output.pose.pose.orientation.z, output.pose.pose.orientation.w = q_target_base[2], q_target_base[3]
-        rotated_pose_covariance = _rotate_covariance(msg.pose.covariance, q_ts)
+        rotated_pose_covariance = _lever_covariance(msg.pose.covariance,q_wi,q_ib,self._translation,pose=True,q_target_world=q_ts)
         if rotated_pose_covariance is None:
             self._reject("source pose covariance could not be rotated into target frame")
             return
         output.pose.covariance = list(rotated_pose_covariance)
         output.twist = msg.twist
-        body_velocity = _qrotate(q_ib, (msg.twist.twist.linear.x,
-                                        msg.twist.twist.linear.y,
-                                        msg.twist.twist.linear.z))
-        body_angular = _qrotate(q_ib, (msg.twist.twist.angular.x,
-                                       msg.twist.twist.angular.y,
-                                       msg.twist.twist.angular.z))
+        body_velocity, body_angular = _source_twist_to_base(
+            q_wi, q_ib, (msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z),
+            (msg.twist.twist.angular.x, msg.twist.twist.angular.y, msg.twist.twist.angular.z),self._translation)
+        rotated_twist_covariance = _lever_covariance(msg.twist.covariance,q_wi,q_ib,self._translation)
+        if rotated_twist_covariance is None or not _finite(body_velocity + body_angular):
+            self._reject("source twist could not be converted into base frame")
+            return
+        output.twist.covariance = list(rotated_twist_covariance)
         output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = body_velocity
         output.twist.twist.angular.x, output.twist.twist.angular.y, output.twist.twist.angular.z = body_angular
         self._odom.publish(output)
-        self._publish_health("OK: source covariance and zero-lever-arm transform verified")
+        transform = TransformStamped()
+        transform.header, transform.child_frame_id = output.header, output.child_frame_id
+        transform.transform.translation.x = output.pose.pose.position.x
+        transform.transform.translation.y = output.pose.pose.position.y
+        transform.transform.translation.z = output.pose.pose.position.z
+        transform.transform.rotation = output.pose.pose.orientation
+        self._vehicle_tf.sendTransform(transform)
+        self._publish_health("OK: source covariance and measured rigid-body transform applied" if source_health_current
+                             else "UNKNOWN: Super-LIO source health has no validated equivalence")
 
 
 def main(args=None):
@@ -288,6 +345,9 @@ def main(args=None):
     node = SuperLioVehicleAdapter()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

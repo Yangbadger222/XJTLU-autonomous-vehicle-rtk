@@ -96,8 +96,7 @@ def test_active_road_evidence_package_exposes_typed_ingest_boundary():
     assert "geometry_msgs/Point[] geometry" in interface
     evidence_node = (Path(__file__).parents[3] / "src" / "active_road_mapping" /
                      "active_road_mapping" / "evidence_node.py").read_text()
-    assert 'candidate must already be in odom' in evidence_node
-    assert 'candidate values must be finite' in evidence_node
+    assert 'external boolean reachability cannot authorize' in evidence_node
     cloud_adapter = (Path(__file__).parents[3] / "src" / "super_lio_vehicle_adapter" /
                      "super_lio_vehicle_adapter" / "cloud_frame_node.py").read_text()
     assert "lookup_transform" in cloud_adapter

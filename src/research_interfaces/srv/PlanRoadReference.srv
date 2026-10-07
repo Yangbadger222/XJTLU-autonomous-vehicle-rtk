@@ -1,0 +1,7 @@
+# Candidate query only. The server uses the same measured state and local grid
+# as the execution planner and does not publish this result to the controller.
+string request_id
+string map_version
+nav_msgs/Path road_reference
+---
+research_interfaces/TimedTrajectory2D trajectory

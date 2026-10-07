@@ -5,3 +5,6 @@ super_lio_cloud_frame_adapter:
     source_frame: world
     target_frame: odom
     tf_timeout_s: 0.05
+    height_odom_topic: /lio/odom
+    obstacle_min_z_m: 0.08
+    obstacle_max_z_m: 1.20

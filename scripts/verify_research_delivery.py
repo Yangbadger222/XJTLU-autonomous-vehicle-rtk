@@ -70,14 +70,16 @@ def main() -> int:
     ego_one = Path("patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch")
     ego_two = Path("patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch")
     ego_three = Path("patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch")
+    ego_four = Path("patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch")
     expected_hashes = {
         "super_lio": verification["super_lio"]["patch_sha256"],
         "ego_one": verification["ego_planner_2d_ros2"]["patches"][0]["sha256"],
         "ego_two": verification["ego_planner_2d_ros2"]["patches"][1]["sha256"],
         "ego_three": verification["ego_planner_2d_ros2"]["patches"][2]["sha256"],
+        "ego_four": verification["ego_planner_2d_ros2"]["patches"][3]["sha256"],
     }
     actual_hashes = {"super_lio": sha256(super_patch), "ego_one": sha256(ego_one),
-                     "ego_two": sha256(ego_two), "ego_three": sha256(ego_three)}
+                     "ego_two": sha256(ego_two), "ego_three": sha256(ego_three),"ego_four":sha256(ego_four)}
     check("patch_hashes", actual_hashes == expected_hashes,
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(super_patch), str(ego_one), str(ego_two)],
           json.dumps({"expected": expected_hashes, "actual": actual_hashes}, sort_keys=True))
@@ -86,11 +88,11 @@ def main() -> int:
     patch_audit_text = patch_audit.read_text() if patch_audit.is_file() else ""
     check("ego_patch_apply_audit",
           verification["ego_planner_2d_ros2"].get("apply_check") == "PASS_SEQUENTIAL" and
-          "sequential patches: 0001, 0002, 0003" in patch_audit_text and
+          "sequential patches: 0001, 0002, 0003, 0004" in patch_audit_text and
           "git apply --check and apply: PASS" in patch_audit_text and
           "map-version ESDF reset" in patch_audit_text,
           ["audit/UPSTREAM_PATCH_VERIFICATION.json", str(patch_audit)],
-          "requires exact-commit sequential apply evidence for all three patches")
+          "requires exact-commit sequential apply evidence for all four patches")
 
     three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
     recipe_text = three_patch_recipe.read_text() if three_patch_recipe.is_file() else ""
@@ -101,7 +103,7 @@ def main() -> int:
         "COPY src/research_interfaces /vehicle-research/src/research_interfaces",
         "--packages-select research_interfaces ego_planner",
     ]
-    check("ego_three_patch_build_recipe", all(token in recipe_text for token in recipe_tokens),
+    check("historical_ego_three_patch_build_recipe", all(token in recipe_text for token in recipe_tokens),
           [str(three_patch_recipe)],
           "recipe applies all three pinned EGO patches before the research_interfaces/ego_planner build")
 
@@ -135,10 +137,13 @@ def main() -> int:
         "Summary: 2 packages finished" in orbstack_summary_text and
         "motion_plan_timeout_or_exit=124" in orbstack_run_text
     )
-    check("ego_orbstack_three_patch_build", orbstack_ok,
+    check("historical_ego_orbstack_three_patch_build", orbstack_ok,
           [str(orbstack_recipe), str(orbstack_result_path), str(orbstack_build_log), str(orbstack_summary_log), str(orbstack_run_log)],
           "public ros:humble ARM64 alternate-base build and bounded startup smoke; ros2-go2 and Jetson gates remain separate")
 
+    for filename in ("PROTECTED_FILES.sha256","PROTECTED_ADDITIONAL_FILES.sha256"):
+        entries=[line.split("  ",1) for line in (Path("audit/vehicle_baseline")/filename).read_text().splitlines()]
+        check("source_byte_protection:"+filename,all(sha256(Path(path))==digest for digest,path in entries),["audit/vehicle_baseline/"+filename],str(len(entries))+" original files")
     protected = subprocess.run(["sha256sum", "-c", "audit/vehicle_baseline/PROTECTED_FILES.sha256"],
                                text=True, capture_output=True)
     check("protected_vehicle_files", protected.returncode == 0,

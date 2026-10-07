@@ -102,23 +102,40 @@
       "producer": "active_road_evidence",
       "policy": "observed geometry is not promoted to traversed"
     },
-    "/research/observation_candidate": {
-      "type": "research_interfaces/msg/ObservationGoal",
-      "frame": "odom",
-      "producer": "planner/perception candidate generator",
-      "consumer": "active_road_evidence hard-filtered policy"
-    },
     "/research/observation_goal": {
       "type": "research_interfaces/msg/ObservationGoal",
       "frame": "odom",
-      "producer": "active_road_evidence",
-      "policy": "only externally marked reachable/safe/trusted/sensor-valid candidates are eligible"
+      "producer": "active_observation; actual EGO candidate query and fresh commit query",
+      "policy": "fresh RTK Bool and allowed original mode, health/covariance, TF integrity, permission and full footprint hard filters"
     },
     "/lio/cloud_odom": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "odom",
       "producer": "super_lio_cloud_frame_adapter via timestamped world->odom TF",
-      "consumer": "research_local_obstacle_grid; missing TF withholds cloud"
+      "consumer": "research_local_obstacle_grid; missing TF withholds cloud",
+      "policy": "exact old world-z minus source IMU world-z height window at matched acquisition time, then timestamped TF; missing pose/TF withholds"
+    },
+    "/research/tf_integrity": {
+      "type": "std_msgs/msg/Bool",
+      "producer": "native EGO research_tf_guard",
+      "policy": "one fresh dynamic GID per protected child; protected static edge permanently blocks until TF buffers restarted"
+    },
+    "/localization_authority/mode": {
+      "type": "std_msgs/msg/String",
+      "producer": "unchanged original rtk_map_odom_corrector",
+      "consumer": "safety bridge, observer, evidence anchors",
+      "policy": "RTK_AUTHORITATIVE/RTK_REACQUIRING fresh <=0.50s; LIO_BRIDGE denied even Bool true"
+    },
+    "/research/road_graph_updates": {
+      "type": "research_interfaces/msg/RoadGraphUpdate2D",
+      "frame": "odom",
+      "producer": "active_observation from supported current ground",
+      "consumer": "sole evidence writer; prior_version and measured UUID references required; stale/unanchored increments withheld globally"
+    },
+    "/research/road_evidence_ack": {
+      "type": "std_msgs/msg/String",
+      "producer": "sole evidence writer after persistence",
+      "content": "accepted measurement UUID only; enables idempotent sensor retransmission"
     }
   },
   "serial": {
@@ -133,6 +150,7 @@
     "tf_missing": "stop",
     "trajectory_expired": "stop",
     "map_version_mismatch": "stop",
-    "rtk_authority_false": "stop"
+    "rtk_authority_false": "stop",
+    "rtk_lio_bridge": "stop; no holdover approval granted"
   }
 }

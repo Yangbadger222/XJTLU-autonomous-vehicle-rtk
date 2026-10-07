@@ -7,12 +7,17 @@ or stale TF therefore withholds the cloud and leaves the unknown-space safety
 policy intact.
 """
 from __future__ import annotations
+import math
+from collections import deque
+from .adapter_node import _qrotate, _normalize_quaternion
 
 try:
     import rclpy
     from rclpy.duration import Duration
     from rclpy.node import Node
     from sensor_msgs.msg import PointCloud2
+    from nav_msgs.msg import Odometry
+    from sensor_msgs_py import point_cloud2
     from tf2_ros import Buffer, TransformException, TransformListener
     from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
 except ImportError:  # permits ROS-free source tests on the workstation
@@ -39,6 +44,11 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
         self.declare_parameter("source_frame", "world")
         self.declare_parameter("target_frame", "odom")
         self.declare_parameter("tf_timeout_s", 0.05)
+        self.declare_parameter("height_odom_topic", "/lio/odom")
+        self._source_poses=deque(maxlen=100)
+        self.create_subscription(Odometry,str(self.get_parameter("height_odom_topic").value),self._source_poses.append,100)
+        self.declare_parameter("obstacle_min_z_m", .08)
+        self.declare_parameter("obstacle_max_z_m", 1.20)
         self._input_frame = str(self.get_parameter("source_frame").value)
         self._target_frame = str(self.get_parameter("target_frame").value)
         self._tf_timeout_s = max(0.0, float(self.get_parameter("tf_timeout_s").value))
@@ -53,7 +63,7 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
 
     def _reject(self, reason: str) -> None:
         if reason != self._last_rejection:
-            self.get_logger().warning("Super-LIO cloud withheld: %s", reason)
+            self.get_logger().warning(f"Super-LIO cloud withheld: {reason}")
             self._last_rejection = reason
 
     def _callback(self, msg: PointCloud2) -> None:
@@ -70,7 +80,22 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
             transform = self._buffer.lookup_transform(
                 self._target_frame, self._input_frame, msg.header.stamp,
                 timeout=Duration(seconds=self._tf_timeout_s))
-            output = do_transform_cloud(msg, transform)
+            stamp=msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9
+            poses=[p for p in self._source_poses if p.header.frame_id==self._input_frame and p.child_frame_id=="imu" and
+                   abs(p.header.stamp.sec+p.header.stamp.nanosec*1e-9-stamp)<=.05]
+            if not poses:raise ValueError("no acquisition-matched source IMU height")
+            pose=min(poses,key=lambda p:abs(p.header.stamp.sec+p.header.stamp.nanosec*1e-9-stamp))
+            origin_z=pose.pose.pose.position.z
+            if not math.isfinite(origin_z):raise ValueError("non-finite source IMU origin")
+            low,high=(float(self.get_parameter(key).value) for key in ("obstacle_min_z_m","obstacle_max_z_m"))
+            if not (math.isfinite(low) and math.isfinite(high) and low<=high):raise ValueError("invalid obstacle height contract")
+            # Exact pinned FAST-LIO filter: world point z minus source IMU
+            # origin z, along the gravity-aligned source world vertical. It is
+            # not tilted body-frame z, nor absolute altitude in odom.
+            kept=[tuple(map(float,p)) for p in point_cloud2.read_points(msg,field_names=("x","y","z"),skip_nans=True)
+                  if low<=float(p[2])-origin_z<=high]
+            filtered=point_cloud2.create_cloud_xyz32(msg.header,kept)
+            output=do_transform_cloud(filtered,transform)
         except (TransformException, TypeError, ValueError, RuntimeError) as exc:
             self._reject(f"stamped TF unavailable: {exc}")
             return
@@ -88,6 +113,9 @@ def main(args=None):
     node = SuperLioCloudFrameNode()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()

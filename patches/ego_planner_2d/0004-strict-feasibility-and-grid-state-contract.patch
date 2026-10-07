@@ -1,0 +1,1665 @@
+diff --git a/src/EgoPlanner-ROS2/CMakeLists.txt b/src/EgoPlanner-ROS2/CMakeLists.txt
+index a23b91d..2e065df 100644
+--- a/src/EgoPlanner-ROS2/CMakeLists.txt
++++ b/src/EgoPlanner-ROS2/CMakeLists.txt
+@@ -11,6 +11,7 @@ find_package(geometry_msgs REQUIRED)
+ find_package(std_msgs REQUIRED)
+ find_package(builtin_interfaces REQUIRED)
+ find_package(research_interfaces REQUIRED)
++find_package(tf2_msgs REQUIRED)
+ find_package(tf2 REQUIRED)
+ find_package(tf2_ros REQUIRED)
+ find_package(sensor_msgs REQUIRED)
+@@ -80,8 +81,12 @@ target_link_libraries(
+   ${Boost_LIBRARIES} 
+   "${cpp_typesupport_target}"
+ )
++# Per-child TF ownership is checked natively on Humble (publisher GID).
++add_executable(research_tf_guard src/research_tf_guard.cpp)
++ament_target_dependencies(research_tf_guard rclcpp tf2_msgs std_msgs research_interfaces)
+ # 安装节点
+ install(TARGETS
++  research_tf_guard
+   motion_plan
+   DESTINATION lib/${PROJECT_NAME})
+ 
+diff --git a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+index e39d2f4..00fbd38 100644
+--- a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
++++ b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+@@ -8,10 +8,12 @@
+ 
+ #include "rclcpp/rclcpp.hpp"
+ #include "nav_msgs/msg/odometry.hpp"
++#include "geometry_msgs/msg/accel_stamped.hpp"
+ #include "nav_msgs/msg/occupancy_grid.hpp"
+ #include "nav_msgs/msg/path.hpp"
+ #include "std_msgs/msg/string.hpp"
+ #include "research_interfaces/msg/timed_trajectory2_d.hpp"
++#include "research_interfaces/srv/plan_road_reference.hpp"
+ #include "tf2/LinearMath/Quaternion.h"
+ #include "tf2/utils.h"
+ 
+@@ -51,6 +53,10 @@ private:
+   static double angle_delta(double lhs, double rhs);
+   static double finite_or_zero(double value);
+ 
++  bool use_measured_acceleration_{false};
++  Eigen::Vector3d measured_acceleration_{Eigen::Vector3d::Zero()};
++  rclcpp::Time measured_acceleration_stamp_{0,0,RCL_ROS_TIME};
++  rclcpp::Subscription<geometry_msgs::msg::AccelStamped>::SharedPtr acceleration_subscriber_;
+   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscriber_;
+   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr road_reference_subscriber_;
+   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr obstacle_subscriber_;
+@@ -58,6 +64,9 @@ private:
+   rclcpp::Publisher<research_interfaces::msg::TimedTrajectory2D>::SharedPtr trajectory_publisher_;
+   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr visual_trajectory_publisher_;
+   rclcpp::TimerBase::SharedPtr timer_;
++  rclcpp::Service<research_interfaces::srv::PlanRoadReference>::SharedPtr query_service_;
++  bool query_active_{false};
++  research_interfaces::msg::TimedTrajectory2D query_result_;
+ 
+   std::shared_ptr<PlannerInterface> ego_planner_;
+   std::mutex data_mutex_;
+@@ -66,6 +75,10 @@ private:
+   Eigen::Vector3d start_acceleration_{Eigen::Vector3d::Zero()};
+   Eigen::Vector3d previous_world_velocity_{Eigen::Vector3d::Zero()};
+   rclcpp::Time previous_odom_stamp_{0, 0, RCL_ROS_TIME};
++  rclcpp::Time grid_stamp_{0, 0, RCL_ROS_TIME};
++  rclcpp::Time reference_stamp_{0, 0, RCL_ROS_TIME};
++  double state_timeout_s_{0.20};
++  double grid_timeout_s_{0.50};
+   std::vector<PathPoint> road_reference_;
+   std::vector<ObstacleInfo> obstacles_;
+   std::string map_version_;
+diff --git a/src/EgoPlanner-ROS2/package.xml b/src/EgoPlanner-ROS2/package.xml
+index bff1147..dafde17 100644
+--- a/src/EgoPlanner-ROS2/package.xml
++++ b/src/EgoPlanner-ROS2/package.xml
+@@ -15,6 +15,7 @@
+   <depend>std_msgs</depend>
+   <depend>builtin_interfaces</depend>
+   <depend>research_interfaces</depend>
++  <depend>tf2_msgs</depend>
+   <depend>tf2</depend>
+   <depend>tf2_ros</depend>
+   <depend>sensor_msgs</depend>
+diff --git a/src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h b/src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h
+index f66ee1e..3c11893 100755
+--- a/src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h
++++ b/src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h
+@@ -12,6 +12,7 @@
+ 
+ // 二维栅格地图类（与A*算法配套）
+ class GridMap2D {
++    bool input_geometry_ = false;
+ private:
+     std::vector<std::vector<bool>> grid_;           // 栅格数据：true=障碍物，false=自由空间
+     std::vector<std::vector<bool>> original_grid_;  // 原始障碍物网格（true=原始障碍物）
+@@ -20,8 +21,8 @@ private:
+     Eigen::Vector2d origin_;                        // 地图原点（世界坐标，栅格(0,0)的中心）
+     double inflate_radius_;
+     Eigen::Vector2i world_size_;
+-    int grid_rows_;
+-    int grid_cols_;
++    int grid_rows_ = 0;
++    int grid_cols_ = 0;
+     
+ 
+ 
+@@ -36,6 +37,7 @@ public:
+ 
+ 
+     void setCurPose(double x,double y);
++    void setInputGeometry(int cols, int rows, const Eigen::Vector2d& origin);
+ 
+     // void resetMap()
+     // {
+@@ -67,7 +69,7 @@ public:
+ 
+     void inflateObstacles(double radius);
+ 
+-    bool getInflateOccupancy(const Eigen::Vector2d& world_pos) const;
++    bool getInflateOccupancy(const Eigen::Vector2d& world_pos, double sweep_margin=0.0) const;
+ 
+     void inflate();
+ 
+diff --git a/src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp b/src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp
+index 0ad1d2c..7a0b53d 100755
+--- a/src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp
++++ b/src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp
+@@ -1,6 +1,7 @@
+ #include "grid_map.h"
+ #include <iostream>
+ #include <cmath>
++#include <algorithm>
+ #include <stdexcept>
+ #include <iomanip>
+ 
+@@ -50,6 +51,19 @@ void GridMap2D::setCurPose(double x,double y)
+ 
+ }
+ 
++void GridMap2D::setInputGeometry(int cols, int rows, const Eigen::Vector2d& origin)
++{
++    if (cols <= 0 || rows <= 0 || !origin.allFinite())
++        throw std::invalid_argument("invalid input grid geometry");
++    input_geometry_ = true;
++    grid_cols_ = cols;
++    grid_rows_ = rows;
++    map_size_ = Eigen::Vector2i(cols, rows);
++    origin_ = origin;
++    original_grid_.assign(rows, std::vector<bool>(cols, false));
++    grid_.assign(rows, std::vector<bool>(cols, false));
++}
++
+ void GridMap2D::resetGrids() {
+     for (auto& row : original_grid_) {
+         std::fill(row.begin(), row.end(), false);
+@@ -76,8 +90,7 @@ void GridMap2D::setObstacle(const Eigen::Vector2i& grid_index, bool is_obstacle)
+     // 3. 更新膨胀后网格（初始状态 = 原始网格，膨胀后会叠加膨胀区域）
+     grid_[grid_index.y()][grid_index.x()] = is_obstacle;
+ 
+-    std::cout << "[setObstacle] 栅格（" << grid_index.x() << "," << grid_index.y() 
+-              << "）设置为" << (is_obstacle ? "障碍物" : "自由空间") << std::endl;
++
+ }
+ 
+ // 原始接口：检查点是否为【原始障碍物】（不包含膨胀区域）
+@@ -130,7 +143,27 @@ std::vector<Eigen::Vector2d> GridMap2D::getObstaclePointCloud(bool return_inflat
+ }
+ 
+ // 新增接口：检查点是否处于【膨胀后的障碍物区域】（原始障碍物+膨胀区）
+-bool GridMap2D::getInflateOccupancy(const Eigen::Vector2d& world_pos) const {
++bool GridMap2D::getInflateOccupancy(const Eigen::Vector2d& world_pos, double sweep_margin) const {
++    if (!std::isfinite(sweep_margin) || sweep_margin<0.) return true;
++    if (input_geometry_) {
++        const double radius=inflate_radius_+sweep_margin;
++        if (!world_pos.allFinite() || world_pos.x()-radius<origin_.x() ||
++            world_pos.y()-radius<origin_.y() ||
++            world_pos.x()+radius>origin_.x()+grid_cols_*resolution_ ||
++            world_pos.y()+radius>origin_.y()+grid_rows_*resolution_) return true;
++        const auto index=worldToGrid(world_pos);
++        const int span=static_cast<int>(std::ceil(radius/resolution_))+1;
++        for (int row=index.y()-span;row<=index.y()+span;++row)
++          for (int col=index.x()-span;col<=index.x()+span;++col) {
++            if (row<0 || col<0 || row>=grid_rows_ || col>=grid_cols_ || !original_grid_[row][col]) continue;
++            const double left=origin_.x()+col*resolution_,bottom=origin_.y()+row*resolution_;
++            const double dx=std::max({left-world_pos.x(),world_pos.x()-left-resolution_,0.});
++            const double dy=std::max({bottom-world_pos.y(),world_pos.y()-bottom-resolution_,0.});
++            if (dx*dx+dy*dy<=radius*radius) return true;
++          }
++        return false;
++    }
++
+     // 1. 世界坐标→栅格索引
+     Eigen::Vector2i grid_index = worldToGrid(world_pos);
+ 
+@@ -240,8 +273,8 @@ void GridMap2D::inflate() {
+ Eigen::Vector2i GridMap2D::worldToGrid(const Eigen::Vector2d& world_pos) const {
+     Eigen::Vector2i grid_index;
+     // 计算逻辑：(世界坐标 - 原点坐标) / 分辨率 → 栅格偏移，四舍五入到整数
+-    grid_index.x() = static_cast<int>(std::round((world_pos.x() - origin_.x()) / resolution_));
+-    grid_index.y() = static_cast<int>(std::round((world_pos.y() - origin_.y()) / resolution_));
++    grid_index.x() = static_cast<int>(input_geometry_ ? std::floor((world_pos.x()-origin_.x())/resolution_) : std::round((world_pos.x()-origin_.x())/resolution_));
++    grid_index.y() = static_cast<int>(input_geometry_ ? std::floor((world_pos.y()-origin_.y())/resolution_) : std::round((world_pos.y()-origin_.y())/resolution_));
+     // std::cout << "[worldToGrid] 世界坐标（" << world_pos.x() << "," << world_pos.y() << "）→ 栅格索引（" 
+     //           << grid_index.x() << "," << grid_index.y() << "）" << std::endl;
+     return grid_index;
+@@ -258,8 +291,8 @@ Eigen::Vector2d GridMap2D::gridToWorld(const Eigen::Vector2i& grid_index) const
+ 
+     // 计算逻辑：原点坐标 + 栅格索引 × 分辨率
+     Eigen::Vector2d world_pos;
+-    world_pos.x() = origin_.x() + grid_index.x() * resolution_;
+-    world_pos.y() = origin_.y() + grid_index.y() * resolution_;
++    world_pos.x() = origin_.x() + (grid_index.x()+(input_geometry_?.5:0.)) * resolution_;
++    world_pos.y() = origin_.y() + (grid_index.y()+(input_geometry_?.5:0.)) * resolution_;
+     // std::cout << "[gridToWorld] 栅格索引（" << grid_index.x() << "," << grid_index.y() << "）→ 世界坐标（" 
+     //           << world_pos.x() << "," << world_pos.y() << "）" << std::endl;
+     return world_pos;
+@@ -270,10 +303,8 @@ bool GridMap2D::isIndexValid(const Eigen::Vector2i& grid_index) const {
+     // 列索引（x）：[0, 列数-1]；行索引（y）：[0, 行数-1]
+     bool valid = (grid_index.x() >= 0 && grid_index.x() < map_size_.x()) &&
+                  (grid_index.y() >= 0 && grid_index.y() < map_size_.y());
+-    if (!valid) {
+-        std::cerr << "[isIndexValid] 栅格索引（" << grid_index.x() << "," << grid_index.y() 
+-                  << "）无效！地图范围：列[0," << map_size_.x()-1 << "], 行[0," << map_size_.y()-1 << "]" << std::endl;
+-    }
++    // Inflation deliberately visits neighbours outside the grid. This
++    // predicate is on that hot path; callers diagnose invalid external input.
+     return valid;
+ }
+ 
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+index 5602180..38e377f 100644
+--- a/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h
+@@ -57,6 +57,13 @@ namespace ego_planner
+     // Vehicle adaptation supplies the physical limits; the old demo defaults
+     // remain available only for upstream reproduction.
+     void setParam(double max_vel = 1.0, double max_acc = 0.5);
++    void setVehicleTurnLimits(double curvature, double yaw_rate) {
++      vehicle_max_curvature_ = curvature; vehicle_max_yaw_rate_ = yaw_rate;
++    }
++    void setStationaryStartHeading(bool stationary, double yaw, double speed=0., double acceleration=0.) {
++      stationary_start_ = stationary; start_direction_ = Eigen::Vector2d(std::cos(yaw),std::sin(yaw));
++      departure_speed_=speed;departure_acceleration_=acceleration;
++    }
+     Eigen::MatrixXd BsplineOptimizeTraj(const Eigen::MatrixXd &points, const double &ts,
+                                         const int &cost_function, int max_num_id, int max_time_id);
+ 
+@@ -88,6 +95,12 @@ namespace ego_planner
+     inline int getOrder(void) { return order_; }
+ 
+   private:
++    friend struct VehicleCostGradientProbe;  // Native audit only, no ROS/control entry.
++    bool stationary_start_ = false;
++    double departure_speed_=0.,departure_acceleration_=0.;
++    Eigen::Vector2d start_direction_ = Eigen::Vector2d::UnitX();
++    int startControlCount() const { return order_ + (stationary_start_ ? 1 : 0); }
++    void constrainStationaryStart();
+     shared_ptr<GridMap2D> grid_map_;
+ 
+ 
+@@ -125,6 +138,7 @@ namespace ego_planner
+     //
+     double dist0_;             // safe distance
+     double max_vel_, max_acc_; // dynamic limits
++    double vehicle_max_curvature_{0.0}, vehicle_max_yaw_rate_{0.0};
+ 
+     int variable_num_;              // optimization variables
+     int iter_num_;                  // iteration of the solver
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h
+new file mode 100644
+index 0000000..4d6d6ac
+--- /dev/null
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h
+@@ -0,0 +1,79 @@
++#pragma once
++#include <bspline_opt/uniform_bspline.h>
++#include <vector>
++#include <algorithm>
++#include <functional>
++#include <cmath>
++
++namespace ego_planner {
++// Conservative polynomial bounds for each cubic B-spline span. A fixed
++// sampled grid cannot rule out a yaw-rate/curvature spike between samples.
++inline bool certifyVehicleTurnBounds(UniformBspline spline, double curvature_limit,
++    double yaw_limit, double yaw_accel_limit, double yaw_decel_limit) {
++  if (!(curvature_limit>0 && yaw_limit>0 && yaw_accel_limit>0 && yaw_decel_limit>0)) return false;
++  auto velocity=spline.getDerivative(), acceleration=velocity.getDerivative();
++  auto jerk=acceleration.getDerivative();
++  auto choose=[](int n,int k) { double value=1.; for(int i=1;i<=k;++i)value*=double(n-i+1)/i;return value; };
++  auto product=[&](const std::vector<double>& a,const std::vector<double>& b) {
++    const int m=a.size()-1,n=b.size()-1;std::vector<double> result(m+n+1,0.);
++    for(int i=0;i<=m;++i)for(int j=0;j<=n;++j)
++      result[i+j]+=a[i]*b[j]*choose(m,i)*choose(n,j)/choose(m+n,i+j);
++    return result;
++  };
++  auto cross=[](const Eigen::Vector2d& a,const Eigen::Vector2d& b) {return a.x()*b.y()-a.y()*b.x();};
++  std::function<bool(double,double,int)> interval;
++  interval=[&](double begin,double end,int depth) {
++    const double dt=end-begin;
++    const Eigen::Vector2d v0=velocity.evaluateDeBoorT(begin).head<2>(),v2=velocity.evaluateDeBoorT(end).head<2>();
++    const Eigen::Vector2d a0=acceleration.evaluateDeBoorT(begin).head<2>(),a1=acceleration.evaluateDeBoorT(end).head<2>();
++    const Eigen::Vector2d v1=v0+.5*dt*a0,j=jerk.evaluateDeBoorT(.5*(begin+end)).head<2>();
++    if (!v0.allFinite() || !v1.allFinite() || !v2.allFinite() || !a0.allFinite() || !a1.allFinite() || !j.allFinite()) return false;
++    const std::vector<Eigen::Vector2d> vectors={v0,v1,v2,a0,a1,j};
++    auto reference=*std::max_element(vectors.begin(),vectors.end(),[](const auto& a,const auto& b){return a.squaredNorm()<b.squaredNorm();});
++    bool collinear=true;
++    for (const auto& vector:vectors) if(vector.norm()>1e-12 &&
++        std::abs(cross(vector,reference))>1e-10*vector.norm()*reference.norm())collinear=false;
++    if(collinear) {
++      const auto velocity_axis=*std::max_element(vectors.begin(),vectors.begin()+3,
++          [](const auto& a,const auto& b){return a.squaredNorm()<b.squaredNorm();});
++      if(v0.dot(velocity_axis)>=-1e-12 && v1.dot(velocity_axis)>=-1e-12 && v2.dot(velocity_axis)>=-1e-12)return true;
++      // Opposing derivative controls cannot certify forward-only execution.
++    }
++    std::vector<double> vx={v0.x(),v1.x(),v2.x()},vy={v0.y(),v1.y(),v2.y()};
++    auto axis_lower=[](const std::vector<double>& values) {
++      const auto extrema=std::minmax_element(values.begin(),values.end());
++      return *extrema.first>0?*extrema.first:*extrema.second<0?-*extrema.second:0.;
++    };
++    const double lower=std::hypot(axis_lower(vx),axis_lower(vy));
++    const std::vector<double> numerator={cross(v0,a0),(2*cross(v1,a0)+cross(v0,a1))/3.,
++      (cross(v2,a0)+2*cross(v1,a1))/3.,cross(v2,a1)};
++    double largest=0;for(double value:numerator)largest=std::max(largest,std::abs(value));
++    // Exact collinear spans have no turn, including their stopped endpoint.
++    // The tolerance only covers machine roundoff relative to control scales.
++    const double scale=std::max({v0.norm(),v1.norm(),v2.norm()})*std::max(a0.norm(),a1.norm());
++
++    if (lower>1e-9) {
++      auto d=product(vx,vx),dy=product(vy,vy);for(size_t i=0;i<d.size();++i)d[i]+=dy[i];
++      std::vector<double> va={(v0.dot(a0)),(2*v1.dot(a0)+v0.dot(a1))/3.,
++        (v2.dot(a0)+2*v1.dot(a1))/3.,v2.dot(a1)};
++      auto first=product({cross(v0,j),cross(v1,j),cross(v2,j)},d);
++      auto second=product(numerator,va);
++      double high=0,low=0;
++      for(size_t i=0;i<first.size();++i) {const double value=first[i]-2*second[i];high=std::max(high,value);low=std::min(low,value);}
++      const double square=lower*lower;
++      if (largest/square<=yaw_limit && largest/(square*lower)<=curvature_limit &&
++          high/(square*square)<=yaw_accel_limit && -low/(square*square)<=yaw_decel_limit) return true;
++    }
++    if(depth>=16 || dt<=1e-4)return false; // Uncertified intervals stay rejected.
++    const double middle=.5*(begin+end);
++    return interval(begin,middle,depth+1) && interval(middle,end,depth+1);
++  };
++  const double duration=spline.getTimeSum();
++  std::vector<double> boundaries={0.,duration};
++  for (double knot : spline.getKnot()) if(knot>0 && knot<duration)boundaries.push_back(knot);
++  std::sort(boundaries.begin(),boundaries.end());
++  boundaries.erase(std::unique(boundaries.begin(),boundaries.end()),boundaries.end());
++  for(size_t i=1;i<boundaries.size();++i)if(!interval(boundaries[i-1],boundaries[i],0))return false;
++  return true;
++}
++}
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp b/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
+index 326e2b1..ef49071 100644
+--- a/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp
+@@ -29,6 +29,7 @@ void BsplineOptimizer::setEnvironment(const shared_ptr<GridMap2D> &env)
+ 
+ void BsplineOptimizer::setControlPoints(const Eigen::MatrixXd &points)
+ {
++  if (cps_.points.cols() != points.cols()) cps_.resize(points.cols());
+   cps_.points = points;
+ }
+ 
+@@ -841,9 +842,22 @@ bool BsplineOptimizer::check_collision_and_rebound(void)
+     return false;
+   }
+ 
++void BsplineOptimizer::constrainStationaryStart()
++{
++  if (!stationary_start_ || cps_.points.cols() < 8) return;
++  // At v=a=0 the first cubic span otherwise has an unconstrained departure
++  // heading. Reserve its fourth control point along measured body yaw. The
++  // optimizer retains a normal 2-D curve after this initial straight span.
++  const double base=departure_speed_*bspline_interval_+1.5*departure_acceleration_*bspline_interval_*bspline_interval_;
++  const double reserve=std::min(max_acc_*bspline_interval_*bspline_interval_/6.,max_vel_*bspline_interval_/3.);
++  const double distance=base+std::max(0.,std::min(reserve,(cps_.points.col(3)-cps_.points.col(2)).dot(start_direction_)-base));
++  cps_.points.col(3) = cps_.points.col(2)+start_direction_*std::max(distance,1e-8);
++}
++
+ bool BsplineOptimizer::BsplineOptimizeTrajRebound(Eigen::MatrixXd &optimal_points, double ts)
+ {
+   setBsplineInterval(ts);
++  constrainStationaryStart();
+   bool flag_success = rebound_optimize();
+   optimal_points = cps_.points; // 输出 2D 控制点
+   return flag_success;
+@@ -853,6 +867,7 @@ bool BsplineOptimizer::BsplineOptimizeTrajRefine(const Eigen::MatrixXd &init_poi
+ {
+   setControlPoints(init_points);
+   setBsplineInterval(ts);
++  constrainStationaryStart();
+   bool flag_success = refine_optimize();
+   optimal_points = cps_.points; // 输出 2D 控制点
+   return flag_success;
+@@ -885,7 +900,7 @@ Eigen::MatrixXd BsplineOptimizer::convert2DTo3D(const Eigen::MatrixXd& points_2d
+ bool BsplineOptimizer::rebound_optimize()
+ {
+   iter_num_ = 0;
+-  int start_id = order_;
++  int start_id = startControlCount();
+   int end_id = cps_.points.cols() - order_;
+   variable_num_ = 2 * (end_id - start_id); // 优化变量：2*(控制点数量)
+   double final_cost;
+@@ -914,12 +929,16 @@ bool BsplineOptimizer::rebound_optimize()
+     lbfgs_params.g_epsilon = 0.001;
+ 
+     int result = lbfgs::lbfgs_optimize(variable_num_, q, &final_cost, BsplineOptimizer::costFunctionRebound, NULL, BsplineOptimizer::earlyExit, this, &lbfgs_params);
++    // A rejected line-search trial leaves the cost callback's cps_ at the
++    // trial position, while LBFGS restores q to the last accepted iterate.
++    memcpy(cps_.points.data()+2*start_id,q,variable_num_*sizeof(q[0]));
+     std::cout << "result =" << result << std::endl;
+ 
+     if (result == lbfgs::LBFGS_CONVERGENCE ||
+         result == lbfgs::LBFGSERR_MAXIMUMITERATION ||
+         result == lbfgs::LBFGS_ALREADY_MINIMIZED ||
+-        result == lbfgs::LBFGS_STOP)
++        result == lbfgs::LBFGS_STOP ||
++        result == lbfgs::LBFGSERR_ROUNDING_ERROR)
+     {
+       flag_force_return = false;
+ 
+@@ -979,7 +998,7 @@ bool BsplineOptimizer::rebound_optimize()
+ bool BsplineOptimizer::refine_optimize()
+ {
+   iter_num_ = 0;
+-  int start_id = order_;
++  int start_id = startControlCount();
+   int end_id = cps_.points.cols() - order_;
+   variable_num_ = 2 * (end_id - start_id); // 2D 优化变量数量
+ 
+@@ -1001,10 +1020,12 @@ bool BsplineOptimizer::refine_optimize()
+     lbfgs_params.g_epsilon = 0.001;
+ 
+     int result = lbfgs::lbfgs_optimize(variable_num_, q, &final_cost, BsplineOptimizer::costFunctionRefine, NULL, NULL, this, &lbfgs_params);
++    memcpy(cps_.points.data()+2*start_id,q,variable_num_*sizeof(q[0]));
+     if (!(result == lbfgs::LBFGS_CONVERGENCE ||
+           result == lbfgs::LBFGSERR_MAXIMUMITERATION ||
+           result == lbfgs::LBFGS_ALREADY_MINIMIZED ||
+-          result == lbfgs::LBFGS_STOP))
++          result == lbfgs::LBFGS_STOP ||
++          result == lbfgs::LBFGSERR_ROUNDING_ERROR))
+     {
+       printf("Solver error in refining!, return = %d, %s", result, lbfgs::lbfgs_strerror(result));
+     }
+@@ -1038,7 +1059,7 @@ bool BsplineOptimizer::refine_optimize()
+ void BsplineOptimizer::combineCostRebound(const double *x, double *grad, double &f_combine, const int n)
+ {
+ 
+-  memcpy(cps_.points.data() + 2 * order_, x, n * sizeof(x[0]));
++  memcpy(cps_.points.data() + 2 * startControlCount(), x, n * sizeof(x[0]));
+ 
+   /* 计算各代价（均为 2D）*/
+   double f_smoothness = 0, f_distance = 0, f_feasibility = 0,f_turn = 0,f_kappa = 0;
+@@ -1052,187 +1073,65 @@ void BsplineOptimizer::combineCostRebound(const double *x, double *grad, double
+   calcDistanceCostRebound(cps_.points, f_distance, g_distance, iter_num_, f_smoothness);
+   calcFeasibilityCost(cps_.points, f_feasibility, g_feasibility);
+ 
+-  // calTurnCost(cps_.points,f_turn,g_turn);
+-  // calKappaCost(cps_.points,f_kappa,g_kappa);
++  calTurnCost(cps_.points,f_turn,g_turn);
++  calKappaCost(cps_.points,f_kappa,g_kappa);
+ 
+   // printf(" lambda1_ * f_smoothness  %f,  new_lambda2_ * f_distance = %f lambda3_ * f_feasibility = %f \n",lambda1_ * f_smoothness,new_lambda2_ * f_distance,lambda3_ * f_feasibility);
+ 
+ 
+   /* 组合代价和梯度 */
+-  f_combine = lambda1_ * f_smoothness + new_lambda2_ * f_distance + lambda3_ * f_feasibility; //+  f_kappa;
+-  Eigen::MatrixXd grad_2D = lambda1_ * g_smoothness + new_lambda2_ * g_distance + lambda3_ * g_feasibility;// + g_kappa;// +;
++  f_combine = lambda1_ * f_smoothness + new_lambda2_ * f_distance + lambda3_ * f_feasibility + f_turn + f_kappa;
++  Eigen::MatrixXd grad_2D = lambda1_ * g_smoothness + new_lambda2_ * g_distance + lambda3_ * g_feasibility + g_turn + g_kappa;
+ 
+-  memcpy(grad, grad_2D.data() + 2 * order_, n * sizeof(grad[0]));
++  memcpy(grad, grad_2D.data() + 2 * startControlCount(), n * sizeof(grad[0]));
+ }
+ 
+-// 曲率代价：仅基于 x、y 计算  曲率约束还不稳定 juchunyu@qq.com
+-void BsplineOptimizer::calKappaCost(const Eigen::MatrixXd &q, double &cost,
+-                           Eigen::MatrixXd &gradient)
+-{
+-  cost = 0.0;
+-  double ts = bspline_interval_;
+-  double ts_inv2 = 1 / ts / ts;
+-  double k_max = 1;
+-  double K_weight = lambda5_;
+-  const double epsilon = 1e-6;
+-
+-  gradient.setZero(2, q.cols()); // 2D 梯度
+-
+-  for (int i = 0; i < q.cols() - 2; i++)
+-  {
+-    // 2D 速度和加速度
+-    Eigen::Vector2d vi = (q.col(i + 1) - q.col(i)) / ts;
+-    Eigen::Vector2d ai = (q.col(i + 2) - 2 * q.col(i + 1) + q.col(i)) * ts_inv2;
+-    
+-    double ax = ai(0), ay = ai(1);
+-    double vx = vi(0), vy = vi(1);
+-    double v_square = vx*vx + vy*vy + epsilon;
+-    double v_mag_3 = pow(v_square, 3.0/2.0);
+-    double K = (vx * ay - vy * ax) / v_mag_3;
+-
+-    if(K > k_max)
+-    {
+-      cost += pow((K - k_max),2) * K_weight;
+-      double djdk = 2 * (K - k_max) * K_weight;
+-
+-      // 2D 梯度计算
+-      double dkdax = -vy / v_mag_3;
+-      double dkday = vx / v_mag_3;
+-      double dkdvx = ay / v_mag_3 - 3 * K * vx / v_square;
+-      double dkdvy = -ax / v_mag_3 - 3 * K * vy / v_square;
+-      
+-      double dadq1 = ts_inv2;
+-      double dadq2 = -2 * ts_inv2;
+-      double dadq3 = ts_inv2;
+-      double dvdq1 = -1 / ts;
+-      double dvdq2 = 1 / ts;
+-      double dvdq3 = 0;
+-
+-      // 仅更新 x、y 梯度
+-      gradient(0, i + 0) += djdk * (dkdax * dadq1 + dkdvx * dvdq1);
+-      gradient(1, i + 0) += djdk * (dkday * dadq1 + dkdvy * dvdq1);
+-      gradient(0, i + 1) += djdk * (dkdax * dadq2 + dkdvx * dvdq2);
+-      gradient(1, i + 1) += djdk * (dkday * dadq2 + dkdvy * dvdq2);
+-      gradient(0, i + 2) += djdk * (dkdax * dadq3 + dkdvx * dvdq3);
+-      gradient(1, i + 2) += djdk * (dkday * dadq3 + dkdvy * dvdq3);
+-    }
+-    else if(K  < -k_max)
+-    {
+-      cost += pow((K + k_max),2) * K_weight;
+-      double djdk = 2 * (K + k_max) * K_weight;
+-
+-      double dkdax = -vy / v_mag_3;
+-      double dkday = vx / v_mag_3;
+-      double dkdvx = ay / v_mag_3 - 3 * K * vx / v_square;
+-      double dkdvy = -ax / v_mag_3 - 3 * K * vy / v_square;
+-      
+-      double dadq1 = ts_inv2;
+-      double dadq2 = -2 * ts_inv2;
+-      double dadq3 = ts_inv2;
+-      double dvdq1 = -1 / ts;
+-      double dvdq2 = 1 / ts;
+-      double dvdq3 = 0;
+-
+-      gradient(0, i + 0) += djdk * (dkdax * dadq1 + dkdvx * dvdq1);
+-      gradient(1, i + 0) += djdk * (dkday * dadq1 + dkdvy * dvdq1);
+-      gradient(0, i + 1) += djdk * (dkdax * dadq2 + dkdvx * dvdq2);
+-      gradient(1, i + 1) += djdk * (dkday * dadq2 + dkdvy * dvdq2);
+-      gradient(0, i + 2) += djdk * (dkdax * dadq3 + dkdvx * dvdq3);
+-      gradient(1, i + 2) += djdk * (dkday * dadq3 + dkdvy * dvdq3);
++// Optimizer costs evaluate the actual cubic spline derivatives. Adjacent
++// control-point differences are not the trajectory velocity/acceleration,
++// especially near a stopped endpoint. Final interval certification remains
++// independent of this sampled optimization objective.
++namespace {
++void sampledVehicleTurnCost(const Eigen::MatrixXd& q, double ts,
++    double limit, bool curvature, double& cost, Eigen::MatrixXd& gradient) {
++  cost=0.;gradient.setZero(2,q.cols());
++  if (!(limit>0. && ts>0.)) return;
++  const double exponent=curvature?1.5:1.;
++  const double weight=(curvature?1.:.1)/6.;
++  for(int span=0;span+3<q.cols();++span)
++    for(double u:{.05,.2,.4,.6,.8,.95}) {
++      const double cv[4]={-.5*(1-u)*(1-u)/ts,(1.5*u*u-2*u)/ts,
++                         (-1.5*u*u+u+.5)/ts,.5*u*u/ts};
++      const double ca[4]={(1-u)/(ts*ts),(3*u-2)/(ts*ts),
++                         (1-3*u)/(ts*ts),u/(ts*ts)};
++      Eigen::Vector2d velocity=Eigen::Vector2d::Zero(),acceleration=Eigen::Vector2d::Zero();
++      for(int i=0;i<4;++i) {velocity+=cv[i]*q.col(span+i);acceleration+=ca[i]*q.col(span+i);}
++      const double denominator=velocity.squaredNorm()+1e-10;
++      const double power=std::pow(denominator,exponent);
++      const double value=(velocity.x()*acceleration.y()-velocity.y()*acceleration.x())/power;
++      const double excess=std::abs(value)-limit;
++      if(excess<=0.)continue;
++      cost+=weight*excess*excess;
++      const double factor=2*weight*excess*(value<0?-1.:1.);
++      const Eigen::Vector2d dv=Eigen::Vector2d(acceleration.y(),-acceleration.x())/power-
++                              2*exponent*value*velocity/denominator;
++      const Eigen::Vector2d da=Eigen::Vector2d(-velocity.y(),velocity.x())/power;
++      for(int i=0;i<4;++i)gradient.col(span+i)+=factor*(cv[i]*dv+ca[i]*da);
+     }
+-  }
+-
+-  std::cout << "[calKappaCost] cost =" << cost << std::endl;
+ }
+-
+-// 转向代价：仅基于 x、y 计算  约束还不稳定 juchunyu@qq.com
+-void BsplineOptimizer::calTurnCost(const Eigen::MatrixXd &q, double &cost,
+-                           Eigen::MatrixXd &gradient)
+-{
+-  cost = 0.0;
+-  double ts = bspline_interval_;
+-  double ts_inv2 = 1 / ts / ts;
+-  double w_max = 1.0;
+-  double w_weight = 0.1;
+-  gradient.setZero(2, q.cols()); // 2D 梯度
+-
+-  for (int i = 0; i < q.cols() - 2; i++)
+-  {
+-    Eigen::Vector2d vi = (q.col(i + 1) - q.col(i)) / ts;
+-    Eigen::Vector2d ai = (q.col(i + 2) - 2 * q.col(i + 1) + q.col(i)) * ts_inv2;
+-    
+-    double ax = ai(0), ay = ai(1);
+-    double vx = vi(0), vy = vi(1);
+-
+-    double v_square = vx*vx + vy*vy;
+-    if(v_square < 0.0001)
+-    {
+-      v_square = 0.1;
+-    }
+-
+-    // 2D 转向角计算（W = (ay*vx - vy*ax)/v_square）
+-    double W = (ay * vx - vy * ax) / v_square;
+-
+-    if(W > w_max)
+-    {
+-      cost += pow((W - w_max), 2) * w_weight;
+-      double djdw = 2 * (W - w_max) * w_weight;
+-
+-      // 2D 梯度计算
+-      double dwdax = -vy / v_square;
+-      double dwday = vx / v_square;
+-      double dwdvx = (ay * v_square - 2 * vx * (ay*vx - vy*ax)) / (v_square * v_square);
+-      double dwdvy = (-ax * v_square - 2 * vy * (ay*vx - vy*ax)) / (v_square * v_square);
+-      
+-      double dadq1 = ts_inv2;
+-      double dadq2 = -2 * ts_inv2;
+-      double dadq3 = ts_inv2;
+-      double dvdq1 = -1 / ts;
+-      double dvdq2 = 1 / ts;
+-      double dvdq3 = 0;
+-
+-      // 仅更新 x、y 梯度
+-      gradient(0, i + 0) += djdw * (dwdax * dadq1 + dwdvx * dvdq1);
+-      gradient(1, i + 0) += djdw * (dwday * dadq1 + dwdvy * dvdq1);
+-      gradient(0, i + 1) += djdw * (dwdax * dadq2 + dwdvx * dvdq2);
+-      gradient(1, i + 1) += djdw * (dwday * dadq2 + dwdvy * dvdq2);
+-      gradient(0, i + 2) += djdw * (dwdax * dadq3 + dwdvx * dvdq3);
+-      gradient(1, i + 2) += djdw * (dwday * dadq3 + dwdvy * dvdq3);
+-    }
+-    else if(W < -w_max)
+-    {
+-      cost += pow(W + w_max, 2) * w_weight;
+-      double djdw = 2 * (W + w_max) * w_weight;
+-
+-      double dwdax = -vy / v_square;
+-      double dwday = vx / v_square;
+-      double dwdvx = (ay * v_square - 2 * vx * (ay*vx - vy*ax)) / (v_square * v_square);
+-      double dwdvy = (-ax * v_square - 2 * vy * (ay*vx - vy*ax)) / (v_square * v_square);
+-      
+-      double dadq1 = ts_inv2;
+-      double dadq2 = -2 * ts_inv2;
+-      double dadq3 = ts_inv2;
+-      double dvdq1 = -1 / ts;
+-      double dvdq2 = 1 / ts;
+-      double dvdq3 = 0;
+-
+-      gradient(0, i + 0) += djdw * (dwdax * dadq1 + dwdvx * dvdq1);
+-      gradient(1, i + 0) += djdw * (dwday * dadq1 + dwdvy * dvdq1);
+-      gradient(0, i + 1) += djdw * (dwdax * dadq2 + dwdvx * dvdq2);
+-      gradient(1, i + 1) += djdw * (dwday * dadq2 + dwdvy * dvdq2);
+-      gradient(0, i + 2) += djdw * (dwdax * dadq3 + dwdvx * dvdq3);
+-      gradient(1, i + 2) += djdw * (dwday * dadq3 + dwdvy * dvdq3);
+-    }
+-  }
+-  std::cout << "[turn cost cost =" << cost << std::endl;
++}
++void BsplineOptimizer::calKappaCost(const Eigen::MatrixXd& q,double& cost,Eigen::MatrixXd& gradient) {
++  sampledVehicleTurnCost(q,bspline_interval_,vehicle_max_curvature_,true,cost,gradient);
++}
++void BsplineOptimizer::calTurnCost(const Eigen::MatrixXd& q,double& cost,Eigen::MatrixXd& gradient) {
++  sampledVehicleTurnCost(q,bspline_interval_,vehicle_max_yaw_rate_,false,cost,gradient);
+ }
+ 
+ // 13. 组合代价（精修）：适配 2D 优化
+ void BsplineOptimizer::combineCostRefine(const double *x, double *grad, double &f_combine, const int n)
+ {
+-  memcpy(cps_.points.data() + 2 * order_, x, n * sizeof(x[0]));
++  memcpy(cps_.points.data() + 2 * startControlCount(), x, n * sizeof(x[0]));
+   /* 计算各代价*/
+-  double f_smoothness = 0, f_fitness = 0, f_feasibility = 0;
++  double f_smoothness = 0, f_fitness = 0, f_feasibility = 0, f_turn = 0, f_kappa = 0;
+   Eigen::MatrixXd g_smoothness = Eigen::MatrixXd::Zero(2, cps_.points.cols()); // 2D 梯度矩阵
+   Eigen::MatrixXd g_fitness = Eigen::MatrixXd::Zero(2, cps_.points.cols());
+   Eigen::MatrixXd g_feasibility = Eigen::MatrixXd::Zero(2, cps_.points.cols());
+@@ -1240,11 +1139,14 @@ void BsplineOptimizer::combineCostRefine(const double *x, double *grad, double &
+   calcSmoothnessCost(cps_.points, f_smoothness, g_smoothness);
+   calcFitnessCost(cps_.points, f_fitness, g_fitness);
+   calcFeasibilityCost(cps_.points, f_feasibility, g_feasibility);
++  Eigen::MatrixXd g_turn, g_kappa;
++  calTurnCost(cps_.points, f_turn, g_turn);
++  calKappaCost(cps_.points, f_kappa, g_kappa);
+ 
+   /* 组合代价和梯度 */
+-  f_combine = lambda1_ * f_smoothness + lambda4_ * f_fitness + lambda3_ * f_feasibility;
+-  Eigen::MatrixXd grad_2D = lambda1_ * g_smoothness + lambda4_ * g_fitness + lambda3_ * g_feasibility;
+-  memcpy(grad, grad_2D.data() + 2 * order_, n * sizeof(grad[0]));
++  f_combine = lambda1_ * f_smoothness + lambda4_ * f_fitness + lambda3_ * f_feasibility + f_turn + f_kappa;
++  Eigen::MatrixXd grad_2D = lambda1_ * g_smoothness + lambda4_ * g_fitness + lambda3_ * g_feasibility + g_turn + g_kappa;
++  memcpy(grad, grad_2D.data() + 2 * startControlCount(), n * sizeof(grad[0]));
+ }
+ 
+ } // namespace ego_planner
+diff --git a/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp b/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp
+index 59655e3..e22dbee 100644
+--- a/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp
++++ b/src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp
+@@ -141,30 +141,26 @@ namespace ego_planner
+     int dimension = control_points_.rows();
+ 
+     /* check vel feasibility and insert points */
+-    double max_vel = -1.0;
+-    double enlarged_vel_lim = limit_vel_ * (1.0 + feasibility_tolerance_) + 1e-4;
++    double max_vel = 0.0;
++    double enlarged_vel_lim = limit_vel_ * (1.0 + feasibility_tolerance_) + 1e-9;
+     for (int i = 0; i < P.cols() - 1; ++i)
+     {
+       Eigen::VectorXd vel = p_ * (P.col(i + 1) - P.col(i)) / (u_(i + p_ + 1) - u_(i + 1));
+ 
+-      if (fabs(vel(0)) > enlarged_vel_lim || fabs(vel(1)) > enlarged_vel_lim ||
+-          fabs(vel(2)) > enlarged_vel_lim)
++      if (vel.head<2>().norm() > enlarged_vel_lim)
+       {
+ 
+         if (show)
+           cout << "[Check]: Infeasible vel " << i << " :" << vel.transpose() << endl;
+         fea = false;
+ 
+-        for (int j = 0; j < dimension; ++j)
+-        {
+-          max_vel = max(max_vel, fabs(vel(j)));
+-        }
++        max_vel = max(max_vel, vel.head<2>().norm());
+       }
+     }
+ 
+     /* acc feasibility */
+-    double max_acc = -1.0;
+-    double enlarged_acc_lim = limit_acc_ * (1.0 + feasibility_tolerance_) + 1e-4;
++    double max_acc = 0.0;
++    double enlarged_acc_lim = limit_acc_ * (1.0 + feasibility_tolerance_) + 1e-9;
+     for (int i = 0; i < P.cols() - 2; ++i)
+     {
+ 
+@@ -173,22 +169,18 @@ namespace ego_planner
+                              (P.col(i + 1) - P.col(i)) / (u_(i + p_ + 1) - u_(i + 1))) /
+                             (u_(i + p_ + 1) - u_(i + 2));
+ 
+-      if (fabs(acc(0)) > enlarged_acc_lim || fabs(acc(1)) > enlarged_acc_lim ||
+-          fabs(acc(2)) > enlarged_acc_lim)
++      if (acc.head<2>().norm() > enlarged_acc_lim)
+       {
+ 
+         if (show)
+           cout << "[Check]: Infeasible acc " << i << " :" << acc.transpose() << endl;
+         fea = false;
+ 
+-        for (int j = 0; j < dimension; ++j)
+-        {
+-          max_acc = max(max_acc, fabs(acc(j)));
+-        }
++        max_acc = max(max_acc, acc.head<2>().norm());
+       }
+     }
+ 
+-    ratio = max(max_vel / limit_vel_, sqrt(fabs(max_acc) / limit_acc_));
++    ratio = max(1.0, max(max_vel / limit_vel_, sqrt(max_acc / limit_acc_)));
+ 
+     return fea;
+   }
+@@ -266,16 +258,32 @@ namespace ego_planner
+       bz(K + i) = start_end_derivative[i](2);
+     }
+ 
+-    // solve Ax = b
+-    Eigen::VectorXd px = A.colPivHouseholderQr().solve(bx);
+-    Eigen::VectorXd py = A.colPivHouseholderQr().solve(by);
+-    Eigen::VectorXd pz = A.colPivHouseholderQr().solve(bz);
+-
+-    // convert to control pts
+-    ctrl_pts.resize(3, K + 2);
+-    ctrl_pts.row(0) = px.transpose();
+-    ctrl_pts.row(1) = py.transpose();
+-    ctrl_pts.row(2) = pz.transpose();
++    // Position, velocity and acceleration are hard boundary conditions.
++    // Solving all rows in least squares changes the measured start state.
++    // Cubic uniform spline at either endpoint:
++    // p=(Q0+4Q1+Q2)/6, v=(Q2-Q0)/(2*ts), a=(Q0-2Q1+Q2)/ts^2.
++    ctrl_pts = Eigen::MatrixXd::Zero(3, K + 2);
++    auto boundary = [&](int offset, const Eigen::Vector3d &position,
++                        const Eigen::Vector3d &velocity, const Eigen::Vector3d &acceleration) {
++      const Eigen::Vector3d middle = position - acceleration * ts * ts / 6.0;
++      ctrl_pts.col(offset) = middle - velocity * ts + acceleration * ts * ts / 2.0;
++      ctrl_pts.col(offset + 1) = middle;
++      ctrl_pts.col(offset + 2) = middle + velocity * ts + acceleration * ts * ts / 2.0;
++    };
++    boundary(0, point_set.front(), start_end_derivative[0], start_end_derivative[2]);
++    boundary(K-1, point_set.back(), start_end_derivative[1], start_end_derivative[3]);
++    // The optimizer already holds these six endpoint control points fixed.
++    // Fit only the free interior points to the road reference.
++    const int free_count = K - 4;
++    if (free_count > 0) {
++      Eigen::MatrixXd targets(K + 4, 3);
++      targets.col(0) = bx;
++      targets.col(1) = by;
++      targets.col(2) = bz;
++      const Eigen::MatrixXd residual = targets - A * ctrl_pts.transpose();
++      ctrl_pts.middleCols(3, free_count) =
++        A.middleCols(3, free_count).colPivHouseholderQr().solve(residual).transpose();
++    }
+ 
+     // cout << "[B-spline]: parameterization ok." << endl;
+   }
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt b/src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt
+index 726eaaf..9eb454c 100755
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt
+@@ -12,6 +12,8 @@ add_library(    ego_planner_lib  STATIC
+                 src/planner_interface.cpp
+ )
+ 
++ament_target_dependencies(ego_planner_lib research_interfaces)
++
+ target_link_libraries(ego_planner_lib 
+                       bspline_opt 
+                        path_searching
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
+index 73f00ba..c06c65f 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h
+@@ -21,22 +21,23 @@ namespace  ego_planner
+ {
+     struct PathPoint
+     {
+-        float x = 0.0F;
+-        float y = 0.0F;
+-        float z = 0.0F;
+-        float v = 0.0F;
+-        float vx = 0.0F;
+-        float vy = 0.0F;
+-        float ax = 0.0F;
+-        float ay = 0.0F;
++        double x = 0.0;
++        double y = 0.0;
++        double z = 0.0;
++        double v = 0.0;
++        double w = 0.0;
++        double vx = 0.0;
++        double vy = 0.0;
++        double ax = 0.0;
++        double ay = 0.0;
+         bool state_valid = false;
+     };
+ 
+     struct ObstacleInfo
+     {
+-        float x;
+-        float y;
+-        float z;
++        double x;
++        double y;
++        double z;
+     };
+ 
+     class PlannerInterface
+@@ -54,6 +55,7 @@ namespace  ego_planner
+             Eigen::Vector3d vehicle_start_vel_{Eigen::Vector3d::Zero()};
+             Eigen::Vector3d vehicle_start_acc_{Eigen::Vector3d::Zero()};
+             bool vehicle_state_valid_{false};
++            bool input_grid_geometry_{false};
+ 
+         private:
+ 
+@@ -90,6 +92,10 @@ namespace  ego_planner
+             void initVehicleParam(double max_vel, double max_acc, double max_jerk,
+                                   double max_yaw_rate, double max_curvature);
+ 
++            void setPlanningAccelerationFraction(double fraction);
++            void setPlanningSpeedFraction(double fraction);
++            void setPlanningTurnFraction(double fraction);
++
+             void initEsdfMap(double x_size,double y_size,double z_size,double resolution, Eigen::Vector3d org,double inflate_values);
+ 
+             void setPathPoint(std::vector<PathPoint> &plan_traj);
+@@ -109,6 +115,7 @@ namespace  ego_planner
+             void getTraj();
+ 
+             void setGridMap(PathPoint& cur_pose);
++            void setInputGridGeometry(int cols, int rows, const Eigen::Vector2d& origin);
+ 
+             void getAStarPath(vector<vector<Eigen::Vector2d>>& a_star_path);
+ 
+@@ -120,6 +127,10 @@ namespace  ego_planner
+ 
+         private:
+             bool checkVehicleFeasibility(UniformBspline position_traj);
++            double planning_acceleration_fraction_{1.0};
++            double planning_speed_fraction_{1.0};
++            double planning_turn_fraction_{.80};
++            void constrainStraightProgress(Eigen::MatrixXd &controls);
+     };
+ 
+ 
+diff --git a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+index 196ed15..7cad78a 100644
+--- a/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
++++ b/src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp
+@@ -1,3 +1,5 @@
++#include <bspline_opt/vehicle_turn_bounds.h>
++#include <research_interfaces/vehicle_parameter_lock.hpp>
+ #include "planner_interface.h"
+ #include <algorithm>
+ #include <cmath>
+@@ -21,7 +23,7 @@ namespace ego_planner
+         pp_.max_vel_ = max_vel;
+         pp_.max_acc_ = max_acc;
+         pp_.max_jerk_ = max_jerk;
+-        pp_.feasibility_tolerance_ = 0.05;
++        pp_.feasibility_tolerance_ = 0.0;
+         pp_.ctrl_pt_dist = 0.4;
+         pp_.planning_horizen_ = 5.0;
+     }
+@@ -33,7 +35,21 @@ namespace ego_planner
+         pp_.max_yaw_rate_ = max_yaw_rate;
+         pp_.max_curvature_ = max_curvature;
+     }
++
++    void PlannerInterface::setPlanningAccelerationFraction(double fraction)
++    {
++        planning_acceleration_fraction_ = fraction;
++    }
++    void PlannerInterface::setPlanningSpeedFraction(double fraction)
++    {
++        planning_speed_fraction_ = fraction;
++    }
+     
++    void PlannerInterface::setPlanningTurnFraction(double fraction)
++    {
++        planning_turn_fraction_ = fraction;
++    }
++
+     void PlannerInterface::initEsdfMap(double x_size,double y_size,double z_size,double resolution, Eigen::Vector3d origin,double inflate_values)
+     {
+         std::cout << "x_size =" << x_size << " y_size =" << y_size << " z_size" << z_size << std::endl;
+@@ -46,7 +62,9 @@ namespace ego_planner
+         grid_map_->setInflateRadius(inflate_values);
+ 
+         bspline_optimizer_rebound_.reset(new BsplineOptimizer);
+-        bspline_optimizer_rebound_->setParam(pp_.max_vel_, pp_.max_acc_);
++        bspline_optimizer_rebound_->setParam(pp_.max_vel_ * planning_speed_fraction_,
++                                             pp_.max_acc_ * planning_acceleration_fraction_);
++        bspline_optimizer_rebound_->setVehicleTurnLimits(pp_.max_curvature_*planning_turn_fraction_, pp_.max_yaw_rate_*planning_turn_fraction_);
+         bspline_optimizer_rebound_->setEnvironment(grid_map_);
+         bspline_optimizer_rebound_->a_star_.reset(new AStar);
+         bspline_optimizer_rebound_->a_star_->initGridMap(grid_map_, Eigen::Vector2i(100, 100));
+@@ -126,7 +144,14 @@ namespace ego_planner
+ 
+     void PlannerInterface::setGridMap(PathPoint& cur_pose)
+     {
+-        grid_map_->setCurPose(cur_pose.x,cur_pose.y); // only once
++        if (!input_grid_geometry_)
++            grid_map_->setCurPose(cur_pose.x,cur_pose.y);
++    }
++
++    void PlannerInterface::setInputGridGeometry(int cols, int rows, const Eigen::Vector2d& origin)
++    {
++        grid_map_->setInputGeometry(cols, rows, origin);
++        input_grid_geometry_ = true;
+     }
+ 
+     void PlannerInterface::resetMap()
+@@ -190,10 +215,53 @@ namespace ego_planner
+         local_target_vel[2] = 0;
+ 
+         start_acc = vehicle_start_acc_;
++        const Eigen::Vector2d body_heading(std::cos(cur_pose_.z),std::sin(cur_pose_.z));
++        const double forward_speed=start_vel.head<2>().dot(body_heading);
++        const double forward_acceleration=start_acc.head<2>().dot(body_heading);
++        const auto lateral=[&](const Eigen::Vector3d& vector) {
++            return -body_heading.y()*vector.x()+body_heading.x()*vector.y();
++        };
++        // Near a stopped, straight-moving state the first span must preserve
++        // measured body heading too. Replanning just after the first encoder
++        // tick otherwise releases an unconstrained near-zero-speed turn.
++        bspline_optimizer_rebound_->setStationaryStartHeading(
++            forward_speed>=0. && forward_speed<=.05 && std::abs(lateral(start_vel))<1e-9 &&
++            std::abs(lateral(start_acc))<1e-9,cur_pose_.z,forward_speed,forward_acceleration);
+ 
+ 
+         auto start = std::chrono::system_clock::now();
+ 
++        // A global reference may retain its already traversed prefix. Its
++        // first vertex is not the measured vehicle position. Trim at the
++        // closest segment, then pin the spline's initial position to start_pt.
++        // This preserves the measured v/a jets and avoids resetting every
++        // replan to the original route origin.
++        if(point_set.size()>=2) {
++            size_t segment=0;double closest=std::numeric_limits<double>::infinity();
++            for(size_t i=0;i+1<point_set.size();++i) {
++                const Eigen::Vector2d a=point_set[i].head<2>(),d=(point_set[i+1]-point_set[i]).head<2>();
++                const double t=d.squaredNorm()>1e-12?std::clamp((start_pt.head<2>()-a).dot(d)/d.squaredNorm(),0.,1.):0.;
++                const double distance=(start_pt.head<2>()-a-t*d).squaredNorm();
++                if(distance<closest){closest=distance;segment=i;}
++            }
++            std::vector<Eigen::Vector3d> remaining={start_pt};
++            for(size_t i=segment+1;i<point_set.size();++i) {
++                auto p=point_set[i];p.z()=0.;
++                if((p-remaining.back()).norm()>1e-9)remaining.push_back(p);
++            }
++            if(remaining.size()<2)return;
++            std::vector<double> lengths={0.};
++            for(size_t i=1;i<remaining.size();++i)lengths.push_back(lengths.back()+(remaining[i]-remaining[i-1]).norm());
++            const int pieces=std::max({6,int(point_set.size())-1,int(std::ceil(lengths.back()/(pp_.ctrl_pt_dist*.5)))});
++            point_set.clear();size_t index=1;
++            for(int i=0;i<=pieces;++i) {
++                const double distance=lengths.back()*i/pieces;
++                while(index+1<lengths.size() && lengths[index]<distance)++index;
++                const double t=(distance-lengths[index-1])/(lengths[index]-lengths[index-1]);
++                point_set.push_back(remaining[index-1]+t*(remaining[index]-remaining[index-1]));
++            }
++        }
++
+         if(point_set.size() < 3) 
+         {
+             printf("全局轨迹点输入点数过少，不开启优化器，返回，请检查全局轨迹点输入的正确性");
+@@ -228,10 +296,16 @@ namespace ego_planner
+     {
+         vector<Eigen::Vector3d> start_end_derivatives;
+         double ts = (start_pt - local_target_pt).norm() > 0.1 ? pp_.ctrl_pt_dist / pp_.max_vel_ * 1.2 : pp_.ctrl_pt_dist / pp_.max_vel_ * 5; // pp_.ctrl_pt_dist / pp_.max_vel_ is too tense, and will surely exceed the acc/vel limits
++        // Keep the fixed starting derivative control polygon inside the speed
++        // bound before optimizing. Global time stretching cannot repair it.
++        while (ts > 0.01 && std::max((start_vel + .5*ts*start_acc).head<2>().norm(),
++                                     (start_vel - .5*ts*start_acc).head<2>().norm()) > pp_.max_vel_)
++            ts *= 0.5;
+         start_end_derivatives.push_back(start_vel);
+         start_end_derivatives.push_back(local_target_vel);
+         start_end_derivatives.push_back(start_acc);
+-        start_end_derivatives.push_back(start_acc);
++        // The terminal state is a stop, not a copy of the current acceleration.
++        start_end_derivatives.push_back(Eigen::Vector3d::Zero());
+ 
+         Eigen::MatrixXd ctrl_pts_3d;
+         UniformBspline::parameterizeToBspline(ts, point_set, start_end_derivatives, ctrl_pts_3d);
+@@ -259,25 +333,40 @@ namespace ego_planner
+         }
+ 
+         ctrl_pts_3d = bspline_optimizer_rebound_->convert2DTo3D(ctrl_pts_2d);
++        constrainStraightProgress(ctrl_pts_3d);
+         /*** STEP 3: REFINE(RE-ALLOCATE TIME) IF NECESSARY ***/
+         UniformBspline pos = UniformBspline(ctrl_pts_3d, 3, ts);
+         pos.setPhysicalLimits(pp_.max_vel_, pp_.max_acc_, pp_.feasibility_tolerance_);
+ 
+         double ratio;
+         bool flag_step_2_success = true;
+-        if (!pos.checkFeasibility(ratio, false))
++        for (int repair = 0; repair < 20; ++repair)
+         {
++            bool dynamically_feasible = pos.checkFeasibility(ratio, false);
++            const auto jerk_controls = pos.getDerivative().getDerivative().getDerivative().getControlPoint();
++            for (int i = 0; i < jerk_controls.cols(); ++i) {
++                const double jerk = jerk_controls.col(i).head<2>().norm();
++                if (jerk > pp_.max_jerk_ + 1e-9) {
++                    dynamically_feasible = false;
++                    ratio = std::max(ratio, std::cbrt(jerk/pp_.max_jerk_));
++                }
++            }
++            if (dynamically_feasible) break;
+             cout << "Need to reallocate time." << endl;
+-
+             Eigen::MatrixXd optimal_control_points;
+-            flag_step_2_success = refineTrajAlgo(pos, start_end_derivatives, ratio, ts, optimal_control_points);
+-            if (flag_step_2_success)
+-                pos = UniformBspline(optimal_control_points, 3, ts);
++            flag_step_2_success = refineTrajAlgo(pos, start_end_derivatives,
++                std::max(ratio, 1.05), ts, optimal_control_points);
++            if (!flag_step_2_success) break;
++            constrainStraightProgress(optimal_control_points);
++            pos = UniformBspline(optimal_control_points, 3, ts);
++            pos.setPhysicalLimits(pp_.max_vel_, pp_.max_acc_, pp_.feasibility_tolerance_);
+         }
+ 
+         if (!flag_step_2_success || !pos.checkFeasibility(ratio, false) || !checkVehicleFeasibility(pos))
+         {
+-            std::cerr << "[makePlan] trajectory failed final vehicle feasibility" << std::endl;
++            std::cerr << "[makePlan] trajectory failed final vehicle feasibility; repaired=" << flag_step_2_success
++                      << " ratio=" << ratio << " measured_start_v=" << start_vel.norm()
++                      << " measured_start_a=" << start_acc.norm() << std::endl;
+             return false;
+         }
+ 
+@@ -304,6 +393,7 @@ namespace ego_planner
+         Eigen::MatrixXd ctrl_pts; 
+ 
+         reparamBspline(traj, start_end_derivative, ratio, ctrl_pts, ts, t_inc);
++        if (ctrl_pts.cols() < 8) return false;
+ 
+         Eigen::MatrixXd ctrl_pts_2d;
+ 
+@@ -341,16 +431,22 @@ namespace ego_planner
+                                             Eigen::MatrixXd &ctrl_pts, double &dt, double &time_inc)
+     {
+         double time_origin = bspline.getTimeSum();
+-        int seg_num = bspline.getControlPoint().cols() - 3;
++        const double maximum_interval = dt;
+ 
+         bspline.lengthenTime(ratio);
+         double duration = bspline.getTimeSum();
++        // Add segments instead of increasing the starting knot interval.
++        // Otherwise fixed measured acceleration enlarges the endpoint velocity
++        // control polygon on every repair, so the loop cannot converge.
++        const int seg_num = static_cast<int>(std::ceil(duration / maximum_interval));
++        if (seg_num > 256) { ctrl_pts.resize(3, 0); return; }
+         dt = duration / double(seg_num);
+         time_inc = duration - time_origin;
+ 
+         vector<Eigen::Vector3d> point_set;
+-        for (double time = 0.0; time <= duration + 1e-4; time += dt)
++        for (int segment = 0; segment <= seg_num; ++segment)
+         {
++            const double time = segment * dt;
+             point_set.push_back(bspline.evaluateDeBoorT(time));
+         }
+ 
+@@ -421,7 +517,37 @@ namespace ego_planner
+     {
+         auto velocity_traj = position_traj.getDerivative();
+         auto acceleration_traj = velocity_traj.getDerivative();
++        auto jerk_traj = acceleration_traj.getDerivative();
++        const auto jerk_controls = jerk_traj.getControlPoint();
++        for (int i = 0; i < jerk_controls.cols(); ++i)
++            if (jerk_controls.col(i).head<2>().norm() > pp_.max_jerk_ + 1e-9)
++                return false;
++        if (!certifyVehicleTurnBounds(position_traj,pp_.max_curvature_,pp_.max_yaw_rate_,research_vehicle_lock::max_yaw_accel_rps2,research_vehicle_lock::max_yaw_decel_rps2))
++        {
++            double max_k=0.,max_w=0.;
++            for(double t=.001;t<position_traj.getTimeSum();t+=.005) {
++                const auto v=velocity_traj.evaluateDeBoorT(t).head<2>().eval();
++                const auto a=acceleration_traj.evaluateDeBoorT(t).head<2>().eval();
++                if(v.norm()>1e-6) {const double w=std::abs(v.x()*a.y()-v.y()*a.x())/v.squaredNorm();max_w=std::max(max_w,w);max_k=std::max(max_k,w/v.norm());}
++            }
++            std::cerr << "[vehicle turn certificate] rejected; sampled_k=" << max_k << " sampled_w=" << max_w << std::endl;
++            return false;
++        }
+         const double duration = position_traj.getTimeSum();
++        // The derivative control polygon bounds speed for the whole spline.
++        // Cover each continuous interval with the locked footprint circle
++        // enlarged by the maximum displacement from its midpoint. Checking
++        // only the upstream optimizer's first 2/3 is insufficient for queries.
++        double speed_bound=0.;
++        const auto velocity_controls=velocity_traj.getControlPoint();
++        for(int i=0;i<velocity_controls.cols();++i)
++            speed_bound=std::max(speed_bound,velocity_controls.col(i).head<2>().norm());
++        const double step=std::min(.05,grid_map_->getResolution()*.25/std::max(speed_bound,1e-9));
++        for(double begin=0.;begin<duration;begin+=step) {
++            const double end=std::min(begin+step,duration);
++            const auto midpoint=position_traj.evaluateDeBoorT((begin+end)*.5).head<2>().eval();
++            if(grid_map_->getInflateOccupancy(midpoint,speed_bound*(end-begin)*.5))return false;
++        }
+         for (double t = 0.0; t <= duration + 1e-6; t += 0.05)
+         {
+             const auto vel = velocity_traj.evaluateDeBoorT(std::min(t, duration));
+@@ -439,4 +565,36 @@ namespace ego_planner
+         return true;
+     }
+ 
++    void PlannerInterface::constrainStraightProgress(Eigen::MatrixXd &controls)
++    {
++        // A ground vehicle may not overshoot its stopping endpoint and then
++        // reverse along the same line. Apply a geometry constraint only when
++        // the confirmed reference is straight. Curved references continue
++        // through the normal optimizer and independent vehicle validator.
++        if (_global_plan_traj_.size() < 2 || controls.cols() < 6) return;
++        const Eigen::Vector2d start(cur_pose_.x, cur_pose_.y);
++        const auto &last = _global_plan_traj_.back();
++        Eigen::Vector2d direction(last.x-start.x(), last.y-start.y());
++        if (direction.norm() < 1e-6) return;
++        direction.normalize();
++        for (const auto &point : _global_plan_traj_) {
++            const Eigen::Vector2d delta(point.x-start.x(), point.y-start.y());
++            if (std::abs(direction.x()*delta.y()-direction.y()*delta.x()) > 1e-5) return;
++        }
++        // Preserve genuine obstacle-avoidance bends produced by EGO/A*.
++        for (int i = 0; i < controls.cols(); ++i) {
++            const Eigen::Vector2d delta = controls.col(i).head<2>()-start;
++            if (std::abs(direction.x()*delta.y()-direction.y()*delta.x()) > 1e-5) return;
++        }
++        if (std::abs(direction.dot(Eigen::Vector2d(std::cos(cur_pose_.z), std::sin(cur_pose_.z)))) < .99) return;
++        double lower = (controls.col(2).head<2>()-start).dot(direction);
++        const double upper = (controls.col(controls.cols()-3).head<2>()-start).dot(direction);
++        if (lower > upper) return;  // Final dynamic checks must reject this start.
++        for (int i = 3; i < controls.cols()-3; ++i) {
++            const double progress = std::clamp((controls.col(i).head<2>()-start).dot(direction), lower, upper);
++            controls.col(i).head<2>() = start+direction*progress;
++            lower = progress;
++        }
++    }
++
+ }
+diff --git a/src/EgoPlanner-ROS2/src/research_tf_guard.cpp b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+new file mode 100644
+index 0000000..49a77a4
+--- /dev/null
++++ b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+@@ -0,0 +1,59 @@
++// Vehicle adaptation: Humble rclpy does not expose per-message publisher GID.
++// This native boundary checks ownership per TF child before command permission.
++#include <rclcpp/rclcpp.hpp>
++#include <tf2_msgs/msg/tf_message.hpp>
++#include <std_msgs/msg/bool.hpp>
++#include <research_interfaces/vehicle_parameter_lock.hpp>
++#include <unordered_map>
++#include <array>
++#include <cmath>
++#include <sstream>
++
++class ResearchTfGuard : public rclcpp::Node {
++  struct Seen { rclcpp::Time acquisition; std::chrono::steady_clock::time_point received; bool valid; };
++  std::unordered_map<std::string,std::unordered_map<std::string,Seen>> owners_;
++  rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr input_;
++  rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr static_input_;
++  bool protected_static_edge_=false;
++  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr output_;
++  rclcpp::TimerBase::SharedPtr timer_;
++public:
++  ResearchTfGuard() : Node("research_tf_integrity_guard") {
++    output_=create_publisher<std_msgs::msg::Bool>("/research/tf_integrity",10);
++    static_input_=create_subscription<tf2_msgs::msg::TFMessage>("/tf_static",rclcpp::QoS(100).reliable().transient_local(),
++      [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message) {
++        for(const auto& t:message->transforms)
++          if(t.child_frame_id=="odom" || t.child_frame_id=="base_footprint")protected_static_edge_=true;
++      });
++    input_=create_subscription<tf2_msgs::msg::TFMessage>("/tf",rclcpp::SensorDataQoS(),
++      [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message, const rclcpp::MessageInfo& info) {
++        const auto& gid=info.get_rmw_message_info().publisher_gid;
++        std::string key(reinterpret_cast<const char*>(gid.data),RMW_GID_STORAGE_SIZE);
++        for (const auto& t : message->transforms) {
++          if (t.child_frame_id!="odom" && t.child_frame_id!="base_footprint") continue;
++          const auto& q=t.transform.rotation; const auto& p=t.transform.translation;
++          const double norm=q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w;
++          const bool valid=t.header.frame_id==(t.child_frame_id=="odom"?"map":"odom") &&
++            std::isfinite(norm) && std::abs(norm-1.)<1e-5 &&
++            std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
++          owners_[t.child_frame_id].insert_or_assign(key,Seen{rclcpp::Time(t.header.stamp),std::chrono::steady_clock::now(),valid});
++        }
++      });
++    timer_=create_wall_timer(std::chrono::milliseconds(50),[this]() {
++      bool valid=!protected_static_edge_; const auto receipt=std::chrono::steady_clock::now();
++      for (const std::string child : {"odom","base_footprint"}) {
++        size_t fresh=0;
++        for (const auto& item : owners_[child]) {
++          const auto& entry=item.second;
++          if (std::chrono::duration<double>(receipt-entry.received).count() > .20) continue;
++          const double age=(now()-entry.acquisition).seconds();
++          ++fresh;
++          valid=valid && entry.valid && entry.acquisition.nanoseconds()>0 && age>=-.10 && age<=.20;
++        }
++        valid=valid && fresh==1;
++      }
++      std_msgs::msg::Bool output; output.data=valid; output_->publish(output);
++    });
++  }
++};
++int main(int argc,char** argv) { rclcpp::init(argc,argv); rclcpp::spin(std::make_shared<ResearchTfGuard>()); rclcpp::shutdown(); }
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index f6594cd..35593df 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -8,6 +8,7 @@
+  * the control contract is research_interfaces/TimedTrajectory2D.
+  */
+ #include "trajectory_obstacles_publisher.h"
++#include "research_interfaces/vehicle_parameter_lock.hpp"
+ 
+ #include <algorithm>
+ #include <cmath>
+@@ -35,12 +36,14 @@ namespace
+ constexpr double kSamplePeriod = 0.1;
+ constexpr double kTrajectoryValidity = 0.25;
+ constexpr double kEpsilon = 1e-9;
++constexpr double kHeadingSpeed = 1e-3;
+ }
+ 
+ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+ : Node("ego_vehicle_adapter")
+ {
+   max_speed_mps_ = declare_parameter<double>("max_speed_mps", 0.0);
++  const double min_speed_mps = declare_parameter<double>("min_speed_mps", 0.0);
+   max_accel_mps2_ = declare_parameter<double>("max_accel_mps2", 0.0);
+   max_decel_mps2_ = declare_parameter<double>("max_decel_mps2", 0.0);
+   max_yaw_rate_rps_ = declare_parameter<double>("max_yaw_rate_rps", 0.0);
+@@ -53,6 +56,18 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   configured_map_resolution_m_ = declare_parameter<double>("map_resolution_m", 0.0);
+   grid_unknown_is_occupied_ = declare_parameter<bool>("grid_unknown_is_occupied", true);
+   allow_reverse_ = declare_parameter<bool>("allow_reverse", false);
++  auto locked = [](double actual, double expected) {
++    return std::isfinite(actual) && std::abs(actual-expected) <= 1e-12;
++  };
++  using namespace research_vehicle_lock;
++  if (!locked(max_speed_mps_,max_speed_mps) || !locked(min_speed_mps, research_vehicle_lock::min_speed_mps) ||
++      !locked(max_yaw_rate_rps_,max_yaw_rate_rps) || !locked(max_accel_mps2_,max_accel_mps2) ||
++      !locked(max_decel_mps2_,max_decel_mps2) || !locked(max_yaw_accel_rps2_,max_yaw_accel_rps2) ||
++      !locked(max_yaw_decel_rps2_,max_yaw_decel_rps2) || allow_reverse_) {
++    throw std::invalid_argument("protected corridor motion parameter override rejected");
++  }
++  state_timeout_s_ = declare_parameter<double>("state_timeout_s", 0.20);
++  grid_timeout_s_ = declare_parameter<double>("grid_timeout_s", 0.50);
+   output_topic_ = declare_parameter<std::string>("output_topic", "/research/ego_trajectory");
+   (void)declare_parameter<std::string>("footprint_source", "PENDING");
+   (void)declare_parameter<std::string>("measured_wheel_radius_m", "PENDING");
+@@ -62,11 +77,35 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   ego_planner_ = std::make_shared<PlannerInterface>();
+   ego_planner_->initVehicleParam(max_speed_mps_, max_accel_mps2_, max_jerk_mps3_,
+                                  max_yaw_rate_rps_, max_curvature_1pm_);
++  const double acceleration_fraction = declare_parameter<double>("planning_acceleration_fraction", 0.5);
++  if (!std::isfinite(acceleration_fraction) || acceleration_fraction <= 0.0 || acceleration_fraction > 1.0) {
++    throw std::invalid_argument("planning_acceleration_fraction must be within (0,1]");
++  }
++  ego_planner_->setPlanningAccelerationFraction(acceleration_fraction);
++  const double speed_fraction = declare_parameter<double>("planning_speed_fraction", 0.8);
++  if (!std::isfinite(speed_fraction) || speed_fraction <= 0.0 || speed_fraction > 1.0) {
++    throw std::invalid_argument("planning_speed_fraction must be within (0,1]");
++  }
++  ego_planner_->setPlanningSpeedFraction(speed_fraction);
++  const double turn_fraction=declare_parameter<double>("planning_turn_fraction",.8);
++  if(!std::isfinite(turn_fraction) || turn_fraction<=0. || turn_fraction>1.)
++    throw std::invalid_argument("planning_turn_fraction must be within (0,1]");
++  ego_planner_->setPlanningTurnFraction(turn_fraction);
+ 
+   trajectory_publisher_ = create_publisher<research_interfaces::msg::TimedTrajectory2D>(output_topic_, 10);
+   visual_trajectory_publisher_ = create_publisher<nav_msgs::msg::Path>(
+     "/research/visual_local_trajectory", 10);
+ 
++  use_measured_acceleration_ = declare_parameter<bool>("use_measured_acceleration",false);
++  acceleration_subscriber_ = create_subscription<geometry_msgs::msg::AccelStamped>(
++    "/research/vehicle_acceleration",10,[this](geometry_msgs::msg::AccelStamped::ConstSharedPtr message) {
++      const auto& a=message->accel.linear;
++      if(message->header.frame_id!="odom" || !std::isfinite(a.x) || !std::isfinite(a.y) ||
++          !std::isfinite(a.z) || rclcpp::Time(message->header.stamp).nanoseconds()<=0)return;
++      std::lock_guard<std::mutex> lock(data_mutex_);
++      measured_acceleration_=Eigen::Vector3d(a.x,a.y,a.z);
++      measured_acceleration_stamp_=rclcpp::Time(message->header.stamp);
++    });
+   odom_subscriber_ = create_subscription<nav_msgs::msg::Odometry>(
+     "/lio/odom_vehicle", 10,
+     std::bind(&TrajectoryAndObstaclesPublisher::odom_callback, this, std::placeholders::_1));
+@@ -81,6 +120,31 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+     std::bind(&TrajectoryAndObstaclesPublisher::map_version_callback, this, std::placeholders::_1));
+   timer_ = create_wall_timer(std::chrono::milliseconds(100),
+                              std::bind(&TrajectoryAndObstaclesPublisher::plan_timer_callback, this));
++  // All callbacks use the default mutually exclusive callback group. Candidate
++  // queries may use the core but cannot replace the executable reference or
++  // publish a candidate trajectory to the controller.
++  query_service_ = create_service<research_interfaces::srv::PlanRoadReference>(
++    "/research/ego_plan_query",
++    [this](const std::shared_ptr<research_interfaces::srv::PlanRoadReference::Request> request,
++           std::shared_ptr<research_interfaces::srv::PlanRoadReference::Response> response) {
++      const auto saved_reference = road_reference_;
++      const bool saved_valid = reference_valid_;
++      const auto saved_stamp = reference_stamp_;
++      query_active_ = true;
++      if (request->request_id.empty() || request->map_version != map_version_) {
++        publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_UNKNOWN_MAP,
++                        "candidate_query_map_version_or_id_invalid");
++      } else {
++        road_reference_callback(std::make_shared<nav_msgs::msg::Path>(request->road_reference));
++        plan_once();
++      }
++      response->trajectory = query_result_;
++      response->trajectory.trajectory_id = request->request_id;
++      road_reference_ = saved_reference;
++      reference_valid_ = saved_valid;
++      reference_stamp_ = saved_stamp;
++      query_active_ = false;
++    });
+ 
+   RCLCPP_INFO(get_logger(),
+               "Vehicle EGO adapter ready; waiting for measured odom, road reference, obstacle grid and map version");
+@@ -119,7 +183,9 @@ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometr
+   const double body_w = msg->twist.twist.angular.z;
+   const rclcpp::Time stamp(msg->header.stamp);
+   if (!std::isfinite(yaw) || !std::isfinite(body_vx) || !std::isfinite(body_vy) ||
+-      !std::isfinite(body_w) || stamp.nanoseconds() <= 0) {
++      !std::isfinite(body_w) || !std::isfinite(msg->pose.pose.position.x) ||
++      !std::isfinite(msg->pose.pose.position.y) || (!allow_reverse_ && body_vx < -1e-6) ||
++      std::abs(body_w) > max_yaw_rate_rps_ || stamp.nanoseconds() <= 0) {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     state_valid_ = false;
+     return;
+@@ -141,18 +207,24 @@ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometr
+         std::abs(body_vy) <= max_lateral_speed_mps_ + 0.05;
+     }
+   }
++  if(use_measured_acceleration_) {
++    const double age=(stamp-measured_acceleration_stamp_).seconds();
++    state_valid_=state_valid_ && age>=-.10 && age<=state_timeout_s_;
++    start_acceleration_=measured_acceleration_;
++  }
+   previous_world_velocity_ = world_velocity;
+   previous_odom_stamp_ = stamp;
+   have_previous_odom_ = true;
+   start_velocity_ = world_velocity;
+-  vehicle_state_.x = static_cast<float>(msg->pose.pose.position.x);
+-  vehicle_state_.y = static_cast<float>(msg->pose.pose.position.y);
+-  vehicle_state_.z = static_cast<float>(yaw);
+-  vehicle_state_.v = static_cast<float>(std::hypot(body_vx, body_vy));
+-  vehicle_state_.vx = static_cast<float>(world_velocity.x());
+-  vehicle_state_.vy = static_cast<float>(world_velocity.y());
+-  vehicle_state_.ax = static_cast<float>(start_acceleration_.x());
+-  vehicle_state_.ay = static_cast<float>(start_acceleration_.y());
++  vehicle_state_.x = static_cast<double>(msg->pose.pose.position.x);
++  vehicle_state_.y = static_cast<double>(msg->pose.pose.position.y);
++  vehicle_state_.z = static_cast<double>(yaw);
++  vehicle_state_.v = static_cast<double>(std::hypot(body_vx, body_vy));
++  vehicle_state_.w = static_cast<double>(body_w);
++  vehicle_state_.vx = static_cast<double>(world_velocity.x());
++  vehicle_state_.vy = static_cast<double>(world_velocity.y());
++  vehicle_state_.ax = static_cast<double>(start_acceleration_.x());
++  vehicle_state_.ay = static_cast<double>(start_acceleration_.y());
+   vehicle_state_.state_valid = state_valid_;
+ }
+ 
+@@ -172,13 +244,14 @@ void TrajectoryAndObstaclesPublisher::road_reference_callback(const nav_msgs::ms
+       return;
+     }
+     PathPoint point;
+-    point.x = static_cast<float>(pose.pose.position.x);
+-    point.y = static_cast<float>(pose.pose.position.y);
++    point.x = static_cast<double>(pose.pose.position.x);
++    point.y = static_cast<double>(pose.pose.position.y);
+     point.z = 0.0F;
+     reference.push_back(point);
+   }
+   std::lock_guard<std::mutex> lock(data_mutex_);
+   road_reference_ = std::move(reference);
++  reference_stamp_ = rclcpp::Time(msg->header.stamp);
+   reference_valid_ = true;
+ }
+ 
+@@ -197,7 +270,9 @@ void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::Occ
+     return;
+   }
+   const double origin_yaw = yaw_from_quaternion(msg->info.origin.orientation);
+-  if (!std::isfinite(origin_yaw) || msg->data.size() != msg->info.width * msg->info.height) {
++  if (!std::isfinite(origin_yaw) || std::abs(origin_yaw) > 1e-6 ||
++      !std::isfinite(msg->info.origin.position.x) || !std::isfinite(msg->info.origin.position.y) ||
++      msg->data.size() != msg->info.width * msg->info.height) {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     grid_valid_ = false;
+     return;
+@@ -207,13 +282,13 @@ void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::Occ
+   for (uint32_t row = 0; row < msg->info.height; ++row) {
+     for (uint32_t col = 0; col < msg->info.width; ++col) {
+       const int8_t cell = msg->data[row * msg->info.width + col];
+-      if (cell >= 100 || (cell < 0 && grid_unknown_is_occupied_)) {
++      if (cell >= 50 || (cell < 0 && grid_unknown_is_occupied_)) {
+         const double local_x = (static_cast<double>(col) + 0.5) * msg->info.resolution;
+         const double local_y = (static_cast<double>(row) + 0.5) * msg->info.resolution;
+         ObstacleInfo obstacle;
+-        obstacle.x = static_cast<float>(msg->info.origin.position.x +
++        obstacle.x = static_cast<double>(msg->info.origin.position.x +
+           std::cos(origin_yaw) * local_x - std::sin(origin_yaw) * local_y);
+-        obstacle.y = static_cast<float>(msg->info.origin.position.y +
++        obstacle.y = static_cast<double>(msg->info.origin.position.y +
+           std::sin(origin_yaw) * local_x + std::cos(origin_yaw) * local_y);
+         obstacle.z = 0.0F;
+         obstacles.push_back(obstacle);
+@@ -231,6 +306,9 @@ void TrajectoryAndObstaclesPublisher::obstacle_callback(const nav_msgs::msg::Occ
+     planner_initialized_ = true;
+   }
+   std::lock_guard<std::mutex> lock(data_mutex_);
++  ego_planner_->setInputGridGeometry(msg->info.width, msg->info.height,
++                                    Eigen::Vector2d(msg->info.origin.position.x, msg->info.origin.position.y));
++  grid_stamp_ = rclcpp::Time(msg->header.stamp);
+   obstacles_ = std::move(obstacles);
+   grid_valid_ = true;
+ }
+@@ -261,23 +339,27 @@ void TrajectoryAndObstaclesPublisher::publish_failure(uint8_t status, const std:
+   message.valid_until = message.header.stamp;
+   message.status = status;
+   message.failure_reason = reason;
+-  trajectory_publisher_->publish(message);
++  query_result_ = message;
++  if (!query_active_) trajectory_publisher_->publish(message);
+ }
+ 
+ bool TrajectoryAndObstaclesPublisher::plan_once()
+ {
+   std::lock_guard<std::mutex> lock(data_mutex_);
+-  if (!state_valid_) {
++  const double state_age = (now() - previous_odom_stamp_).seconds();
++  if (!state_valid_ || state_timeout_s_ <= 0.0 || state_age < -0.10 || state_age > state_timeout_s_) {
+     publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_STALE,
+                     "measured_odom_state_unavailable");
+     return false;
+   }
+-  if (!reference_valid_) {
++  const double reference_age = (now()-reference_stamp_).seconds();
++  if (!reference_valid_ || reference_age < -0.10 || reference_age > .50) {
+     publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
+                     "road_reference_unavailable_or_unconfirmed");
+     return false;
+   }
+-  if (!grid_valid_ || !planner_initialized_) {
++  const double grid_age = (now() - grid_stamp_).seconds();
++  if (!grid_valid_ || !planner_initialized_ || grid_timeout_s_ <= 0.0 || grid_age < -0.10 || grid_age > grid_timeout_s_) {
+     publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_UNKNOWN_MAP,
+                     "local_obstacle_grid_unavailable_or_unknown");
+     return false;
+@@ -288,14 +370,48 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+     return false;
+   }
+   if (max_curvature_1pm_ <= 0.0 || max_lateral_speed_mps_ <= 0.0 ||
+-      max_speed_mps_ <= 0.0 || max_accel_mps2_ <= 0.0 || max_yaw_rate_rps_ <= 0.0) {
++      max_speed_mps_ <= 0.0 || max_accel_mps2_ <= 0.0 || max_yaw_rate_rps_ <= 0.0 || max_jerk_mps3_ <= 0.0) {
+     publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
+                     "vehicle_limits_or_footprint_not_configured");
+     return false;
+   }
+   ego_planner_->resetMap();
+   ego_planner_->setGridMap(vehicle_state_);
+-  ego_planner_->setPathPoint(road_reference_);
++  // Keep only the remaining confirmed polyline. Reusing its already-driven
++  // prefix would pull a freshly planned start back toward the old origin.
++  size_t next = 1;
++  double nearest_distance = std::numeric_limits<double>::infinity();
++  const Eigen::Vector2d vehicle(vehicle_state_.x, vehicle_state_.y);
++  for (size_t i = 0; i + 1 < road_reference_.size(); ++i) {
++    const Eigen::Vector2d a(road_reference_[i].x, road_reference_[i].y);
++    const Eigen::Vector2d b(road_reference_[i+1].x, road_reference_[i+1].y);
++    const Eigen::Vector2d delta = b - a;
++    const double fraction = delta.squaredNorm() > kEpsilon ?
++      std::clamp((vehicle-a).dot(delta)/delta.squaredNorm(), 0.0, 1.0) : 0.0;
++    const double distance = (vehicle-a-fraction*delta).squaredNorm();
++    if (distance < nearest_distance) {
++      nearest_distance = distance;
++      next = i + 1;
++    }
++  }
++  std::vector<PathPoint> local_reference{vehicle_state_};
++  local_reference.insert(local_reference.end(), road_reference_.begin()+next, road_reference_.end());
++  // At least one free optimizer control point is needed after fixing both
++  // cubic endpoints. Subdivide the polyline, preserving bends and endpoint.
++  while (local_reference.size() < 8) {
++    size_t split = 1;
++    double longest = -1.0;
++    for (size_t i = 1; i < local_reference.size(); ++i) {
++      const double length = std::hypot(local_reference[i].x-local_reference[i-1].x,
++                                        local_reference[i].y-local_reference[i-1].y);
++      if (length > longest) { longest = length; split = i; }
++    }
++    PathPoint midpoint;
++    midpoint.x = 0.5 * (local_reference[split-1].x + local_reference[split].x);
++    midpoint.y = 0.5 * (local_reference[split-1].y + local_reference[split].y);
++    local_reference.insert(local_reference.begin()+split, midpoint);
++  }
++  ego_planner_->setPathPoint(local_reference);
+   ego_planner_->setCurrentVehicleState(vehicle_state_, start_velocity_, start_acceleration_);
+   ego_planner_->setObstacles(obstacles_);
+   ego_planner_->makePlan();
+@@ -307,7 +423,7 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+     return false;
+   }
+   publish_timed_trajectory(planned);
+-  publish_visual_trajectory(planned);
++  if (!query_active_) publish_visual_trajectory(planned);
+   return true;
+ }
+ 
+@@ -317,8 +433,12 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+     return false;
+   }
+   double previous_yaw = vehicle_state_.z;
+-  double previous_w = 0.0;
++  double previous_w = vehicle_state_.w;
+   double previous_v = vehicle_state_.v;
++  auto reject = [this](const char * reason, size_t index, double value) {
++    RCLCPP_WARN(get_logger(), "trajectory rejected: %s at sample %zu value %.9g", reason, index, value);
++    return false;
++  };
+   for (size_t index = 0; index < points.size(); ++index) {
+     const auto & point = points[index];
+     const double vx = point.vx;
+@@ -326,31 +446,31 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+     const double speed = std::hypot(vx, vy);
+     if (!std::isfinite(point.v) || !std::isfinite(speed) || speed > max_speed_mps_ + 1e-6 ||
+         (!allow_reverse_ && point.v < -1e-6)) {
+-      return false;
++      return reject("speed/nonfinite/reverse", index, speed);
+     }
+     const double speed_tolerance = std::max(0.05, 0.25 * std::max(std::abs(static_cast<double>(point.v)), 0.1));
+     if (std::abs(point.v - speed) > speed_tolerance) {
+-      return false;
++      return reject("speed_contract", index, point.v - speed);
+     }
+-    const double yaw = speed > kEpsilon ? std::atan2(vy, vx) : previous_yaw;
+-    const double acceleration = speed > kEpsilon ? (vx * point.ax + vy * point.ay) / speed : 0.0;
+-    const double yaw_rate = speed > kEpsilon ?
++    const double yaw = speed > kHeadingSpeed ? std::atan2(vy, vx) : previous_yaw;
++    const double acceleration = speed > kHeadingSpeed ? (vx * point.ax + vy * point.ay) / speed : 0.0;
++    const double yaw_rate = speed > kHeadingSpeed ?
+       (vx * point.ay - vy * point.ax) / (speed * speed) : 0.0;
+-    const double curvature = speed > kEpsilon ? yaw_rate / speed : 0.0;
++    const double curvature = speed > kHeadingSpeed ? yaw_rate / speed : 0.0;
+     if (std::abs(yaw_rate) > max_yaw_rate_rps_ + 1e-6 ||
+         std::abs(curvature) > max_curvature_1pm_ + 1e-6 ||
+         acceleration > max_accel_mps2_ + 0.05 ||
+         acceleration < -max_decel_mps2_ - 0.05) {
+-      return false;
++      return reject("yaw/curvature/acceleration", index, acceleration);
+     }
+     const double dt = index == 0 ? kSamplePeriod : kSamplePeriod;
+     const double alpha = angle_delta(yaw, previous_yaw) / dt;
+     const double dv = (point.v - previous_v) / dt;
+     const double dw = (yaw_rate - previous_w) / dt;
+-    if (std::abs(alpha) > std::max(max_yaw_accel_rps2_, max_yaw_decel_rps2_) + 0.05 ||
++    if ((index > 0 && std::abs(alpha - yaw_rate) > 0.05) ||
+         dv > max_accel_mps2_ + 0.05 || dv < -max_decel_mps2_ - 0.05 ||
+         dw > max_yaw_accel_rps2_ + 0.05 || dw < -max_yaw_decel_rps2_ - 0.05) {
+-      return false;
++      return reject("discrete_derivatives", index, alpha);
+     }
+     previous_yaw = yaw;
+     previous_w = yaw_rate;
+@@ -373,14 +493,14 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
+   message.failure_reason.clear();
+ 
+   double previous_yaw = vehicle_state_.z;
+-  double previous_w = 0.0;
++  double previous_w = vehicle_state_.w;
+   for (size_t index = 0; index < points.size(); ++index) {
+     const auto & point = points[index];
+     const double speed = std::hypot(point.vx, point.vy);
+-    const double yaw = speed > kEpsilon ? std::atan2(point.vy, point.vx) : previous_yaw;
+-    const double acceleration = speed > kEpsilon ?
++    const double yaw = speed > kHeadingSpeed ? std::atan2(point.vy, point.vx) : previous_yaw;
++    const double acceleration = speed > kHeadingSpeed ?
+       (point.vx * point.ax + point.vy * point.ay) / speed : 0.0;
+-    const double yaw_rate = speed > kEpsilon ?
++    const double yaw_rate = speed > kHeadingSpeed ?
+       (point.vx * point.ay - point.vy * point.ax) / (speed * speed) : 0.0;
+     research_interfaces::msg::TimedTrajectoryPoint2D sample;
+     sample.t = static_cast<double>(index) * kSamplePeriod;
+@@ -390,14 +510,15 @@ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector
+     sample.v = point.v;
+     sample.w = yaw_rate;
+     sample.a = acceleration;
+-    sample.alpha = index == 0 ? 0.0 : angle_delta(yaw, previous_yaw) / kSamplePeriod;
+-    sample.curvature = speed > kEpsilon ? yaw_rate / speed : 0.0;
++    sample.alpha = index == 0 ? 0.0 : (yaw_rate - previous_w) / kSamplePeriod;
++    sample.curvature = speed > kHeadingSpeed ? yaw_rate / speed : 0.0;
+     message.points.push_back(sample);
+     previous_yaw = yaw;
+     previous_w = yaw_rate;
+     (void)previous_w;
+   }
+-  trajectory_publisher_->publish(message);
++  query_result_ = message;
++  if (!query_active_) trajectory_publisher_->publish(message);
+ }
+ 
+ void TrajectoryAndObstaclesPublisher::publish_visual_trajectory(const std::vector<PathPoint> & points)

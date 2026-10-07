@@ -11,6 +11,9 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2_ros_py</exec_depend>
+  <exec_depend>python3-pyproj</exec_depend>
+  <exec_depend>python3-rasterio</exec_depend>
   <exec_depend>research_runtime</exec_depend>
   <exec_depend>research_interfaces</exec_depend>
   <export><build_type>ament_python</build_type></export>

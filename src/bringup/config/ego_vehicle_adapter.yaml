@@ -8,6 +8,14 @@ ego_vehicle_adapter:
     max_decel_mps2: 1.20
     max_yaw_accel_rps2: 1.40
     max_yaw_decel_rps2: 1.80
+    state_timeout_s: 0.20
+    grid_timeout_s: 0.50
+    # NEW_ALGORITHM_SETTING: optimizer target only; final physical gates above
+    # remain unchanged. Leaves acceleration reserve for measured feedback.
+    planning_acceleration_fraction: 0.50
+    planning_speed_fraction: 0.80
+    # NEW_ALGORITHM_SETTING: conservative optimizer objective; final limits unchanged.
+    planning_turn_fraction: 0.80
     # These values are deliberately unconfigured until the locked footprint
     # and deployment measurement are supplied; the planner refuses output at 0.
     max_curvature_1pm: 0.0

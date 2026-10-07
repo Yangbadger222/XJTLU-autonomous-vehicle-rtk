@@ -26,5 +26,18 @@ map version are configured.
 `0003-clear-stale-plan-on-failure.patch` is applied third. It clears the
 planner's previous timed-result and A* buffers before each replan, so an
 optimizer failure or missing measured state cannot republish an older plan.
-The current ARM64 compile log predates this safety patch; its exact sequential
-apply-check is recorded separately.
+Historical ARM64 three-patch logs do not cover the current fourth patch.
+
+`0004-strict-feasibility-and-grid-state-contract.patch` is applied fourth.
+It fixes hard measured position/velocity/acceleration boundary jets, trims the
+already traversed reference prefix, conservatively repairs timing, optimizes
+actual cubic-spline yaw/curvature, and independently certifies continuous turn
+and whole-footprint collision bounds. Unknown/outside cells remain occupied.
+It adds the read-only candidate planning service and native dynamic/static TF
+ownership guard. Optimizer speed/acceleration/turn fractions are explicitly new
+algorithm settings; the shared seven physical caps are never relaxed.
+
+All four patches apply sequentially to the pinned raw commit. See
+`audit/UPSTREAM_PATCH_VERIFICATION.json` and the exact source comparison in
+`audit/ego_patch_check_current.log`. Current Humble validation is reported in
+`AUDIT_REPORT.md`; it is not a physical vehicle acceptance.

@@ -1,0 +1,18 @@
+{
+  "baseline_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "protected_blob_count": 1004,
+  "source": "Git baseline object bytes, never rewritten from current checkout",
+  "runtime_deployment_overlays": "PENDING_JETSON_READ_ONLY_DUMP",
+  "scope": [
+    "src/sensor_drivers/",
+    "src/firmware/",
+    "src/navigation/gps_waypoint_dispatcher/",
+    "src/perception/fastlio2/",
+    "src/bringup/config/",
+    "src/bringup/launch/robot_description.launch.py",
+    "all tracked URDF/Xacro blobs"
+  ],
+  "exclusions": [
+    "Gitlink dependencies are separately pinned; this manifest covers tracked blobs only"
+  ]
+}

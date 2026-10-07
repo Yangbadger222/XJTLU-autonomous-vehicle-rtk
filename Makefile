@@ -1,4 +1,7 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := build
+RESEARCH_BUILD_ROOT ?= $(CURDIR)/.research-build
+EXECUTION_MODE ?= replay
 
 # ==============================================================================
 # Variables & Configuration
@@ -26,7 +29,14 @@ ntrip ntrip-logout ntrip-status ntrip-setup ntrip-use ntrip-use-standard ntrip-u
 # Setup & Clean
 # ==============================================================================
 
-setup:
+setup: setup-research
+
+setup-research:
+	vcs import src < dependencies.research.repos
+	bash scripts/apply_super_lio_patch.sh
+	bash scripts/apply_ego_vehicle_patch.sh
+
+setup-legacy:
 	@echo ">>> 拉取第三方依赖..."
 	git config --global --unset http.proxy || true
 	git config --global --unset https.proxy || true
@@ -43,6 +53,9 @@ clean:
 # ==============================================================================
 
 build:
+	bash scripts/build_active_road_research.sh "$(RESEARCH_BUILD_ROOT)"
+
+build-legacy:
 	$(COLCON_BUILD)
 
 build-bringup:
@@ -79,6 +92,11 @@ build-frc:
 # ==============================================================================
 
 # Pattern rule: captures 'launch-slam', 'launch-explore', etc. and passes the suffix to the script.
+launch: launch-research
+
+launch-research:
+	$(ROS_SETUP) && source "$(RESEARCH_BUILD_ROOT)/install/setup.bash" && ros2 launch bringup system_active_road_research.launch.py execution_mode:=$(EXECUTION_MODE)
+
 launch-%:
 	bash scripts/launch_with_logs.sh $*
 

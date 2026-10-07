@@ -63,3 +63,7 @@ task_plan.md
 
 # Windows to Linux Identifier files
 *:Zone.Identifier
+# Isolated research build products and upstream checkouts.
+.research-build/
+src/super_lio/
+src/ego_planner_2d_ros2/

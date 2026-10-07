@@ -1,0 +1,11 @@
+std_msgs/Header header
+string update_id
+string prior_version
+string start_node_id
+string end_node_id
+geometry_msgs/Point[] geometry
+float64 supported_width_m
+string local_submap_id
+float64 pose_uncertainty_m
+string source
+string[] evidence_ids

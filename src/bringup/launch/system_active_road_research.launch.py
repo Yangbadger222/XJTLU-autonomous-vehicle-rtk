@@ -14,6 +14,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -26,70 +27,73 @@ def generate_launch_description():
     active_road_evidence_config = os.path.join(
         bringup_share, "config", "active_road_evidence.yaml")
     mode = DeclareLaunchArgument("execution_mode", default_value="replay",
-                                 description="replay | shadow | live; replay is actuator-free")
+                                 choices=["replay", "shadow", "live"],
+                                 description="replay | shadow | live; replay runs the core without sensor drivers or actuators")
     enable_super = DeclareLaunchArgument("enable_super_lio", default_value="true",
-                                         description="Enable pinned Super-LIO in shadow/live; replay remains actuator-free")
+                                         description="Enable pinned Super-LIO; replay consumes bag sensor topics")
     enable_serial = DeclareLaunchArgument("enable_serial", default_value="false",
                                          description="Require explicit true plus execution_mode:=live for the physical serial sink")
+    mission_arg = DeclareLaunchArgument("mission_execution_enabled",default_value="false",
+        description="Explicit research task permission; does not grant RTK or physical KEY authority")
+    sim_time_arg = DeclareLaunchArgument("use_sim_time", default_value=PythonExpression(
+        ["'", LaunchConfiguration("execution_mode"), "' == 'replay'"]))
+    simulated_time = ParameterValue(LaunchConfiguration("use_sim_time"), value_type=bool)
     super_lio = Node(package="super_lio", executable="super_lio_node", name="super_lio_node",
                      output="screen",
-                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                              "' != 'replay' and '",
-                                                              LaunchConfiguration("enable_super_lio"), "' == 'true'"])),
-                     parameters=[super_config])
+                     condition=IfCondition(LaunchConfiguration("enable_super_lio")),
+                     parameters=[super_config, {"use_sim_time": simulated_time}])
     ego_vehicle = Node(package="ego_planner", executable="motion_plan", name="ego_vehicle_adapter",
                        output="screen",
-                       condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                                "' != 'replay'"])),
-                       parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml")])
+
+                       parameters=[os.path.join(bringup_share, "config", "ego_vehicle_adapter.yaml"), {"use_sim_time": simulated_time}])
+    tf_integrity = Node(package="ego_planner", executable="research_tf_guard",
+        name="research_tf_integrity_guard", output="screen", parameters=[{"use_sim_time": simulated_time}])
     adapter = Node(package="super_lio_vehicle_adapter", executable="super_lio_vehicle_adapter",
                    name="super_lio_vehicle_adapter", output="screen",
-                   condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                            "' != 'replay'"])),
+
                    parameters=[{"input_topic": "/lio/odom", "vehicle_odom_topic": "/lio/odom_vehicle",
                                 "source_health_topic": "/lio/health", "health_topic": "/lio/vehicle_health",
                                 "source_frame": "world", "world_frame": "odom",
                                 "source_child_frame": "imu", "tf_timeout_s": 0.05,
-                                "imu_to_base_extrinsic_verified": False, "require_covariance": True}])
+                                "imu_to_base_extrinsic_verified": False, "require_covariance": True}, {"use_sim_time": simulated_time}])
     cloud_frame = Node(
         package="super_lio_vehicle_adapter", executable="super_lio_cloud_frame_adapter",
         name="super_lio_cloud_frame_adapter", output="screen",
-        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                 "' != 'replay'"])),
-        parameters=[cloud_frame_config])
+
+        parameters=[cloud_frame_config, {"use_sim_time": simulated_time}])
     local_grid = Node(package="research_runtime", executable="research_local_obstacle_grid",
                       name="research_local_obstacle_grid", output="screen",
-                      condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                               "' != 'replay'"])),
-                      parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml")])
+
+                      parameters=[os.path.join(bringup_share, "config", "research_local_grid.yaml"), {"use_sim_time": simulated_time}])
     active_road_map = Node(package="active_road_mapping", executable="active_road_map",
                            name="active_road_map", output="screen",
-                           condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                                    "' != 'replay'"])),
-                           parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml")])
+
+                           parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml"), {"use_sim_time": simulated_time}])
     active_road_evidence = Node(
         package="active_road_mapping", executable="active_road_evidence",
         name="active_road_evidence", output="screen",
-        condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                 "' != 'replay'"])),
-        parameters=[active_road_evidence_config])
+
+        parameters=[active_road_evidence_config, {"use_sim_time": simulated_time}])
+    active_observation = Node(package="active_road_mapping", executable="active_observation",
+        name="active_observation", output="screen",
+        parameters=[os.path.join(bringup_share, "config", "active_observation.yaml"),
+                    {"use_sim_time": simulated_time,"execution_mode":LaunchConfiguration("execution_mode"),
+                     "mission_execution_enabled":ParameterValue(LaunchConfiguration("mission_execution_enabled"),value_type=bool)}])
     authority = Node(package="gps_waypoint_dispatcher", executable="rtk_map_odom_corrector_node",
                      name="rtk_map_odom_corrector", output="screen",
-                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                              "' != 'replay'"])),
+
                      parameters=[master, {"lio_odom_topic": "/lio/odom_vehicle",
-                                          "base_frame": "base_footprint"}])
+                                          "base_frame": "base_footprint"}, {"use_sim_time": simulated_time}])
     cmd_guard = Node(package="gps_waypoint_dispatcher", executable="corridor_cmd_vel_guard_node",
                      name="corridor_cmd_vel_guard", output="screen",
-                     condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
-                                                              "' != 'replay'"])),
-                     parameters=[master])
+
+                     parameters=[master, {"use_sim_time": simulated_time}])
     serial = Node(package="serial_twistctl", executable="serial_twistctl_node",
                   name="serial_twistctl_node", output="screen",
                   condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"),
                                                            "' == 'live' and '",
                                                            LaunchConfiguration("enable_serial"), "' == 'true'"])),
-                  parameters=[master], remappings=[("/cmd_vel", "/cmd_vel_guarded")])
+                  parameters=[master, {"use_sim_time": simulated_time}], remappings=[("/cmd_vel", "/cmd_vel_guarded")])
     research = Node(package="research_runtime", executable="research_safety_bridge",
                     name="research_safety_bridge", output="screen",
                     parameters=[safety_config, {"mode": LaunchConfiguration("execution_mode"),
@@ -97,7 +101,7 @@ def generate_launch_description():
                                  "health_topic": "/lio/vehicle_health",
                                  "odom_topic": "/lio/odom_vehicle",
                                  "obstacle_grid_topic": "/research/local_obstacle_grid",
-                                 "map_version_topic": "/research/map_version"}])
+                                 "map_version_topic": "/research/map_version"}, {"use_sim_time": simulated_time}])
     livox = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([FindPackageShare("livox_ros_driver2"),
                                                               "launch_ROS2", "msg_MID360_launch.py"])]),
@@ -109,9 +113,11 @@ def generate_launch_description():
         launch_arguments={"params_file": master}.items(),
         condition=IfCondition(PythonExpression(["'", LaunchConfiguration("execution_mode"), "' != 'replay'"]))
     )
-    return LaunchDescription([mode, enable_super, enable_serial,
+    robot_description = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(os.path.join(bringup_share, "launch", "robot_description.launch.py")))
+    return LaunchDescription([mode, enable_super, enable_serial, mission_arg, sim_time_arg,
                               LogInfo(msg="Active-road research entry: no Nav2/MPPI/SLAM task stack"),
-                              livox, rtk,
-                              super_lio, adapter, cloud_frame, active_road_map, active_road_evidence,
-                              local_grid, ego_vehicle,
+                              robot_description, livox, rtk,
+                              super_lio, adapter, cloud_frame, active_road_map, active_road_evidence, active_observation,
+                              local_grid, ego_vehicle, tf_integrity,
                               authority, cmd_guard, serial, research])

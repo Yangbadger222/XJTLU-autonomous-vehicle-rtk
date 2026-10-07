@@ -16,4 +16,7 @@ research_local_obstacle_grid:
     # Carry-over obstacle height window from the audited FAST-LIO2 output.
     obstacle_min_z_m: 0.08
     obstacle_max_z_m: 1.20
+    # Upstream stamped cloud adapter filters in base_footprint. Odom world
+    # altitude must not be mistaken for an obstacle's height above the body.
+    input_height_filter_applied: true
     unknown_is_occupied: true

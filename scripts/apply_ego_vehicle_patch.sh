@@ -7,6 +7,7 @@ expected_commit="7f5be6d4cee34871e85aa1f15285cfaf17b23877"
 patch_file="${repo_root}/patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch"
 ros_patch_file="${repo_root}/patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch"
 stale_plan_patch_file="${repo_root}/patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch"
+strict_contract_patch_file="${repo_root}/patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch"
 
 test -d "${upstream_dir}/.git" || { echo "missing vcs checkout: ${upstream_dir}" >&2; exit 2; }
 test "$(git -C "${upstream_dir}" rev-parse HEAD)" = "${expected_commit}" || {
@@ -21,4 +22,6 @@ git -C "${upstream_dir}" apply --check "${ros_patch_file}"
 git -C "${upstream_dir}" apply "${ros_patch_file}"
 git -C "${upstream_dir}" apply --check "${stale_plan_patch_file}"
 git -C "${upstream_dir}" apply "${stale_plan_patch_file}"
+git -C "${upstream_dir}" apply --check "${strict_contract_patch_file}"
+git -C "${upstream_dir}" apply "${strict_contract_patch_file}"
 echo "Applied Ego-Planner-2D-ROS2 vehicle core, ROS timed-trajectory and stale-plan safety patches"

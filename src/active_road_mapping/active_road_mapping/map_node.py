@@ -20,6 +20,8 @@ except ImportError:  # permits source tests without ROS 2 on the workstation
     PathMessage = String = object
     Node = object
 
+from research_runtime.runtime_paths import research_path
+
 from research_runtime.active_road import EvidenceStore
 
 
@@ -39,7 +41,7 @@ class ActiveRoadMapNode(Node if rclpy else object):
         self.declare_parameter(
             "road_reference_output_topic", "/research/road_reference")
         self.declare_parameter("reload_period_s", 1.0)
-        self._path = Path(str(self.get_parameter("evidence_store_path").value))
+        self._path = research_path(str(self.get_parameter("evidence_store_path").value))
         self._store: EvidenceStore | None = None
         self._store_mtime_ns: int | None = None
         self._last_rejection = ""
@@ -59,7 +61,7 @@ class ActiveRoadMapNode(Node if rclpy else object):
 
     def _reject(self, reason: str) -> None:
         if reason != self._last_rejection:
-            self.get_logger().warning("active-road reference withheld: %s", reason)
+            self.get_logger().warning(f"active-road reference withheld: {reason}")
             self._last_rejection = reason
 
     def _reload_and_publish(self) -> None:
@@ -103,7 +105,9 @@ def main(args=None):
     node = ActiveRoadMapNode()
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
-
+        if rclpy.ok():
+            rclpy.shutdown()

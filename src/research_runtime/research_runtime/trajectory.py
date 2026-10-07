@@ -9,23 +9,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 from typing import Iterable, Optional, Sequence
+from .physical_parameter_lock import PHYSICAL_LIMITS
 
 
 @dataclass(frozen=True)
 class VehicleLimits:
     """The corridor launch effective limits, in SI units.
 
-    The values are copied from the locked corridor launch override. Chassis
+    The defaults are generated from the locked corridor launch override. Chassis
     footprint and wheel geometry remain explicit inputs and are not guessed.
     """
 
-    max_speed_mps: float = 0.85
-    min_speed_mps: float = 0.0
-    max_yaw_rate_rps: float = 0.70
-    max_accel_mps2: float = 0.85
-    max_decel_mps2: float = 1.20
-    max_yaw_accel_rps2: float = 1.40
-    max_yaw_decel_rps2: float = 1.80
+    max_speed_mps: float = PHYSICAL_LIMITS["max_speed_mps"]
+    min_speed_mps: float = PHYSICAL_LIMITS["min_speed_mps"]
+    max_yaw_rate_rps: float = PHYSICAL_LIMITS["max_yaw_rate_rps"]
+    max_accel_mps2: float = PHYSICAL_LIMITS["max_accel_mps2"]
+    max_decel_mps2: float = PHYSICAL_LIMITS["max_decel_mps2"]
+    max_yaw_accel_rps2: float = PHYSICAL_LIMITS["max_yaw_accel_rps2"]
+    max_yaw_decel_rps2: float = PHYSICAL_LIMITS["max_yaw_decel_rps2"]
     max_curvature_1pm: Optional[float] = None
     max_lateral_speed_mps: float = 0.05
     derivative_tolerance: float = 0.05
@@ -92,6 +93,7 @@ def validate_trajectory(
     footprint: Optional[Sequence[tuple[float, float]]] = None,
     occupied: Optional[callable] = None,
     resolution: Optional[float] = None,
+    occupied_polygon: Optional[callable] = None,
 ) -> ValidationResult:
     """Validate time, dynamics, non-holonomic motion and footprint sweep.
 
@@ -202,7 +204,9 @@ def validate_trajectory(
         sweep_points = [trajectory.points[0]]
         for previous, point in zip(trajectory.points, trajectory.points[1:]):
             distance = math.hypot(point.x - previous.x, point.y - previous.y)
-            steps = max(1, int(math.ceil(distance / resolution)))
+            radius = max((math.hypot(x, y) for x, y in footprint), default=0.0) if footprint else 0.0
+            corner_motion_bound = distance + radius * abs(_angle_delta(point.yaw, previous.yaw))
+            steps = max(1, int(math.ceil(corner_motion_bound / (0.25 * resolution))))
             for step in range(1, steps + 1):
                 fraction = step / steps
                 yaw = previous.yaw + _angle_delta(point.yaw, previous.yaw) * fraction
@@ -224,6 +228,16 @@ def validate_trajectory(
         else:
             for point in sweep_points:
                 c, s = math.cos(point.yaw), math.sin(point.yaw)
+                polygon = tuple((point.x + c * fx - s * fy,
+                                 point.y + s * fx + c * fy) for fx, fy in footprint)
+                if occupied_polygon is not None:
+                    # Any material point moves at most resolution/4 between
+                    # samples. Enlarging cells by that amount closes all gaps,
+                    # including rotation with no centre translation.
+                    if occupied_polygon(polygon, 0.25 * resolution):
+                        result.fail("footprint_collision_or_unknown")
+                        break
+                    continue
                 for fx, fy in footprint:
                     wx = point.x + c * fx - s * fy
                     wy = point.y + s * fx + c * fy

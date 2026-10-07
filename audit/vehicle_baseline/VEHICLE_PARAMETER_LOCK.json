@@ -4,38 +4,615 @@
   "source_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "effective_value_rule": "master YAML -> corridor launch rewrite -> ROS runtime parameter dump (runtime dump pending on Jetson)",
   "parameters": [
-    {"name":"lio.imu_topic","value":"/livox/imu","type":"string","unit":null,"source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/imu_topic","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.lidar_topic","value":"/livox/lidar","type":"string","unit":null,"source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_topic","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.body_frame","value":"base_footprint","type":"string","unit":null,"source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/body_frame","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.world_frame","value":"odom","type":"string","unit":null,"source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/world_frame","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.lidar_filter_num","value":4,"type":"integer","unit":"points stride","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_filter_num","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.lidar_min_range","value":0.5,"type":"double","unit":"m","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_min_range","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.lidar_max_range","value":25.0,"type":"double","unit":"m","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_max_range","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.scan_resolution","value":0.15,"type":"double","unit":"m","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/scan_resolution","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.map_resolution","value":0.3,"type":"double","unit":"m","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/map_resolution","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.esti_il","value":false,"type":"boolean","unit":null,"source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/esti_il","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.t_il","value":[-0.011,-0.02329,0.04412],"type":"vector<double>","unit":"m; LiDAR/IMU transform as interpreted by FAST-LIO2 source","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/t_il","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"lio.r_il","value":[1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0],"type":"matrix3x3","unit":"rotation","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/r_il","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"cloud.publish_height_window","value":[-0.33,0.30],"type":"interval","unit":"m relative to body along gravity","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/publish_cloud_min_z,max_z","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"cloud.nav2_obstacle_height_window","value":[0.08,1.20],"type":"interval","unit":"m relative to body along gravity","source":"src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/nav2_obstacle_cloud_min_z,max_z","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"vehicle.corridor_footprint_xy","value":[[0.33,0.305],[0.33,-0.305],[-0.33,-0.305],[-0.33,0.305]],"type":"polygon","unit":"m in base_link xy","source":"src/bringup/config/nav2_corridor_rtk.yaml:local_costmap.local_costmap.footprint","priority":"corridor_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"corridor.smoother.max_velocity","value":[0.85,0.0,0.70],"type":"vector<double>","unit":"m/s,m/s,rad/s","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"corridor.smoother.min_velocity","value":[0.0,0.0,-0.70],"type":"vector<double>","unit":"m/s,m/s,rad/s","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"corridor.smoother.max_accel","value":[0.85,0.0,1.4],"type":"vector<double>","unit":"m/s2,m/s2,rad/s2","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"corridor.smoother.max_decel","value":[-1.2,0.0,-1.8],"type":"vector<double>","unit":"m/s2,m/s2,rad/s2","source":"src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params","priority":"corridor_launch_override","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"authority.command_timeout_s","value":0.25,"type":"double","unit":"s","source":"src/bringup/config/master_params.yaml:/localization_authority/ros__parameters/command_timeout_s","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"authority.heartbeat_timeout_s","value":0.50,"type":"double","unit":"s","source":"src/bringup/config/master_params.yaml:/localization_authority/ros__parameters/heartbeat_timeout_s","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"serial.port","value":"/dev/serial_twistctl","type":"string","unit":null,"source":"src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/port","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"serial.baudrate","value":115200,"type":"integer","unit":"baud","source":"src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/baudrate","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"serial.angular_z_scale","value":1.0,"type":"double","unit":"scale","source":"src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/angular_z_scale","priority":"master_yaml","class":"EXACT_CARRY_OVER","runtime_verification":"PENDING_JETSON"},
-    {"name":"gnss.heading_offset_deg","value":88.5,"type":"double","unit":"deg","source":"src/bringup/config/master_params.yaml:/um982_rtk_driver/ros__parameters/heading_offset_deg","priority":"master_yaml","class":"EXACT_CARRY_OVER_PENDING_CALIBRATION","runtime_verification":"PENDING_JETSON"}
+    {
+      "name": "lio.imu_topic",
+      "value": "/livox/imu",
+      "type": "string",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/imu_topic",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.lidar_topic",
+      "value": "/livox/lidar",
+      "type": "string",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_topic",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.body_frame",
+      "value": "base_footprint",
+      "type": "string",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/body_frame",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.world_frame",
+      "value": "odom",
+      "type": "string",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/world_frame",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.lidar_filter_num",
+      "value": 4,
+      "type": "integer",
+      "unit": "points stride",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_filter_num",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.lidar_min_range",
+      "value": 0.5,
+      "type": "double",
+      "unit": "m",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_min_range",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.lidar_max_range",
+      "value": 25.0,
+      "type": "double",
+      "unit": "m",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/lidar_max_range",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.scan_resolution",
+      "value": 0.15,
+      "type": "double",
+      "unit": "m",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/scan_resolution",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.map_resolution",
+      "value": 0.3,
+      "type": "double",
+      "unit": "m",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/map_resolution",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.esti_il",
+      "value": false,
+      "type": "boolean",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/esti_il",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.t_il",
+      "value": [
+        -0.011,
+        -0.02329,
+        0.04412
+      ],
+      "type": "vector<double>",
+      "unit": "m; LiDAR/IMU transform as interpreted by FAST-LIO2 source",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/t_il",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "lio.r_il",
+      "value": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "type": "matrix3x3",
+      "unit": "rotation",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/r_il",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "cloud.publish_height_window",
+      "value": [
+        -0.33,
+        0.3
+      ],
+      "type": "interval",
+      "unit": "m relative to body along gravity",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/publish_cloud_min_z,max_z",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "cloud.nav2_obstacle_height_window",
+      "value": [
+        0.08,
+        1.2
+      ],
+      "type": "interval",
+      "unit": "m relative to body along gravity",
+      "source": "src/bringup/config/master_params.yaml:/fastlio2/lio_node/ros__parameters/nav2_obstacle_cloud_min_z,max_z",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "vehicle.corridor_footprint_xy",
+      "value": [
+        [
+          0.33,
+          0.305
+        ],
+        [
+          0.33,
+          -0.305
+        ],
+        [
+          -0.33,
+          -0.305
+        ],
+        [
+          -0.33,
+          0.305
+        ]
+      ],
+      "type": "polygon",
+      "unit": "m in base_link xy",
+      "source": "src/bringup/config/nav2_corridor_rtk.yaml:local_costmap.local_costmap.footprint",
+      "priority": "corridor_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "corridor.smoother.max_velocity",
+      "value": [
+        0.85,
+        0.0,
+        0.7
+      ],
+      "type": "vector<double>",
+      "unit": "m/s,m/s,rad/s",
+      "source": "src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params",
+      "priority": "corridor_launch_override",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "corridor.smoother.min_velocity",
+      "value": [
+        0.0,
+        0.0,
+        -0.7
+      ],
+      "type": "vector<double>",
+      "unit": "m/s,m/s,rad/s",
+      "source": "src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params",
+      "priority": "corridor_launch_override",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "corridor.smoother.max_accel",
+      "value": [
+        0.85,
+        0.0,
+        1.4
+      ],
+      "type": "vector<double>",
+      "unit": "m/s2,m/s2,rad/s2",
+      "source": "src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params",
+      "priority": "corridor_launch_override",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "corridor.smoother.max_decel",
+      "value": [
+        -1.2,
+        0.0,
+        -1.8
+      ],
+      "type": "vector<double>",
+      "unit": "m/s2,m/s2,rad/s2",
+      "source": "src/bringup/launch/system_gps_corridor.launch.py:_make_corridor_nav2_params",
+      "priority": "corridor_launch_override",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "authority.command_timeout_s",
+      "value": 0.25,
+      "type": "double",
+      "unit": "s",
+      "source": "src/bringup/config/master_params.yaml:/localization_authority/ros__parameters/command_timeout_s",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "authority.heartbeat_timeout_s",
+      "value": 0.5,
+      "type": "double",
+      "unit": "s",
+      "source": "src/bringup/config/master_params.yaml:/localization_authority/ros__parameters/heartbeat_timeout_s",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "serial.port",
+      "value": "/dev/serial_twistctl",
+      "type": "string",
+      "unit": null,
+      "source": "src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/port",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "serial.baudrate",
+      "value": 115200,
+      "type": "integer",
+      "unit": "baud",
+      "source": "src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/baudrate",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "serial.angular_z_scale",
+      "value": 1.0,
+      "type": "double",
+      "unit": "scale",
+      "source": "src/bringup/config/master_params.yaml:/serial_twistctl_node/ros__parameters/angular_z_scale",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "gnss.heading_offset_deg",
+      "value": 88.5,
+      "type": "double",
+      "unit": "deg",
+      "source": "src/bringup/config/master_params.yaml:/um982_rtk_driver/ros__parameters/heading_offset_deg",
+      "priority": "master_yaml",
+      "class": "EXACT_CARRY_OVER_PENDING_CALIBRATION",
+      "runtime_verification": "PENDING_JETSON"
+    },
+    {
+      "name": "corridor.guard.turn_product_limit",
+      "value": 0.25,
+      "type": "double",
+      "unit": "m/s^2 = |body v * yaw rate|",
+      "source": "src/bringup/config/master_params.yaml:/corridor_cmd_vel_guard/ros__parameters/turn_product_limit",
+      "priority": "original_guard",
+      "profile": "corridor",
+      "class": "EXACT_CARRY_OVER",
+      "runtime_verification": "HUMBLE_THREE_LAYER_VERIFIED"
+    },
+    {
+      "name": "firmware.source.source_values.track_m",
+      "value": 0.46,
+      "type": "float",
+      "unit": "m",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.track_m",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.radius_m",
+      "value": 0.1,
+      "type": "float",
+      "unit": "m",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.radius_m",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.max_motor_rpm",
+      "value": 20000.0,
+      "type": "float",
+      "unit": "rpm",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.max_motor_rpm",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.gear_ratio",
+      "value": 19.2,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.gear_ratio",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.radps_to_rpm",
+      "value": 9.55,
+      "type": "float",
+      "unit": "rpm",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.radps_to_rpm",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_stop_rpm",
+      "value": 120.0,
+      "type": "float",
+      "unit": "rpm",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_stop_rpm",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_low_speed_rpm",
+      "value": 300.0,
+      "type": "float",
+      "unit": "rpm",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_low_speed_rpm",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_current_limit",
+      "value": 8000.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_current_limit",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_low_speed_current_limit",
+      "value": 4500.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_low_speed_current_limit",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_damping_kp",
+      "value": 12.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_damping_kp",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.source_values.brake_current_step",
+      "value": 1200.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:source_values.brake_current_step",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.feedback_source_values.track_m",
+      "value": 0.5,
+      "type": "float",
+      "unit": "m",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:feedback_source_values.track_m",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.feedback_source_values.radius_m",
+      "value": 0.1,
+      "type": "float",
+      "unit": "m",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:feedback_source_values.radius_m",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.feedback_source_values.gear_ratio",
+      "value": 19.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:feedback_source_values.gear_ratio",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.feedback_source_values.radps_to_rpm",
+      "value": 9.55,
+      "type": "float",
+      "unit": "rpm",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:feedback_source_values.radps_to_rpm",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.max_output",
+      "value": 15000.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.max_output",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.integral_limit",
+      "value": 1000.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.integral_limit",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.deadband",
+      "value": 0.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.deadband",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.period",
+      "value": 0.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.period",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.max_error",
+      "value": 1000.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.max_error",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.initial_target",
+      "value": 0.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.initial_target",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.kp",
+      "value": 10.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.kp",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.ki",
+      "value": 100.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.ki",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    },
+    {
+      "name": "firmware.source.pid_source_values.kd",
+      "value": 0.0,
+      "type": "float",
+      "unit": "source controller units",
+      "profile": "firmware_source; flashed identity unverified",
+      "source": "src/firmware/rm_c_board/Core/Src/Motor_Speed_pid.c:pid_source_values.kd",
+      "priority": "original MCU source only; not substituted for physical calibration",
+      "class": "EXACT_CARRY_OVER",
+      "use": "source contract preservation and independent command-to-motor audit",
+      "runtime_verification": "PENDING_FLASHED_MCU"
+    }
   ],
   "missing_or_unverified": [
-    "runtime confirmation of the baseline footprint, wheel radius and track",
-    "Jetson launch parameter dump and current_scene generated overlays",
-    "Super-LIO parser time offset and IMU unit equivalence",
-    "camera model, extrinsics and depth unit",
-    "vehicle bag identity and replay availability",
-    "physical emergency stop and STM32 final output"
+    "Jetson current_scene and launch overlays, flashed firmware identity",
+    "physical IMU/base and GNSS lever arms; clock and health/covariance equivalence",
+    "physical six-wheel geometry/slip and braking; source conflicts recorded in HARDWARE_SOURCE_CONTRACT.json",
+    "camera model/aligned depth/intrinsics/extrinsics/units or measured ground provider",
+    "real GeoTIFF/MaGRoad registration assets and surveyed control points",
+    "physical KEY/PS2/emergency-stop and STM32 final output"
   ]
 }

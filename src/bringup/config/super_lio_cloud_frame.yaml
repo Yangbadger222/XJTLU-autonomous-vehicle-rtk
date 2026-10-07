@@ -7,4 +7,6 @@ super_lio_cloud_frame_adapter:
     tf_timeout_s: 0.05
     height_odom_topic: /lio/odom
     obstacle_min_z_m: 0.08
-    obstacle_max_z_m: 1.20
+    obstacle_max_z_m: 1.2
+    publish_min_z_m: -0.33
+    publish_max_z_m: 0.3

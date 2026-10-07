@@ -61,3 +61,11 @@ def test_feedback_cannot_cross_actual_footprint_or_curvature_envelope():
     tracker=TimedTrajectoryTracker(VehicleLimits(max_curvature_1pm=2.))
     assert tracker.command(trajectory(),TrackerState(0,.4,0),now=10.) is None
     assert tracker.last_rejection=='feedback_curvature_limit'
+
+
+def test_original_guard_coupled_lateral_acceleration_cannot_be_hidden_by_separate_caps():
+    from research_runtime.trajectory import TimedPoint,TimedTrajectory,VehicleLimits,validate_trajectory
+    point=TimedPoint(0,0,0,0,.7,.5,curvature=.5/.7)
+    trajectory=TimedTrajectory.from_points('coupled','map','odom',1,2,[point,TimedPoint(1,.7,0,.5,.7,.5,curvature=.5/.7)])
+    result=validate_trajectory(trajectory,VehicleLimits(),now=1.1)
+    assert not result.valid and 'original_guard_turn_product_limit' in result.reasons

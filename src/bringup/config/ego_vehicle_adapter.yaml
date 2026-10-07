@@ -3,11 +3,12 @@ ego_vehicle_adapter:
     # These limits are the corridor launch effective values, not EGO demo defaults.
     max_speed_mps: 0.85
     min_speed_mps: 0.0
-    max_yaw_rate_rps: 0.70
+    max_yaw_rate_rps: 0.7
     max_accel_mps2: 0.85
-    max_decel_mps2: 1.20
-    max_yaw_accel_rps2: 1.40
-    max_yaw_decel_rps2: 1.80
+    max_decel_mps2: 1.2
+    max_yaw_accel_rps2: 1.4
+    max_yaw_decel_rps2: 1.8
+    max_lateral_accel_mps2: 0.25
     state_timeout_s: 0.20
     grid_timeout_s: 0.50
     # NEW_ALGORITHM_SETTING: optimizer target only; final physical gates above
@@ -16,16 +17,19 @@ ego_vehicle_adapter:
     planning_speed_fraction: 0.80
     # NEW_ALGORITHM_SETTING: conservative optimizer objective; final limits unchanged.
     planning_turn_fraction: 0.80
-    # These values are deliberately unconfigured until the locked footprint
-    # and deployment measurement are supplied; the planner refuses output at 0.
+    planning_turn_penalty_weight: 10.0
+    # Replan geometry at 1 Hz; validated trajectory heartbeat stays at 10 Hz.
+    replan_period_s: 1.0
+    # Physical curvature/lateral/jerk acceptance remains unconfigured. The
+    # conservative footprint circle below is generated from the original polygon.
     max_curvature_1pm: 0.0
     max_lateral_speed_mps: 0.0
     max_jerk_mps3: 0.0
-    inflate_radius_m: 0.0
+    inflate_radius_m: 0.4493606569338263
     initial_map_version: "UNKNOWN"
     map_resolution_m: 0.30
     grid_unknown_is_occupied: true
-    footprint_source: "LOCKED_URDF_OR_DEPLOYMENT_DUMP_REQUIRED"
+    footprint_source: "LOCKED_CORRIDOR_POLYGON; physical deployment still requires confirmation"
     measured_wheel_radius_m: "PENDING"
     measured_track_m: "PENDING"
     allow_reverse: false

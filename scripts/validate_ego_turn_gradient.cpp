@@ -4,8 +4,9 @@
 namespace ego_planner {
 struct VehicleCostGradientProbe {
   static void evaluate(BsplineOptimizer& optimizer, const Eigen::MatrixXd& q,
-                       bool curvature, double& cost, Eigen::MatrixXd& gradient) {
-    if (curvature) optimizer.calKappaCost(q,cost,gradient);
+                       int curvature, double& cost, Eigen::MatrixXd& gradient) {
+    if(curvature==2) optimizer.calLateralAccelCost(q,cost,gradient);
+    else if (curvature==1) optimizer.calKappaCost(q,cost,gradient);
     else optimizer.calTurnCost(q,cost,gradient);
   }
 };
@@ -14,13 +15,13 @@ int main() {
   ego_planner::BsplineOptimizer optimizer;
   optimizer.setParam(.85,.85);
   optimizer.setBsplineInterval(.1);
-  optimizer.setVehicleTurnLimits(1.,.7);
+  optimizer.setVehicleTurnLimits(1.,.7,.25);
   double worst=0;
   for (double scale : {.0007,.04,.08}) for (double sign : {-1.,1.}) {
     Eigen::MatrixXd q(2,5);
     q << 0,scale,2*scale,3*scale,4*scale,
          0,0,.2*sign,.5*sign,.9*sign;
-    for (bool curvature : {false,true}) {
+    for (int curvature : {0,1,2}) {
       double cost; Eigen::MatrixXd analytic;
       ego_planner::VehicleCostGradientProbe::evaluate(optimizer,q,curvature,cost,analytic);
       double error=0;

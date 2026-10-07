@@ -150,6 +150,7 @@ def trial(args,mode,index,manifest):
             'sensor_fault':args.sensor_fault,'fault_phase_final_serial_tail':final.get('fault_phase_wire_tail_before_authority_cleanup',[]),
             'nonzero_before_fault':final.get('nonzero_before_fault',0),'map_version':evidence.map_version,
             'final_serial_tail':final.get('wire_tail',[]),'nonzero_serial_count':final.get('nonzero_wire_count',0),
+            'actuation_exercised':final.get('nonzero_wire_count',0)>10,
             'child_exit_before_cleanup':exits,'child_cleanup_exits':{name:child.returncode for name,child in children},
             'status':'PASS' if all(exit is None for exit in exits.values()) and measured.get('lio_odometry_count',0)>20
                 and measured.get('processed_depth_count',0)>20 and final.get('nonzero_wire_count',0)>10
@@ -198,7 +199,9 @@ def main():
             result=trial(args,mode,index,manifest);trials.append(result)
             foundation_preserved &= foundation_hashes()==foundation
             print(json.dumps(result),flush=True)
-            if result['protocol_status']=='FAIL':break
+            # Retain a failed trial and still execute its second task. Zero
+            # motion is a reported protocol failure, never a reason to omit
+            # the requested saved-map reuse comparison.
     preserved=prior_hashes=={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in manifest.parent.iterdir()}
     result={'foundation_manifest_sha256':hashlib.sha256(json.dumps(foundation,sort_keys=True).encode()).hexdigest(),'foundation_file_count':len(foundation),'foundation_unchanged_each_trial':foundation_preserved,'scope':'finite synthetic sensor closed-loop comparison; actual pinned Super-LIO/EGO, original guard and serial PTY',
         'simulation_only_assumptions':['IMU=controlled-base extrinsic; measured simulated encoder body twist','synthetic .03m pose uncertainty bound','source health assumption; actual /lio/health remains UNKNOWN',

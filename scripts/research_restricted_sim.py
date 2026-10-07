@@ -251,15 +251,16 @@ class MeasuredPerception(Node):
             if abs(pz+1.2)>.03:continue # Explicit simulated support plane only.
             wx=x+math.cos(yaw)*px-math.sin(yaw)*py;wy=y+math.sin(yaw)*px+math.cos(yaw)*py
             col,row=int(math.floor((wx+15)/.3)),int(math.floor((wy+15)/.3))
-            if 0<=col<100 and 0<=row<100:groups.setdefault(row*100+col,[]).append((wx,wy))
+            if 0<=col<100 and 0<=row<100:groups.setdefault(row*100+col,[]).append((wx,wy,math.sqrt(px*px+py*py+pz*pz)))
         for index,points in groups.items():
             # Multiple supported points with spatial span, never an empty ray.
             if len(points)>=4 and max(p[0] for p in points)-min(p[0] for p in points)>=.18 and max(p[1] for p in points)-min(p[1] for p in points)>=.18:
                 if self.ledger_cells[index]!=0:
-                    evidence=RoadEvidence2D();evidence.header=msg.header;evidence.header.frame_id='odom'
+                    evidence=RoadEvidence2D();evidence.header=Header(stamp=msg.header.stamp,frame_id='odom')
                     evidence.evidence_id='synthetic-depth-cell:'+str(index)
                     evidence.source='measured_synthetic_depth_support';evidence.local_submap_id='synthetic-fixed-odom-origin-v1'
                     evidence.pose_uncertainty_m=.03;evidence.state='OBSERVED_GEOMETRY'
+                    evidence.valid_depth_min_m=min(p[2] for p in points);evidence.valid_depth_max_m=max(p[2] for p in points)
                     low,high=min(p[0] for p in points),max(p[0] for p in points);mean_y=sum(p[1] for p in points)/len(points)
                     evidence.geometry=[Point(x=low,y=mean_y,z=0.),Point(x=high,y=mean_y,z=0.)]
                     evidence.observed_length_m=high-low;self.unacked_evidence[evidence.evidence_id]=evidence

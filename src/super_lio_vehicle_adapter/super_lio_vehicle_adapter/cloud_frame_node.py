@@ -17,6 +17,7 @@ try:
     from rclpy.node import Node
     from sensor_msgs.msg import PointCloud2
     from nav_msgs.msg import Odometry
+    from std_msgs.msg import Header
     from sensor_msgs_py import point_cloud2
     from tf2_ros import Buffer, TransformException, TransformListener
     from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
@@ -49,6 +50,8 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
         self.create_subscription(Odometry,str(self.get_parameter("height_odom_topic").value),self._source_poses.append,100)
         self.declare_parameter("obstacle_min_z_m", .08)
         self.declare_parameter("obstacle_max_z_m", 1.20)
+        self.declare_parameter("publish_min_z_m", -.33)
+        self.declare_parameter("publish_max_z_m", .30)
         self._input_frame = str(self.get_parameter("source_frame").value)
         self._target_frame = str(self.get_parameter("target_frame").value)
         self._tf_timeout_s = max(0.0, float(self.get_parameter("tf_timeout_s").value))
@@ -56,6 +59,8 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
         self._listener = TransformListener(self._buffer, self)
         self._publisher = self.create_publisher(
             PointCloud2, str(self.get_parameter("output_topic").value), 10)
+        self._world_display = self.create_publisher(PointCloud2, "/lio/cloud_filtered_world", 10)
+        self._body_display = self.create_publisher(PointCloud2, "/lio/cloud_filtered_body", 10)
         self.create_subscription(
             PointCloud2, str(self.get_parameter("input_topic").value),
             self._callback, 10)
@@ -96,6 +101,21 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
                   if low<=float(p[2])-origin_z<=high]
             filtered=point_cloud2.create_cloud_xyz32(msg.header,kept)
             output=do_transform_cloud(filtered,transform)
+            display_low,display_high=(float(self.get_parameter(key).value) for key in ("publish_min_z_m","publish_max_z_m"))
+            if not (math.isfinite(display_low) and math.isfinite(display_high) and display_low<=display_high):
+                raise ValueError("invalid regular cloud height contract")
+            display=[tuple(map(float,p)) for p in point_cloud2.read_points(msg,field_names=("x","y","z"),skip_nans=True)
+                     if display_low<=float(p[2])-origin_z<=display_high]
+            world_display=point_cloud2.create_cloud_xyz32(msg.header,display)
+            q=pose.pose.pose.orientation
+            normalized=_normalize_quaternion((q.x,q.y,q.z,q.w))
+            if normalized is None:raise ValueError("invalid source IMU quaternion")
+            inverse=(-normalized[0],-normalized[1],-normalized[2],normalized[3])
+            origin=pose.pose.pose.position
+            body=[_qrotate(inverse,(p[0]-origin.x,p[1]-origin.y,p[2]-origin.z)) for p in display]
+            body_display=point_cloud2.create_cloud_xyz32(Header(stamp=msg.header.stamp,frame_id="imu"),body)
+            # The upstream body cloud is relative to the source IMU, as in
+            # pinned FAST-LIO. No unverified vehicle extrinsic is introduced.
         except (TransformException, TypeError, ValueError, RuntimeError) as exc:
             self._reject(f"stamped TF unavailable: {exc}")
             return
@@ -103,6 +123,8 @@ class SuperLioCloudFrameNode(Node if rclpy else object):
             self._reject("TF helper returned an unexpected target frame")
             return
         self._publisher.publish(output)
+        self._world_display.publish(world_display)
+        self._body_display.publish(body_display)
         self._last_rejection = ""
 
 

@@ -18,21 +18,26 @@
   },
   "ego_planner_2d_ros2": {
     "commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + 0002-vehicle-ros-timed-trajectory.patch + 0003-clear-stale-plan-on-failure.patch",
-    "patch_sha256": "2252a5a992e30927f6fd30758f531b77b6a4546067e1203674870cb538afd8de",
-    "apply_check": "PASS_SEQUENTIAL",
+    "patch": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch + patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch + patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch + patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+    "apply_check": "PASS_SEQUENTIAL_ALL_FOUR",
     "files": [
+      "src/EgoPlanner-ROS2/CMakeLists.txt",
+      "src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h",
+      "src/EgoPlanner-ROS2/package.xml",
+      "src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h",
+      "src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp",
       "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
+      "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h",
       "src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp",
+      "src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp",
+      "src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt",
       "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp",
       "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h",
       "src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp",
-      "src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h",
-      "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp",
-      "src/EgoPlanner-ROS2/CMakeLists.txt",
-      "src/EgoPlanner-ROS2/package.xml"
+      "src/EgoPlanner-ROS2/src/research_tf_guard.cpp",
+      "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp"
     ],
-    "ros_build": "PASS_TWO_PATCHES_CURRENT_THREE_PATCH_REBUILD_PENDING",
+    "ros_build": "CURRENT_HUMBLE_BUILD_PENDING_FINAL_COMMIT",
     "patches": [
       {
         "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
@@ -51,7 +56,7 @@
       },
       {
         "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
-        "sha256": "10df1cad14dfd5cd1046d0b24c2237c3323e9077807e2fdee118220d1e6d201e",
+        "sha256": "6f6e7e3043fd2d4f5883602f45301ef29e7c51687803b1ca41cf4d4b93093a65",
         "check_apply": "PASS"
       }
     ],
@@ -72,7 +77,7 @@
     "latest_recheck": {
       "status": "PASS_SEQUENTIAL",
       "checkout_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
-      "evidence": "audit/ego_patch_check_latest.log"
+      "evidence": "audit/ego_four_patch_source_verification.json"
     },
     "current_rebuild_probe": {
       "status": "PASS_BUILDKIT_TWO_PATCH_COMPILE_THREE_PATCH_REBUILD_PENDING",

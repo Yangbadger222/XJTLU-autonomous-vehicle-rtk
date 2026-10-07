@@ -4,6 +4,7 @@ import hashlib
 import json
 import argparse
 import re
+import math
 import yaml
 from pathlib import Path
 
@@ -21,7 +22,7 @@ def main():
         "corridor.smoother.min_velocity","corridor.smoother.max_accel","corridor.smoother.max_decel"))
     values = dict(max_speed_mps=vmax[0],min_speed_mps=vmin[0],max_yaw_rate_rps=vmax[2],
                   max_accel_mps2=acc[0],max_decel_mps2=-dec[0],
-                  max_yaw_accel_rps2=acc[2],max_yaw_decel_rps2=-dec[2])
+                  max_yaw_accel_rps2=acc[2],max_yaw_decel_rps2=-dec[2],max_lateral_accel_mps2=locked["corridor.guard.turn_product_limit"])
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     footprint = tuple(tuple(point) for point in locked["vehicle.corridor_footprint_xy"])
     python = root/"src/research_runtime/research_runtime/physical_parameter_lock.py"
@@ -55,9 +56,15 @@ def main():
                 text,count=re.subn(rf"^(    {key}:) .*$",rf"\1 {float(value)!r}",text,flags=re.MULTILINE)
                 if count!=1:raise SystemExit("one physical parameter row required: "+key)
             config.write_text(text)
+        if name=="ego_vehicle_adapter":
+            radius=max(math.hypot(x,y) for x,y in footprint)
+            if args.check and actual["inflate_radius_m"]!=radius:raise SystemExit("planner footprint circle differs from source polygon")
+            if not args.check:
+                text=re.sub(r"^(    inflate_radius_m:) .*$",rf"\1 {radius!r}",text,flags=re.MULTILINE)
+                config.write_text(text)
     cloud=root/"src/bringup/config/super_lio_cloud_frame.yaml"
     cloud_text=cloud.read_text();cloud_values=yaml.safe_load(cloud_text)["super_lio_cloud_frame_adapter"]["ros__parameters"]
-    for key,value in zip(("obstacle_min_z_m","obstacle_max_z_m"),locked["cloud.nav2_obstacle_height_window"]):
+    for key,value in list(zip(("obstacle_min_z_m","obstacle_max_z_m"),locked["cloud.nav2_obstacle_height_window"]))+list(zip(("publish_min_z_m","publish_max_z_m"),locked["cloud.publish_height_window"])):
         if args.check and cloud_values[key]!=value:raise SystemExit("cloud height window differs from original lock")
         if not args.check:cloud_text=re.sub(rf"^(    {key}:) .*$",rf"\1 {float(value)!r}",cloud_text,flags=re.MULTILINE)
     if not args.check:cloud.write_text(cloud_text)

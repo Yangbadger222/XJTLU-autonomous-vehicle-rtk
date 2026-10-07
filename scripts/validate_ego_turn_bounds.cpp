@@ -15,6 +15,15 @@ int main() {
     std::cout << "broad_curve=" << curve << " certified=" << valid << '\n';
     if (!valid)return 1;
   }
+  // Individual v/yaw/curvature limits can all pass while the original
+  // corridor guard's coupled |v*w| cap fails. Test the continuous core gate.
+  Eigen::MatrixXd circle(3,30);circle.setZero();
+  for(int i=0;i<30;++i) {circle(0,i)=2*std::sin(i*.08);circle(1,i)=2*(1-std::cos(i*.08));}
+  UniformBspline lateral(circle,3,.2);
+  bool without_coupling=ego_planner::certifyVehicleTurnBounds(lateral,1.,.7,1.4,1.8);
+  bool with_coupling=ego_planner::certifyVehicleTurnBounds(lateral,1.,.7,1.4,1.8,.25);
+  std::cout << "individual_turn_bounds=" << without_coupling << " coupled_lateral_bound=" << with_coupling << '\n';
+  if(!without_coupling || with_coupling)return 1;
   // Cubic velocity changes sign twice inside a 0.1s span. The old 0.05s
   // grid skips the tiny midspan speed and sees legal endpoint yaw rates.
   const double dt=.1;

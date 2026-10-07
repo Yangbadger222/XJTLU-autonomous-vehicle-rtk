@@ -8,6 +8,7 @@ the absent Jetson deployment dump.
 import argparse
 import hashlib
 import json
+import math
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -30,7 +31,7 @@ def audit(root, default_entry, serial):
     expected = {"max_speed_mps": maximum[0], "min_speed_mps": minimum[0],
         "max_yaw_rate_rps": maximum[2], "max_accel_mps2": acceleration[0],
         "max_decel_mps2": -deceleration[0], "max_yaw_accel_rps2": acceleration[2],
-        "max_yaw_decel_rps2": -deceleration[2]}
+        "max_yaw_decel_rps2": -deceleration[2],"max_lateral_accel_mps2":locked["corridor.guard.turn_product_limit"]}
     checks = []
     def checked(name, expected_value, parsed_value, runtime_value):
         checks.append({"name": name, "locked": expected_value, "parsed": parsed_value,
@@ -46,6 +47,9 @@ def audit(root, default_entry, serial):
     parsed_safety=yaml.safe_load((root/"src/bringup/config/research_safety_bridge.yaml").read_text())["research_safety_bridge"]["ros__parameters"]
     checked("corridor.footprint_xy",expected_footprint,parsed_safety["footprint_xy"],
             parameters(evidence["safety_parameters"]["output"])["footprint_xy"])
+    parsed_ego=yaml.safe_load((root/"src/bringup/config/ego_vehicle_adapter.yaml").read_text())["ego_vehicle_adapter"]["ros__parameters"]
+    checked("corridor.planner_footprint_circle",max(math.hypot(*point) for point in locked["vehicle.corridor_footprint_xy"]),
+            parsed_ego["inflate_radius_m"],parameters(evidence["ego_parameters"]["output"])["inflate_radius_m"])
     super_params=parameters(evidence["superlio_parameters"]["output"])
     super_yaml=yaml.safe_load((root/"src/bringup/config/super_lio_vehicle.yaml").read_text())["/**"]["ros__parameters"]
     def flattened(fields,prefix=""):
@@ -77,6 +81,8 @@ def audit(root, default_entry, serial):
     cloud_runtime=parameters(evidence["cloud_frame_parameters"]["output"])
     for key,value in zip(("obstacle_min_z_m","obstacle_max_z_m"),locked["cloud.nav2_obstacle_height_window"]):
         checked("obstacle_height."+key,value,parsed_cloud[key],cloud_runtime[key])
+    for key,value in zip(("publish_min_z_m","publish_max_z_m"),locked["cloud.publish_height_window"]):
+        checked("regular_cloud_height."+key,value,parsed_cloud[key],cloud_runtime[key])
     # Compare the actual robot_description geometry with expansion of the
     # protected original Xacro, ignoring only nonsemantic comments/formatting.
     source=root/"src/bringup/urdf/rosbot/rosbot.urdf.xacro"

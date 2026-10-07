@@ -35,10 +35,14 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--ego-loop", action="store_true", help="Use actual EGO and PTY-driven planar simulator")
     parser.add_argument("--arc-loop",action="store_true")
+    parser.add_argument("--arc-radius",type=float,default=3.)
+    parser.add_argument("--arc-angle",type=float,default=math.pi/3)
     parser.add_argument("--rtk-classifier",action="store_true")
     parser.add_argument("--tf-static-fault",action="store_true")
     parser.add_argument("--loop-budget-s", type=float, default=30.0)
     args = parser.parse_args()
+    lock=json.loads((args.repo/'audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json').read_text())
+    locked={p['name']:p['value'] for p in lock['parameters']}
     if args.arc_loop:args.ego_loop=True
     if os.environ.get("ROS_DOMAIN_ID") != "91" or os.environ.get("ROS_LOCALHOST_ONLY") != "1":
         raise SystemExit("requires domain 91 and localhost-only isolation")
@@ -54,6 +58,9 @@ def main():
     wire_command = [0.0, 0.0]
     simulated_velocity = [0.0, 0.0]
     last_physics_time = node.get_clock().now().nanoseconds
+    goal_stopped=False
+    goal_arrival_pose=None
+    minimum_goal_distance=float("inf")
     trajectory_counts = {"ok": 0, "failed": 0}
     tracker_reasons = {}
     master_config = args.repo / "src/bringup/config/master_params.yaml"
@@ -111,7 +118,7 @@ def main():
                 wire_command[:] = [float(fields[0][4:]), float(fields[1][3:])]
 
     def tick(fault="normal"):
-        nonlocal last_physics_time
+        nonlocal last_physics_time,goal_stopped,goal_arrival_pose,minimum_goal_distance
         stamp = node.get_clock().now().to_msg()
         now = stamp.sec * 1_000_000_000 + stamp.nanosec
         if args.ego_loop:
@@ -121,6 +128,14 @@ def main():
             simulated_pose[0] += simulated_velocity[0] * math.cos(simulated_pose[2]) * dt
             simulated_pose[1] += simulated_velocity[0] * math.sin(simulated_pose[2]) * dt
             simulated_pose[2] += simulated_velocity[1] * dt
+        if args.ego_loop and fault=="normal":
+            target=(args.arc_radius*math.sin(args.arc_angle),args.arc_radius*(1-math.cos(args.arc_angle))) if args.arc_loop else (3.3,0.)
+            distance=math.dist(simulated_pose[:2],target);minimum_goal_distance=min(minimum_goal_distance,distance)
+            # This integration fixture mirrors the real mission owner's
+            # measured-odom goal completion through the unchanged stop topic.
+            # It is separate from the restricted sensor policy experiment.
+            if distance<.25 and not goal_stopped:
+                goal_stopped=True;goal_arrival_pose=list(simulated_pose)
         last_physics_time = now
         if not args.rtk_classifier and fault != "authority_stale":
             pubs["authority"].publish(Bool(data=fault not in {"authority_false", "rtk_authority_loss"}))
@@ -151,7 +166,7 @@ def main():
             gnss["alignment"].publish(Float64MultiArray(data=[0.,0.,0.,1.]))
             gnss["degeneracy"].publish(Float32MultiArray(data=[100.,1.,0.])) # Explicit healthy legacy-metric classifier fixture, not Super-LIO equivalence.
         if fault != "stop_heartbeat_lost":
-            pubs["stop"].publish(Bool(data=fault == "stop_override"))
+            pubs["stop"].publish(Bool(data=fault == "stop_override" or (args.ego_loop and goal_stopped)))
         pubs["health"].publish(String(data="UNKNOWN" if fault == "lio_health_unknown" else "OK: SIMULATED"))
         pubs["version"].publish(String(data="m2" if fault == "map_version_changed" else "m1"))
         if fault != "odom_stream_lost":
@@ -208,8 +223,8 @@ def main():
                 point = PoseStamped()
                 point.header = reference.header
                 if args.arc_loop:
-                    angle=(math.pi/3)*i/11
-                    point.pose.position.x=3*math.sin(angle);point.pose.position.y=3*(1-math.cos(angle))
+                    angle=args.arc_angle*i/11
+                    point.pose.position.x=args.arc_radius*math.sin(angle);point.pose.position.y=args.arc_radius*(1-math.cos(angle))
                     point.pose.orientation.z,point.pose.orientation.w=math.sin(angle/2),math.cos(angle/2)
                 else:point.pose.position.x, point.pose.orientation.w = i*0.3, 1.0
                 reference.poses.append(point)
@@ -236,6 +251,7 @@ def main():
         while time.monotonic() < deadline:
             tick(fault)
             time.sleep(0.025)
+            if args.ego_loop and fault=="normal" and goal_stopped and max(map(abs,simulated_velocity))<.01:break
         return wire[start:]
 
     try:
@@ -256,7 +272,7 @@ def main():
                 "-p", "max_curvature_1pm:=1.0", "-p", "max_lateral_speed_mps:=0.05",
                 "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305))]))
         for package, binary, ros_args in commands:
-            log = (args.output.parent / (binary + "-mock.log")).open("w")
+            log = (args.output.parent / (args.output.stem+"-"+binary + "-mock.log")).open("w")
             logs.append(log)
             children.append(subprocess.Popen([str(args.install / package / "lib" / package / binary),
                                               "--ros-args"] + ros_args, stdout=log,
@@ -271,14 +287,17 @@ def main():
             normal = phase("normal", args.loop_budget_s)
             stop_lines = phase("authority_false", 0.8)
             tail = stop_lines[-5:]
-            target=(3*math.sin(math.pi/3),1.5) if args.arc_loop else (3.3,0.)
+            target=(args.arc_radius*math.sin(args.arc_angle),args.arc_radius*(1-math.cos(args.arc_angle))) if args.arc_loop else (3.3,0.)
             reached = math.dist(simulated_pose[:2], target) < 0.25
             stopped = len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail)
             result = {"domain": 91, "sink": "original serial binary -> allocated PTY -> synthetic unicycle physics",
                       "source": "actual four-patch pinned EGO binary and installed research tracker",
                       "simulation_only_settings": {"max_curvature_1pm": 1.0, "max_lateral_speed_mps": 0.05, "max_jerk_mps3": 3.0},
                       "scope": "planar mock closed loop with confirmed free test floor; no slip/real vehicle/Super-LIO policy comparison claim",
-                      "final_simulated_pose": simulated_pose, "reached_goal": reached,"target":target,"arc_loop":args.arc_loop,
+                      "minimum_measured_goal_distance":minimum_goal_distance,"goal_stop_latched":goal_stopped,"measured_goal_arrival_pose":goal_arrival_pose,
+                      "final_simulated_pose": simulated_pose, "reached_goal": reached,"target":target,"arc_loop":args.arc_loop,"arc_radius_m":args.arc_radius,"arc_angle_rad":args.arc_angle,
+                      "final_wire_max_turn_product":max([abs(float(line.split(",")[0][4:])*float(line.split(",")[1][3:])) for line in normal] or [0]),
+                      "final_wire_max_curvature":max([abs(float(line.split(",")[1][3:])/float(line.split(",")[0][4:])) for line in normal if abs(float(line.split(",")[0][4:]))>0] or [0]),
                       "final_wire_max_speed":max([abs(float(line.split(",")[0][4:])) for line in normal] or [0]),
                       "final_wire_max_yaw_rate":max([abs(float(line.split(",")[1][3:])) for line in normal] or [0]),
                       "authority_false_final_serial_tail": tail, "runtime_parameters": runtime_parameters,
@@ -286,6 +305,11 @@ def main():
                       "loop_budget_s": args.loop_budget_s,
                       "tracker_reason_counts": tracker_reasons,
                       "status": "PASS" if reached and stopped and trajectory_counts["ok"] > 10 else "FAIL"}
+            result["wire_limits_preserved"]=(result["final_wire_max_turn_product"]<=locked['corridor.guard.turn_product_limit']+1e-9 and
+                result["final_wire_max_curvature"]<=result['simulation_only_settings']['max_curvature_1pm']+1e-9 and
+                result["final_wire_max_speed"]<=locked['corridor.smoother.max_velocity'][0]+1e-9 and
+                result["final_wire_max_yaw_rate"]<=locked['corridor.smoother.max_velocity'][2]+1e-9)
+            if not result["wire_limits_preserved"]:result["status"]="FAIL"
             args.output.write_text(json.dumps(result, indent=2) + "\n")
             print(json.dumps({k:v for k,v in result.items() if k != "runtime_parameters"}, indent=2))
             return 0 if result["status"] == "PASS" else 1
@@ -298,7 +322,7 @@ def main():
         if args.tf_static_fault:faults=("tf_static_competitor",)
         if args.rtk_classifier:faults=("gnss_non_fixed","gnss_low_satellites","gnss_bad_hdop","gnss_heading_float","gnss_rtcm_stale")
         for fault in faults:
-            normal = phase("normal", 8.0 if args.rtk_classifier else .7)
+            normal = phase("normal", 8.0 if args.rtk_classifier else 1.5)
             nominal_ok = any(line.startswith("vcx=0.2") for line in normal)
             fault_lines = phase(fault, 0.85)
             tail = fault_lines[-5:]
@@ -308,7 +332,7 @@ def main():
             if any(child.poll() is not None for child in children):
                 break
         if not args.tf_static_fault and not args.rtk_classifier:
-            normal = phase("normal", 0.7)
+            normal = phase("normal", 1.5)
             os.killpg(children[0].pid, signal.SIGINT)
             children[0].wait(timeout=5)
             fault_lines = phase("normal", 0.8)

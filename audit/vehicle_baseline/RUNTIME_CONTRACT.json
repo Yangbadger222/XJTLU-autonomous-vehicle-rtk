@@ -24,7 +24,7 @@
       "frame": "world",
       "producer": "patched Super-LIO source cloud output",
       "policy": "source frame is never relabeled; stamped TF adapter required",
-      "frequency_hz": "PENDING_RUNTIME"
+      "frequency_hz": "approximately 10 Hz actual raw-bag replay"
     },
     "/lio/health": {
       "type": "std_msgs/msg/String",
@@ -111,9 +111,8 @@
     "/lio/cloud_odom": {
       "type": "sensor_msgs/msg/PointCloud2",
       "frame": "odom",
-      "producer": "super_lio_cloud_frame_adapter via timestamped world->odom TF",
-      "consumer": "research_local_obstacle_grid; missing TF withholds cloud",
-      "policy": "exact old world-z minus source IMU world-z height window at matched acquisition time, then timestamped TF; missing pose/TF withholds"
+      "producer": "super_lio_cloud_frame_adapter",
+      "policy": "original obstacle height window; acquisition-time source-world-to-odom transform"
     },
     "/research/tf_integrity": {
       "type": "std_msgs/msg/Bool",
@@ -122,9 +121,8 @@
     },
     "/localization_authority/mode": {
       "type": "std_msgs/msg/String",
-      "producer": "unchanged original rtk_map_odom_corrector",
-      "consumer": "safety bridge, observer, evidence anchors",
-      "policy": "RTK_AUTHORITATIVE/RTK_REACQUIRING fresh <=0.50s; LIO_BRIDGE denied even Bool true"
+      "consumer": "research safety/observer/anchor",
+      "policy": "fresh RTK_AUTHORITATIVE or RTK_REACQUIRING only; LIO_BRIDGE remains denied even if legacy Bool is true"
     },
     "/research/road_graph_updates": {
       "type": "research_interfaces/msg/RoadGraphUpdate2D",
@@ -136,6 +134,18 @@
       "type": "std_msgs/msg/String",
       "producer": "sole evidence writer after persistence",
       "content": "accepted measurement UUID only; enables idempotent sensor retransmission"
+    },
+    "/lio/cloud_filtered_world": {
+      "type": "sensor_msgs/msg/PointCloud2",
+      "frame": "world",
+      "producer": "super_lio_cloud_frame_adapter",
+      "policy": "original regular height window along gravity relative to source IMU origin"
+    },
+    "/lio/cloud_filtered_body": {
+      "type": "sensor_msgs/msg/PointCloud2",
+      "frame": "imu",
+      "producer": "super_lio_cloud_frame_adapter",
+      "policy": "same regular points transformed with acquisition-matched world-to-IMU rigid pose; not vehicle body calibration"
     }
   },
   "serial": {
@@ -152,5 +162,6 @@
     "map_version_mismatch": "stop",
     "rtk_authority_false": "stop",
     "rtk_lio_bridge": "stop; no holdover approval granted"
-  }
+  },
+  "trajectory_progress": "generated_at retained between geometry replans; fresh validated TTL heartbeat; candidate query never publishes control"
 }

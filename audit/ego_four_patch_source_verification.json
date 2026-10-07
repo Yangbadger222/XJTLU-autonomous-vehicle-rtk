@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "pinned_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+  "patches": [
+    {
+      "path": "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+      "sha256": "ac332b66a5481f9b0dc25f68571dac2c9a81603f95d14a1185d208a745fe325f",
+      "check_apply": "PASS"
+    },
+    {
+      "path": "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+      "sha256": "793423e21b540d0e260e6da864c26b7fcaef004df3b53b7e12a32dbbec79f426",
+      "check_apply": "PASS"
+    },
+    {
+      "path": "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+      "sha256": "caf3131bfb47f47db1d27d39608f63fd211eb58ed4b20dd58d5fa4a58c8caef3",
+      "check_apply": "PASS"
+    },
+    {
+      "path": "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+      "sha256": "6f6e7e3043fd2d4f5883602f45301ef29e7c51687803b1ca41cf4d4b93093a65",
+      "check_apply": "PASS"
+    }
+  ],
+  "replayed_files": [
+    "src/EgoPlanner-ROS2/CMakeLists.txt",
+    "src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h",
+    "src/EgoPlanner-ROS2/package.xml",
+    "src/EgoPlanner-ROS2/planner/GridMap2D/include/plan_env/grid_map.h",
+    "src/EgoPlanner-ROS2/planner/GridMap2D/src/grid_map.cpp",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/bspline_optimizer.h",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/include/bspline_opt/vehicle_turn_bounds.h",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/src/bspline_optimizer.cpp",
+    "src/EgoPlanner-ROS2/planner/bspline_opt/src/uniform_bspline.cpp",
+    "src/EgoPlanner-ROS2/planner/plan_manage/CMakeLists.txt",
+    "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/plan_container.hpp",
+    "src/EgoPlanner-ROS2/planner/plan_manage/include/plan_manage/planner_interface.h",
+    "src/EgoPlanner-ROS2/planner/plan_manage/src/planner_interface.cpp",
+    "src/EgoPlanner-ROS2/src/research_tf_guard.cpp",
+    "src/EgoPlanner-ROS2/src/trajectory_publisher.cpp"
+  ],
+  "matches_built_source": true,
+  "verification_checkout": "ego-latest-four-patch-verification"
+}

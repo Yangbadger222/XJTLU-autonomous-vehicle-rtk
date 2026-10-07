@@ -98,7 +98,9 @@ class TimedTrajectoryTracker:
             # Over the original 0.25 s command timeout any bounded feedback
             # command stays inside this conservative measured-pose envelope.
             # A collision-free nominal path alone does not certify feedback.
-            margin=.25*(self.limits.max_speed_mps+radius*self.limits.max_yaw_rate_rps)
+            margin=(.25*(self.limits.max_speed_mps+radius*self.limits.max_yaw_rate_rps)+
+                    self.limits.max_speed_mps**2/(2*self.limits.max_decel_mps2)+
+                    radius*self.limits.max_yaw_rate_rps**2/(2*self.limits.max_yaw_decel_rps2))
             if occupied_polygon(actual,margin):
                 self.last_rejection="measured_footprint_or_feedback_sweep_blocked"
                 return None
@@ -120,6 +122,9 @@ class TimedTrajectoryTracker:
         if (requested_v < self.limits.min_speed_mps or requested_v > self.limits.max_speed_mps or
                 abs(requested_w) > self.limits.max_yaw_rate_rps):
             self.last_rejection = f"feedback_limit:v={requested_v:.6g},w={requested_w:.6g}"
+            return None
+        if abs(requested_v*requested_w)>self.limits.max_lateral_accel_mps2+1e-9:
+            self.last_rejection="feedback_original_guard_turn_product_limit"
             return None
         if (self.limits.max_curvature_1pm is not None and
                 abs(requested_w)>self.limits.max_curvature_1pm*abs(requested_v)+1e-9):

@@ -17,11 +17,12 @@ research_safety_bridge:
     normal_slew_fraction: 0.50
     max_speed_mps: 0.85
     min_speed_mps: 0.0
-    max_yaw_rate_rps: 0.70
+    max_yaw_rate_rps: 0.7
     max_accel_mps2: 0.85
-    max_decel_mps2: 1.20
-    max_yaw_accel_rps2: 1.40
-    max_yaw_decel_rps2: 1.80
+    max_decel_mps2: 1.2
+    max_yaw_accel_rps2: 1.4
+    max_yaw_decel_rps2: 1.8
+    max_lateral_accel_mps2: 0.25
     max_curvature_1pm: 0.0
     max_lateral_speed_mps: 0.0
     # Exact corridor local-costmap polygon from the locked baseline.  This is

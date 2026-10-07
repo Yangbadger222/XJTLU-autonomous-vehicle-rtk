@@ -27,6 +27,7 @@ class VehicleLimits:
     max_decel_mps2: float = PHYSICAL_LIMITS["max_decel_mps2"]
     max_yaw_accel_rps2: float = PHYSICAL_LIMITS["max_yaw_accel_rps2"]
     max_yaw_decel_rps2: float = PHYSICAL_LIMITS["max_yaw_decel_rps2"]
+    max_lateral_accel_mps2: float = PHYSICAL_LIMITS["max_lateral_accel_mps2"]
     max_curvature_1pm: Optional[float] = None
     max_lateral_speed_mps: float = 0.05
     derivative_tolerance: float = 0.05
@@ -146,6 +147,8 @@ def validate_trajectory(
             result.max_abs_curvature = max(result.max_abs_curvature, abs(point.curvature))
         if point.v < limits.min_speed_mps - 1e-9 or point.v > limits.max_speed_mps + 1e-9:
             result.fail(f"speed_limit:{point.v:.6g}")
+        if abs(point.v*point.w)>limits.max_lateral_accel_mps2+1e-9:
+            result.fail("original_guard_turn_product_limit")
         if abs(point.w) > limits.max_yaw_rate_rps + 1e-9:
             result.fail(f"yaw_rate_limit:{point.w:.6g}")
         if abs(point.a) > limits.max_accel_mps2 + 1e-9 and point.a >= 0:
@@ -181,13 +184,13 @@ def validate_trajectory(
                         result.fail("path_speed_mismatch")
                 dv_dt = (point.v - previous.v) / dt
                 dw_dt = (point.w - previous.w) / dt
-                if dv_dt > limits.max_accel_mps2 + limits.derivative_tolerance:
+                if dv_dt > limits.max_accel_mps2 + 1e-6:
                     result.fail(f"speed_derivative_accel_limit:{dv_dt:.6g}")
-                if dv_dt < -limits.max_decel_mps2 - limits.derivative_tolerance:
+                if dv_dt < -limits.max_decel_mps2 - 1e-6:
                     result.fail(f"speed_derivative_decel_limit:{dv_dt:.6g}")
-                if dw_dt > limits.max_yaw_accel_rps2 + limits.derivative_tolerance:
+                if dw_dt > limits.max_yaw_accel_rps2 + 1e-6:
                     result.fail(f"yaw_derivative_accel_limit:{dw_dt:.6g}")
-                if dw_dt < -limits.max_yaw_decel_rps2 - limits.derivative_tolerance:
+                if dw_dt < -limits.max_yaw_decel_rps2 - 1e-6:
                     result.fail(f"yaw_derivative_decel_limit:{dw_dt:.6g}")
                 yaw_rate_from_path = _angle_delta(point.yaw, previous.yaw) / dt
                 if abs(yaw_rate_from_path - point.w) > max(limits.derivative_tolerance, 0.25 * max(abs(point.w), 0.1)):

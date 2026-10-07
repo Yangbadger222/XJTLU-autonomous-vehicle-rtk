@@ -108,6 +108,7 @@ if rclpy:
                     max_decel_mps2=float(self.get_parameter("max_decel_mps2").value),
                     max_yaw_accel_rps2=float(self.get_parameter("max_yaw_accel_rps2").value),
                     max_yaw_decel_rps2=float(self.get_parameter("max_yaw_decel_rps2").value),
+                    max_lateral_accel_mps2=float(self.get_parameter("max_lateral_accel_mps2").value),
                     max_curvature_1pm=max_curvature if self._limits_configured else None,
                     max_lateral_speed_mps=max_lateral),
                 longitudinal_gain=float(self.get_parameter("tracker_longitudinal_gain").value),
@@ -312,7 +313,9 @@ if rclpy:
                     (command.linear_x, command.angular_z), now - self._last_tick, self._tracker.limits,
                     self._normal_slew_fraction)
                 curvature_limit=self._tracker.limits.max_curvature_1pm
-                if curvature_limit is not None and abs(self._last_command[1])>curvature_limit*abs(self._last_command[0])+1e-9:
+                wire_v,wire_w=(float(f"{value:.3f}") for value in self._last_command)
+                if (abs(wire_v*wire_w)>self._tracker.limits.max_lateral_accel_mps2+1e-12 or
+                    (curvature_limit is not None and abs(wire_w)>curvature_limit*abs(wire_v)+1e-12)):
                     self._last_command=(0.,0.)
                     command=SafetyCommand(0.,0.,False,"post_slew_curvature_rejected")
             else:

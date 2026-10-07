@@ -35,9 +35,11 @@ actual cubic-spline yaw/curvature, and independently certifies continuous turn
 and whole-footprint collision bounds. Unknown/outside cells remain occupied.
 It adds the read-only candidate planning service and native dynamic/static TF
 ownership guard. Optimizer speed/acceleration/turn fractions are explicitly new
-algorithm settings; the shared seven physical caps are never relaxed.
+algorithm settings; the shared eight physical caps are never relaxed.
 
 All four patches apply sequentially to the pinned raw commit. See
 `audit/UPSTREAM_PATCH_VERIFICATION.json` and the exact source comparison in
-`audit/ego_patch_check_current.log`. Current Humble validation is reported in
+`audit/ego_four_patch_source_verification.json`. Current Humble validation is reported in
 `AUDIT_REPORT.md`; it is not a physical vehicle acceptance.
+
+The fourth patch also preserves the original coupled `|v*w| <= 0.25` guard cap in optimization, continuous certification and tracking. A validated 10 Hz heartbeat retains the trajectory generation time between 1 Hz geometry replans; every heartbeat still checks fresh state, TF, reference, map version and the remaining footprint against the current grid. Candidate queries cannot replace the execution cache.

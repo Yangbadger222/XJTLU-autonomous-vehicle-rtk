@@ -16,9 +16,11 @@ def main():
     if os.environ.get('ROS_DOMAIN_ID')!='97' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':raise SystemExit('isolated domain 97 required')
     rclpy.init();node=rclpy.create_node('analytical_lio_fixture');a.output.parent.mkdir(parents=True,exist_ok=True)
     odom=node.create_publisher(Odometry,'/lio/odom',100);health=node.create_publisher(String,'/lio/health',10);cloud=node.create_publisher(PointCloud2,'/lio/cloud_world',10)
-    received=[];clouds=[];health_states=[]
+    received=[];clouds=[];health_states=[];world_display=[];body_display=[]
     node.create_subscription(Odometry,'/lio/odom_vehicle',received.append,100)
     node.create_subscription(PointCloud2,'/lio/cloud_odom',clouds.append,100)
+    node.create_subscription(PointCloud2,'/lio/cloud_filtered_world',world_display.append,100)
+    node.create_subscription(PointCloud2,'/lio/cloud_filtered_body',body_display.append,100)
     node.create_subscription(String,'/lio/vehicle_health',lambda msg:health_states.append(msg.data),100)
     tf=StaticTransformBroadcaster(node);t=TransformStamped();t.header.frame_id='odom';t.child_frame_id='world';t.header.stamp=node.get_clock().now().to_msg()
     t.transform.translation.x,t.transform.translation.y,t.transform.translation.z=10.,20.,100.
@@ -55,6 +57,14 @@ def main():
         phase(1.,send_cloud=True,tilt=True)
         pts=list(point_cloud2.read_points(clouds[-1],field_names=('x','y','z'))) if clouds else []
         check('gravity_height_window_tilted_body_nonzero_altitude_nan_rejection',len(pts)==2 and all(200.08<float(p[2])<201.2 for p in pts),[list(map(float,p)) for p in pts])
+        wp=list(point_cloud2.read_points(world_display[-1],field_names=('x','y','z'))) if world_display else []
+        bp=list(point_cloud2.read_points(body_display[-1],field_names=('x','y','z'))) if body_display else []
+        expected=[(-1.,-2.*math.cos(.5)+.05*math.sin(.5),2.*math.sin(.5)+.05*math.cos(.5)),
+                  (0.,-2.*math.cos(.5)+.2*math.sin(.5),2.*math.sin(.5)+.2*math.cos(.5))]
+        check('regular_world_and_imu_body_cloud_same_gravity_filter',len(wp)==len(bp)==2 and
+              world_display[-1].header.frame_id=='world' and body_display[-1].header.frame_id=='imu' and
+              all(math.dist(tuple(map(float,p)),e)<1e-4 for p,e in zip(bp,expected)),
+              {'world':[list(map(float,p)) for p in wp],'body':[list(map(float,p)) for p in bp]})
         phase(.7,send_health=False);count=len(received);phase(.3,send_health=False)
         check('source_health_receipt_expiry_with_continuing_odom',len(received)==count and health_states and health_states[-1].startswith('UNKNOWN'))
         result={'status':'PASS' if all(c['status']=='PASS' for c in checks) else 'FAIL','checks':checks,

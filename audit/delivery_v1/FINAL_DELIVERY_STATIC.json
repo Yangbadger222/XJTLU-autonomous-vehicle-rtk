@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "branch": "codex/superlio-ego-active-road",
-  "tip": "baa41113fa2586397003ae568ee6bc047e8758a7",
+  "tip": "fad69a9d06a9c0e848e86e4b4198024c03c34d94",
   "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
   "checks": [
     {
@@ -11,7 +11,7 @@
         "git merge-base --is-ancestor",
         "audit/vehicle_baseline/SOURCE_IDENTITY.json"
       ],
-      "detail": "branch=codex/superlio-ego-active-road, tip=baa41113fa2586397003ae568ee6bc047e8758a7, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
+      "detail": "branch=codex/superlio-ego-active-road, tip=fad69a9d06a9c0e848e86e4b4198024c03c34d94, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
     },
     {
       "name": "external_pins",
@@ -45,10 +45,10 @@
       "name": "current_clean_humble_build",
       "status": "PASS",
       "evidence": [
-        "audit/optimization_v2/clean-build.json",
-        "audit/optimization_v2/clean-build.log"
+        "audit/remote_humble/clean-final-build.json",
+        "audit/remote_humble/clean-final-build.log"
       ],
-      "detail": "fresh isolated SDK/14-package build; runtime changes since build: []"
+      "detail": "fresh isolated SDK/14-package build; runtime source tree unchanged since compiled source commit"
     },
     {
       "name": "historical_ego_three_patch_build_recipe",

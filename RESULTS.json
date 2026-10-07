@@ -157,11 +157,13 @@
     "scope": "Pinned original test/environment failures retained: 191 PASS/3 FAIL authority-guard; 26 PASS/1 FAIL launch. No protected bytes changed to force green."
   },
   "DELIVERY_STATE": {
-    "status": "PENDING",
-    "detail": "Current implementation and evidence are locally complete; final normal research-branch push and PR-head verification are recorded in the subsequent publication receipt. Default actuator-free replay preview is active; all finite mock tests stopped.",
+    "status": "PASS",
+    "detail": "Normal research-only branch push and OPEN draft PR verified; production baseline remains e54c6af. Current installed runtime remains ce46418. Finite tests ended; the recorded default actuator-free replay preview is intentionally active. Receipt descendants contain status/audit prose only.",
     "evidence": [
-      "audit/optimization_v2/clean-build.json",
+      "audit/optimization_v2/publication.json",
+      "audit/optimization_v2/static-delivery.json",
       "audit/optimization_v2/operator-preview.json",
+      "audit/optimization_v2/final-process-snapshot.json",
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md"
     ]
@@ -174,7 +176,8 @@
       "audit/optimization_v2/browser-acceptance.json",
       "audit/optimization_v2/console-raw-controls.json",
       "docs-CN/research_operator_console.md",
-      "docs-EN/research_operator_console.md"
+      "docs-EN/research_operator_console.md",
+      "audit/optimization_v2/final-code-review.md"
     ]
   }
 }

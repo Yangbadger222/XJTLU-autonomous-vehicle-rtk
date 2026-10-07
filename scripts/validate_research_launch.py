@@ -124,9 +124,10 @@ def main():
                   "missing_expected_nodes": sorted(expected - set(names)),
                   "forbidden_nodes": [n for n in names if any(word in n.lower() for word in forbidden)],
                   "launch_exit_before_cleanup": process.poll()}
+        result["expected_child_count"] = len(expected)
         result["status"] = "PASS" if (not result["missing_expected_nodes"] and not result["forbidden_nodes"] and
                 process.poll() is None and all(c["status"]=="PASS" for c in override_results) and all(v["exit"] == 0 for v in evidence.values() if isinstance(v,dict) and "exit" in v)
-                and len(owned_pids) == 15 and all(p["alive"] for p in evidence["owned_child_processes"])
+                and len(owned_pids) == len(expected) and all(p["alive"] for p in evidence["owned_child_processes"])
                 and len(owners) == 1 and owners[0].node_name == "research_safety_bridge") else "FAIL"
     finally:
         if process.poll() is None:

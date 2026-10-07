@@ -28,6 +28,20 @@ public:
     state.R=BASIC::SO3(Eigen::AngleAxis<BASIC::scalar>(.2,BASIC::V3::UnitZ()).toRotationMatrix())*state.R;
     kf_->SetX(state);
   }
+  void updatePosteriorAcceleration() {
+    // A synthetic positive-definite prior with real p/ba cross-covariance
+    // drives the actual native measurement update, including Update()'s
+    // posterior acceleration recomputation. It is not a physical estimate.
+    LI2Sup::ESKF::COV covariance=LI2Sup::ESKF::COV::Identity()*.1;
+    covariance(3,12)=covariance(12,3)=.08;kf_->SetCov(covariance);
+    const BASIC::V3 target=kf_->GetSysState().p+BASIC::V3(1.,0.,0.);
+    const BASIC::V3 acceleration=kf_->GetDynamicState().a;
+    assert(kf_->UpdateObserve([&](const auto& state,BASIC::M6& information,BASIC::V6& residual) {
+      information=BASIC::M6::Identity()*100000.;residual.setZero();
+      residual.template tail<3>()=100000.*(target-state.pose.t_);kf_->SetObservationSamples(100);
+    }));
+    assert((kf_->GetDynamicState().a-acceleration).norm()>.1);
+  }
 };
 
 LI2Sup::MeasureGroup fixture() {
@@ -81,6 +95,13 @@ int main() {
     const auto& a=overlap.output()->points[i];const auto& b=shifted.output()->points[i];
     assert(std::abs(a.x-b.x)+std::abs(a.y-b.y)+std::abs(a.z-b.z)<1e-4);
   }
+  Probe bias_updated;assert(bias_updated.run(fixture()));bias_updated.updatePosteriorAcceleration();
+  auto boundary=overlapping;
+  boundary.lidar.pc.reset(new pcl::PointCloud<LI2Sup::PointXTZIT>());
+  for(double offset:{.00499999,.00500001,.035})boundary.lidar.pc->emplace_back(1.,.5,.2,10.,offset);
+  assert(bias_updated.run(boundary));
+  const auto& left=bias_updated.output()->points[0];const auto& right=bias_updated.output()->points[1];
+  assert(std::abs(left.x-right.x)+std::abs(left.y-right.y)+std::abs(left.z-right.z)<1e-6);
   const auto before=overlap.covariance();const double time=overlap.time();
   auto too_old=overlapping;too_old.lidar.start_time=.9;too_old.lidar.end_time=1.1;
   for(auto& imu:too_old.imu)imu.secs+=.03;too_old.imu_after_scan->secs+=.03;

@@ -326,7 +326,7 @@ index f7a64d2..bee8611 100644
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..79aa04d 100644
+index d1a3ae7..cad3ee5 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
 @@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
@@ -498,7 +498,28 @@ index d1a3ae7..79aa04d 100644
        auto match_iter_n = std::next(match_iter);
        double dt = match_iter_n->time - match_iter->time;
        double tau = query_time - match_iter->time;
-@@ -423,6 +498,15 @@ void SuperLIO::Propagation_Undistort(){
+@@ -414,7 +489,19 @@ void SuperLIO::Propagation_Undistort(){
+       acc_t = match_iter_n->a;
+       w_t = match_iter_n->w;
+       M3 R_i = Quat(R_h).slerp(s, Quat(R_t)).toRotationMatrix();
+-      V3 p_i = p_h + v_h * tau + 0.5 * acc_t * tau * tau;
++      V3 p_i;
++      if (match_iter_n->time <= current.time) {
++        // A measurement can change the endpoint velocity/acceleration through
++        // posterior bias and gravity. Re-integrating the old segment using
++        // that new acceleration would miss its saved endpoint. Hermite uses
++        // the two actual estimated positions/velocities, with exact endpoints
++        // and a continuous shared posterior boundary; no time extrapolation.
++        const double s2=s*s, s3=s2*s;
++        p_i = (2*s3-3*s2+1)*p_h + (s3-2*s2+s)*dt*v_h +
++              (-2*s3+3*s2)*match_iter_n->p + (s3-s2)*dt*match_iter_n->v;
++      } else {
++        p_i = p_h + v_h * tau + 0.5 * acc_t * tau * tau;
++      }
+       V3 t_ei = p_i - T_end_t;
+       V3 raw(pt.x, pt.y, pt.z);
+       V3 eigen_point = R_inv * (R_i * (TLI_R * raw + TLI_t) + t_ei);
+@@ -423,6 +510,15 @@ void SuperLIO::Propagation_Undistort(){
        pt_full.z = eigen_point[2];
      }
    });
@@ -514,7 +535,7 @@ index d1a3ae7..79aa04d 100644
  }
  
  
-@@ -435,12 +519,17 @@ void SuperLIO::DownSample(){
+@@ -435,12 +531,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
    V6d HTVr = V6d::Zero();
@@ -533,7 +554,7 @@ index d1a3ae7..79aa04d 100644
    
    static std::vector<float> _lengths;
    points_body_v3_.resize(ptsize);
-@@ -458,7 +547,7 @@ void SuperLIO::Observe(){
+@@ -458,7 +559,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
  
@@ -542,7 +563,7 @@ index d1a3ae7..79aa04d 100644
      const SE3 pose = kf_state.pose;
      const bool need_converge = kf_state.need_converge;
      const M3d R_transpose = (pose.R_.transpose()).cast<double>();
-@@ -504,18 +593,22 @@ void SuperLIO::Observe(){
+@@ -504,18 +605,22 @@ void SuperLIO::Observe(){
        
              local_acc.HTVH += J * 1000 * J.transpose();
              local_acc.HTVr -= J * 1000 * error;
@@ -565,7 +586,7 @@ index d1a3ae7..79aa04d 100644
  
      if(need_converge) return;
  
-@@ -534,6 +627,7 @@ void SuperLIO::Observe(){
+@@ -534,6 +639,7 @@ void SuperLIO::Observe(){
    });
  
    frame_num_++;
@@ -573,7 +594,7 @@ index d1a3ae7..79aa04d 100644
  }
  
  
-@@ -589,4 +683,4 @@ void SuperLIO::printTimeRecord(){
+@@ -589,4 +695,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
  

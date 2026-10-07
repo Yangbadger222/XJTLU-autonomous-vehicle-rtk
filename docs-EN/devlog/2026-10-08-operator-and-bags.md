@@ -93,3 +93,17 @@ A subset of good frames does not prove a continuous usable interface. Original M
 
 #### Effect
 The next source revision adds finite historical deskew while still requiring3 current IMUs, actual endpoint brackets and rejection of older points; actual build/green regression/full replay remain required. Original firmware/protocol/calibration/physical limits/RTK-loss stopping are unchanged. Ground/EGO/target qualification and benefit remain unfinished; the goal continues with no automatic physical motion.
+
+### Posterior history endpoint continuity regression
+
+#### File
+Super patch0002/native deskew probe/reference contract/diagnosis; `audit/vehicle_ready/cd54c70/posterior-boundary-red.log`.
+
+#### Change
+After the actualcd54 fourteen-package build, a real ESKF UpdateObserve with synthetic PSD position/bias cross covariance changes posterior acceleration and fails the shared-boundary continuity assertion. Historical segments now use endpoint-exact position/velocity Hermite interpolation; current IMU segments retain native propagation.
+
+#### Reason
+Re-integrating a past segment with posterior acceleration can miss its saved position endpoint. The earlier translation/yaw-only zero-acceleration fixture missed this defect. The independent review finding is confirmed by an actual native red test.
+
+#### Effect
+Finite history/real brackets/rollback/original safety limits remain. Green native regression and full raw replay still require execution; a successful compile is not continuous interface or physical acceptance.

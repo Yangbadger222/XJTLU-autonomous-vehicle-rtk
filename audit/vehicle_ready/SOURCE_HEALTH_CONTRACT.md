@@ -22,4 +22,6 @@ For a fresh localization session, odom is defined as the new estimator's continu
 
 A native source certificate is paired to odometry by exact acquisition stamp even when the two topics arrive in reverse order. Headerless 'OK' cannot qualify this profile. Coordinate-valid odom remains observable for shadow when health fails, but vehicle health stays UNKNOWN and the existing final bridge denies motion. RTK loss remains an independent mandatory stop.
 
+Historical position interpolation uses endpoint-exact cubic Hermite positions/velocities. Reusing posterior acceleration to re-integrate a past segment from its old left state would miss the posterior endpoint; the actual native update with position/bias cross covariance is a required negative regression before the fix. Current intervals retain native IMU propagation. This is a finite estimated deskew trajectory, not independent physical accuracy or a time correction.
+
 This source contract is subject to actual C++ equation/covariance checks, actual Humble build, native bag replay and final mock serial fault checks. Those execution results must be inspected before assigning PASS; current work does not automatically enable actuators or prove physical acceptance.

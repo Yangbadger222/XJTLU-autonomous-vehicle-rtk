@@ -1,0 +1,1 @@
+deskew: /home/badger/codex-research/superlio-ego-20261007/logs/lio-ready-cd54c70/test-tools/scripts/validate_super_lio_deskew.cpp:104: int main(): Assertion `std::abs(left.x-right.x)+std::abs(left.y-right.y)+std::abs(left.z-right.z)<1e-6' failed.

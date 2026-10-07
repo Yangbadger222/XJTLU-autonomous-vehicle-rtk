@@ -72,13 +72,18 @@ def confirmed_route_prefix(graph, start, goal, pose, grid, footprint):
     if nearest is None or nearest[0]>.30:return (), 'POSE_OUTSIDE_CONFIRMED_ROAD'
     remaining=[nearest[2]]+points[nearest[1]+1:]
     result=[]
+    # EGO uses the original footprint's circumscribed circle against complete
+    # occupied-cell AABBs. A merely polygon-free reference endpoint can still
+    # be rejected by that existing planner contract. Match its envelope here.
+    radius=max(math.sqrt(x*x+y*y) for x,y in footprint)
     for a,b in zip(remaining,remaining[1:]):
         yaw=math.atan2(b[1]-a[1],b[0]-a[0]);c,s=math.cos(yaw),math.sin(yaw)
         steps=max(1,math.ceil(distance(a,b)/(grid.resolution_m*.25)))
+        sweep_margin=distance(a,b)/steps*.5
         for i in range(steps+1):
             xy=(a[0]+(b[0]-a[0])*i/steps,a[1]+(b[1]-a[1])*i/steps)
             polygon=[(xy[0]+c*x-s*y,xy[1]+s*x+c*y) for x,y in footprint]
-            if grid.polygon_occupied(polygon):
+            if grid.polygon_occupied(polygon) or grid.disk_occupied(xy[0],xy[1],radius+sweep_margin):
                 return tuple(result), 'LOCAL_SUPPORT_BOUNDARY'
             if not result or distance(result[-1],xy)>1e-7:result.append(xy)
     return tuple(result), 'PRIOR_ROUTE_WITH_CONFIRMED_LOCAL_PREFIX' if math.isfinite(cost) else 'UNCONFIRMED_GRAPH_CONNECTION'

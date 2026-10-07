@@ -65,6 +65,37 @@ class LocalObstacleGrid:
         value = self.value_at(x_m, y_m)
         return value == 100 or (value == -1 and self.unknown_is_occupied)
 
+    def disk_occupied(self, x_m: float, y_m: float, radius_m: float) -> bool:
+        """Match the EGO input-grid circle versus whole occupied-cell AABBs.
+
+        This conservative geometry also includes outside-map space. It keeps
+        road-reference endpoints inside the planner's existing footprint
+        envelope; it never shrinks that envelope to make a plan pass.
+        """
+        if not _finite((x_m,y_m,radius_m)) or radius_m<0:
+            return True
+        if (x_m-radius_m<self.origin_x_m or y_m-radius_m<self.origin_y_m or
+            x_m+radius_m>self.origin_x_m+self.width*self.resolution_m or
+            y_m+radius_m>self.origin_y_m+self.height*self.resolution_m):
+            return True
+        col0=math.floor((x_m-radius_m-self.origin_x_m)/self.resolution_m)
+        col1=math.floor((x_m+radius_m-self.origin_x_m)/self.resolution_m)
+        row0=math.floor((y_m-radius_m-self.origin_y_m)/self.resolution_m)
+        row1=math.floor((y_m+radius_m-self.origin_y_m)/self.resolution_m)
+        for row in range(row0,row1+1):
+            for col in range(col0,col1+1):
+                if not 0<=row<self.height or not 0<=col<self.width:
+                    return True
+                if self.cells[row*self.width+col]==0:
+                    continue
+                left=self.origin_x_m+col*self.resolution_m
+                bottom=self.origin_y_m+row*self.resolution_m
+                dx=max(left-x_m,x_m-left-self.resolution_m,0.)
+                dy=max(bottom-y_m,y_m-bottom-self.resolution_m,0.)
+                if dx*dx+dy*dy<=radius_m*radius_m:
+                    return True
+        return False
+
     def polygon_occupied(self, polygon, margin=0.0) -> bool:
         """Test the whole convex footprint against cells, including boundaries.
 

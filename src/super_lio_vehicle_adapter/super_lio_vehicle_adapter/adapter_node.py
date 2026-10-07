@@ -91,6 +91,8 @@ def _source_certificate(text):
         stamp = data["stamp_ns"]
         observed = float(data["minimum_observation_information"])
         bound = float(data["legacy_min_eig_lower_bound"])
+        if type(data["iterations"]) is not int or type(data["effective_points"]) is not int:
+            return None
         if type(stamp) is not int or stamp <= 0 or not _finite((observed, bound)) or observed < 0 or bound < 0:
             return None
         if abs(bound-min(observed, 100000.)) > 1e-6*max(1., bound):
@@ -348,7 +350,9 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
                 return
             if self._source_certificate_stamp != source_stamp:
                 self._pending_odom = msg
-                self._reject("awaiting measurement-matched observation certificate")
+                # Do not transiently fault a previously accepted pair merely
+                # because DDS delivered the next odom before its certificate.
+                # Without a matched pair, state/health freshness still expires.
                 return
             if self._last_source_stamp is not None and source_stamp <= self._last_source_stamp:
                 if source_stamp < self._last_source_stamp:

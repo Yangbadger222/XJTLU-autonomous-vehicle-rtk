@@ -159,15 +159,16 @@ index d0ffe51..2fdcf68 100644
    void pub_cloud2planner(const BASIC::CloudPtr& pc, double time);
    void pub_cloud_world_pose(const BASIC::CloudPtr& pc, 
 diff --git a/src/super_lio/src/lio/ESKF.cpp b/src/super_lio/src/lio/ESKF.cpp
-index f7a64d2..1249155 100644
+index f7a64d2..cd1d827 100644
 --- a/src/super_lio/src/lio/ESKF.cpp
 +++ b/src/super_lio/src/lio/ESKF.cpp
-@@ -258,6 +258,18 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -258,6 +258,19 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    V3  g_pred = g_;
  
    M18 P_pred = P_;
 +  observation_quality_ = ObservationQuality();
 +  const auto rollback = [&]() {
++    observation_quality_.valid = observation_quality_.eligible = false;
 +    R_ = R_pred; p_ = p_pred; v_ = v_pred; bg_ = bg_pred; ba_ = ba_pred; g_ = g_pred;
 +    P_ = P_pred; dx_.setZero();
 +    return false;
@@ -181,17 +182,21 @@ index f7a64d2..1249155 100644
  
    M6 HTVH;
    V6 HTVr;
-@@ -274,6 +286,9 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -274,6 +287,13 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
      }
  
      obs(GetKFState(), HTVH, HTVr);
 +    const auto quality = assessObservation(HTVH.cast<double>(), observation_samples_);
 +    accumulateObservationQuality(observation_quality_, quality);
-+    if (!quality.valid || !HTVr.allFinite() || !P_pred.allFinite()) return rollback();
++    if (!quality.valid) return rollback();
++    if (!HTVr.allFinite()) {
++      observation_quality_.reason = "nonfinite_observation_residual";
++      return rollback();
++    }
  
      V18 dx_prior = V18::Zero();
      dx_prior.template block<3,1>(0,0)  = (R_pred.inverse() * R_).log_vee();
-@@ -301,6 +316,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -301,6 +321,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
      // information form
      M18 A = Pk.inverse() + HTRH;
      Qk = A.inverse();
@@ -204,7 +209,7 @@ index f7a64d2..1249155 100644
  
      V18 b = V18::Zero();
      b.template head<6>() = HTVr;
-@@ -309,6 +330,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -309,6 +335,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
  
      // dx = K_h + (K_x - I) * dx_prior
      dx_ = Qk * b + (K_x - M18::Identity()) * dx_prior;
@@ -217,7 +222,7 @@ index f7a64d2..1249155 100644
  
      Update();
  
-@@ -328,6 +355,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -328,6 +360,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    P_ = G_reset * P_ * G_reset.transpose();
  
    P_ = 0.5 * (P_ + P_.transpose());
@@ -229,7 +234,7 @@ index f7a64d2..1249155 100644
  
    dx_.setZero();
  
-@@ -335,4 +367,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
+@@ -335,4 +372,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    return true;
  }
  

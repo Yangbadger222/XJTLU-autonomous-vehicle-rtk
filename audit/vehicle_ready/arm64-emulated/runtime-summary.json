@@ -1,0 +1,14 @@
+{
+  "status": "FAIL",
+  "source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "architecture": "ARM64 QEMU emulation",
+  "default_owned_processes": 16,
+  "all_owned_alive_before_cleanup": true,
+  "discovered_nodes": [],
+  "failed_gate": "DDS discovery/parameter services: no nodes discovered",
+  "cleanup_exit": 0,
+  "runtime_defaults": "sensor drivers, actuator and mission disabled",
+  "fixture_console_port": 8886,
+  "no_physical_or_target_acceptance": true,
+  "receipt_sha256": "25b757fb09c7d9137fac81d3b67f8c87fb832996a0024d3df21258f320c3206e"
+}

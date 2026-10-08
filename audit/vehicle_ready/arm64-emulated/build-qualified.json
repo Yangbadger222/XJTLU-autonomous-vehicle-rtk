@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "architecture": "ARM64 under qemu emulation, not Jetson",
+  "SDK_and_package_allowlist": 14,
+  "isolated_workspace_originally_empty": true,
+  "final_pass_resumed_same_workspace_after_dependency_repair": true,
+  "single_uninterrupted_fresh_pass": false,
+  "initial_failure": "missing nmea_msgs: 10 finished/1 failed/3 not processed",
+  "mirror_failure_attempt": "confirmed Ubuntu index size/hash mismatch; task container stopped137/OOMfalse; signed ROS-only dependency refresh thereafter",
+  "final_container_state": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-08T06:43:50.060608912Z",
+    "FinishedAt": "2026-10-08T06:45:47.829226576Z"
+  },
+  "image_id": "sha256:3a526e88ae55b5089962d6817f3d372767babd8e7154c841dc13646f2b88eb5c",
+  "source_mount_read_only": true,
+  "log_sha256": {
+    "provision-and-build.log": "50141a992b6e3895896dab2e6cbe195a275ab5ed44c04540c0260eea95a784f2",
+    "dependency-repair-and-build.log": "19323e7ccb2ea8d4808f2bc204cbf32c0a2d5c8216d42c493176904dd9499334",
+    "ros-only-dependency-repair-and-build.log": "fa22a18367e68e0fa154ec19f6fde25ebb7948a2f8f5cb06ba7efb98fdf6d6f6"
+  },
+  "runtime_and_performance_validation": "PENDING",
+  "no_target_or_physical_acceptance": true
+}

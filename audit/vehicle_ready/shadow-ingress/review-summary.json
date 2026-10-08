@@ -1,0 +1,7 @@
+{
+  "standards": "No remaining new P1/P2; reused-success receipt issue closed by supervised stdlib entry.",
+  "spec": "No remaining new P1/P2; actual queued removed-writer sample rejected by per-sample GID.",
+  "qualification_scope": "17 independent-domain fixture gates;12 actual bag prefix gates. No ARM runtime, Jetson, road or physical PASS claim.",
+  "source_cpp_sha256": "dbe410614368f26e109e36e24124a0b940f2fa5a66bd4048971b58c999d2daf6",
+  "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36"
+}

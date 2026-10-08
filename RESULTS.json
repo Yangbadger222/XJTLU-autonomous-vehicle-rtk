@@ -339,5 +339,29 @@
     "evidence": [
       "RUN_STATE.json"
     ]
+  },
+  "SUPERVISED_SENSOR_SHADOW_INGRESS": {
+    "status": "PASS",
+    "scope": "Optional finite sensor transport only: 17 Humble analytical isolation gates, 12 real bag prefix gates. Public stdlib supervisor only. Six present topics100% observed delivery; no source-domain writers; oldTF/LIO blocked. Target identity, live timing/security/road/motion are unqualified.",
+    "evidence": [
+      "audit/vehicle_ready/shadow-ingress/native-qualification.json",
+      "audit/vehicle_ready/shadow-ingress/actual-bag-prefix.json"
+    ]
+  },
+  "ARM64_EMULATED_SDK14_BUILD": {
+    "status": "PASS",
+    "scope": "Real aarch64 SDK and14 packages from read-onlya66 source in originally empty task workspace. Same-workspace dependency repair/resume; initial missingnmea/mirror failures retained. This is a compile gate, not runtime/Jetson performance or physical acceptance.",
+    "evidence": [
+      "audit/vehicle_ready/arm64-emulated/build-qualified.json",
+      "audit/vehicle_ready/arm64-emulated/arm64-elf-proof.json"
+    ]
+  },
+  "ARM64_EMULATED_DEFAULT_ENTRY": {
+    "status": "FAIL",
+    "scope": "16 owned processes alive; native Super/EGO initialized. Zero discovered nodes and unavailable parameter services. Owned cleanup0; QEMU runtime/transport cause under investigation. No target/physical acceptance.",
+    "evidence": [
+      "audit/vehicle_ready/arm64-emulated/default-entry.json",
+      "audit/vehicle_ready/arm64-emulated/runtime-summary.json"
+    ]
   }
 }

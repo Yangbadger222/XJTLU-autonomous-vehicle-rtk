@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "base_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "frozen_source_still": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "delivery_checkout": "/dev/shm/codex-shadow-delivery",
+  "frozen_build_checkout": "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready",
+  "separate_git_directory": "/dev/shm/codex-shadow-delivery/.git",
+  "all_vehicle_src_git_trees_unchanged": true,
+  "copies": [
+    {
+      "path": "tools/shadow_sensor_ingress/sensor_ingress.cpp",
+      "sha256": "dbe410614368f26e109e36e24124a0b940f2fa5a66bd4048971b58c999d2daf6"
+    },
+    {
+      "path": "tools/shadow_sensor_ingress/CMakeLists.txt",
+      "sha256": "dbe51511f261dd0f27fcb0015d576de708a434ab13c4f9ac2642b5da2297d683"
+    },
+    {
+      "path": "scripts/run_shadow_sensor_ingress.py",
+      "sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36"
+    },
+    {
+      "path": "scripts/validate_shadow_sensor_ingress_ros.py",
+      "sha256": "9e21d46a981016946c37d2494829180f05c139198f6a4ecd5aae693f1d2f3e25"
+    },
+    {
+      "path": "scripts/validate_shadow_sensor_bag_replay.py",
+      "sha256": "a50a12f21d201f41cc817dd76bd1c4aa1785bb5179394da65bb3ea9beea639c5"
+    }
+  ]
+}

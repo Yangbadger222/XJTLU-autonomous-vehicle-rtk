@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "binaries": {
+    "SDK": {
+      "path": "/dev/shm/codex-arm64-work/fresh14/sdk-install/lib/liblivox_lidar_sdk_shared.so",
+      "sha256": "746758957d4f75efef9591d191a07bb2fa29934b32c162aadece3c222e7a91c2",
+      "file": "ELF 64-bit LSB shared object, ARM aarch64, version 1 (GNU/Linux), dynamically linked, BuildID[sha1]=1527a44cd1912c4ddeb374bf1ca0e12ed7d20d16, not stripped"
+    },
+    "SuperLIO": {
+      "path": "/dev/shm/codex-arm64-work/fresh14/install/super_lio/lib/super_lio/super_lio_node",
+      "sha256": "3e7b2f02bf2075513e532fb6288d51ba90d64c67fc43cd5ea275b458da857da7",
+      "file": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=13db6c398f18fa8a8b1a9e30d7f71b1edcac3b55, for GNU/Linux 3.7.0, not stripped"
+    },
+    "SuperLIO_library": {
+      "path": "/dev/shm/codex-arm64-work/fresh14/install/super_lio/lib/liblio.so",
+      "sha256": "f145ecbfb1f0b5bdcb7c8d6b5c07ec42705d0b0835e1244db86c269515213786",
+      "file": "ELF 64-bit LSB shared object, ARM aarch64, version 1 (SYSV), dynamically linked, BuildID[sha1]=c678a08e04211b7001ef2304ca15afe46ff2c679, not stripped"
+    },
+    "EGO": {
+      "path": "/dev/shm/codex-arm64-work/fresh14/install/ego_planner/lib/ego_planner/motion_plan",
+      "sha256": "6e391965b5386414c59db8b3d1316578c160d2dabfb85625713b8866765f94f6",
+      "file": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=b5141ae7c8687b76031f3c32706811dd0a259dac, for GNU/Linux 3.7.0, with debug_info, not stripped"
+    },
+    "serial": {
+      "path": "/dev/shm/codex-arm64-work/fresh14/install/serial_twistctl/lib/serial_twistctl/serial_twistctl_node",
+      "sha256": "1d064079f333d0d112f4d25d8578f7ee6a1872b0500feaa44eca9dbebf951d1a",
+      "file": "ELF 64-bit LSB pie executable, ARM aarch64, version 1 (GNU/Linux), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, BuildID[sha1]=4029cb329aa947da3c08d9f2d3a063b95b4becc0, for GNU/Linux 3.7.0, not stripped"
+    }
+  },
+  "scope": "actual ARM64 ELF, emulated builder, no target hardware/performance claim"
+}

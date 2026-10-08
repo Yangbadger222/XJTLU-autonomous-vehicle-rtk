@@ -1,0 +1,12 @@
+{
+  "initial_attempt_status": "FAIL",
+  "initial_container_exit": 1,
+  "cause": "isolated ARM64 image lacks nmea_msgs; um982_rtk_driver CMake find_package fails",
+  "initial_summary": "10 finished, 1 failed, 3 not processed",
+  "repair": "install ros-humble-nmea-msgs inside the same task-only container, then resume unchanged SDK/14 allowlist in same isolated workspace",
+  "source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "source_mount": "read-only",
+  "host_package_install": false,
+  "initial_log_preserved": "provision-and-build.log",
+  "wall_epoch_s": 1791440038.9928179
+}

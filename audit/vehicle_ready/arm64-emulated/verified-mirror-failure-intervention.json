@@ -1,0 +1,22 @@
+{
+  "reason": "Apt has already reported a signed-index size/hash mismatch, so this batch cannot finish successfully; remaining unrelated Ubuntu index downloads are stopped before retrying only the ROS source needed for nmea_msgs.",
+  "verified_error": "File has unexpected size (4565476 != 4565109)",
+  "expected_sha256": "b0572132f053d0c8af73ff72627e197495d59ca3e6e8bda6ff9f8b97972d67c5",
+  "status_before_intervention": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 1695505,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-08T06:13:59.025090575Z",
+    "FinishedAt": "2026-10-08T06:11:30.767190417Z"
+  },
+  "container": "codex-arm64-a66cc7e",
+  "source_unchanged_and_read_only": true,
+  "only_task_container_stopped": true,
+  "wall_epoch_s": 1791441740.715162
+}

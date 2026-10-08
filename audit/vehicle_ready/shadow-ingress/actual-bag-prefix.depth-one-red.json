@@ -1,0 +1,212 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "actual_requested_prefix_completed_before_cleanup": true,
+    "prefix_is_explicitly_not_full_eof": true,
+    "all_recorded_allowlist_inputs_have_actual_source_and_target_samples": true,
+    "every_target_original_cdr_payload_matches_actual_source_with_only_tail_alignment": true,
+    "complete_native_forwarded_cdr_streams_and_counts_match_target": true,
+    "per_topic_observed_ingress_delivery_at_least_98_percent": false,
+    "actual_raw_lidar_and_imu_header_spans_cover_prefix": true,
+    "recorded_legacy_tf_and_lio_inputs_observed_but_never_forwarded": true,
+    "source_tap_has_zero_publishers": true,
+    "source_silence_does_not_replay_or_refresh": true,
+    "finite_relay_stopped_without_false_completion": true,
+    "no_source_owner_or_sample_writer_denials": true
+  },
+  "source_counts": {
+    "/fix": 225,
+    "/heading": 450,
+    "/rtk/nmea_sentence": 898,
+    "/rtk/status": 23,
+    "/livox/imu": 4004,
+    "/livox/lidar": 214
+  },
+  "target_counts": {
+    "/fix": 225,
+    "/heading": 369,
+    "/rtk/nmea_sentence": 655,
+    "/rtk/status": 23,
+    "/livox/imu": 4002,
+    "/livox/lidar": 214
+  },
+  "source_excluded_counts": {
+    "/tf": 199,
+    "/fastlio2/lio_odom": 199,
+    "/fastlio2/body_cloud": 199
+  },
+  "target_excluded_counts": {},
+  "observed_delivery_ratios": {
+    "/livox/lidar": 1.0,
+    "/livox/imu": 0.9995004995004995,
+    "/fix": 1.0,
+    "/heading": 0.82,
+    "/rtk/nmea_sentence": 0.7293986636971047,
+    "/rtk/status": 1.0
+  },
+  "source_header_spans_s": {
+    "/livox/lidar": 19.94131898880005,
+    "/livox/imu": 20.01442050933838,
+    "/fix": 22.39918804168701,
+    "/heading": 22.40154719352722,
+    "/rtk/nmea_sentence": 22.40154719352722
+  },
+  "mismatches": [],
+  "original_payload_matching_counts": {
+    "/fix": 225,
+    "/heading": 369,
+    "/rtk/nmea_sentence": 655,
+    "/rtk/status": 23,
+    "/livox/imu": 4002,
+    "/livox/lidar": 214
+  },
+  "first_fields_exact_equality": {
+    "/livox/lidar": true,
+    "/livox/imu": true,
+    "/fix": true,
+    "/heading": false,
+    "/rtk/nmea_sentence": false,
+    "/rtk/status": true
+  },
+  "last_fields_exact_equality": {
+    "/livox/lidar": true,
+    "/livox/imu": true,
+    "/fix": true,
+    "/heading": true,
+    "/rtk/nmea_sentence": true,
+    "/rtk/status": true
+  },
+  "received_cdr_chains": {
+    "/fix": "784fca3a35753d36d5c1d2e5dfde9552ae6540918485107d62ff522e07439077",
+    "/heading": "a139f036f433669c2871425500e936986a7eb055a4ea7c6c9818d1e29cc9618c",
+    "/rtk/nmea_sentence": "6043e4ba1bb0317d9fcec636c0de5f58206b3bde74ff15120a7ab247dab43a3c",
+    "/rtk/status": "e943df88dec15ace9195faeb28a8dd6c32ffb680468a5190b1b3b00615dd19f0",
+    "/livox/imu": "e22f9622bc4aab94533550f27edf6d1a980ebf4dfad7ab8378f783b83cfba265",
+    "/livox/lidar": "64156a8a90370eb0aa8beea4278b3da17d34494e5da9c94be21c01dbc4cb80ca"
+  },
+  "process_receipt": {
+    "status": "INTERRUPTED",
+    "termination": "SIGINT",
+    "error": null,
+    "cleanup_error": null,
+    "source_domain": 134,
+    "research_domain": 135,
+    "wall_s": 25.218768065,
+    "discovery_delay_s": 0,
+    "input_observed": true,
+    "forwarded": {
+      "/fix": 225,
+      "/heading": 369,
+      "/livox/imu": 4002,
+      "/livox/lidar": 214,
+      "/rtk/nmea_sentence": 655,
+      "/rtk/status": 23
+    },
+    "denials": {},
+    "audit_payloads": true,
+    "input_cdr_chains": {
+      "/fix": "784fca3a35753d36d5c1d2e5dfde9552ae6540918485107d62ff522e07439077",
+      "/heading": "a139f036f433669c2871425500e936986a7eb055a4ea7c6c9818d1e29cc9618c",
+      "/livox/imu": "e22f9622bc4aab94533550f27edf6d1a980ebf4dfad7ab8378f783b83cfba265",
+      "/livox/lidar": "64156a8a90370eb0aa8beea4278b3da17d34494e5da9c94be21c01dbc4cb80ca",
+      "/rtk/nmea_sentence": "6043e4ba1bb0317d9fcec636c0de5f58206b3bde74ff15120a7ab247dab43a3c",
+      "/rtk/status": "e943df88dec15ace9195faeb28a8dd6c32ffb680468a5190b1b3b00615dd19f0"
+    },
+    "cdr_chain_encoding": "sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)",
+    "allowlist": [
+      {
+        "topic": "/fix",
+        "type": "sensor_msgs/msg/NavSatFix"
+      },
+      {
+        "topic": "/heading",
+        "type": "geometry_msgs/msg/QuaternionStamped"
+      },
+      {
+        "topic": "/livox/imu",
+        "type": "sensor_msgs/msg/Imu"
+      },
+      {
+        "topic": "/livox/lidar",
+        "type": "livox_ros_driver2/msg/CustomMsg"
+      },
+      {
+        "topic": "/rtk/health",
+        "type": "diagnostic_msgs/msg/DiagnosticArray"
+      },
+      {
+        "topic": "/rtk/nmea_sentence",
+        "type": "nmea_msgs/msg/Sentence"
+      },
+      {
+        "topic": "/rtk/status",
+        "type": "std_msgs/msg/String"
+      }
+    ],
+    "scope": "Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified."
+  },
+  "source_tap_publishers": [],
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+  "bag_hashes": {
+    "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil/metadata.yaml": "65d7145d6e9edaa41609f73c41d97b459e03696a46c2d59ae4144b8880d18223",
+    "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil/fgo_gil_0.db3": "87edbb490a8adf9775f3ca0c0e9233533197cff4068b49f9df127c59270a351d"
+  },
+  "bag_metadata_duration_s": 418.53079676500005,
+  "selected_topics": [
+    "/livox/lidar",
+    "/livox/imu",
+    "/fix",
+    "/heading",
+    "/rtk/nmea_sentence",
+    "/rtk/status"
+  ],
+  "absent_or_zero_count_allowlist_topics": [
+    "/rtk/health"
+  ],
+  "requested_prefix_s": 20.0,
+  "replay_scope": "PREFIX",
+  "rate": 1.0,
+  "player_exit_before_cleanup": null,
+  "domains": [
+    134,
+    135
+  ],
+  "relay_command": [
+    "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+    "--source-domain",
+    "134",
+    "--research-domain",
+    "135",
+    "--duration-s",
+    "35.0",
+    "--audit-payloads",
+    "true",
+    "--output",
+    "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/actual-bag-prefix-attempt-316520465219239/ingress-process.json"
+  ],
+  "player_command": [
+    "ros2",
+    "bag",
+    "play",
+    "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-14-34-13/bag/fgo_gil",
+    "--rate",
+    "1.0",
+    "--disable-keyboard-controls",
+    "--topics",
+    "/livox/lidar",
+    "/livox/imu",
+    "/fix",
+    "/heading",
+    "/rtk/nmea_sentence",
+    "/rtk/status",
+    "/tf",
+    "/fastlio2/lio_odom",
+    "/fastlio2/body_cloud"
+  ],
+  "executable_sha256": "eb2ca449e116e19b4aa0950ed6bf5250a2437e8decf5e84abf051a776881bcd4",
+  "native_source_sha256": "ea16c6b3b7759e09212c07d4b6a3c5b9dfb2329c33bab536945fbcc9f6aa9d7a",
+  "cmake_sha256": "dbe51511f261dd0f27fcb0015d576de708a434ab13c4f9ac2642b5da2297d683",
+  "validator_sha256": "cccf45c899a40a9c710a5d067d4f08334937dc8f194fa32dfd42e79acc3acfd3",
+  "wall_s_excluding_bag_hashing": 25.609160319028888,
+  "scope": "Actual recorded MID360 and RTK sensor data through native DDS ingress between lab domains134/135; explicitly bounded prefix. Exact native serialized streams and original source payloads are checked. No localization, ground, actuator, target machine, live freshness, authentication or physical acceptance claim."
+}

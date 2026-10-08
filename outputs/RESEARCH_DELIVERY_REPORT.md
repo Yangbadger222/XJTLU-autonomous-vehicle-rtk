@@ -20,3 +20,18 @@
 Jetson 只读 SSH 再次超时。车端实际有效覆盖、actuator 禁用 shadow、STM 烧录身份、KEY/手柄/物理急停/制动/滑移仍需现场验收。mock 零报文不冒充硬件急停。原分支和生产工作区保留，无实车运动、刷固件、生产合并或 force push。
 
 Mac 磁盘满，当前检查点在授权的远端 Humble 主机提交；本地同步和临时验证副本 pack 路径恢复待空间释放。完整原 pack 和上传传输包均保留。详细证据见 AUDIT_REPORT.md、RESULTS.json 与 audit/vehicle_ready/control-stop-qualified/。
+
+
+## 2026-10-08 补充资格结果
+
+MID360 的内置 IMU、记录的安装位姿和原 STM/rosbag 数据已用于实现与核验，本轮不再把它们列为缺少规格数据。软件控制原点变换沿用记录值；标定、固件、协议、运动限值及原 RTK 失去 authority 后停车保护保持原样。
+
+新增的是单向传感器 shadow 输入工具，其正式入口先用纯标准库为新尝试独占记录结果，再加载 ROS 原生程序。17 项实际 Humble 双域隔离测试和12项真实 bag 的20秒前缀测试通过。214条 LiDAR、4007条 IMU、225条 fix、450条 heading、898条 NMEA、23条 status 的观察传输率均100%；完整原生输入字节流和目标接收摘要一致。旧 TF、FAST-LIO odom、旧 body cloud 各199条源域记录、研究域0条。该 bag 没有 /rtk/health。来源队列反例、深度1丢 GNSS burst 的失败记录均保留，逐样本 GID检查、固定有界深度10和结果保护的修复均经实际验证。两个独立审查轴没有剩余新增 P1/P2。
+
+SDK和14个包已经在独立 Humble ARM64/QEMU 容器编译完成；原生文件确为 aarch64。只读编译源是 a66cc7e。初始空工作区补 nmea依赖后续编，Ubuntu镜像索引校验失败也单独保留，随后仅刷新受信ROS源；不把它说成一次不中断的干净通过。
+
+ARM64 默认入口运行检查仍失败：16个进程均存活、Super/EGO有初始化记录，但发现图为空、参数服务无法查询，退出清理为0。这一项与编译通过分开记录，不能冒充 Jetson 运行或性能通过。
+
+软件核心与原参数树没有改变；先前157项三层参数、222项便携测试、原最终mock串口及模拟闭环证据仍对应其原源码身份。真实点云道路支持仍没有形成车宽有效条带；密度/最多0.4秒点联合诊断不进入许可生产者。当前策略仍各0/2到达，收益待证。目标机连接/部署身份/实际生效覆盖、真实停止刹车滑移、实车运行仍未验收。没有自动开车、刷固件、编辑Jetson源码或合并生产分支。
+
+轻量证据见 audit/vehicle_ready/shadow-ingress/ 和 audit/vehicle_ready/arm64-emulated/；工具说明见 tools/shadow_sensor_ingress/README.md。本轮继续执行，目标尚未宣告完成。

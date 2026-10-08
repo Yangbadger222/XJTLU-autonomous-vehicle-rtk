@@ -1,0 +1,91 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "all7typed_sensor_payloads_byte_identical": true,
+    "all7_decoded_sensor_fields_unchanged": true,
+    "source_tap_has_zero_publishers_including_metadata": true,
+    "research_control_cannot_cross_to_source_domain": true,
+    "same_domain_rejected_before_ROS_init": true,
+    "source_silence_never_refreshes_or_replays": true,
+    "two_source_owners_withhold_input": true,
+    "queued_removed_writer_rejected": false,
+    "unique_source_owner_can_resume_unchanged": true
+  },
+  "counts": {
+    "/livox/lidar": 12,
+    "/livox/imu": 14,
+    "/fix": 12,
+    "/heading": 12,
+    "/rtk/nmea_sentence": 12,
+    "/rtk/status": 12,
+    "/rtk/health": 12
+  },
+  "byte_diagnostics": {
+    "/livox/lidar": {
+      "source_bytes": 75,
+      "target_bytes": 75,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/livox/imu": {
+      "source_bytes": 332,
+      "target_bytes": 332,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/fix": {
+      "source_bytes": 141,
+      "target_bytes": 141,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/heading": {
+      "source_bytes": 68,
+      "target_bytes": 68,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/rtk/nmea_sentence": {
+      "source_bytes": 106,
+      "target_bytes": 106,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/rtk/status": {
+      "source_bytes": 33,
+      "target_bytes": 33,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    },
+    "/rtk/health": {
+      "source_bytes": 154,
+      "target_bytes": 154,
+      "first_different_offsets": [],
+      "decoded_all_fields_equal": true
+    }
+  },
+  "queued_writer_probe": {
+    "graph_count_before_dispatch": 1,
+    "removed_writer_forwarded": true
+  },
+  "source_tap_publishers": [],
+  "forwarded": {
+    "/livox/lidar": 12,
+    "/livox/imu": 14,
+    "/fix": 12,
+    "/heading": 12,
+    "/rtk/nmea_sentence": 12,
+    "/rtk/status": 12,
+    "/rtk/health": 12
+  },
+  "denials": {
+    "/livox/imu:source_owner_or_type": 8
+  },
+  "domains": [
+    130,
+    131
+  ],
+  "scope": "Actual independent Humble ROS contexts and typed sensor/CDR flows. Analytical fixtures only; no physical input, actuators, production namespace or target shadow claim.",
+  "relay_sha256": "45c6024c5834e215beba94076a0bd6bada0c1c713a686f8bd159b5b48174d007",
+  "validator_sha256": "0a2b00538d95adecd3635794751e29327d9f5a979cb7b42c8bafe06e61fd382c"
+}

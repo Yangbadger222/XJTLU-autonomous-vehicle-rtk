@@ -1,0 +1,550 @@
+{
+  "status": "PASS",
+  "checks": {
+    "all7_original_cdr_bytes_preserved_with_rmw_tail_alignment": true,
+    "all7_decoded_fields_unchanged": true,
+    "source_tap_zero_publishers_including_metadata": true,
+    "target_has_exact_sensor_writer_allowlist": true,
+    "research_control_cannot_cross_to_source": true,
+    "source_tf_control_consent_cannot_cross_to_research": true,
+    "source_silence_never_refreshes_or_replays": true,
+    "converged_duplicate_sources_withhold_input": true,
+    "unique_source_resumes_exact_payload": true,
+    "same_domain_rejected_before_ros_init": true,
+    "actual_typesupport_lookup_exception_is_failed_receipt": true,
+    "fatal_rcl_missing_rmw_never_claims_completed": true,
+    "old_receipt_rejected_before_ros_and_preserved": true,
+    "finite_duration_without_input_is_process_completion_only": true,
+    "all7_complete_native_received_cdr_streams_unchanged": true,
+    "signal_exit_never_claims_completed": true,
+    "queued_removed_writer_rejected_by_actual_sample_gid": true
+  },
+  "counts": {
+    "/livox/imu": 13,
+    "/livox/lidar": 12,
+    "/fix": 12,
+    "/heading": 12,
+    "/rtk/nmea_sentence": 12,
+    "/rtk/status": 12,
+    "/rtk/health": 12
+  },
+  "byte_diagnostics": {
+    "/livox/lidar": {
+      "source_bytes": 75,
+      "target_bytes": 76,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/livox/imu": {
+      "source_bytes": 332,
+      "target_bytes": 332,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/fix": {
+      "source_bytes": 141,
+      "target_bytes": 144,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/heading": {
+      "source_bytes": 68,
+      "target_bytes": 68,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/rtk/nmea_sentence": {
+      "source_bytes": 106,
+      "target_bytes": 108,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/rtk/status": {
+      "source_bytes": 51,
+      "target_bytes": 52,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    },
+    "/rtk/health": {
+      "source_bytes": 154,
+      "target_bytes": 156,
+      "first_different_offsets": [],
+      "expected_at_differences": [],
+      "actual_at_differences": []
+    }
+  },
+  "queued_writer_probe": {
+    "graph_count_before_dispatch": 1,
+    "rival_graph_count_before_enqueue": 2,
+    "removed_writer_forwarded": false,
+    "actual_sample_writer_denials": 1
+  },
+  "source_tap_publishers": [],
+  "source_subscriptions": [
+    [
+      "/fix",
+      [
+        "sensor_msgs/msg/NavSatFix"
+      ]
+    ],
+    [
+      "/heading",
+      [
+        "geometry_msgs/msg/QuaternionStamped"
+      ]
+    ],
+    [
+      "/livox/imu",
+      [
+        "sensor_msgs/msg/Imu"
+      ]
+    ],
+    [
+      "/livox/lidar",
+      [
+        "livox_ros_driver2/msg/CustomMsg"
+      ]
+    ],
+    [
+      "/parameter_events",
+      [
+        "rcl_interfaces/msg/ParameterEvent"
+      ]
+    ],
+    [
+      "/rtk/health",
+      [
+        "diagnostic_msgs/msg/DiagnosticArray"
+      ]
+    ],
+    [
+      "/rtk/nmea_sentence",
+      [
+        "nmea_msgs/msg/Sentence"
+      ]
+    ],
+    [
+      "/rtk/status",
+      [
+        "std_msgs/msg/String"
+      ]
+    ]
+  ],
+  "output_publishers": [
+    [
+      "/fix",
+      [
+        "sensor_msgs/msg/NavSatFix"
+      ]
+    ],
+    [
+      "/heading",
+      [
+        "geometry_msgs/msg/QuaternionStamped"
+      ]
+    ],
+    [
+      "/livox/imu",
+      [
+        "sensor_msgs/msg/Imu"
+      ]
+    ],
+    [
+      "/livox/lidar",
+      [
+        "livox_ros_driver2/msg/CustomMsg"
+      ]
+    ],
+    [
+      "/rtk/health",
+      [
+        "diagnostic_msgs/msg/DiagnosticArray"
+      ]
+    ],
+    [
+      "/rtk/nmea_sentence",
+      [
+        "nmea_msgs/msg/Sentence"
+      ]
+    ],
+    [
+      "/rtk/status",
+      [
+        "std_msgs/msg/String"
+      ]
+    ]
+  ],
+  "process_receipt": {
+    "status": "INTERRUPTED",
+    "termination": "SIGINT",
+    "error": null,
+    "cleanup_error": null,
+    "source_domain": 130,
+    "research_domain": 131,
+    "wall_s": 10.46917619,
+    "discovery_delay_s": 4,
+    "input_observed": true,
+    "forwarded": {
+      "/fix": 12,
+      "/heading": 12,
+      "/livox/imu": 13,
+      "/livox/lidar": 12,
+      "/rtk/health": 12,
+      "/rtk/nmea_sentence": 12,
+      "/rtk/status": 12
+    },
+    "denials": {
+      "/livox/imu:sample_writer": 1,
+      "/livox/imu:source_owner_or_type": 16
+    },
+    "audit_payloads": true,
+    "input_cdr_chains": {
+      "/fix": "e0a1a4b724acb0c051ecef31eb1bebddf288cf288562be250d0a814a128e65b0",
+      "/heading": "c26ad06f1f2362059655846f338900b9197075b42983f307f49fd0125dee966f",
+      "/livox/imu": "8a07563bb34ab91eb1d74fd2e9413f6ba23820bc253936f6dd7cd899307bff16",
+      "/livox/lidar": "0d833a380acc903156bfa45dc038fec7fb50b6c758ca9c0ffd4576d613cf37a9",
+      "/rtk/health": "2c37b3eaa3dfed9827777c610d4c15902522af539765ca7cd0d186ae535461c0",
+      "/rtk/nmea_sentence": "55cfc5b6897d25d1a15e2c496347460e6785f494be480ffe57a401a541079460",
+      "/rtk/status": "f0f4e7b091ede6ffee1ef455da097685b93cd07429aac423783c2731297dc93d"
+    },
+    "cdr_chain_encoding": "sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)",
+    "allowlist": [
+      {
+        "topic": "/fix",
+        "type": "sensor_msgs/msg/NavSatFix"
+      },
+      {
+        "topic": "/heading",
+        "type": "geometry_msgs/msg/QuaternionStamped"
+      },
+      {
+        "topic": "/livox/imu",
+        "type": "sensor_msgs/msg/Imu"
+      },
+      {
+        "topic": "/livox/lidar",
+        "type": "livox_ros_driver2/msg/CustomMsg"
+      },
+      {
+        "topic": "/rtk/health",
+        "type": "diagnostic_msgs/msg/DiagnosticArray"
+      },
+      {
+        "topic": "/rtk/nmea_sentence",
+        "type": "nmea_msgs/msg/Sentence"
+      },
+      {
+        "topic": "/rtk/status",
+        "type": "std_msgs/msg/String"
+      }
+    ],
+    "scope": "Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified."
+  },
+  "launcher_receipt": {
+    "status": "INTERRUPTED",
+    "attempt_id": "fe5d14fa-15c2-4889-83d4-3a07289c0f2d",
+    "termination": "SIGINT",
+    "error": null,
+    "native_exit": 130,
+    "timed_out": false,
+    "source_domain": 130,
+    "research_domain": 131,
+    "wall_s": 10.598404873977415,
+    "command": [
+      "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+      "--source-domain",
+      "130",
+      "--research-domain",
+      "131",
+      "--duration-s",
+      "40.0",
+      "--discovery-delay-s",
+      "4.0",
+      "--audit-payloads",
+      "true",
+      "--output",
+      "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/shadow-ingress-fe5d14fa-15c2-4889-83d4-3a07289c0f2d/native.json"
+    ],
+    "native_receipt": {
+      "status": "INTERRUPTED",
+      "termination": "SIGINT",
+      "error": null,
+      "cleanup_error": null,
+      "source_domain": 130,
+      "research_domain": 131,
+      "wall_s": 10.46917619,
+      "discovery_delay_s": 4,
+      "input_observed": true,
+      "forwarded": {
+        "/fix": 12,
+        "/heading": 12,
+        "/livox/imu": 13,
+        "/livox/lidar": 12,
+        "/rtk/health": 12,
+        "/rtk/nmea_sentence": 12,
+        "/rtk/status": 12
+      },
+      "denials": {
+        "/livox/imu:sample_writer": 1,
+        "/livox/imu:source_owner_or_type": 16
+      },
+      "audit_payloads": true,
+      "input_cdr_chains": {
+        "/fix": "e0a1a4b724acb0c051ecef31eb1bebddf288cf288562be250d0a814a128e65b0",
+        "/heading": "c26ad06f1f2362059655846f338900b9197075b42983f307f49fd0125dee966f",
+        "/livox/imu": "8a07563bb34ab91eb1d74fd2e9413f6ba23820bc253936f6dd7cd899307bff16",
+        "/livox/lidar": "0d833a380acc903156bfa45dc038fec7fb50b6c758ca9c0ffd4576d613cf37a9",
+        "/rtk/health": "2c37b3eaa3dfed9827777c610d4c15902522af539765ca7cd0d186ae535461c0",
+        "/rtk/nmea_sentence": "55cfc5b6897d25d1a15e2c496347460e6785f494be480ffe57a401a541079460",
+        "/rtk/status": "f0f4e7b091ede6ffee1ef455da097685b93cd07429aac423783c2731297dc93d"
+      },
+      "cdr_chain_encoding": "sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)",
+      "allowlist": [
+        {
+          "topic": "/fix",
+          "type": "sensor_msgs/msg/NavSatFix"
+        },
+        {
+          "topic": "/heading",
+          "type": "geometry_msgs/msg/QuaternionStamped"
+        },
+        {
+          "topic": "/livox/imu",
+          "type": "sensor_msgs/msg/Imu"
+        },
+        {
+          "topic": "/livox/lidar",
+          "type": "livox_ros_driver2/msg/CustomMsg"
+        },
+        {
+          "topic": "/rtk/health",
+          "type": "diagnostic_msgs/msg/DiagnosticArray"
+        },
+        {
+          "topic": "/rtk/nmea_sentence",
+          "type": "nmea_msgs/msg/Sentence"
+        },
+        {
+          "topic": "/rtk/status",
+          "type": "std_msgs/msg/String"
+        }
+      ],
+      "scope": "Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified."
+    },
+    "native_stderr_tail": "",
+    "native_stdout_tail": "{\"status\":\"INTERRUPTED\",\"termination\":\"SIGINT\",\"error\":null,\"cleanup_error\":null,\"source_domain\":130,\"research_domain\":131,\"wall_s\":10.469176190000001,\"discovery_delay_s\":4,\"input_observed\":true,\"forwarded\":{\"/fix\":12,\"/heading\":12,\"/livox/imu\":13,\"/livox/lidar\":12,\"/rtk/health\":12,\"/rtk/nmea_sentence\":12,\"/rtk/status\":12},\"denials\":{\"/livox/imu:sample_writer\":1,\"/livox/imu:source_owner_or_type\":16},\"audit_payloads\":true,\"input_cdr_chains\":{\"/fix\":\"e0a1a4b724acb0c051ecef31eb1bebddf288cf288562be250d0a814a128e65b0\",\"/heading\":\"c26ad06f1f2362059655846f338900b9197075b42983f307f49fd0125dee966f\",\"/livox/imu\":\"8a07563bb34ab91eb1d74fd2e9413f6ba23820bc253936f6dd7cd899307bff16\",\"/livox/lidar\":\"0d833a380acc903156bfa45dc038fec7fb50b6c758ca9c0ffd4576d613cf37a9\",\"/rtk/health\":\"2c37b3eaa3dfed9827777c610d4c15902522af539765ca7cd0d186ae535461c0\",\"/rtk/nmea_sentence\":\"55cfc5b6897d25d1a15e2c496347460e6785f494be480ffe57a401a541079460\",\"/rtk/status\":\"f0f4e7b091ede6ffee1ef455da097685b93cd07429aac423783c2731297dc93d\"},\"cdr_chain_encoding\":\"sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)\",\"allowlist\":[{\"topic\":\"/fix\",\"type\":\"sensor_msgs/msg/NavSatFix\"},{\"topic\":\"/heading\",\"type\":\"geometry_msgs/msg/QuaternionStamped\"},{\"topic\":\"/livox/imu\",\"type\":\"sensor_msgs/msg/Imu\"},{\"topic\":\"/livox/lidar\",\"type\":\"livox_ros_driver2/msg/CustomMsg\"},{\"topic\":\"/rtk/health\",\"type\":\"diagnostic_msgs/msg/DiagnosticArray\"},{\"topic\":\"/rtk/nmea_sentence\",\"type\":\"nmea_msgs/msg/Sentence\"},{\"topic\":\"/rtk/status\",\"type\":\"std_msgs/msg/String\"}],\"scope\":\"Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified.\"}\n",
+    "executable_sha256": "afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773",
+    "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+    "scope": "Supervised finite one-way native sensor ingress. A fresh attempt receipt is reserved before loading ROS libraries. Completion describes only process termination; sensor identity, live timing, security, target shadow, localization, road evidence and physical acceptance remain unqualified."
+  },
+  "process_exit": 130,
+  "command": [
+    "/home/badger/codex-research/superlio-ego-20261007/research-venv/bin/python3",
+    "/dev/shm/codex-shadow-sensor-launcher.py",
+    "--executable",
+    "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+    "--source-domain",
+    "130",
+    "--research-domain",
+    "131",
+    "--duration-s",
+    "40",
+    "--discovery-delay-s",
+    "4",
+    "--audit-payloads",
+    "true",
+    "--output",
+    "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/process.json"
+  ],
+  "received_cdr_chains": {
+    "/livox/imu": "8a07563bb34ab91eb1d74fd2e9413f6ba23820bc253936f6dd7cd899307bff16",
+    "/livox/lidar": "0d833a380acc903156bfa45dc038fec7fb50b6c758ca9c0ffd4576d613cf37a9",
+    "/fix": "e0a1a4b724acb0c051ecef31eb1bebddf288cf288562be250d0a814a128e65b0",
+    "/heading": "c26ad06f1f2362059655846f338900b9197075b42983f307f49fd0125dee966f",
+    "/rtk/nmea_sentence": "55cfc5b6897d25d1a15e2c496347460e6785f494be480ffe57a401a541079460",
+    "/rtk/status": "f0f4e7b091ede6ffee1ef455da097685b93cd07429aac423783c2731297dc93d",
+    "/rtk/health": "2c37b3eaa3dfed9827777c610d4c15902522af539765ca7cd0d186ae535461c0"
+  },
+  "existing_output_exit": 2,
+  "existing_output_stderr": "usage: codex-shadow-sensor-launcher.py [-h] --executable EXECUTABLE\n                                       --source-domain SOURCE_DOMAIN\n                                       --research-domain RESEARCH_DOMAIN\n                                       --duration-s DURATION_S\n                                       [--discovery-delay-s DISCOVERY_DELAY_S]\n                                       [--audit-payloads {true,false}]\n                                       --output OUTPUT\ncodex-shadow-sensor-launcher.py: error: receipt already exists; preserve the previous attempt and use a new path\n",
+  "duration_receipt": {
+    "status": "COMPLETED",
+    "attempt_id": "ce891747-4513-4c76-a68d-361c68e6423c",
+    "termination": "duration",
+    "error": null,
+    "native_exit": 0,
+    "timed_out": false,
+    "source_domain": 136,
+    "research_domain": 137,
+    "wall_s": 0.36785152001539245,
+    "command": [
+      "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+      "--source-domain",
+      "136",
+      "--research-domain",
+      "137",
+      "--duration-s",
+      "0.2",
+      "--discovery-delay-s",
+      "0.0",
+      "--audit-payloads",
+      "false",
+      "--output",
+      "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/shadow-ingress-ce891747-4513-4c76-a68d-361c68e6423c/native.json"
+    ],
+    "native_receipt": {
+      "status": "COMPLETED",
+      "termination": "duration",
+      "error": null,
+      "cleanup_error": null,
+      "source_domain": 136,
+      "research_domain": 137,
+      "wall_s": 0.213209059,
+      "discovery_delay_s": 0,
+      "input_observed": false,
+      "forwarded": {},
+      "denials": {},
+      "audit_payloads": false,
+      "input_cdr_chains": {},
+      "cdr_chain_encoding": "sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)",
+      "allowlist": [
+        {
+          "topic": "/fix",
+          "type": "sensor_msgs/msg/NavSatFix"
+        },
+        {
+          "topic": "/heading",
+          "type": "geometry_msgs/msg/QuaternionStamped"
+        },
+        {
+          "topic": "/livox/imu",
+          "type": "sensor_msgs/msg/Imu"
+        },
+        {
+          "topic": "/livox/lidar",
+          "type": "livox_ros_driver2/msg/CustomMsg"
+        },
+        {
+          "topic": "/rtk/health",
+          "type": "diagnostic_msgs/msg/DiagnosticArray"
+        },
+        {
+          "topic": "/rtk/nmea_sentence",
+          "type": "nmea_msgs/msg/Sentence"
+        },
+        {
+          "topic": "/rtk/status",
+          "type": "std_msgs/msg/String"
+        }
+      ],
+      "scope": "Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified."
+    },
+    "native_stderr_tail": "",
+    "native_stdout_tail": "{\"status\":\"COMPLETED\",\"termination\":\"duration\",\"error\":null,\"cleanup_error\":null,\"source_domain\":136,\"research_domain\":137,\"wall_s\":0.21320905900000001,\"discovery_delay_s\":0,\"input_observed\":false,\"forwarded\":{},\"denials\":{},\"audit_payloads\":false,\"input_cdr_chains\":{},\"cdr_chain_encoding\":\"sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)\",\"allowlist\":[{\"topic\":\"/fix\",\"type\":\"sensor_msgs/msg/NavSatFix\"},{\"topic\":\"/heading\",\"type\":\"geometry_msgs/msg/QuaternionStamped\"},{\"topic\":\"/livox/imu\",\"type\":\"sensor_msgs/msg/Imu\"},{\"topic\":\"/livox/lidar\",\"type\":\"livox_ros_driver2/msg/CustomMsg\"},{\"topic\":\"/rtk/health\",\"type\":\"diagnostic_msgs/msg/DiagnosticArray\"},{\"topic\":\"/rtk/nmea_sentence\",\"type\":\"nmea_msgs/msg/Sentence\"},{\"topic\":\"/rtk/status\",\"type\":\"std_msgs/msg/String\"}],\"scope\":\"Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified.\"}\n",
+    "executable_sha256": "afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773",
+    "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+    "scope": "Supervised finite one-way native sensor ingress. A fresh attempt receipt is reserved before loading ROS libraries. Completion describes only process termination; sensor identity, live timing, security, target shadow, localization, road evidence and physical acceptance remain unqualified."
+  },
+  "fatal_rmw_receipt": {
+    "status": "FAILED",
+    "attempt_id": "824f7314-1a44-4e4c-a804-89e7613797f0",
+    "termination": "native_exit",
+    "error": "native process did not complete with a matching finalized receipt",
+    "native_exit": 1,
+    "timed_out": false,
+    "source_domain": 132,
+    "research_domain": 133,
+    "wall_s": 0.009957397996913642,
+    "command": [
+      "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+      "--source-domain",
+      "132",
+      "--research-domain",
+      "133",
+      "--duration-s",
+      "1.0",
+      "--discovery-delay-s",
+      "0.0",
+      "--audit-payloads",
+      "false",
+      "--output",
+      "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/shadow-ingress-824f7314-1a44-4e4c-a804-89e7613797f0/native.json"
+    ],
+    "native_receipt": null,
+    "native_stderr_tail": "[ERROR] [1791441446.636108344] [rcl]: Error getting RMW implementation identifier / RMW implementation not installed (expected identifier of 'codex_intentionally_missing_rmw'), with error message 'failed to load shared library 'libcodex_intentionally_missing_rmw.so' due to dlopen error: libcodex_intentionally_missing_rmw.so: cannot open shared object file: No such file or directory, at ./src/shared_library.c:99, at ./src/functions.cpp:65', exiting with 1., at ./src/rcl/rmw_implementation_identifier_check.c:139\n\n",
+    "native_stdout_tail": "",
+    "executable_sha256": "afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773",
+    "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+    "scope": "Supervised finite one-way native sensor ingress. A fresh attempt receipt is reserved before loading ROS libraries. Completion describes only process termination; sensor identity, live timing, security, target shadow, localization, road evidence and physical acceptance remain unqualified."
+  },
+  "fatal_rmw_exit": 1,
+  "fatal_rmw_stderr": "",
+  "startup_failure_receipt": {
+    "status": "FAILED",
+    "attempt_id": "cdde01a4-9cc9-4024-82b9-1018601659b6",
+    "termination": "native_exit",
+    "error": "native process did not complete with a matching finalized receipt",
+    "native_exit": 1,
+    "timed_out": false,
+    "source_domain": 132,
+    "research_domain": 133,
+    "wall_s": 0.1679647879791446,
+    "command": [
+      "/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress",
+      "--source-domain",
+      "132",
+      "--research-domain",
+      "133",
+      "--duration-s",
+      "1.0",
+      "--discovery-delay-s",
+      "0.0",
+      "--audit-payloads",
+      "false",
+      "--output",
+      "/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/shadow-ingress-cdde01a4-9cc9-4024-82b9-1018601659b6/native.json"
+    ],
+    "native_receipt": {
+      "status": "FAILED",
+      "termination": "exception",
+      "error": "package 'livox_ros_driver2' not found, searching: [/opt/ros/humble]",
+      "cleanup_error": null,
+      "source_domain": 132,
+      "research_domain": 133,
+      "wall_s": 0.013555804,
+      "discovery_delay_s": 0,
+      "input_observed": false,
+      "forwarded": {},
+      "denials": {},
+      "audit_payloads": false,
+      "input_cdr_chains": {},
+      "cdr_chain_encoding": "sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)",
+      "allowlist": [],
+      "scope": "Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified."
+    },
+    "native_stderr_tail": "",
+    "native_stdout_tail": "{\"status\":\"FAILED\",\"termination\":\"exception\",\"error\":\"package 'livox_ros_driver2' not found, searching: [/opt/ros/humble]\",\"cleanup_error\":null,\"source_domain\":132,\"research_domain\":133,\"wall_s\":0.013555803999999999,\"discovery_delay_s\":0,\"input_observed\":false,\"forwarded\":{},\"denials\":{},\"audit_payloads\":false,\"input_cdr_chains\":{},\"cdr_chain_encoding\":\"sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)\",\"allowlist\":[],\"scope\":\"Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified.\"}\n",
+    "executable_sha256": "afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773",
+    "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+    "scope": "Supervised finite one-way native sensor ingress. A fresh attempt receipt is reserved before loading ROS libraries. Completion describes only process termination; sensor identity, live timing, security, target shadow, localization, road evidence and physical acceptance remain unqualified."
+  },
+  "startup_failure_exit": 1,
+  "startup_failure_stdout": "{\"status\": \"FAILED\", \"attempt_id\": \"cdde01a4-9cc9-4024-82b9-1018601659b6\", \"termination\": \"native_exit\", \"error\": \"native process did not complete with a matching finalized receipt\", \"native_exit\": 1, \"timed_out\": false, \"source_domain\": 132, \"research_domain\": 133, \"wall_s\": 0.1679647879791446, \"command\": [\"/dev/shm/codex-shadow-native-build/research_shadow_sensor_ingress\", \"--source-domain\", \"132\", \"--research-domain\", \"133\", \"--duration-s\", \"1.0\", \"--discovery-delay-s\", \"0.0\", \"--audit-payloads\", \"false\", \"--output\", \"/home/badger/codex-research/superlio-ego-20261007/logs/shadow-ingress/native-qualification-attempt-317001770347650/shadow-ingress-cdde01a4-9cc9-4024-82b9-1018601659b6/native.json\"], \"native_receipt\": {\"status\": \"FAILED\", \"termination\": \"exception\", \"error\": \"package 'livox_ros_driver2' not found, searching: [/opt/ros/humble]\", \"cleanup_error\": null, \"source_domain\": 132, \"research_domain\": 133, \"wall_s\": 0.013555804, \"discovery_delay_s\": 0, \"input_observed\": false, \"forwarded\": {}, \"denials\": {}, \"audit_payloads\": false, \"input_cdr_chains\": {}, \"cdr_chain_encoding\": \"sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)\", \"allowlist\": [], \"scope\": \"Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified.\"}, \"native_stderr_tail\": \"\", \"native_stdout_tail\": \"{\\\"status\\\":\\\"FAILED\\\",\\\"termination\\\":\\\"exception\\\",\\\"error\\\":\\\"package 'livox_ros_driver2' not found, searching: [/opt/ros/humble]\\\",\\\"cleanup_error\\\":null,\\\"source_domain\\\":132,\\\"research_domain\\\":133,\\\"wall_s\\\":0.013555803999999999,\\\"discovery_delay_s\\\":0,\\\"input_observed\\\":false,\\\"forwarded\\\":{},\\\"denials\\\":{},\\\"audit_payloads\\\":false,\\\"input_cdr_chains\\\":{},\\\"cdr_chain_encoding\\\":\\\"sha256(uint64_le_length || received_cdr_bytes, per topic in forwarded order)\\\",\\\"allowlist\\\":[],\\\"scope\\\":\\\"Finite one-way raw CDR sensor ingress, per-sample discovered writer GID check, zero source-domain writers. No cache/restamp/TF/cmd/authority/consent/clock. Completion is a process result; target shadow, identity authentication, transport security and physical acceptance remain unqualified.\\\"}\\n\", \"executable_sha256\": \"afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773\", \"launcher_sha256\": \"1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36\", \"scope\": \"Supervised finite one-way native sensor ingress. A fresh attempt receipt is reserved before loading ROS libraries. Completion describes only process termination; sensor identity, live timing, security, target shadow, localization, road evidence and physical acceptance remain unqualified.\"}\n",
+  "startup_failure_stderr": "",
+  "domains": [
+    130,
+    131
+  ],
+  "executable_sha256": "afe232d97caeaae9b4447ce8586e3797fe0b002cd6af217eaf3ab62275578773",
+  "launcher_sha256": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+  "native_source_sha256": "dbe410614368f26e109e36e24124a0b940f2fa5a66bd4048971b58c999d2daf6",
+  "cmake_sha256": "dbe51511f261dd0f27fcb0015d576de708a434ab13c4f9ac2642b5da2297d683",
+  "validator_sha256": "9e21d46a981016946c37d2494829180f05c139198f6a4ecd5aae693f1d2f3e25",
+  "scope": "Actual Humble C++ serialized callback, writer metadata and DDS between domains 130/131; nontrivial analytical sensor fixtures. No physical inputs, production domain, authentication, target shadow or physical acceptance claim."
+}

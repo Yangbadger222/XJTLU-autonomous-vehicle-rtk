@@ -21,3 +21,15 @@ Human hardware checks, after applicable software/target gates:
 For optional real RGB-D observation, identify the actual depth stream, K, depth convention and acquisition-time camera-to-body transform. The virtual 1.2 m simulation sensor supplies none of these real calibration values. Repository records should be checked before requesting a missing item.
 
 No automatic driving, firmware flash, production merge, force push or old asset removal. Software completion, strategy benefit and physical acceptance are separate.
+
+## 2026-10-08 sensor ingress and ARM64 cohort
+
+The optional supervised sensor-only ingress has 17 actual Humble isolation gates and 12 recorded-data gates passing. Six July21 PM inputs cross lab domains134/135 at 100% observed delivery over an explicit20-second prefix; old TF/LIO outputs each have199 source/zero target samples. Complete native received CDR streams/counts match target; each original target payload matches direct source observation. The absent/rtk/health topic is recorded. Actual queue-order and depth-one burst failures are retained; the source-writer GID check, bounded depth10 and fresh-attempt stdlib supervisor resolve these failures. Both independent review axes report no remaining newP1/P2 for the qualified tool. No source-domain publishers, TF/control/authority/consent/clock forwarding or default-entry changes occur.
+
+The main SDK/14 packages compile as actual ARM64ELF in a separate qemu-emulated Humble container, from read-only a66cc7e source. The initially empty workspace is resumed after a missing-nmea dependency repair and a verified Ubuntu mirror-index mismatch; it is not a single uninterrupted fresh pass. Exact failed attempts, final exit0, SDK and executable hashes are preserved. This auxiliary ingress is separate from that14-package allowlist.
+
+ARM64 default-entry startup is FAIL: all16 owned processes stay alive and native Super/EGO initialize, but the persistent discovery graph is empty and parameter services cannot be found. Owned launch cleanup exits0. Runtime and target performance therefore remain unqualified. The x86 runtime/core26 Python files, protected src tree, original parameter locks and earlier157/222/final-wire/simulation results remain unchanged.
+
+Actual positive road support still FAILS: full-input density and at-most0.4-second endpoint-pose union diagnostics yield no vehicle-width strips and are not promoted as a perception/permission producer. Current policy benefit remains PENDING, with0/2 tasks for each strategy. Jetson live shadow, actual deployment/effective values, physical stop/brake/slip and motion acceptance remain PENDING. MID360 mounting/internal IMU, nominal chassis transform and STM/bag evidence are already used and are not missing-specification blockers.
+
+Evidence: audit/vehicle_ready/shadow-ingress/; audit/vehicle_ready/arm64-emulated/. Public tool/build/qualification instructions: tools/shadow_sensor_ingress/README.md. The source-bound core qualification remains63fc00c and ARM compile sourcea66cc7e; this cohort adds an optional tool and reports without relabeling old receipts.

@@ -400,5 +400,27 @@
     "result": "SSH connect timeout",
     "evidence": "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
     "source_modified": false
+  },
+  "sensor_ingress_checkpoint": {
+    "base_core_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+    "runtime_implementation_source": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+    "optional_tool_sources": "tools/shadow_sensor_ingress/",
+    "formal_entry": "scripts/run_shadow_sensor_ingress.py",
+    "humble_fixture_checks": 17,
+    "humble_fixture_status": "PASS",
+    "actual_bag_prefix_checks": 12,
+    "actual_bag_status": "PASS",
+    "prefix_s": 20,
+    "bag_scope": "PREFIX",
+    "actual_observed_delivery": "100% of each of6 recorded sensor topics",
+    "legacy_tf_lio_source_counts_each": 199,
+    "legacy_tf_lio_target_counts_each": 0,
+    "source_domain_publishers": 0,
+    "default_entry_changed": false,
+    "ARM64_SDK_14_build": "PASS_AFTER_DEPENDENCY_REPAIR",
+    "ARM64_default_entry": "FAIL_DDS_DISCOVERY",
+    "no_target_or_physical_acceptance": true,
+    "frozen_build_source_checkout": "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready",
+    "isolated_delivery_checkout": "/dev/shm/codex-shadow-delivery"
   }
 }

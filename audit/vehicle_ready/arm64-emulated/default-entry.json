@@ -1,0 +1,174 @@
+{
+  "domain": 93,
+  "mode": "default replay",
+  "test_only_overrides": {
+    "console_port": 8886
+  },
+  "evidence": {
+    "nodes": {
+      "exit": 0,
+      "output": "",
+      "stderr": ""
+    },
+    "topics": {
+      "exit": 0,
+      "output": "/parameter_events [rcl_interfaces/msg/ParameterEvent]\n/rosout [rcl_interfaces/msg/Log]\n",
+      "stderr": ""
+    },
+    "safety_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "console_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "ego_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "authority_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "guard_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "adapter_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "tf_guard_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "cloud_frame_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "ground_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "local_grid_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "superlio_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "robot_description_parameters": {
+      "exit": 1,
+      "output": "",
+      "stderr": "Node not found\n"
+    },
+    "persistent_graph_probe": {
+      "exit": 0,
+      "nodes": []
+    },
+    "cmd_vel_publishers": [],
+    "owned_child_processes": [
+      {
+        "pid": 102,
+        "alive": true
+      },
+      {
+        "pid": 106,
+        "alive": true
+      },
+      {
+        "pid": 110,
+        "alive": true
+      },
+      {
+        "pid": 114,
+        "alive": true
+      },
+      {
+        "pid": 118,
+        "alive": true
+      },
+      {
+        "pid": 122,
+        "alive": true
+      },
+      {
+        "pid": 126,
+        "alive": true
+      },
+      {
+        "pid": 130,
+        "alive": true
+      },
+      {
+        "pid": 134,
+        "alive": true
+      },
+      {
+        "pid": 138,
+        "alive": true
+      },
+      {
+        "pid": 142,
+        "alive": true
+      },
+      {
+        "pid": 146,
+        "alive": true
+      },
+      {
+        "pid": 150,
+        "alive": true
+      },
+      {
+        "pid": 154,
+        "alive": true
+      },
+      {
+        "pid": 158,
+        "alive": true
+      },
+      {
+        "pid": 162,
+        "alive": true
+      }
+    ]
+  },
+  "deliberate_override_probes": [],
+  "missing_expected_nodes": [
+    "/active_observation",
+    "/active_road_evidence",
+    "/active_road_map",
+    "/corridor_cmd_vel_guard",
+    "/ego_vehicle_adapter",
+    "/joint_state_publisher",
+    "/research_local_obstacle_grid",
+    "/research_observed_ground",
+    "/research_operator_console",
+    "/research_safety_bridge",
+    "/research_tf_integrity_guard",
+    "/robot_state_publisher",
+    "/rtk_map_odom_corrector",
+    "/super_lio_cloud_frame_adapter",
+    "/super_lio_node",
+    "/super_lio_vehicle_adapter"
+  ],
+  "forbidden_nodes": [],
+  "launch_exit_before_cleanup": null,
+  "expected_child_count": 16,
+  "status": "FAIL",
+  "cleanup_exit": 0
+}

@@ -59,7 +59,9 @@ def main():
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[];result={}
     node.create_subscription(OperatorPermit,"/research/operator_permit",
-        lambda msg:permit_observations.append((time.monotonic(),msg.session_id,msg.state,msg.motion_requested)),100)
+        lambda msg:permit_observations.append((time.monotonic(),
+            msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec,
+            msg.session_id,msg.state,msg.motion_requested)),100)
     def request(action,payload=None,heartbeat=False):
         body=json.dumps({"action":action,"payload":payload or {},"request_id":str(uuid.uuid4())}).encode()
         req=urllib.request.Request(base+"/api/command",data=body,headers={"Content-Type":"application/json",
@@ -193,20 +195,36 @@ def main():
             check("rtk_return_does_not_auto_resume",nonzero,lines,snapshot()["state"])
             for termination in (signal.SIGINT, signal.SIGTERM):
                 nonzero=rearm()
-                active_permits=[session for receipt,session,state,motion in permit_observations
-                    if time.monotonic()-receipt<=.3 and state=="AUTONOMOUS" and motion]
-                if not active_permits:raise RuntimeError("fresh typed active permit not observed")
-                active_session=active_permits[-1]
+                # Signal an actually moving console. Older nonzero wire or
+                # queued STOP messages must not satisfy the exit acceptance.
+                deadline=time.monotonic()+1.
+                active=None
+                while time.monotonic()<deadline:
+                    phase(.06)
+                    latest=permit_observations[-1] if permit_observations else None
+                    current=snapshot()
+                    if (latest and time.monotonic()-latest[0]<=.3 and
+                        latest[3]=="AUTONOMOUS" and latest[4] and
+                        current["state"]=="AUTONOMOUS" and wire and
+                        float(wire[-1].split(",")[0][4:])>0):
+                        active=latest
+                        break
+                if active is None:raise RuntimeError("active console and current nonzero final wire not observed")
+                active_session=active[2]
+                wire_before_signal=wire[-1]
+                sent_ros_ns=node.get_clock().now().nanoseconds
                 sent_at=time.monotonic()
                 os.killpg(console.pid,termination)
                 lines=phase(.9,heartbeat=False)
                 console.wait(timeout=3)
-                delivered_stop=any(receipt>=sent_at and session==active_session and
-                    state=="STOP_LATCHED" and not motion
-                    for receipt,session,state,motion in permit_observations)
+                delivered_stop=any(receipt>=sent_at and generated_ns>=sent_ros_ns and
+                    session==active_session and state=="STOP_LATCHED" and not motion
+                    for receipt,generated_ns,session,state,motion in permit_observations)
                 check("console_"+termination.name+"_final_wire",nonzero,lines)
                 cases[-1].update(console_exit=console.returncode,
-                    fresh_stop_permit_before_context_cleanup=delivered_stop)
+                    autonomous_at_signal=True,final_wire_before_signal=wire_before_signal,
+                    fresh_stop_permit_before_context_cleanup=delivered_stop,
+                    stop_freshness_basis="same session, generated stamp and receipt after signal marker")
                 if console.returncode!=0 or not delivered_stop:cases[-1]["status"]="FAIL"
                 console=spawn("research_runtime","research_operator_console",[
                     "-p","execution_mode:=live","-p","actuator_enabled:=true",

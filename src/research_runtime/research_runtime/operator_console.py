@@ -24,6 +24,7 @@ class OperatorConsole:
         self.session = secrets.token_hex(16)
         self.sequence = 0
         self.owner, self.heartbeat_at = None, -math.inf
+        self._closing = False
         self.state, self.reason = "VIEW_ONLY", "尚未接管操作席"
         self.inputs, self.events, self.pending = {}, deque(maxlen=80), deque(maxlen=16)
         self.history, self.still_since = {}, None
@@ -97,9 +98,19 @@ class OperatorConsole:
     def _stopped(self):
         return self.still_since is not None and self.clock()-self.still_since >= self.stopped_limits[2] and self._fresh("odom", .2) is not None
 
+    def close(self):
+        """Terminal revocation, including authenticated requests already in flight."""
+        with self.lock:
+            self._closing = True
+            self.owner, self.heartbeat_at = None, -math.inf
+            self.pending.clear()
+            self._set("STOP_LATCHED", "界面后端退出")
+
     def command(self, client, action, payload=None, request_id=""):
         payload = payload or {}
         with self.lock:
+            if self._closing:
+                return {"accepted": False, "reason": "界面后端退出；操作席已永久撤销"}
             self.tick()
             if action == "claim":
                 if self.owner and self.owner != client: return {"accepted": False, "reason": "操作席已由其他窗口占用"}

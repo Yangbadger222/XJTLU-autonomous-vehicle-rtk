@@ -235,8 +235,7 @@ class ConsoleNode(Node):
 
     def close(self):
         with self.console.lock:
-            self.console._set("STOP_LATCHED","界面后端退出")
-            self.console.pending.clear()
+            self.console.close()
             self.replay_generation+=1
         if rclpy.ok(): self._tick()
         self.http.close()

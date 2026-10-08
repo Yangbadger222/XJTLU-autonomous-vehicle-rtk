@@ -36,17 +36,17 @@ def main():
         for label, command in {
             "nodes": ["ros2", "node", "list", "--no-daemon"],
             "topics": ["ros2", "topic", "list", "--no-daemon", "-t"],
-            "safety_parameters": ["ros2", "param", "dump", "/research_safety_bridge"],
-            "console_parameters": ["ros2", "param", "dump", "/research_operator_console"],
-            "ego_parameters": ["ros2", "param", "dump", "/ego_vehicle_adapter"],
-            "authority_parameters": ["ros2", "param", "dump", "/rtk_map_odom_corrector"],
-            "guard_parameters": ["ros2", "param", "dump", "/corridor_cmd_vel_guard"],
-            "adapter_parameters": ["ros2", "param", "dump", "/super_lio_vehicle_adapter"],
-            "tf_guard_parameters": ["ros2", "param", "dump", "/research_tf_integrity_guard"],
-            "cloud_frame_parameters": ["ros2", "param", "dump", "/super_lio_cloud_frame_adapter"],
+            "safety_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_safety_bridge"],
+            "console_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_operator_console"],
+            "ego_parameters": ["ros2", "param", "dump", "--no-daemon", "/ego_vehicle_adapter"],
+            "authority_parameters": ["ros2", "param", "dump", "--no-daemon", "/rtk_map_odom_corrector"],
+            "guard_parameters": ["ros2", "param", "dump", "--no-daemon", "/corridor_cmd_vel_guard"],
+            "adapter_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_vehicle_adapter"],
+            "tf_guard_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_tf_integrity_guard"],
+            "cloud_frame_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_cloud_frame_adapter"],
             "ground_parameters": ["ros2","param","dump","/research_observed_ground"],
             "local_grid_parameters": ["ros2","param","dump","/research_local_obstacle_grid"],
-            "superlio_parameters": ["ros2", "param", "dump", "/super_lio_node"],
+            "superlio_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_node"],
             "robot_description_parameters": ["ros2","param","dump","/robot_state_publisher"],
         }.items():
             for attempt in range(3):
@@ -141,6 +141,34 @@ def main():
             process.wait(timeout=5)
         log.close()
     result["cleanup_exit"] = process.returncode
+    cleaned_log = args.output.with_suffix(".log").read_text()
+    entries = list(re.finditer(r"\[([^\]
+]+)\]: process started with pid \[(\d+)\]", cleaned_log))
+    owned = {int(item.group(2)):item.group(1) for item in entries}
+    clean_pids = {int(pid) for pid in re.findall(r"process has finished cleanly \[pid (\d+)\]", cleaned_log)}
+    failures = {int(pid):int(code) for pid,code in re.findall(
+        r"process has died \[pid (\d+), exit code (-?\d+)", cleaned_log)}
+    interrupted = cleaned_log.find("user interrupted with ctrl-c (SIGINT)")
+    tail = cleaned_log[interrupted:] if interrupted>=0 else ""
+    baseline_interrupt = {
+        pid for pid,name in owned.items()
+        if name.startswith("corridor_cmd_vel_guard_node-") and failures.get(pid)==-2
+        and "KeyboardInterrupt" in tail
+    }
+    result["owned_child_shutdown"] = [
+        {"pid":pid,"launch_name":name,
+         "exit":0 if pid in clean_pids else failures.get(pid),
+         "baseline_expected_interrupt":pid in baseline_interrupt,
+         "alive_after_cleanup":Path(f"/proc/{pid}").exists()}
+        for pid,name in owned.items()
+    ]
+    unexpected = [child for child in result["owned_child_shutdown"]
+        if child["alive_after_cleanup"] or
+           (child["exit"]!=0 and not child["baseline_expected_interrupt"])]
+    result["unexpected_shutdown_children"] = unexpected
+    result["clean_shutdown_status"] = "PASS" if len(owned)==len(expected) and not unexpected else "FAIL"
+    if result["cleanup_exit"]!=0 or result["clean_shutdown_status"]!="PASS":
+        result["status"]="FAIL"
     args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps({k:v for k,v in result.items() if k != "evidence"}, indent=2))
     return 0 if result["status"] == "PASS" else 1

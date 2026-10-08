@@ -57,7 +57,7 @@ def main():
     typed_grid=node.create_publisher(LocalEvidenceGrid2D,"/research/local_evidence_grid",10)
     base="http://127.0.0.1:"+str(args.console_port)
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[]
+    csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[];result={}
     node.create_subscription(OperatorPermit,"/research/operator_permit",
         lambda msg:permit_observations.append((time.monotonic(),msg.session_id,msg.state,msg.motion_requested)),100)
     def request(action,payload=None,heartbeat=False):
@@ -113,7 +113,7 @@ def main():
         while time.monotonic()<deadline:tick(authority,heartbeat,lateral_speed,vertical_speed);time.sleep(.03)
         return wire[start:]
     def spawn(package,executable,extra):
-        log=(args.output.parent/("console-"+executable+".log")).open("w");logs.append(log)
+        log=(args.output.parent/("console-"+executable+"-"+str(len(children))+".log")).open("w");logs.append(log)
         cmd=[str(args.install/package/"lib"/package/executable),"--ros-args"]+extra
         if package in ("research_runtime","active_road_mapping","gps_waypoint_dispatcher"):cmd.insert(0,sys.executable)
         child=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);children.append(child);return child
@@ -187,7 +187,10 @@ def main():
             check("rtk_return_does_not_auto_resume",nonzero,lines,snapshot()["state"])
             for termination in (signal.SIGINT, signal.SIGTERM):
                 nonzero=rearm()
-                active_session=snapshot()["session_id"]
+                active_permits=[session for receipt,session,state,motion in permit_observations
+                    if time.monotonic()-receipt<=.3 and state=="AUTONOMOUS" and motion]
+                if not active_permits:raise RuntimeError("fresh typed active permit not observed")
+                active_session=active_permits[-1]
                 sent_at=time.monotonic()
                 os.killpg(console.pid,termination)
                 lines=phase(.9,heartbeat=False)
@@ -211,6 +214,10 @@ def main():
             result={"status":"PASS" if all(c["status"]=="PASS" for c in cases) else "FAIL","cases":cases,
                 "scope":"Actual HTTP/typed consent/observer/task service/tracker/original guard/original serial PTY; synthetic odom, floor, RTK, health and trajectory only. Physical stop/KEY/joystick not validated.",
                 "domain":99,"source_commit":subprocess.check_output(["git","-C",str(args.repo),"rev-parse","HEAD"],text=True).strip()}
+    except Exception as exc:
+        result={"status":"FAIL","cases":cases,"exception":repr(exc),
+            "scope":"Finite isolated HMI/final PTY fixture; failed acceptance attempt retained",
+            "source_commit":subprocess.check_output(["git","-C",str(args.repo),"rev-parse","HEAD"],text=True).strip()}
     finally:
         for child in reversed(children):terminate(child)
         for log in logs:log.close()

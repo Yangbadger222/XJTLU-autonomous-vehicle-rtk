@@ -142,8 +142,7 @@ def main():
         log.close()
     result["cleanup_exit"] = process.returncode
     cleaned_log = args.output.with_suffix(".log").read_text()
-    entries = list(re.finditer(r"\[([^\]
-]+)\]: process started with pid \[(\d+)\]", cleaned_log))
+    entries = list(re.finditer(r"\[([A-Za-z0-9_-]+)\]: process started with pid \[(\d+)\]", cleaned_log))
     owned = {int(item.group(2)):item.group(1) for item in entries}
     clean_pids = {int(pid) for pid in re.findall(r"process has finished cleanly \[pid (\d+)\]", cleaned_log)}
     failures = {int(pid):int(code) for pid,code in re.findall(

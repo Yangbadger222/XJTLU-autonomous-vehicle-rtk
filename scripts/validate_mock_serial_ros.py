@@ -45,6 +45,7 @@ def main():
     parser.add_argument("--world-gauge-fault",choices=("second-static-owner","nonidentity-static","wrong-parent-static","dynamic-world"))
     parser.add_argument("--loop-budget-s", type=float, default=30.0)
     parser.add_argument("--paused-clock-probe",action="store_true")
+    parser.add_argument("--default-profile",action="store_true",help="use all current source-YAML execution settings; analytical sensors/PTY only")
     args = parser.parse_args()
     lock=json.loads((args.repo/'audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json').read_text())
     locked={p['name']:p['value'] for p in lock['parameters']}
@@ -73,6 +74,10 @@ def main():
     tracker_reasons = {}
     master_config = args.repo / "src/bringup/config/master_params.yaml"
     safety_config = args.repo / "src/bringup/config/research_safety_bridge.yaml"
+    import yaml
+    source_profile=yaml.safe_load((args.repo/'src/bringup/config/ego_vehicle_adapter.yaml').read_text())['ego_vehicle_adapter']['ros__parameters']
+    selected_profile={key:source_profile[key] for key in ('max_curvature_1pm','max_lateral_speed_mps','max_jerk_mps3')} if args.default_profile else {
+        'max_curvature_1pm':1.,'max_lateral_speed_mps':.05,'max_jerk_mps3':3.}
     pubs = {
         "authority": node.create_publisher(Bool, "/localization_authority/motion_allowed", 10),
         "authority_mode":node.create_publisher(String,"/localization_authority/mode",10),
@@ -326,6 +331,12 @@ def main():
                 "-p", "max_jerk_mps3:=3.0", "-p", "inflate_radius_m:=" + str(math.hypot(0.33, 0.305)),
                 "-p","localization_session_id:=mock-only","-p","allow_analytical_grid_fixture:=true"]))
         for package, binary, ros_args in commands:
+            if args.default_profile and binary in ('motion_plan','research_safety_bridge'):
+                # Remove only old analytical tuning overrides. Session and
+                # explicit fixture acceptance still identify the test inputs.
+                pairs=list(zip(ros_args[::2],ros_args[1::2]))
+                ros_args=[item for flag,value in pairs if not(flag=='-p' and value.split(':=')[0] in
+                    ('max_curvature_1pm','max_lateral_speed_mps','max_jerk_mps3','inflate_radius_m')) for item in (flag,value)]
             if args.paused_clock_probe:ros_args += ["-p","use_sim_time:="+("false" if binary=="corridor_cmd_vel_guard_node" else "true")]
             log = (args.output.parent / (args.output.stem+"-"+binary + "-mock.log")).open("w")
             logs.append(log)
@@ -346,8 +357,10 @@ def main():
             reached = math.dist(simulated_pose[:2], target) < 0.25
             stopped = len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail)
             result = {"domain": 91, "sink": "original serial binary -> allocated PTY -> synthetic unicycle physics",
-                      "source": "actual four-patch pinned EGO binary and installed research tracker",
-                      "simulation_only_settings": {"max_curvature_1pm": 1.0, "max_lateral_speed_mps": 0.05, "max_jerk_mps3": 3.0},
+                      "source": "actual pinned vehicle-adapted EGO binary and installed research tracker",
+                      "simulation_only_settings": selected_profile,
+                      "settings_origin":"CURRENT_SOURCE_YAML" if args.default_profile else "ANALYTICAL_OVERRIDE",
+                      "source_commit":subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
                       "scope": "planar mock closed loop with confirmed free test floor; no slip/real vehicle/Super-LIO policy comparison claim",
                       "minimum_measured_goal_distance":minimum_goal_distance,"goal_stop_latched":goal_stopped,"measured_goal_arrival_pose":goal_arrival_pose,
                       "final_simulated_pose": simulated_pose, "reached_goal": reached,"target":target,"arc_loop":args.arc_loop,"arc_radius_m":args.arc_radius,"arc_angle_rad":args.arc_angle,
@@ -407,7 +420,9 @@ def main():
                 "status": "PASS" if any(line.startswith("vcx=0.2") for line in normal) and
                 len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail) else "FAIL"})
         result = {"domain": 91, "sink": "allocated PTY; no physical device", "serial_profile": "original master YAML, only port remapped",
-                  "simulation_only_settings": {"max_curvature_1pm": 1.0, "max_lateral_speed_mps": 0.05},
+                  "simulation_only_settings": selected_profile,
+                  "settings_origin":"CURRENT_SOURCE_YAML" if args.default_profile else "ANALYTICAL_OVERRIDE",
+                  "source_commit":subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
                   "scope": "actual original serial binary; physical KEY/joystick/firmware emergency stop remains pending",
                   "rtk_classifier":args.rtk_classifier,"world_gauge_fault":args.world_gauge_fault,
                   "authority_mode_counts":{mode:authority_modes.count(mode) for mode in set(authority_modes)},

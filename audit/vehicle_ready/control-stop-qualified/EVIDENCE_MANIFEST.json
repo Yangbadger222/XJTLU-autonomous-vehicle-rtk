@@ -84,6 +84,11 @@
       "bytes": 30819
     },
     {
+      "path": "audit/vehicle_ready/control-stop-qualified/final-static-delivery.json",
+      "sha256": "a34303d53889697e10c60a8a49c55447c539789e0ebdb3f2623c5365693d3b21",
+      "bytes": 8600
+    },
+    {
       "path": "audit/vehicle_ready/control-stop-qualified/fresh-build-receipt-count-parser-error.json",
       "sha256": "986654660402b747e22316bfdceddf3a0dd9b0b8d2e03a7fd7c7133c46717814",
       "bytes": 404
@@ -124,6 +129,11 @@
       "bytes": 2392
     },
     {
+      "path": "audit/vehicle_ready/control-stop-qualified/publication.json",
+      "sha256": "2a05ba5045e89fb93226d27e5d43eaca6c17dc18583a0e45c189f0367d2c3fa3",
+      "bytes": 1314
+    },
+    {
       "path": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
       "sha256": "1c60ba6d40558cc3992d1169acd9504194bacf58c5bda8d630bd8e32e1172c3b",
       "bytes": 13318
@@ -157,6 +167,11 @@
       "path": "audit/vehicle_ready/control-stop-qualified/receipt-denial-red.log",
       "sha256": "4d82671046dff46cf693768de55769ebe79cf68ed349e072f357999d13343225",
       "bytes": 13505
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/report-self-copy-negative.json",
+      "sha256": "85b37b212f48e3d8cbcd942ac4688ed41d4fe9de2469f1b2385e1b0423ac6370",
+      "bytes": 8550
     },
     {
       "path": "audit/vehicle_ready/control-reference-qualified/control-reference.json",

@@ -42,7 +42,7 @@ def main():
     args.output.parent.mkdir(parents=True,exist_ok=True)
     rclpy.init();node=rclpy.create_node('source_reference_raw_probe',parameter_overrides=[Parameter('use_sim_time',value=True)])
     stamp=lambda msg:msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
-    native={};vehicle={};certificates={};health=Counter();reasons=Counter();vehicle_health=Counter()
+    native={};vehicle={};certificates={};eligible_acquisitions=set();health=Counter();reasons=Counter();vehicle_health=Counter()
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
     children=[];logs=[];player=None;child_commands=[];map_parameters=None;ground_statuses=Counter()
@@ -103,7 +103,9 @@ def main():
         data=json.loads(msg.data);health[data['status']]+=1;reasons[data['reason']]+=1
         last_source_health=data
         certificate=_source_certificate(msg.data)
-        if certificate:certificates[certificate['stamp_ns']]=certificate
+        if certificate:
+            certificates[certificate['stamp_ns']]=certificate
+            if certificate['eligible']:eligible_acquisitions.add(certificate['stamp_ns'])
         else:counts['invalid_native_certificate']+=1
         if data['iterations']>0:bounds.append(data['legacy_min_eig_lower_bound'])
     node.create_subscription(Odometry,'/lio/odom',lambda msg:odometry(msg,'native_odom',native),100)
@@ -224,7 +226,12 @@ def main():
                 atomic_grid_identity=bool(ground_grids and combined_grids) and all(
                     item['headers_match'] and item['session']==session and item['version']!='UNKNOWN'
                     for item in [*ground_grids,*combined_grids]),
-                ground_measurements_match_source_certificate=all(key in certificates and certificates[key]['eligible'] for key in ground_acquisitions),
+                # A failed scan restores the previous filter state and may
+                # publish a denial bearing that earlier state's stamp. That
+                # revokes current health, but cannot erase an earlier observed
+                # eligible certificate from historical acquisition provenance.
+                ground_measurements_match_source_certificate=bool(ground_acquisitions) and all(
+                    key in eligible_acquisitions for key in ground_acquisitions),
                 positive_support_measurements_match_acquisition=all(key in ground_acquisitions for key in support_keys),
                 wall_EOF_expiry_retracts_ground=bool(ground_grids) and ground_grids[-1]['free']==0,
                 local_store_initialized=store is not None and store.transform.crs=='LOCAL:odom',
@@ -247,6 +254,7 @@ def main():
                 evidence_store=str(evidence_path),global_TF_true_count=sum(full_frames),local_TF_true_count=sum(local_frames),
                 ground_status_counts=dict(ground_statuses),
                 diagnostics=ground_diagnostics,
+                source_certificate_unmatched_acquisition_stamps=sorted(set(ground_acquisitions)-eligible_acquisitions)[:10],
                 scope='Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance')
             checks['actual_ground_pipeline']=ground_result['status']=='PASS'
         executable=args.install/'super_lio/lib/super_lio/super_lio_node'

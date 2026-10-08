@@ -68,7 +68,12 @@ def trial(args,mode,index,manifest):
     def binary(package,executable,params=None,extra=()):
         command=[str(args.install/package/'lib'/package/executable),'--ros-args']
         if params:command+=['--params-file',str(params)]
-        return command+list(extra)
+        extra=list(extra)
+        if args.default_profile and executable in ('motion_plan','research_safety_bridge','active_observation'):
+            pairs=list(zip(extra[::2],extra[1::2]))
+            extra=[item for flag,value in pairs if not(flag=='-p' and value.split(':=')[0] in
+                ('max_curvature_1pm','max_lateral_speed_mps','max_jerk_mps3','inflate_radius_m')) for item in (flag,value)]
+        return command+extra
     def python_node(package,executable,params=None,extra=()):
         return [sys.executable]+binary(package,executable,params,extra)
     config=args.repo/'src/bringup/config'
@@ -206,6 +211,7 @@ def main():
     parser.add_argument('--strategies',nargs='+',default=['PASSIVE','PERIODIC_LOOK','TASK_AWARE_LOOK']);parser.add_argument('--tasks',type=int,default=2)
     parser.add_argument('--sensor-fault',choices=['none','imu_lost','lidar_lost','depth_invalid'],default='none')
     parser.add_argument('--fault-after-s',type=float,default=12.)
+    parser.add_argument('--default-profile',action='store_true',help='all strategies use current source-YAML execution parameters; retain analytical perception/registration labels')
     args=parser.parse_args()
     if os.environ.get('ROS_DOMAIN_ID')!='94' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':raise SystemExit('requires isolated domain 94')
     args.output.parent.mkdir(parents=True,exist_ok=True);manifest=asset_fixtures(args.output.parent/'read-only-prior')
@@ -235,6 +241,8 @@ def main():
             # the requested saved-map reuse comparison.
     preserved=prior_hashes=={path.name:hashlib.sha256(path.read_bytes()).hexdigest() for path in manifest.parent.iterdir()}
     result={'foundation_manifest_sha256':hashlib.sha256(json.dumps(foundation,sort_keys=True).encode()).hexdigest(),'foundation_file_count':len(foundation),'foundation_unchanged_each_trial':foundation_preserved,'scope':'finite synthetic sensor closed-loop comparison; actual pinned Super-LIO/EGO, original guard and serial PTY',
+        'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
+        'settings_origin':'CURRENT_SOURCE_YAML' if args.default_profile else 'ANALYTICAL_OVERRIDE',
         'simulation_only_assumptions':['IMU=controlled-base extrinsic; measured simulated encoder body twist','synthetic .03m pose uncertainty bound','source health assumption; actual /lio/health remains UNKNOWN',
             'synthetic restricted depth model/support plane and prior registration; no physical camera acceptance'],
         'truth_isolation':'separate truth process publishes raw sensors only; policy/map processes have no truth-pose/full-map input or path',

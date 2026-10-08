@@ -1,0 +1,131 @@
+diff --git a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+index dd8c6fc..4e5dbaf 100644
+--- a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
++++ b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+@@ -49,6 +49,7 @@ private:
+   void publish_failure(uint8_t status, const std::string & reason);
+   void publish_timed_trajectory(const std::vector<PathPoint> & points);
+   void publish_visual_trajectory(const std::vector<PathPoint> & points);
++  bool stationary_heading_recovery();
+ 
+   static double yaw_from_quaternion(const geometry_msgs::msg::Quaternion & q);
+   static double angle_delta(double lhs, double rhs);
+@@ -87,6 +88,8 @@ private:
+   bool allow_analytical_grid_fixture_{false};
+   double map_resolution_{0.0};
+   bool have_previous_odom_{false};
++  bool enable_stationary_heading_recovery_{false};
++  rclcpp::Time stationary_since_{0,0,RCL_ROS_TIME};
+   bool state_valid_{false};
+   bool reference_valid_{false};
+   bool grid_valid_{false};
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index b186b72..26f3be1 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -57,6 +57,7 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   configured_map_resolution_m_ = declare_parameter<double>("map_resolution_m", 0.0);
+   grid_unknown_is_occupied_ = declare_parameter<bool>("grid_unknown_is_occupied", true);
+   allow_reverse_ = declare_parameter<bool>("allow_reverse", false);
++  enable_stationary_heading_recovery_=declare_parameter<bool>("enable_stationary_heading_recovery",false);
+   auto locked = [](double actual, double expected) {
+     return std::isfinite(actual) && std::abs(actual-expected) <= 1e-12;
+   };
+@@ -182,6 +183,7 @@ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometr
+   if (msg->header.frame_id != "odom" || msg->child_frame_id != "base_footprint") {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     state_valid_ = false;
++    stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+     return;
+   }
+   const double yaw = yaw_from_quaternion(msg->pose.pose.orientation);
+@@ -195,6 +197,7 @@ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometr
+       std::abs(body_w) > max_yaw_rate_rps_ || stamp.nanoseconds() <= 0) {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     state_valid_ = false;
++    stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+     return;
+   }
+ 
+@@ -203,6 +206,13 @@ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometr
+     std::sin(yaw) * body_vx + std::cos(yaw) * body_vy,
+     0.0);
+   std::lock_guard<std::mutex> lock(data_mutex_);
++  if(have_previous_odom_ && ((stamp-previous_odom_stamp_).seconds()<=0. ||
++      (stamp-previous_odom_stamp_).seconds()>state_timeout_s_))stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
++  // Conservative research stationary evidence, stricter than the original
++  // stop-rate thresholds, with the original full confirmation duration.
++  if(std::abs(body_vx)<=.001 && std::abs(body_vy)<=.001 && std::abs(body_w)<=.001) {
++    if(stationary_since_.nanoseconds()==0)stationary_since_=stamp;
++  } else stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+   if (have_previous_odom_) {
+     const double dt = (stamp - previous_odom_stamp_).seconds();
+     if (dt <= 0.0 || dt > 1.0) {
+@@ -408,7 +418,9 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+   if(!query_active_ && executable_cache_valid_ && !road_reference_.empty()) {
+     const double elapsed=(now()-rclcpp::Time(executable_cache_.generated_at)).seconds();
+     const Eigen::Vector2d goal(road_reference_.back().x,road_reference_.back().y);
+-    bool valid=elapsed>=0. && elapsed<replan_period_s_ &&
++    const bool rotating=!executable_cache_.points.empty() && executable_cache_.points.front().motion_mode==
++      research_interfaces::msg::TimedTrajectoryPoint2D::ROTATE_IN_PLACE;
++    bool valid=elapsed>=0. && (rotating || elapsed<replan_period_s_) &&
+       executable_cache_.map_version==map_version_ && (goal-executable_goal_).norm()<1e-6 &&
+       !executable_cache_.points.empty() && elapsed+.25<executable_cache_.points.back().t;
+     // Fresh measured state/reference/grid checks above are never cached.
+@@ -478,6 +490,7 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+   std::vector<PathPoint> planned;
+   ego_planner_->getLocalPlanTrajResults(planned);
+   if (planned.empty() || !trajectory_is_feasible(planned)) {
++    if(stationary_heading_recovery())return true;
+     publish_failure(research_interfaces::msg::TimedTrajectory2D::STATUS_INFEASIBLE,
+                     "ego_planner_vehicle_feasibility_rejected");
+     return false;
+@@ -487,6 +500,48 @@ bool TrajectoryAndObstaclesPublisher::plan_once()
+   return true;
+ }
+ 
++bool TrajectoryAndObstaclesPublisher::stationary_heading_recovery()
++{
++  // Candidate queries must return a complete route to their requested pose;
++  // a preparatory rotation alone cannot assert that route is reachable.
++  if(query_active_ || !enable_stationary_heading_recovery_ || road_reference_.empty() ||
++     stationary_since_.nanoseconds()<=0 || (previous_odom_stamp_-stationary_since_).seconds()<research_vehicle_lock::stopped_confirmation_s ||
++     vehicle_state_.v>.001 || std::abs(vehicle_state_.w)>.001)return false;
++  const auto& goal=road_reference_.back();
++  const double dx=goal.x-vehicle_state_.x,dy=goal.y-vehicle_state_.y;
++  if(std::hypot(dx,dy)<.05)return false;
++  const double delta=angle_delta(std::atan2(dy,dx),vehicle_state_.z);
++  if(std::abs(delta)<.02 || !ego_planner_->isInflatedPositionFree(vehicle_state_.x,vehicle_state_.y))return false;
++  // Every rotation angle fits in the locked footprint's circumscribed disk.
++  // The current grid already inflates that disk; UNKNOWN cells are obstacles.
++  // Quintic yaw has |s'|<=1.875 and |s''|<=5.774. Keep half the physical
++  // yaw/alpha envelope for feedback, without changing the original limits.
++  double duration=std::max({1.,1.875*std::abs(delta)/(.5*max_yaw_rate_rps_),
++    std::sqrt(5.774*std::abs(delta)/(.5*std::min(max_yaw_accel_rps2_,max_yaw_decel_rps2_)))});
++  duration=std::ceil(duration/kSamplePeriod)*kSamplePeriod;
++  research_interfaces::msg::TimedTrajectory2D message;
++  message.header.stamp=to_builtin_time(now());message.header.frame_id="odom";
++  message.generated_at=message.header.stamp;
++  message.valid_until=to_builtin_time(now()+rclcpp::Duration::from_seconds(kTrajectoryValidity));
++  message.trajectory_id="vehicle-heading-recovery-"+std::to_string(++trajectory_id_);
++  message.map_version=map_version_;message.status=message.STATUS_OK;
++  for(int index=0;index<=int(std::round((duration+.5)/kSamplePeriod));++index) {
++    const double t=index*kSamplePeriod,u=std::min(1.,t/duration);
++    const double s=10*u*u*u-15*u*u*u*u+6*u*u*u*u*u;
++    const double ds=30*u*u-60*u*u*u+30*u*u*u*u;
++    const double dds=60*u-180*u*u+120*u*u*u;
++    research_interfaces::msg::TimedTrajectoryPoint2D point;
++    point.motion_mode=point.ROTATE_IN_PLACE;point.t=t;
++    point.x=vehicle_state_.x;point.y=vehicle_state_.y;
++    point.yaw=vehicle_state_.z+delta*s;point.w=delta*ds/duration;point.alpha=delta*dds/(duration*duration);
++    message.points.push_back(point);
++  }
++  executable_cache_=message;executable_cache_valid_=true;
++  executable_goal_=Eigen::Vector2d(goal.x,goal.y);
++  trajectory_publisher_->publish(message);
++  return true;
++}
++
+ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<PathPoint> & points) const
+ {
+   if (points.empty()) {

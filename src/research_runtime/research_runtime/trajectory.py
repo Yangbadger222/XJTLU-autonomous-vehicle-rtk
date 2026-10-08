@@ -45,6 +45,7 @@ class TimedPoint:
     a: float = 0.0
     alpha: float = 0.0
     curvature: Optional[float] = None
+    motion_mode: int = 0
 
 
 @dataclass(frozen=True)
@@ -140,6 +141,14 @@ def validate_trajectory(
         if not _finite(values):
             result.fail("non_finite_point")
             continue
+        rotating=point.motion_mode==1
+        if type(point.motion_mode) is not int or point.motion_mode not in (0,1):
+            result.fail("unknown_motion_mode")
+        if rotating:
+            if abs(point.v)>1e-12 or abs(point.a)>1e-12 or point.curvature not in (None,0.):
+                result.fail("rotation_requires_zero_translation_and_undefined_curvature")
+        elif limits.max_curvature_1pm is not None and abs(point.w)>limits.max_curvature_1pm*abs(point.v)+1e-9:
+            result.fail("moving_curvature_yaw_rate_limit")
         if point.t < 0.0:
             result.fail("negative_point_time")
         result.max_speed = max(result.max_speed, abs(point.v))
@@ -170,6 +179,11 @@ def validate_trajectory(
                 result.fail("non_monotonic_time")
             else:
                 dx, dy = point.x - previous.x, point.y - previous.y
+                if rotating and math.hypot(dx,dy)>1e-9:
+                    result.fail("rotation_pivot_moved")
+                if point.motion_mode!=previous.motion_mode and any(abs(v)>1e-12 for v in
+                    (point.v,point.w,previous.v,previous.w)):
+                    result.fail("motion_mode_transition_requires_stationary_boundary")
                 distance = math.hypot(dx, dy)
                 tangent = math.atan2(dy, dx) if distance > 1e-9 else previous.yaw
                 # Forward-only body motion: tangent and yaw must agree and
@@ -198,7 +212,7 @@ def validate_trajectory(
                 yaw_rate_from_path = _angle_delta(point.yaw, previous.yaw) / dt
                 if abs(yaw_rate_from_path - point.w) > max(limits.derivative_tolerance, 0.25 * max(abs(point.w), 0.1)):
                     result.fail("yaw_rate_path_mismatch")
-                if point.curvature is not None and abs(point.w - point.v * point.curvature) > 0.08:
+                if not rotating and point.curvature is not None and abs(point.w - point.v * point.curvature) > 0.08:
                     result.fail("yaw_rate_curvature_inconsistent")
         previous = point
 
@@ -226,6 +240,7 @@ def validate_trajectory(
                     previous.a + (point.a - previous.a) * fraction,
                     previous.alpha + (point.alpha - previous.alpha) * fraction,
                     point.curvature if fraction == 1.0 else previous.curvature,
+                    point.motion_mode,
                 ))
 
     if footprint is not None:

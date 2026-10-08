@@ -25,8 +25,8 @@ def test_obstacle_inside_footprint_is_collision_when_all_corners_are_free():
 
 def test_corner_rotation_sweep_is_checked_with_zero_translation():
     grid = grid_with_cell(0.40, 0.0)
-    result = check(grid, [TimedPoint(0, 0, 0, -math.pi / 4, 0, 0.5),
-                          TimedPoint(math.pi, 0, 0, math.pi / 4, 0, 0.5)])
+    result = check(grid, [TimedPoint(0, 0, 0, -math.pi / 4, 0, 0.5,motion_mode=1),
+                          TimedPoint(math.pi, 0, 0, math.pi / 4, 0, 0.5,motion_mode=1)])
     assert "footprint_collision_or_unknown" in result.reasons
 
 

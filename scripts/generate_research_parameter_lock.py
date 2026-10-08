@@ -77,6 +77,7 @@ def main():
     header_text = (f"// Generated from approved vehicle parameter lock; SHA256 {digest}\n#pragma once\n"
         +"namespace research_vehicle_lock {\n"+"".join(f"inline constexpr double {key} = {value:.17g};\n"
                                                       for key,value in values.items())
+        +f"inline constexpr double stopped_confirmation_s = {stopped[2]:.17g};\n"
         +"namespace firmware_command {\n"+"".join(f"inline constexpr double {key} = {value:.17g};\n"
                                                       for key,value in firmware.items())+"}\n}\n")
     # These are new research files. Original baseline YAML/launch files remain

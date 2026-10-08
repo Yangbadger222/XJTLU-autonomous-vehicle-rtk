@@ -19,6 +19,8 @@ class TrackerState:
     x: float
     y: float
     yaw: float
+    translation_speed: float = 0.
+    yaw_rate: float = 0.
 
 
 @dataclass(frozen=True)
@@ -53,6 +55,7 @@ def _interpolate(points: tuple[TimedPoint, ...], elapsed: float) -> TimedPoint:
                 a=first.a + ratio * (second.a - first.a),
                 alpha=first.alpha + ratio * (second.alpha - first.alpha),
                 curvature=(second.curvature if ratio >= 1.0 else first.curvature),
+                motion_mode=first.motion_mode,
             )
     return points[-1]
 
@@ -82,7 +85,7 @@ class TimedTrajectoryTracker:
                 resolution: float | None = None,
                 occupied_polygon: Callable | None = None) -> TrackerCommand | None:
         if not all(math.isfinite(float(value)) for value in
-                   (state.x, state.y, state.yaw, now)):
+                   (state.x, state.y, state.yaw,state.translation_speed,state.yaw_rate,now)):
             self.last_rejection = "nonfinite_state"
             return None
         checked = validate_trajectory(trajectory, self.limits, now=now,
@@ -115,6 +118,16 @@ class TimedTrajectoryTracker:
         requested_v = target.v + self.longitudinal_gain * longitudinal_error
         requested_w = (target.w + self.lateral_gain * lateral_error +
                        self.heading_gain * heading_error)
+        rotating=target.motion_mode==1
+        if rotating:
+            if abs(state.translation_speed)>.001 or abs(state.yaw_rate)>self.limits.max_yaw_rate_rps:
+                self.last_rejection="rotation_measured_translation_or_yaw_limit"
+                return None
+            if math.hypot(dx,dy)>.02:
+                self.last_rejection="rotation_pivot_tracking_error"
+                return None
+            requested_v=0.
+            requested_w=target.w+self.heading_gain*heading_error
         if not math.isfinite(requested_v) or not math.isfinite(requested_w):
             self.last_rejection = "nonfinite_feedback"
             return None
@@ -130,7 +143,7 @@ class TimedTrajectoryTracker:
         if not within_firmware_command_envelope(requested_v,requested_w):
             self.last_rejection="feedback_firmware_motor_target_limit"
             return None
-        if (self.limits.max_curvature_1pm is not None and
+        if (not rotating and self.limits.max_curvature_1pm is not None and
                 abs(requested_w)>self.limits.max_curvature_1pm*abs(requested_v)+1e-9):
             self.last_rejection="feedback_curvature_limit"
             return None

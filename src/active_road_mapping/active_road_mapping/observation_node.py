@@ -324,7 +324,7 @@ class ActiveObservationNode(Node):
         seconds = lambda t: t.sec+t.nanosec*1e-9
         trajectory = TimedTrajectory.from_points(msg.trajectory_id, msg.map_version, msg.header.frame_id,
             seconds(msg.generated_at), seconds(msg.valid_until),
-            [TimedPoint(p.t,p.x,p.y,p.yaw,p.v,p.w,p.a,p.alpha,p.curvature) for p in msg.points])
+            [TimedPoint(p.t,p.x,p.y,p.yaw,p.v,p.w,p.a,p.alpha,p.curvature,p.motion_mode) for p in msg.points])
         from research_runtime.trajectory import validate_trajectory
         if not validate_trajectory(trajectory,self.limits,now=self.get_clock().now().nanoseconds*1e-9,
             expected_map_version=self.version,footprint=self.footprint,occupied=self.permission.occupied,

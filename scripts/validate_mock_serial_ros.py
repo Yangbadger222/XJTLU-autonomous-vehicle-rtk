@@ -46,7 +46,10 @@ def main():
     parser.add_argument("--loop-budget-s", type=float, default=30.0)
     parser.add_argument("--paused-clock-probe",action="store_true")
     parser.add_argument("--default-profile",action="store_true",help="use all current source-YAML execution settings; analytical sensors/PTY only")
+    parser.add_argument("--rotation-fixture",action="store_true",help="exercise explicit pure-yaw trajectory through all original final-serial stop gates")
     args = parser.parse_args()
+    if args.rotation_fixture and (args.ego_loop or args.arc_loop):
+        parser.error("rotation fault fixture and EGO closed loop are separate runs")
     lock=json.loads((args.repo/'audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json').read_text())
     locked={p['name']:p['value'] for p in lock['parameters']}
     if args.arc_loop:args.ego_loop=True
@@ -67,7 +70,7 @@ def main():
     goal_stopped=False
     goal_arrival_pose=None
     minimum_goal_distance=float("inf")
-    trajectory_counts = {"ok": 0, "failed": 0}
+    trajectory_counts = {"ok": 0, "failed": 0, "explicit_rotation": 0}
     operator_sequence = 0
     operator_last = None
     previous_fault = None
@@ -113,6 +116,8 @@ def main():
 
     def trajectory_cb(msg):
         trajectory_counts["ok" if msg.status == msg.STATUS_OK else "failed"] += 1
+        if msg.status == msg.STATUS_OK and any(p.motion_mode==p.ROTATE_IN_PLACE for p in msg.points):
+            trajectory_counts["explicit_rotation"] += 1
 
     if args.ego_loop:
         node.create_subscription(TimedTrajectory2D, "/research/ego_trajectory", trajectory_cb, 100)
@@ -184,7 +189,9 @@ def main():
             pubs["authority"].publish(Bool(data=fault not in {"authority_false", "rtk_authority_loss"}))
         if not args.rtk_classifier and fault!="authority_mode_stale":
             pubs["authority_mode"].publish(String(data="LIO_BRIDGE" if fault=="lio_bridge_motion_denied" else "RTK_AUTHORITATIVE"))
-        if not args.rtk_classifier:pubs["speed"].publish(Float32(data=0.0 if fault == "speed_permission_zero" else 0.85))
+        if not args.rtk_classifier and fault!='speed_permission_stale':
+            pubs["speed"].publish(Float32(data=0.0 if fault == "speed_permission_zero" else
+                -1. if fault=='speed_permission_invalid' else 0.85))
         if args.rtk_classifier:
             observation=rclpy.time.Time.from_msg(stamp)-rclpy.duration.Duration(seconds=.04)
             observed=observation.to_msg()
@@ -222,7 +229,8 @@ def main():
             odom.pose.pose.position.y = simulated_pose[1] if args.ego_loop else 0.0
             odom.pose.pose.orientation.z = math.sin(simulated_pose[2]/2)
             odom.pose.pose.orientation.w = 0.0 if fault == "zero_quaternion" else math.cos(simulated_pose[2]/2)
-            odom.twist.twist.linear.x = simulated_velocity[0] if args.ego_loop else 0.2
+            odom.twist.twist.linear.x = simulated_velocity[0] if args.ego_loop else (
+                0. if args.rotation_fixture and fault!='rotation_measured_translation' else 0.2)
             odom.twist.twist.angular.z = simulated_velocity[1] if args.ego_loop else 0.0
             pubs["odom"].publish(odom)
         if fault != "tf_stream_lost":
@@ -294,6 +302,13 @@ def main():
             for t, x in [(0.0, 0.0), (2.0, 0.4)]:
                 point = TimedTrajectoryPoint2D()
                 point.t, point.x, point.v = t, x, (2.0 if fault == "infeasible_speed" else 0.2)
+                if args.rotation_fixture:
+                    point.x=0.01*t if fault=='rotation_pivot_moved' else 0.
+                    point.yaw=t*(.8 if fault=='rotation_yaw_limit' else .15)
+                    point.w=.8 if fault=='rotation_yaw_limit' else .15
+                    point.v=2. if fault=='infeasible_speed' else .1 if fault=='rotation_translating_plan' else 0.
+                    point.motion_mode=99 if fault=='rotation_unknown_mode' else (
+                        point.FORWARD if fault=='rotation_untagged' else point.ROTATE_IN_PLACE)
                 msg.points.append(point)
             pubs["trajectory"].publish(msg)
         rclpy.spin_once(node, timeout_sec=0.015)
@@ -310,6 +325,11 @@ def main():
             if args.ego_loop and fault=="normal" and goal_stopped and max(map(abs,simulated_velocity))<.01:break
         if competing_operator_pub:competing_tf_node.destroy_publisher(competing_operator_pub)
         return wire[start:]
+
+    def nominal_reached(lines):
+        if not args.rotation_fixture:
+            return any(line.startswith("vcx=0.2") for line in lines)
+        return any(line.startswith('vcx=0.000,') and abs(float(line.split(',')[1][3:]))>=.1 for line in lines)
 
     try:
         commands = [
@@ -385,17 +405,21 @@ def main():
                       "planning_failed", "planner_stream_lost", "expired_trajectory", "infeasible_speed",
                       "map_version_changed", "grid_stream_lost", "odom_stream_lost", "unknown_ground",
                       "footprint_interior_obstacle", "stop_override", "stop_heartbeat_lost", "speed_permission_zero",
+                      "speed_permission_stale", "speed_permission_invalid",
                       "wrong_odom_frame", "old_odom_stamp", "zero_quaternion", "pose_jump",
                       "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
                       "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher",
                       "grid_old_payload_version","grid_wrong_payload_session","grid_wrong_support_model","grid_mismatched_acquisition")
+        if args.rotation_fixture:
+            faults += ('rotation_translating_plan','rotation_untagged','rotation_unknown_mode',
+                       'rotation_pivot_moved','rotation_yaw_limit','rotation_measured_translation')
         if args.tf_static_fault:faults=("tf_static_competitor",)
         if args.world_gauge_fault:faults=("world_gauge_"+args.world_gauge_fault,)
         if args.paused_clock_probe:faults=("paused_ros_clock",)
         if args.rtk_classifier:faults=("gnss_non_fixed","gnss_low_satellites","gnss_bad_hdop","gnss_heading_float","gnss_rtcm_stale")
         for fault in faults:
             normal = phase("normal", 8.0 if args.rtk_classifier else 1.5)
-            nominal_ok = any(line.startswith("vcx=0.2") for line in normal)
+            nominal_ok = nominal_reached(normal)
             fault_lines = phase(fault, 0.85)
             tail = fault_lines[-5:]
             zero_ok = len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail)
@@ -415,9 +439,8 @@ def main():
             children[0].wait(timeout=5)
             fault_lines = phase("normal", 0.8)
             tail = fault_lines[-5:]
-            cases.append({"fault": "controller_process_exit", "nominal_nonzero_reached_serial": any(
-                line.startswith("vcx=0.2") for line in normal), "final_serial_tail": tail,
-                "status": "PASS" if any(line.startswith("vcx=0.2") for line in normal) and
+            cases.append({"fault": "controller_process_exit", "nominal_nonzero_reached_serial": nominal_reached(normal), "final_serial_tail": tail,
+                "status": "PASS" if nominal_reached(normal) and
                 len(tail) == 5 and all(line == "vcx=0.000,wc=0.000\n" for line in tail) else "FAIL"})
         result = {"domain": 91, "sink": "allocated PTY; no physical device", "serial_profile": "original master YAML, only port remapped",
                   "simulation_only_settings": selected_profile,
@@ -425,10 +448,19 @@ def main():
                   "source_commit":subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
                   "scope": "actual original serial binary; physical KEY/joystick/firmware emergency stop remains pending",
                   "rtk_classifier":args.rtk_classifier,"world_gauge_fault":args.world_gauge_fault,
+                  "rotation_fixture":args.rotation_fixture,
                   "authority_mode_counts":{mode:authority_modes.count(mode) for mode in set(authority_modes)},
                   "runtime_parameters": runtime_parameters, "cases": cases, "tracker_reason_counts": tracker_reasons,
                   "child_exit_before_cleanup": [child.poll() for child in children],
                   "status": "PASS" if all(case["status"] == "PASS" for case in cases) else "FAIL"}
+        if args.rotation_fixture:
+            wire_values=[(float(line.split(',')[0][4:]),float(line.split(',')[1][3:])) for line in wire]
+            from research_runtime.firmware_command import within_firmware_command_envelope
+            result['rotation_wire_checks']={
+                'all_final_commands_zero_translation':all(v==0. for v,w in wire_values),
+                'original_yaw_cap':all(abs(w)<=locked['corridor.smoother.max_velocity'][2] for v,w in wire_values),
+                'source_firmware_four_motor_targets':all(within_firmware_command_envelope(v,w) for v,w in wire_values)}
+            if not all(result['rotation_wire_checks'].values()):result['status']='FAIL'
     finally:
         for child in children:
             if child.poll() is None:

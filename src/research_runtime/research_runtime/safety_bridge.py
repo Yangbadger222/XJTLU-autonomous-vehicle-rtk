@@ -188,7 +188,8 @@ if rclpy:
             sin_yaw = 2.0 * (qw * qz + qx * qy)
             cos_yaw = 1.0 - 2.0 * (qy * qy + qz * qz)
             yaw = math.atan2(sin_yaw, cos_yaw)
-            values = (msg.pose.pose.position.x, msg.pose.pose.position.y, yaw)
+            values = (msg.pose.pose.position.x, msg.pose.pose.position.y, yaw,
+                math.hypot(msg.twist.twist.linear.x,msg.twist.twist.linear.y),msg.twist.twist.angular.z)
             if all(math.isfinite(float(value)) for value in values):
                 self._state = TrackerState(*values)
                 self._state_stamp = time.monotonic()
@@ -258,7 +259,7 @@ if rclpy:
             try:
                 points = tuple(TimedPoint(point.t, point.x, point.y, point.yaw,
                                            point.v, point.w, point.a, point.alpha,
-                                           point.curvature) for point in msg.points)
+                                           point.curvature,point.motion_mode) for point in msg.points)
                 self._trajectory_contract = TimedTrajectory.from_points(
                     msg.trajectory_id, msg.map_version, msg.header.frame_id,
                     self._time_seconds(msg.generated_at),
@@ -334,14 +335,16 @@ if rclpy:
             command = self._gate.command(tracked.linear_x if tracked else 0.0,
                                          tracked.angular_z if tracked else 0.0, state)
             if command.allowed:
+                rotating=tracked.target.motion_mode==1
                 self._last_command = slew_command(self._last_command,
                     (command.linear_x, command.angular_z), now - self._last_tick, self._tracker.limits,
-                    self._normal_slew_fraction)
+                    self._normal_slew_fraction,in_place_rotation=rotating)
                 curvature_limit=self._tracker.limits.max_curvature_1pm
                 wire_v,wire_w=(float(f"{value:.3f}") for value in self._last_command)
                 if (not within_firmware_command_envelope(wire_v,wire_w) or
                     abs(wire_v*wire_w)>self._tracker.limits.max_lateral_accel_mps2+1e-12 or
-                    (curvature_limit is not None and abs(wire_w)>curvature_limit*abs(wire_v)+1e-12)):
+                    (rotating and wire_v!=0.) or
+                    (not rotating and curvature_limit is not None and abs(wire_w)>curvature_limit*abs(wire_v)+1e-12)):
                     self._last_command=(0.,0.)
                     command=SafetyCommand(0.,0.,False,"post_slew_curvature_rejected")
             else:

@@ -12,6 +12,7 @@ world_gauge_patch_file="${repo_root}/patches/ego_planner_2d/0005-protect-owned-l
 evidence_patch_file="${repo_root}/patches/ego_planner_2d/0006-atomic-local-evidence-grid-contract.patch"
 local_frame_patch_file="${repo_root}/patches/ego_planner_2d/0007-local-perception-frame-integrity.patch"
 firmware_patch_file="${repo_root}/patches/ego_planner_2d/0008-stm32-command-model-target-check.patch"
+rotation_patch_file="${repo_root}/patches/ego_planner_2d/0009-explicit-stationary-heading-recovery.patch"
 
 test -d "${upstream_dir}/.git" || { echo "missing vcs checkout: ${upstream_dir}" >&2; exit 2; }
 test "$(git -C "${upstream_dir}" rev-parse HEAD)" = "${expected_commit}" || {
@@ -36,4 +37,6 @@ git -C "${upstream_dir}" apply --check "${local_frame_patch_file}"
 git -C "${upstream_dir}" apply "${local_frame_patch_file}"
 git -C "${upstream_dir}" apply --check "${firmware_patch_file}"
 git -C "${upstream_dir}" apply "${firmware_patch_file}"
+git -C "${upstream_dir}" apply --check "${rotation_patch_file}"
+git -C "${upstream_dir}" apply "${rotation_patch_file}"
 echo "Applied Ego-Planner-2D-ROS2 vehicle core, ROS timed-trajectory and stale-plan safety patches"

@@ -1,0 +1,1 @@
+PASS: actual native deskew rejects 0/1/2 IMUs,backward/duplicate/nonfinite/unbracketed/stale-history times before mutation; exact endpoints, retained overlap, posterior alignment and reused real lookahead produce finite scan-end output

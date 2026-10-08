@@ -1,0 +1,120 @@
+Traceback (most recent call last):
+  File "/vehicle-research/scripts/validate_research_launch.py", line 178, in <module>
+    raise SystemExit(main())
+  File "/vehicle-research/scripts/validate_research_launch.py", line 54, in main
+    output = subprocess.run(command,capture_output=True,text=True,timeout=20)
+  File "/usr/lib/python3.10/subprocess.py", line 505, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 1154, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+  File "/usr/lib/python3.10/subprocess.py", line 2021, in _communicate
+    ready = selector.select(timeout)
+  File "/usr/lib/python3.10/selectors.py", line 416, in select
+    fd_event_list = self._selector.poll(timeout)
+KeyboardInterrupt
+h_observed_ground-9]: process started with pid [208]
+[INFO] [research_local_obstacle_grid-10]: process started with pid [213]
+[INFO] [motion_plan-11]: process started with pid [217]
+[INFO] [research_tf_guard-12]: process started with pid [221]
+[INFO] [rtk_map_odom_corrector_node-13]: process started with pid [225]
+[INFO] [corridor_cmd_vel_guard_node-14]: process started with pid [229]
+[INFO] [research_safety_bridge-15]: process started with pid [233]
+[INFO] [research_operator_console-16]: process started with pid [236]
+[robot_state_publisher-1] [INFO] [1791460008.067373961] [robot_state_publisher]: got segment base_footprint
+[robot_state_publisher-1] [INFO] [1791460008.160996445] [robot_state_publisher]: got segment base_link
+[robot_state_publisher-1] [INFO] [1791460008.161181439] [robot_state_publisher]: got segment camera_link
+[robot_state_publisher-1] [INFO] [1791460008.161227048] [robot_state_publisher]: got segment handle_bar_link
+[robot_state_publisher-1] [INFO] [1791460008.161294737] [robot_state_publisher]: got segment handle_left_link
+[robot_state_publisher-1] [INFO] [1791460008.161339440] [robot_state_publisher]: got segment handle_right_link
+[robot_state_publisher-1] [INFO] [1791460008.161387088] [robot_state_publisher]: got segment imu_link
+[robot_state_publisher-1] [INFO] [1791460008.161436816] [robot_state_publisher]: got segment laser_link
+[robot_state_publisher-1] [INFO] [1791460008.161620822] [robot_state_publisher]: got segment left_back_wheel_link
+[robot_state_publisher-1] [INFO] [1791460008.161672281] [robot_state_publisher]: got segment left_caster_link
+[robot_state_publisher-1] [INFO] [1791460008.161725401] [robot_state_publisher]: got segment left_front_wheel_link
+[robot_state_publisher-1] [INFO] [1791460008.161777803] [robot_state_publisher]: got segment right_back_wheel_link
+[robot_state_publisher-1] [INFO] [1791460008.161827762] [robot_state_publisher]: got segment right_caster_link
+[robot_state_publisher-1] [INFO] [1791460008.161873632] [robot_state_publisher]: got segment right_front_wheel_link
+[super_lio_node-3] WARNING: Logging before InitGoogleLogging() is written to STDERR
+[super_lio_node-3] I1008 11:46:48.762394   185 ROSWrapper.cpp:18] [32m ---> [Param] map/save_map: false[0m
+[super_lio_node-3] I1008 11:46:48.867184   185 ROSWrapper.cpp:196] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+[super_lio_node-3] I1008 11:46:48.867334   185 ROSWrapper.cpp:280] [32m ---> Using Lidar type: LIVOX[0m
+[motion_plan-11] [INFO] [1791460009.366516119] [ego_vehicle_adapter]: Vehicle EGO adapter ready; waiting for measured odom, road reference, obstacle grid and map version
+[super_lio_node-3]  ---> OctVoxMap init. Resolution: 0.5 Capacity: 2000000
+[super_lio_node-3] I1008 11:46:49.472317   185 super_lio.cpp:86] [32m ---> [SuperLIO]: initialized.[0m
+[research_operator_console-16] [INFO] [1791460025.363896433] [research_operator_console]: Research cockpit: http://127.0.0.1:8897; startup mode=replay; actuator=False
+[joint_state_publisher-2] [INFO] [1791460029.667906543] [joint_state_publisher]: Waiting for robot_description to be published on the robot_description topic...
+[rtk_map_odom_corrector_node-13] [INFO] [1791460034.887522861] [rtk_map_odom_corrector]: RTK authority gates: yaw=20.0deg position=1.50m recovery=5/0.30s; release=0.20m/s 2.0deg/s
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [research_operator_console-16]: sending signal 'SIGINT' to process[research_operator_console-16]
+[INFO] [research_safety_bridge-15]: sending signal 'SIGINT' to process[research_safety_bridge-15]
+[INFO] [corridor_cmd_vel_guard_node-14]: sending signal 'SIGINT' to process[corridor_cmd_vel_guard_node-14]
+[INFO] [rtk_map_odom_corrector_node-13]: sending signal 'SIGINT' to process[rtk_map_odom_corrector_node-13]
+[INFO] [research_tf_guard-12]: sending signal 'SIGINT' to process[research_tf_guard-12]
+[INFO] [motion_plan-11]: sending signal 'SIGINT' to process[motion_plan-11]
+[INFO] [research_local_obstacle_grid-10]: sending signal 'SIGINT' to process[research_local_obstacle_grid-10]
+[INFO] [research_observed_ground-9]: sending signal 'SIGINT' to process[research_observed_ground-9]
+[INFO] [active_observation-8]: sending signal 'SIGINT' to process[active_observation-8]
+[INFO] [active_road_evidence-7]: sending signal 'SIGINT' to process[active_road_evidence-7]
+[INFO] [active_road_map-6]: sending signal 'SIGINT' to process[active_road_map-6]
+[INFO] [super_lio_cloud_frame_adapter-5]: sending signal 'SIGINT' to process[super_lio_cloud_frame_adapter-5]
+[INFO] [super_lio_vehicle_adapter-4]: sending signal 'SIGINT' to process[super_lio_vehicle_adapter-4]
+[INFO] [super_lio_node-3]: sending signal 'SIGINT' to process[super_lio_node-3]
+[INFO] [joint_state_publisher-2]: sending signal 'SIGINT' to process[joint_state_publisher-2]
+[INFO] [robot_state_publisher-1]: sending signal 'SIGINT' to process[robot_state_publisher-1]
+[research_tf_guard-12] [INFO] [1791460240.460540547] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[motion_plan-11] [INFO] [1791460240.560567896] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[corridor_cmd_vel_guard_node-14] Traceback (most recent call last):
+[corridor_cmd_vel_guard_node-14]   File "/research-ws/fresh14/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node", line 33, in <module>
+[corridor_cmd_vel_guard_node-14]     sys.exit(load_entry_point('gps-waypoint-dispatcher==1.0.0', 'console_scripts', 'corridor_cmd_vel_guard_node')())
+[corridor_cmd_vel_guard_node-14]   File "/research-ws/fresh14/install/gps_waypoint_dispatcher/lib/python3.10/site-packages/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node.py", line 117, in main
+[corridor_cmd_vel_guard_node-14]     rclpy.spin(node)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[corridor_cmd_vel_guard_node-14]     executor.spin_once()
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 812, in spin_once
+[corridor_cmd_vel_guard_node-14]     self._spin_once_impl(timeout_sec)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 801, in _spin_once_impl
+[corridor_cmd_vel_guard_node-14]     handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 784, in wait_for_ready_callbacks
+[corridor_cmd_vel_guard_node-14]     return next(self._cb_iter)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 678, in _wait_for_ready_callbacks
+[corridor_cmd_vel_guard_node-14]     waitable.add_to_wait_set(wait_set)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos_event.py", line 114, in add_to_wait_set
+[corridor_cmd_vel_guard_node-14]     with self.__event:
+[corridor_cmd_vel_guard_node-14] KeyboardInterrupt
+[super_lio_node-3] [INFO] [1791460241.664418333] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[INFO] [research_tf_guard-12]: process has finished cleanly [pid 221]
+[super_lio_node-3] I1008 11:50:41.765853   185 timer.h:40] >>> ===== Printing run time =====
+[robot_state_publisher-1] [INFO] [1791460241.861318437] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[ERROR] [corridor_cmd_vel_guard_node-14]: process has died [pid 229, exit code -2, cmd '/research-ws/fresh14/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node --ros-args -r __node:=corridor_cmd_vel_guard --params-file /research-ws/fresh14/install/bringup/share/bringup/config/master_params.yaml --params-file /research-ws/tmp/launch_params_awxpq5yd'].
+[INFO] [motion_plan-11]: process has finished cleanly [pid 217]
+[super_lio_vehicle_adapter-4] Traceback (most recent call last):
+[super_lio_vehicle_adapter-4]   File "/research-ws/terminal-overlay/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter", line 33, in <module>
+[super_lio_vehicle_adapter-4]     sys.exit(load_entry_point('super-lio-vehicle-adapter==0.1.0', 'console_scripts', 'super_lio_vehicle_adapter')())
+[super_lio_vehicle_adapter-4]   File "/research-ws/terminal-overlay/install/super_lio_vehicle_adapter/lib/python3.10/site-packages/super_lio_vehicle_adapter/adapter_node.py", line 509, in main
+[super_lio_vehicle_adapter-4]     rclpy.spin(node)
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[super_lio_vehicle_adapter-4]     executor.spin_once()
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 812, in spin_once
+[super_lio_vehicle_adapter-4]     self._spin_once_impl(timeout_sec)
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 809, in _spin_once_impl
+[super_lio_vehicle_adapter-4]     raise handler.exception()
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 309, in _execute_coroutine_step
+[super_lio_vehicle_adapter-4]     result = coro.send(None)
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 478, in handler
+[super_lio_vehicle_adapter-4]     arg = take_from_wait_list(entity)
+[super_lio_vehicle_adapter-4]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 400, in _take_subscription
+[super_lio_vehicle_adapter-4]     msg_info = sub.handle.take_message(sub.msg_type, sub.raw)
+[super_lio_vehicle_adapter-4] RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)
+[INFO] [research_local_obstacle_grid-10]: process has finished cleanly [pid 213]
+[INFO] [research_safety_bridge-15]: process has finished cleanly [pid 233]
+[INFO] [robot_state_publisher-1]: process has finished cleanly [pid 177]
+[INFO] [super_lio_node-3]: process has finished cleanly [pid 185]
+[INFO] [active_road_map-6]: process has finished cleanly [pid 197]
+[INFO] [rtk_map_odom_corrector_node-13]: process has finished cleanly [pid 225]
+[INFO] [research_operator_console-16]: process has finished cleanly [pid 236]
+[INFO] [research_observed_ground-9]: process has finished cleanly [pid 208]
+[INFO] [joint_state_publisher-2]: process has finished cleanly [pid 181]
+[INFO] [active_observation-8]: process has finished cleanly [pid 205]
+[INFO] [active_road_evidence-7]: process has finished cleanly [pid 201]
+[ERROR] [super_lio_vehicle_adapter-4]: process has died [pid 189, exit code 1, cmd '/research-ws/terminal-overlay/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter --ros-args -r __node:=super_lio_vehicle_adapter --params-file /research-ws/fresh14/install/bringup/share/bringup/config/super_lio_reference.yaml --params-file /research-ws/tmp/launch_params_qfwyhgdk'].
+[INFO] [super_lio_cloud_frame_adapter-5]: process has finished cleanly [pid 193]

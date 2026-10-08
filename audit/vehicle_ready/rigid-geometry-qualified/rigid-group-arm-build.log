@@ -1,0 +1,29 @@
+Starting >>> basic
+--- stderr: basic
+** WARNING ** io features related to pcap will be disabled
+---
+[Processing: basic]
+[Processing: basic]
+Finished <<< basic [1min 0s]
+Starting >>> super_lio
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+[Processing: super_lio]
+Finished <<< super_lio [8min 30s]
+
+Summary: 2 packages finished [9min 31s]
+  1 package had stderr output: basic
+ARM64_RIGID_GROUP_BUILD_COMPLETED

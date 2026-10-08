@@ -1,0 +1,15 @@
+{
+  "source_commit": "85eb28c2b92576df876668587301c013500b4690",
+  "source": "/dev/shm/codex-arm64-work/mapping-signal-source",
+  "files": {
+    "active_road_mapping/active_road_mapping/__init__.py": "cea9414f108c6fce963e2f443e464b27956ba56517222565c02003ef50a03930",
+    "active_road_mapping/active_road_mapping/evidence_node.py": "56bd578302221e03c5e67a150ddfc7aacb9890a4b53bb7b1ebb4825c4e66be3a",
+    "active_road_mapping/active_road_mapping/map_node.py": "93e42a4f44a7b9df708934ebe09b7a5cc05ba6a1d272ce82c89735cbe8f2c3a1",
+    "active_road_mapping/active_road_mapping/observation_node.py": "9815aaa66a4d37ad454de40344bf1b0bdef482d733de75d8485917c6688d756d",
+    "active_road_mapping/package.xml": "93768eadd89ae62c48aecb57698386dedf919e3ce02d0011f2f75f3639faeea9",
+    "active_road_mapping/resource/active_road_mapping": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "active_road_mapping/setup.cfg": "1cd408012428b191494de849750b141e9db63133a56bebc39db877fc947ca208",
+    "active_road_mapping/setup.py": "bc2a242dd1fee43749cdcbf37a1fc670b01ec039aaf3ed2234e0241fffe1e1b3",
+    "installed_source_receipt.py": "95e5dc210ace2675e006cff15c74dd5cfb67f6f86c1a729377cff589be72ccc4"
+  }
+}

@@ -1,0 +1,7 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I1008 18:06:44.108927 1743162 ROSWrapper.cpp:17] [32m ---> [Param] map/save_map: false[0m
+I1008 18:06:44.109081 1743162 ROSWrapper.cpp:195] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+I1008 18:06:44.109084 1743162 ROSWrapper.cpp:279] [32m ---> Using Lidar type: LIVOX[0m
+source scale=1 published norm2=1.0000000090805798
+source scale=1.0000239610671997 published norm2=1.0000181265209387
+orientation: /dev/shm/codex-shadow-delivery/scripts/validate_super_lio_orientation.cpp:49: int main(int, char**): Assertion `std::isfinite(norm)&&std::abs(norm-1.)<1e-5' failed.

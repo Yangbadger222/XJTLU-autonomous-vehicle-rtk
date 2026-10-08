@@ -1,0 +1,271 @@
+...............................................FFFFFFFFF................ [ 31%]
+........................................................................ [ 62%]
+........................................................................ [ 93%]
+................                                                         [100%]
+=================================== FAILURES ===================================
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-evidence_node.py-ActiveRoadEvidenceNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x760961794790>
+signum = <Signals.SIGINT: 2>, module = <module 'evidence_node.py'>
+class_name = 'ActiveRoadEvidenceNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'evidence_node.py'> has no attribute 'ActiveRoadEvidenceNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-map_node.py-ActiveRoadMapNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x760988630a30>
+signum = <Signals.SIGINT: 2>, module = <module 'map_node.py'>
+class_name = 'ActiveRoadMapNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'map_node.py'> has no attribute 'ActiveRoadMapNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-observation_node.py-ActiveObservationNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76095ed7ca90>
+signum = <Signals.SIGINT: 2>, module = <module 'observation_node.py'>
+class_name = 'ActiveObservationNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'observation_node.py'> has no attribute 'ActiveObservationNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-evidence_node.py-ActiveRoadEvidenceNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x760961751ff0>
+signum = <Signals.SIGTERM: 15>, module = <module 'evidence_node.py'>
+class_name = 'ActiveRoadEvidenceNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'evidence_node.py'> has no attribute 'ActiveRoadEvidenceNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-map_node.py-ActiveRoadMapNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76095edb56c0>
+signum = <Signals.SIGTERM: 15>, module = <module 'map_node.py'>
+class_name = 'ActiveRoadMapNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'map_node.py'> has no attribute 'ActiveRoadMapNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-observation_node.py-ActiveObservationNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x760961751420>
+signum = <Signals.SIGTERM: 15>, module = <module 'observation_node.py'>
+class_name = 'ActiveObservationNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'observation_node.py'> has no attribute 'ActiveObservationNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:44: AttributeError
+_ test_normal_runtime_error_is_not_swallowed[evidence_node.py-ActiveRoadEvidenceNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x760961737730>
+module = <module 'evidence_node.py'>, class_name = 'ActiveRoadEvidenceNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    def test_normal_runtime_error_is_not_swallowed(monkeypatch, module, class_name):
+        runtime=SimpleNamespace(alive=False);events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        def init(**_kwargs):runtime.alive=True
+        def fail(*_args,**_kwargs):raise RuntimeError("ordinary subscription failure")
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=fail,spin_once=fail,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'evidence_node.py'> has no attribute 'ActiveRoadEvidenceNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:64: AttributeError
+__ test_normal_runtime_error_is_not_swallowed[map_node.py-ActiveRoadMapNode] ___
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76095ed25cc0>
+module = <module 'map_node.py'>, class_name = 'ActiveRoadMapNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    def test_normal_runtime_error_is_not_swallowed(monkeypatch, module, class_name):
+        runtime=SimpleNamespace(alive=False);events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        def init(**_kwargs):runtime.alive=True
+        def fail(*_args,**_kwargs):raise RuntimeError("ordinary subscription failure")
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=fail,spin_once=fail,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'map_node.py'> has no attribute 'ActiveRoadMapNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:64: AttributeError
+_ test_normal_runtime_error_is_not_swallowed[observation_node.py-ActiveObservationNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7609886ef190>
+module = <module 'observation_node.py'>, class_name = 'ActiveObservationNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    def test_normal_runtime_error_is_not_swallowed(monkeypatch, module, class_name):
+        runtime=SimpleNamespace(alive=False);events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        def init(**_kwargs):runtime.alive=True
+        def fail(*_args,**_kwargs):raise RuntimeError("ordinary subscription failure")
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=fail,spin_once=fail,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+>       monkeypatch.setattr(module,class_name,Node)
+E       AttributeError: <module 'observation_node.py'> has no attribute 'ActiveObservationNode'
+
+src/research_runtime/test/test_evidence_signal_ownership.py:64: AttributeError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-evidence_node.py-ActiveRoadEvidenceNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-map_node.py-ActiveRoadMapNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-observation_node.py-ActiveObservationNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-evidence_node.py-ActiveRoadEvidenceNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-map_node.py-ActiveRoadMapNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-observation_node.py-ActiveObservationNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_normal_runtime_error_is_not_swallowed[evidence_node.py-ActiveRoadEvidenceNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_normal_runtime_error_is_not_swallowed[map_node.py-ActiveRoadMapNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_normal_runtime_error_is_not_swallowed[observation_node.py-ActiveObservationNode]
+9 failed, 223 passed in 1.42s

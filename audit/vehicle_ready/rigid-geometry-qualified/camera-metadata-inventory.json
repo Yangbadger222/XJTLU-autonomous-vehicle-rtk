@@ -1,0 +1,16 @@
+{
+  "scope": "read-only currently accessible sealed catalog inventory; metadata only, not sensor/depth quality",
+  "counts": {
+    "total": 122,
+    "valid_metadata": 121,
+    "unreadable_or_empty": 1,
+    "camera_bags": 0
+  },
+  "camera_bags": [],
+  "unreadable_metadata": [
+    {
+      "path": "/home/badger/Desktop/log/logs/2026-03-22-14-10-18/bag/metadata.yaml",
+      "reason": "empty/non-bag metadata"
+    }
+  ]
+}

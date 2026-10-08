@@ -1,0 +1,23 @@
+{
+  "source_commit": "9c716a0085818463b1259d554174786cefc00941",
+  "trial_exit": 0,
+  "probe_exit": 0,
+  "domain": 94,
+  "scope": "finite analytical override reproduction; read-only native per-sample publisher GID timing; original serial allocated PTY only",
+  "command": [
+    "python",
+    "/dev/shm/codex-shadow-delivery/scripts/validate_restricted_policy_ros.py",
+    "--repo",
+    "/dev/shm/codex-shadow-delivery",
+    "--install",
+    "/dev/shm/codex-terminal-native-fixture-install",
+    "--output",
+    "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/analytic-trace-60s/result.json",
+    "--budget-s",
+    "60",
+    "--strategies",
+    "PASSIVE",
+    "--tasks",
+    "1"
+  ]
+}

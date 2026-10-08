@@ -1,0 +1,11 @@
+Starting >>> super_lio_vehicle_adapter
+--- stderr: super_lio_vehicle_adapter
+warning: build_py: byte-compiling is disabled, skipping.
+
+warning: install_lib: byte-compiling is disabled, skipping.
+
+---
+Finished <<< super_lio_vehicle_adapter [3.18s]
+
+Summary: 1 package finished [3.88s]
+  1 package had stderr output: super_lio_vehicle_adapter

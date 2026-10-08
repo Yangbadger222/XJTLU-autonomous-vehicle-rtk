@@ -1,0 +1,22 @@
+{
+  "source_commit": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+  "full_0715_exit": 0,
+  "ground_prefix_exit": 1,
+  "command": [
+    "python",
+    "/dev/shm/codex-shadow-delivery/scripts/validate_lio_reference_replay.py",
+    "--repo",
+    "/dev/shm/codex-shadow-delivery",
+    "--install",
+    "/dev/shm/codex-rigid-group-native-fixture-install",
+    "--bag",
+    "/home/badger/fgo-gil-analysis/rosbags/2026-07-21-07-06-18/fgo_gil",
+    "--duration-s",
+    "30",
+    "--ground-pipeline",
+    "--ground-diagnostics",
+    "--output",
+    "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-raw-ground-0721-am-prefix.json"
+  ],
+  "scope": "full actual raw control/reference coverage, then explicitly actual ground PREFIX without RTK/actuator; negative ground cannot grant permission"
+}

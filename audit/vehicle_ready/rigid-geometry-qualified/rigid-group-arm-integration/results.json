@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "rotation_integration",
+      "status": "PASS",
+      "source_sha256": "a9aa9599e558178ba2efb6858940f01e6644e50b95c603f4fda3dceaf5f791fb",
+      "binary_sha256": "981b428462a361d80a1661c2f3f4c6850f324f8f2f528b4b1db33482511394dc",
+      "log": "/research-ws/qualification/rigid-group-arm-integration/rotation_integration.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    }
+  ],
+  "workspace": "/research-ws/rigid-group-overlay",
+  "scope": "native software equations and failure paths; synthetic inputs do not prove physical acceptance"
+}

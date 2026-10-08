@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "rotation_integration",
+      "status": "PASS",
+      "source_sha256": "a9aa9599e558178ba2efb6858940f01e6644e50b95c603f4fda3dceaf5f791fb",
+      "binary_sha256": "0f4d6cc742d93e71bac2e1a949c2417f52956af01afef5ede470db7d38086892",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-noncommuting-integration/rotation_integration.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    }
+  ],
+  "workspace": "/dev/shm/codex-super-rigid-group-ws",
+  "scope": "native software equations and failure paths; synthetic inputs do not prove physical acceptance"
+}

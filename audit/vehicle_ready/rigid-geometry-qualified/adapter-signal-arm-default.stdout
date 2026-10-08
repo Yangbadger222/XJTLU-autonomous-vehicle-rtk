@@ -1,0 +1,138 @@
+{
+  "domain": 93,
+  "mode": "default replay",
+  "test_only_overrides": {
+    "console_port": 8897
+  },
+  "deliberate_override_probes": [],
+  "missing_expected_nodes": [],
+  "forbidden_nodes": [],
+  "launch_exit_before_cleanup": null,
+  "expected_child_count": 16,
+  "status": "FAIL",
+  "cleanup_exit": 0,
+  "owned_child_shutdown": [
+    {
+      "pid": 243,
+      "launch_name": "robot_state_publisher-1",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 247,
+      "launch_name": "joint_state_publisher-2",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 251,
+      "launch_name": "super_lio_node-3",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 255,
+      "launch_name": "super_lio_vehicle_adapter-4",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 259,
+      "launch_name": "super_lio_cloud_frame_adapter-5",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 263,
+      "launch_name": "active_road_map-6",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 267,
+      "launch_name": "active_road_evidence-7",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 271,
+      "launch_name": "active_observation-8",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 275,
+      "launch_name": "research_observed_ground-9",
+      "exit": 1,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 279,
+      "launch_name": "research_local_obstacle_grid-10",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 282,
+      "launch_name": "motion_plan-11",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 287,
+      "launch_name": "research_tf_guard-12",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 291,
+      "launch_name": "rtk_map_odom_corrector_node-13",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 295,
+      "launch_name": "corridor_cmd_vel_guard_node-14",
+      "exit": -2,
+      "baseline_expected_interrupt": true,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 299,
+      "launch_name": "research_safety_bridge-15",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 303,
+      "launch_name": "research_operator_console-16",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    }
+  ],
+  "unexpected_shutdown_children": [
+    {
+      "pid": 275,
+      "launch_name": "research_observed_ground-9",
+      "exit": 1,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    }
+  ],
+  "clean_shutdown_status": "FAIL"
+}

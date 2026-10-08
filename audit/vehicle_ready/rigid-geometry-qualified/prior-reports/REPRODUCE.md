@@ -1,0 +1,21 @@
+# Source-bound reproduction
+
+Current runtime qualification is a7dc39774c4421b40a6a0abb7d1709a81bdc72b0; normal research branch publication is separate. Use an isolated Humble environment, localhost-only DDS, allocated PTYs and distinct test-only HTTP ports. No hardware device is required for these executed checks.
+
+The SDK / 14 x86 foundation is /dev/shm/codex-stop-fresh-ws at its recorded8c937ed source. Source its setup, then /dev/shm/codex-shutdown-native-ws/install/setup.bash, then /dev/shm/codex-terminal-native-ws/install/setup.bash. These are staged overlays, not a fresh all 14 build at a7. Actual native source resolution and all30 hashes are recorded in audit/vehicle_ready/shutdown-qualified/terminal-native-current-build.json.
+
+Run validate_research_launch.py in domain93 with --repo /dev/shm/codex-shadow-delivery --console-port 8888 and a fresh --output. It queries direct DDS with finite3 s discovery, inspects16 owned nodes/single cmd writer, then SIGINTs only its launch and audits every child. The original guard's explicit baseline SIGINT exception is kept; missing/nonzero/live research children fail.
+
+Run validate_console_mock_ros.py in domain99 with --install /dev/shm/codex-terminal-native-fixture-install --repo /dev/shm/codex-shadow-delivery --console-port 8887 and a fresh --output. This merge of test-only package paths selects the new console, existing original guard/serial and actual bridge/observer. The13cases use declared analytical inputs and allocatedPTYonly. Signals are sent while the latest typed/HTTP state isAUTO and latest wire is nonzero; the subsequent STOP must have a newersequence, source stamp after the signal marker and be received while the console process is alive.
+
+Source/parsed/effective check: audit_research_runtime_parameters.py --root /dev/shm/codex-shadow-delivery --default-entry <newdefault.json> --serial audit/vehicle_ready/control-stop-qualified/current-linear-wire.json --output <new157.json>. The original serial bytes/parameters remain identical; that input retains its historical identity and the port is explicitly aPTY.
+
+Portable command uses PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PYTHONDONTWRITEBYTECODE=1, pytest -p no:cacheprovider and PYTHONPATH containing src/research_runtime, src/active_road_mapping and src/super_lio_vehicle_adapter. Select research_runtime/test, super_lio_vehicle_adapter/test, scripts/test_research_bag_contract.py, scripts/test_recorded_chassis_response.py and scripts/test_replay_acceptance.py. Current: 223 PASS includes the production-close AST interleaving regression;19 console-related tests independently pass.
+
+ARM uses the existing task-owned explicit docker socket /dev/shm/codex-arm64-docker/docker.sock and official ARM64 Humble image. terminal-source/SOURCE_FREEZE.json separates the read-only084base from currenta7Python overlays. The exact current recipe, actual full16 node receipt, installed30hash proof and finite broker44 successful / 0 failed requests are copied in shutdown-qualified/. The QEMU6.2 IP_MULTICAST_IF defect requires the explicitly recorded native-fd diagnostic helper; this is not native Jetson runtime validation. Do not change the host's binfmt or reuse arbitrary containers/default Docker daemon.
+
+A test-only in-memory mutation skips final STOP publication and is correctly rejected in both signal cases; eventual timeout wire zeros alone do not pass. The real old close HTTP interleaving failed before the terminal-revocation fix. Setup/import/plugin failures are labelled separately in COHORT.json.
+
+Raw July15 fullEOF, July21AM/PM30sPREFIX, original exact-pin/2 Super11 EGO source proof, same-foundation policy tasks and motion-loop commands retain their existing recorded source identities; their complete reproduction notes are preserved in shutdown-qualified/prior-reports/REPRODUCE.md and control-stop-qualified/. Do not relabel aPREFIX as EOF or simulation as real terrain.
+
+Static provenance: python3 scripts/verify_research_delivery.py --output <fresh.json> --external-report <distinct byte-identical report.md>. This checks a separate remote report copy, not Mac synchronization. Generate-check: python3 scripts/generate_research_parameter_lock.py --check.

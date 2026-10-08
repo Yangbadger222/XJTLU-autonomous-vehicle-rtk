@@ -1,0 +1,253 @@
+{
+  "status": "PASS",
+  "runtime_commit": "6b15c7dda33d4110ba247cf37425abc67da1dd6d",
+  "architecture": "aarch64",
+  "package_paths": {
+    "research_runtime": "/research-ws/terminal-overlay/install/research_runtime/lib/python3.10/site-packages/research_runtime",
+    "super_lio_vehicle_adapter": "/research-ws/adapter-signal-overlay/install/super_lio_vehicle_adapter/lib/python3.10/site-packages/super_lio_vehicle_adapter",
+    "active_road_mapping": "/research-ws/mapping-signal-overlay/install/active_road_mapping/lib/python3.10/site-packages/active_road_mapping"
+  },
+  "fresh_sdk14_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "fresh_before_build": false,
+  "scope": "previous qualified SDK14 foundation plus isolated Python package overlays plus qualified basic/Super-LIO C++ overlay; no all14 clean build at current tip",
+  "checks": [
+    {
+      "package": "research_runtime",
+      "file": "__init__.py",
+      "source_sha256": "fbc4b1e47f84841d1389f79d2439874740a0db6226719b6f1d4326b6d8d8cb5e",
+      "installed_sha256": "fbc4b1e47f84841d1389f79d2439874740a0db6226719b6f1d4326b6d8d8cb5e",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "active_observation.py",
+      "source_sha256": "2a793309f549d7d0e80eb1f6867f2f9350c10128fbae33ed1716ae6b5cdd21f2",
+      "installed_sha256": "2a793309f549d7d0e80eb1f6867f2f9350c10128fbae33ed1716ae6b5cdd21f2",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "active_road.py",
+      "source_sha256": "e4a0de00ed6ce2a15c61c493802c810b8756e689a69f517286ea192fb0643f66",
+      "installed_sha256": "e4a0de00ed6ce2a15c61c493802c810b8756e689a69f517286ea192fb0643f66",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "authority.py",
+      "source_sha256": "2fdf67589daa1d9c175aa4e1d05ccd4c72c56d3a387b22699e3e2ae6c843d260",
+      "installed_sha256": "2fdf67589daa1d9c175aa4e1d05ccd4c72c56d3a387b22699e3e2ae6c843d260",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "bag_identity.py",
+      "source_sha256": "d248676488da65feaa775414a75312bd34e2ad6443aa8b80ce87cd4a2aaff920",
+      "installed_sha256": "d248676488da65feaa775414a75312bd34e2ad6443aa8b80ce87cd4a2aaff920",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "command_smoother.py",
+      "source_sha256": "354c360619dae6694c3df427e9fcebd045741ce1864df13cff9a04e5e3bc1d53",
+      "installed_sha256": "354c360619dae6694c3df427e9fcebd045741ce1864df13cff9a04e5e3bc1d53",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "console_http.py",
+      "source_sha256": "321810dc00bc28a720631e92e862155d53cfe23e81787509a0ad86026cedd825",
+      "installed_sha256": "321810dc00bc28a720631e92e862155d53cfe23e81787509a0ad86026cedd825",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "console_node.py",
+      "source_sha256": "1f520cc984a5a539472be6e1a46efa22d0f80ceff72e36e167a5711c7add0985",
+      "installed_sha256": "1f520cc984a5a539472be6e1a46efa22d0f80ceff72e36e167a5711c7add0985",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "firmware_command.py",
+      "source_sha256": "9137c9dc35bed6b6e9da46bdf37ac22614126d79bd3cb57af857250a071913d9",
+      "installed_sha256": "9137c9dc35bed6b6e9da46bdf37ac22614126d79bd3cb57af857250a071913d9",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "footprint.py",
+      "source_sha256": "d2d9c0f5c0c97ae7b42deab9f77b37685591cdb3714397256428403c3d29470a",
+      "installed_sha256": "d2d9c0f5c0c97ae7b42deab9f77b37685591cdb3714397256428403c3d29470a",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "geometry.py",
+      "source_sha256": "acfe053cf3d2fb47c044f3149f6acbaadb693804f045a73f18cc7a7afc5ed0d5",
+      "installed_sha256": "acfe053cf3d2fb47c044f3149f6acbaadb693804f045a73f18cc7a7afc5ed0d5",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "grid_map.py",
+      "source_sha256": "d1ec61b7859860cb32d9f8adb6ab86a3c24c096a5d2ea9c7946d5ebf4cc18de1",
+      "installed_sha256": "d1ec61b7859860cb32d9f8adb6ab86a3c24c096a5d2ea9c7946d5ebf4cc18de1",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "local_obstacle_grid_node.py",
+      "source_sha256": "8d6efd791e15b37527f6668ea35eb8e837af576c1d07ce76d2b20f20ec6f24a6",
+      "installed_sha256": "8d6efd791e15b37527f6668ea35eb8e837af576c1d07ce76d2b20f20ec6f24a6",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "local_road_evidence.py",
+      "source_sha256": "086691603a7a85b6e1374eec8006da7cc8f7d74b177a6229a6b44cf9949db392",
+      "installed_sha256": "086691603a7a85b6e1374eec8006da7cc8f7d74b177a6229a6b44cf9949db392",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "observed_ground.py",
+      "source_sha256": "d899720a9be0f5ca37141df1972c9defb40c4fc6bb5ba5bfeda2183ff97cf0c0",
+      "installed_sha256": "d899720a9be0f5ca37141df1972c9defb40c4fc6bb5ba5bfeda2183ff97cf0c0",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "observed_ground_node.py",
+      "source_sha256": "9e095ef20fa0492462a53cf45d8f94ff2f492307493bbe264e857e46c44c60c5",
+      "installed_sha256": "9e095ef20fa0492462a53cf45d8f94ff2f492307493bbe264e857e46c44c60c5",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "operator_console.py",
+      "source_sha256": "a8d6a2787d07e7798e2863281f242cb7bdd062845f4fbc0fa3f54a7d32c17e04",
+      "installed_sha256": "a8d6a2787d07e7798e2863281f242cb7bdd062845f4fbc0fa3f54a7d32c17e04",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "operator_gate.py",
+      "source_sha256": "8df63b8b10ebc97d71f171dc0f1f4235ca06217b9c2fadff3a30fd6a8d73531a",
+      "installed_sha256": "8df63b8b10ebc97d71f171dc0f1f4235ca06217b9c2fadff3a30fd6a8d73531a",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "physical_parameter_lock.py",
+      "source_sha256": "3815884529e34489ad7fd34895f449517ba7c100a7d5afeee84926dc23ad5297",
+      "installed_sha256": "3815884529e34489ad7fd34895f449517ba7c100a7d5afeee84926dc23ad5297",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "prior_mission.py",
+      "source_sha256": "0b06528c23b07fbbd78b579cb66a2067a92330d9ee5b1e2d1e80d119b70d9887",
+      "installed_sha256": "0b06528c23b07fbbd78b579cb66a2067a92330d9ee5b1e2d1e80d119b70d9887",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "replay_sim.py",
+      "source_sha256": "41b18b39915dfc4d6825a3d243b18c58393e58f3cfbe32d050b374920c3aca95",
+      "installed_sha256": "41b18b39915dfc4d6825a3d243b18c58393e58f3cfbe32d050b374920c3aca95",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "runtime_paths.py",
+      "source_sha256": "405a6076954980bac2286891bacd832f4fd31ec0448247881d0435cccab8487d",
+      "installed_sha256": "405a6076954980bac2286891bacd832f4fd31ec0448247881d0435cccab8487d",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "safety_bridge.py",
+      "source_sha256": "6e957b8750986145c86cf97fdb35621e6a9ae73c1fb28b59bbeda3c700c47a05",
+      "installed_sha256": "6e957b8750986145c86cf97fdb35621e6a9ae73c1fb28b59bbeda3c700c47a05",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "stopped_state.py",
+      "source_sha256": "be1951dc7f2480bbc15fc61aa6efabbbbb24bcf1469ccb7f5781632585fc14fc",
+      "installed_sha256": "be1951dc7f2480bbc15fc61aa6efabbbbb24bcf1469ccb7f5781632585fc14fc",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "trajectory.py",
+      "source_sha256": "1e3fa6ea306731cde763330fee2eb5cffa68bb60581623f9858eb9eda62774b7",
+      "installed_sha256": "1e3fa6ea306731cde763330fee2eb5cffa68bb60581623f9858eb9eda62774b7",
+      "status": "PASS"
+    },
+    {
+      "package": "research_runtime",
+      "file": "trajectory_tracker.py",
+      "source_sha256": "5c884acd4920a195f3aec1c60d89e115dd073676db2f100923d9d3981c0d158b",
+      "installed_sha256": "5c884acd4920a195f3aec1c60d89e115dd073676db2f100923d9d3981c0d158b",
+      "status": "PASS"
+    },
+    {
+      "package": "super_lio_vehicle_adapter",
+      "file": "__init__.py",
+      "source_sha256": "2ee86218d3843c61d2fb5b6c7a9880dbedb8763098652522c07a000eff82cfff",
+      "installed_sha256": "2ee86218d3843c61d2fb5b6c7a9880dbedb8763098652522c07a000eff82cfff",
+      "status": "PASS"
+    },
+    {
+      "package": "super_lio_vehicle_adapter",
+      "file": "adapter_node.py",
+      "source_sha256": "11d770a27cdd04b727e80e9146220529d498d130856d0f1329eea7503090ce40",
+      "installed_sha256": "11d770a27cdd04b727e80e9146220529d498d130856d0f1329eea7503090ce40",
+      "status": "PASS"
+    },
+    {
+      "package": "super_lio_vehicle_adapter",
+      "file": "cloud_frame_node.py",
+      "source_sha256": "b726d4bc60bd585c732918b0c6cfe087133f08f7adf5c3b78a46e783c21005ae",
+      "installed_sha256": "b726d4bc60bd585c732918b0c6cfe087133f08f7adf5c3b78a46e783c21005ae",
+      "status": "PASS"
+    },
+    {
+      "package": "super_lio_vehicle_adapter",
+      "file": "control_reference_lock.py",
+      "source_sha256": "dc4de505fcfc285f25fff6390a700dac8387ce9b291933b509daed58bf13d21b",
+      "installed_sha256": "dc4de505fcfc285f25fff6390a700dac8387ce9b291933b509daed58bf13d21b",
+      "status": "PASS"
+    },
+    {
+      "package": "active_road_mapping",
+      "file": "__init__.py",
+      "source_sha256": "cea9414f108c6fce963e2f443e464b27956ba56517222565c02003ef50a03930",
+      "installed_sha256": "cea9414f108c6fce963e2f443e464b27956ba56517222565c02003ef50a03930",
+      "status": "PASS"
+    },
+    {
+      "package": "active_road_mapping",
+      "file": "evidence_node.py",
+      "source_sha256": "56bd578302221e03c5e67a150ddfc7aacb9890a4b53bb7b1ebb4825c4e66be3a",
+      "installed_sha256": "56bd578302221e03c5e67a150ddfc7aacb9890a4b53bb7b1ebb4825c4e66be3a",
+      "status": "PASS"
+    },
+    {
+      "package": "active_road_mapping",
+      "file": "map_node.py",
+      "source_sha256": "93e42a4f44a7b9df708934ebe09b7a5cc05ba6a1d272ce82c89735cbe8f2c3a1",
+      "installed_sha256": "93e42a4f44a7b9df708934ebe09b7a5cc05ba6a1d272ce82c89735cbe8f2c3a1",
+      "status": "PASS"
+    },
+    {
+      "package": "active_road_mapping",
+      "file": "observation_node.py",
+      "source_sha256": "9815aaa66a4d37ad454de40344bf1b0bdef482d733de75d8485917c6688d756d",
+      "installed_sha256": "9815aaa66a4d37ad454de40344bf1b0bdef482d733de75d8485917c6688d756d",
+      "status": "PASS"
+    }
+  ]
+}

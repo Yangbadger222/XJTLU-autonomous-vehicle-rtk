@@ -1,0 +1,20 @@
+Cloning into '/dev/shm/codex-current-source-proof-85eb28c/super_lio'...
+done.
+HEAD is now at f89f48d fix: relocation issue, fixes #29
+Cloning into '/dev/shm/codex-current-source-proof-85eb28c/ego_planner_2d_ros2'...
+done.
+HEAD is now at 7f5be6d Update README.md
+{
+  "status": "PASS",
+  "research_source_commit": "85eb28c2b92576df876668587301c013500b4690",
+  "dependencies": {
+    "super_lio": {
+      "patch_count": 2,
+      "differences": []
+    },
+    "ego_planner_2d_ros2": {
+      "patch_count": 11,
+      "differences": []
+    }
+  }
+}

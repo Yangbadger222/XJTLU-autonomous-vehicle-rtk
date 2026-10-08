@@ -1,15 +1,12 @@
 {
   "VEHICLE_PARAMETER_PRESERVATION": {
     "status": "PASS",
-    "scope": "1011 protected originals unchanged;157 source/parsed/current Humble runtime checks and seven deliberate override denials pass. MID360 nominal mounting/factory transform and STM source data are used. Target effective launch/environment and flashed identity remain unverified.",
+    "scope": "1011protected bytes unchanged; current77d5native157source/parsed/effective checks; seven invalid overrides at85eb28c retained. Nominal MID360/STM inputs used; target effective override and flashed identity still unverified.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
-      "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-three-layer-parameters.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/mapping-signal-native-default.json",
       "audit/vehicle_baseline/PROTECTED_FILES.sha256",
-      "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256",
-      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
-      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json",
-      "audit/vehicle_ready/shutdown-qualified/terminal-three-layer-parameters.json"
+      "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/three-layer-parameters.json",
@@ -18,60 +15,72 @@
       "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json",
       "audit/vehicle_ready/69b9b75/entry.json",
       "audit/vehicle_ready/da361f2/ground.json",
-      "audit/vehicle_ready/da361f2/entry.json"
+      "audit/vehicle_ready/da361f2/entry.json",
+      "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
+      "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-three-layer-parameters.json"
     ]
   },
   "SUPER_LIO_BUILD_AND_RUNTIME": {
     "status": "PASS",
-    "scope": "Pinned native Super-LIO plus2 patches. Fresh originalSDK/14 Humble packages at8c937ed; current63fc runtime rebuild preserves source/native hashes. Historical3 full raw source replays and full July15 control-reference EOF qualify recorded runtime, not physical accuracy or Jetson.",
+    "scope": "Pinnedf89+2patches. Native/ARM actualbasic+Super rebuild at49b44ee;61frozenCPPfiles andbothELF/actualloaderproof; current77d5sameCPPsource. Full realJuly15EOF at49b44ee2850outputs PASS. Not physicalaccuracy/nativeJetson.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
-      "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
-      "audit/vehicle_ready/control-stop-qualified/current-build.json",
-      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-07-06-18.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json",
-      "audit/vehicle_ready/shutdown-qualified/current-build.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/current-source-proof-77d5c5a.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/current-cpp-source-loader-proof.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/current-build.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-full-0715.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/69b9b75/clean-build.json",
       "audit/vehicle_ready/da361f2/clean-build.json",
       "audit/vehicle_ready/69b9b75/raw-2026-07-15-18-31-12.json",
       "audit/vehicle_ready/69b9b75/raw-2026-07-21-07-06-18.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json"
+      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json",
+      "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
+      "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
+      "audit/vehicle_ready/control-stop-qualified/current-build.json",
+      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
+      "audit/vehicle_ready/shutdown-qualified/current-build.json"
     ]
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PASS",
-    "scope": "Software mean/full6D covariance/stamp contract: legacy IMU-origin navigation remains; new recorded chassis control origin applies full angular lever velocity and covariance. Existing nominal URDF attitude is a configured model, not surveyed metrology. Historical exact estimator identity and external physical accuracy are not claimed.",
+    "scope": "LegacyIMU-originnavigation retained; sharedvalidunitrotation/fullcovariance/controllever plus invalid-output withdrawal qualify software. Nominal recorded geometry is not surveyedmetrology. CurrentrealEOF49b44ee2850outputs.",
     "evidence": [
-      "audit/vehicle_ready/control-reference-qualified/control-reference.json",
-      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
-      "docs-EN/research_control_reference.md"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-full-0715.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-orientation-qualified/results.json",
+      "audit/vehicle_ready/control-reference-qualified/control-reference.json"
     ],
     "historical_evidence": [
       "audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
       "audit/vehicle_ready/SOURCE_HEALTH_CONTRACT.md",
       "audit/vehicle_ready/69b9b75/native-results.json",
-      "audit/vehicle_ready/69b9b75/adapter.json"
+      "audit/vehicle_ready/69b9b75/adapter.json",
+      "audit/vehicle_ready/control-reference-qualified/control-reference.json",
+      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
+      "docs-EN/research_control_reference.md"
     ]
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
     "status": "PASS",
-    "scope": "Untouched pinned already-2D upstream reproduced. Current2Super/11EGO patches apply sequentially and match all actual dependency source bytes.8c fresh14 foundation plus63 runtime rebuild, with fresh=False explicitly; no ROS1/3D re-port.",
+    "scope": "Untouched exact-pin already2Dupstream reproduction retained; current2Super/11EGO patches sequentially apply and matchallactualsourcefiles. Stagednative8c/ARMa66SDK14+changedpackages; no freshall14 at77d5 or ROS1/3D re-port.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
-      "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
-      "audit/vehicle_ready/control-stop-qualified/current-build.json",
-      "audit/remote_humble/ego-raw-simulation.json",
-      "audit/vehicle_ready/shutdown-qualified/current-build.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/current-source-proof-77d5c5a.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/current-build.json",
+      "audit/remote_humble/ego-raw-simulation.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/final-source-proof.json",
       "audit/vehicle_ready/heading-qualified/fresh-build-3c6.json",
-      "audit/remote_humble/ego-raw-simulation.json"
+      "audit/remote_humble/ego-raw-simulation.json",
+      "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
+      "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
+      "audit/vehicle_ready/control-stop-qualified/current-build.json",
+      "audit/vehicle_ready/shutdown-qualified/current-build.json"
     ]
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
@@ -111,17 +120,13 @@
   },
   "COMMAND_AUTHORITY_AND_STOP": {
     "status": "PASS",
-    "scope": "Current63 installed runtime:44 linear,50 pure-yaw,5 original RTK-classifier,11HMI and10 receipt-time deny/restore cases pass at actual original serial binary final PTY. Tokens commit only after final approval and revoke immediately on denial. Original full1s/.05mps/2degps rate confirmation is not physical brake proof. Healthy LIO never grants RTK-loss motion.",
+    "scope": "Current77d5actual13HTTP/typedpermit/observer/bridge/originalguard/originalserialPTY cases. HealthyLIOcannotbypassRTK-lossSTOP; restoredoesnotautoresume. SIGINT/SIGTERM require newerSTOPbeforeconsoleexit andfinalwirezero. Historicallinear/yaw/receiptdenial/mutationcases retainidentities. Physicalbrake/KEYnotvalidated.",
     "evidence": [
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-hmi-qualified.json",
       "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
       "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
-      "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
-      "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
       "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
-      "audit/vehicle_ready/control-stop-qualified/receipt-denial-red.log",
-      "audit/vehicle_ready/control-stop-qualified/portable-current.log",
-      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
-      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
+      "audit/vehicle_ready/shutdown-qualified/hmi-no-final-stop-counterexample/result.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/fresh-linear-final-wire.json",
@@ -131,7 +136,16 @@
       "audit/vehicle_ready/69b9b75/world-second-static-owner.json",
       "audit/vehicle_ready/69b9b75/world-dynamic-world.json",
       "audit/vehicle_ready/69b9b75/world-nonidentity-static.json",
-      "audit/vehicle_ready/69b9b75/world-wrong-parent-static.json"
+      "audit/vehicle_ready/69b9b75/world-wrong-parent-static.json",
+      "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
+      "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
+      "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
+      "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
+      "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
+      "audit/vehicle_ready/control-stop-qualified/receipt-denial-red.log",
+      "audit/vehicle_ready/control-stop-qualified/portable-current.log",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
     ]
   },
   "GEOREFERENCED_EVIDENCE_UPDATE": {
@@ -164,44 +178,45 @@
     ]
   },
   "POLICY_COMPARISON_EXECUTION": {
-    "status": "PASS",
-    "scope": "Current63 same-foundation six60s tasks, two per strategy; all protocol checks pass. Prior and all foundation bytes remain identical between strategies. Actual Super-LIO consumes simulated MID/IMU; virtual depthheight1.2m/registration/health/uncertainty assumptions are explicitlySIM. Stores reload for second tasks; no GT policy/map input.",
+    "status": "FAIL",
+    "scope": "All sixsame-foundation60stasks ran at49b44ee. Foundation778files/priorbytes unchanged pertrial. Strictprotocol5PASS/1FAIL:PASSIVE1no confirmedroad,noactuation. NoGTinpolicy/map; syntheticdepth/registration/health/uncertainty explicit. Not relabelled as77d5run.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
     ],
     "historical_evidence": [
-      "audit/vehicle_ready/heading-qualified/policy-comparison.json"
+      "audit/vehicle_ready/heading-qualified/policy-comparison.json",
+      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json"
     ]
   },
   "POLICY_EFFECT_SIMULATION": {
     "status": "PENDING",
-    "scope": "Current cohort PASSIVE0/2,PERIODIC_LOOK0/2,TASK_AWARE_LOOK0/2; no strategy benefit established. Earlier source cohorts with TASK_AWARE1/2 or PASSIVE1/2 retain original receipts; no cross-cohort winner or statistical/physical inference.",
+    "scope": "At49b44eePASSIVE0/2,PERIODIC_LOOK0/2,TASK_AWARE_LOOK0/2. No benefit established; earlierdifferent-sourcecohortsretainrecords, nocross-cohortwinner.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
-      "audit/vehicle_ready/control-reference-qualified/policy-comparison.json",
-      "audit/vehicle_ready/heading-qualified/policy-comparison.json",
-      "audit/optimization_v2/policy-comparison.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/policy-comparison.json",
-      "audit/optimization_v2/policy-comparison.json"
+      "audit/optimization_v2/policy-comparison.json",
+      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
+      "audit/vehicle_ready/control-reference-qualified/policy-comparison.json"
     ]
   },
   "VEHICLE_BAG_REPLAY": {
     "status": "PASS",
-    "scope": "Source/interface scope only: three historical raw full1xEOF trials2850/3372/4151 pairs, plus July15 full new control-reference2850 output pairs at its recorded source. Current real state and twoJuly21 ground prefixes are explicitly30sPREFIX. None proves alternative-view policy benefit or real terrain.",
+    "scope": "Source/interfacescope:currentCPP49b44eeJuly15full1xEOF57008IMU2867LiDAR2850native/vehicle/control/cloud,no rotationreject/tailgap. July21AM30s isPREFIX with281outputs and negativeground support. No physicalaccuracy or policybenefit inferred.",
     "evidence": [
-      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-07-06-18.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-full-0715.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-ground-0721-am-prefix.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-replay-process-receipt.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/69b9b75/raw-2026-07-15-18-31-12.json",
       "audit/vehicle_ready/69b9b75/raw-2026-07-21-07-06-18.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json"
+      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json",
+      "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json"
     ]
   },
   "JETSON_SHADOW_VALIDATION": {
@@ -249,28 +264,27 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE. Current shutdown-qualified runtime a7dc397 with staged SDK14/Python overlays,223portable,157parameters,13HMI and native/emulator16-node clean shutdown. Actual groundFAIL; policy benefit unproved; target/physicalPENDING; Maclocal sync/cachepath recoveryPENDINGENOSPC. Normal publication receipt is added separately. Normal-published research/report anchor4aa5696; PR22draft/unmerged, baselinee54unchanged; report-only descendant preserves runtimea7.",
+    "scope": "GoalACTIVE. Software77d5native/diagnosticARMdefault+244portable+157parameters+13finalserialPTYPASS. ActualgroundFAIL, strategystrict1FAIL/all0of6goals, benefitunproved;target/physical/ MacENOSPCPENDING. Normalpublicationreported separately; no productionmerge/forcepush.",
     "evidence": [
+      "RUN_STATE.json",
+      "outputs/RESEARCH_DELIVERY_REPORT.md",
+      "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json"
+    ],
+    "historical_evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
       "audit/vehicle_ready/control-stop-qualified/publication.json",
       "audit/vehicle_ready/shutdown-qualified/COHORT.json",
       "audit/vehicle_ready/shutdown-qualified/publication.json"
-    ],
-    "historical_evidence": [
-      "RUN_STATE.json",
-      "outputs/RESEARCH_DELIVERY_REPORT.md"
     ]
   },
   "OPERATOR_CONSOLE_AND_TASK_MODES": {
     "status": "PASS",
     "detail": "Actual loopback browser, typed OperatorPermit and registered-task service; live startup flags cannot be enabled from browser. Finite mock/HTTP/ROS acceptance only; no web joystick or physical handoff acceptance.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
-      "docs-CN/research_operator_console.md",
-      "audit/optimization_v2/browser-acceptance.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-hmi-qualified.json",
       "audit/vehicle_ready/shutdown-qualified/COHORT.json",
-      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
+      "docs-CN/research_operator_console.md"
     ],
     "historical_evidence": [
       "audit/optimization_v2/current-console-http.json",
@@ -278,9 +292,12 @@
       "audit/optimization_v2/console-raw-controls.json",
       "docs-CN/research_operator_console.md",
       "docs-EN/research_operator_console.md",
-      "audit/optimization_v2/final-code-review.md"
+      "audit/optimization_v2/final-code-review.md",
+      "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
     ],
-    "scope": "Actual current HTTP/typed consent/task service and original serialPTY:11cases pass. Full3D stop/reset and renewed1s stop-before-start; operator loss latches and RTK return does not autoresume. Browser cannot enable live startup flags. Physical handoff unverified."
+    "scope": "Current77d513actualHTTP/typedpermit/observer/originalserialPTYcases; browsercannotenablelivestartupflags, full3Dstopconfirmation retained. Earlierbrowser/late-reset-terminal/mutationreceipts remain sourcebound; no physicalhandoff."
   },
   "REPOSITORY_VEHICLE_CONTRACT_EVIDENCE": {
     "status": "PASS",
@@ -332,16 +349,18 @@
   },
   "REAL_GROUND_TO_ROAD_UPDATE": {
     "status": "FAIL",
-    "scope": "July15 full2850ground acquisitions produced0support/roads. Current July21AM/PM30sPREFIX has288/263exactnative/vehicle/control/cloud outputs:26source/interface checks pass but actualpositivegroundpipeline fails with0supportedcells/strips/persistedgeometry. Read-only.4sdiagnostic union gives atmost1cell and0vehiclewidthstrips, retainingallthresholds; notenabledasgroundpermission.",
+    "scope": "Actual49b44eeJuly21AM30sPREFIX281exactcloud/control/groundacquisitions but0supportedcells/vehiclewidthstrips/persistedgeometry. HistoricalJuly15fullground andJuly21AM/PMprefixfailuresretained. No scan-union permission, threshold relaxation or simulated support substitutes.",
     "evidence": [
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
-      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
-      "audit/vehicle_ready/control-stop-qualified/ground-short-window-diagnostic.json",
-      "audit/vehicle_ready/road-pcl-fixed/raw-ground-full-fixed-0715.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-ground-0721-am-prefix.json",
+      "audit/vehicle_ready/road-pcl-fixed/raw-ground-full-fixed-0715.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/road-pcl-fixed/raw-ground-full-fixed-0715.json",
-      "audit/vehicle_ready/heading-qualified/ground-density-certificate-history.json"
+      "audit/vehicle_ready/heading-qualified/ground-density-certificate-history.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+      "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
+      "audit/vehicle_ready/control-stop-qualified/ground-short-window-diagnostic.json"
     ]
   },
   "LOCAL_WORKSPACE_SYNC": {
@@ -368,9 +387,15 @@
     ]
   },
   "ARM64_EMULATED_DEFAULT_ENTRY": {
-    "status": "FAIL",
-    "scope": "Historical unmodified QEMU6.2 entry FAIL:16alive but zero DDS discovery. Native-socket diagnostic later restores startup/queries without changing source/parameters; this old failure remains retained. Target runtime remains unqualified.",
+    "status": "PASS",
+    "scope": "Current77d5actualaarch64default16children,all12parameterdumps/singlebridgewriter,all15new/infrastructureexit0; originalguard-2explicit.34Pythonhashes useactuala66foundation. FiniteQEMU6.2native-fdloopbackdiagnostic; notnativeJetson/performance/physical.",
     "evidence": [
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-python-source.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-process-receipt.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-broker.json"
+    ],
+    "historical_evidence": [
       "audit/vehicle_ready/arm64-emulated/default-entry.json",
       "audit/vehicle_ready/arm64-emulated/runtime-summary.json"
     ]
@@ -387,7 +412,7 @@
   },
   "ARM64_EMULATED_RESEARCH_NODE_SHUTDOWN": {
     "status": "FAIL",
-    "scope": "Historical pre-fix FAIL at original qualification source retained. Current ordered shutdown is separately PASS at a7dc397; see ARM64_EMULATED_CURRENT_ORDERED_SHUTDOWN.",
+    "scope": "Historical diagnostic shutdown failures and later a7dc397 ordered-shutdown PASS retain their original source identities. Current77d5 actual ordered-shutdown PASS is reported separately in ARM64_EMULATED_CURRENT_ORDERED_SHUTDOWN and rigid-geometry-qualified.",
     "evidence": [
       "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
       "audit/vehicle_ready/arm64-emulated/default-entry-native-fd.log"
@@ -395,8 +420,14 @@
   },
   "ARM64_EMULATED_CURRENT_ORDERED_SHUTDOWN": {
     "status": "PASS",
-    "scope": "Current a7 Python overlays on qualified SDK14 ARM64 foundation. With explicit emulator-only native-fd diagnostic helper:16owned children,all12parameter queries,single bridge cmd owner,all15research/infrastructure children exit0; protected originalguard remains expected-2.30loader-source hashes match. Not unmodifiedQEMU/network/nativeJetson/performance/physical acceptance.",
+    "scope": "Current77d5actualaarch64default16children,all12parameterdumps/singlebridgewriter,all15new/infrastructureexit0; originalguard-2explicit.34Pythonhashes useactuala66foundation. FiniteQEMU6.2native-fdloopbackdiagnostic; notnativeJetson/performance/physical.",
     "evidence": [
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-python-source.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-process-receipt.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-broker.json"
+    ],
+    "historical_evidence": [
       "audit/vehicle_ready/shutdown-qualified/arm-terminal-default-qualified.json",
       "audit/vehicle_ready/shutdown-qualified/arm-terminal-current-build.json",
       "audit/vehicle_ready/shutdown-qualified/arm-terminal-default.broker.json"
@@ -411,5 +442,19 @@
       "audit/vehicle_ready/shutdown-qualified/close-http-race-green.log",
       "audit/vehicle_ready/shutdown-qualified/hmi-no-final-stop-counterexample/result.json"
     ]
+  },
+  "RIGID_GEOMETRY_AND_RESEARCH_EXIT": {
+    "status": "PASS",
+    "scope": "Actualnorm/cloud/4000compositionandsignalREDs fixed;60000ESKF/forwardnoncommutingpreservation; all7researchentrypoint21ASTcases and244portablePASS. NormalRuntimeErrorpropagates. OldQAUBandincorrectloadermetadata superseded explicitly.",
+    "evidence": [
+      "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-portable-qualified.log",
+      "audit/vehicle_ready/rigid-geometry-qualified/current-cpp-source-loader-proof.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-orientation-qualified/results.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-noncommuting-integration/results.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-native-default.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json"
+    ],
+    "historical_evidence": []
   }
 }

@@ -1,0 +1,2 @@
+step=4000 gram=0.00034533622816541296 determinant_error=0.00023605932253967232 tolerance=0.00034526697709225118
+rotation_integration: /dev/shm/codex-shadow-delivery/scripts/validate_super_lio_rotation_integration.cpp:26: int main(): Assertion `gram<=tolerance && det<=tolerance' failed.

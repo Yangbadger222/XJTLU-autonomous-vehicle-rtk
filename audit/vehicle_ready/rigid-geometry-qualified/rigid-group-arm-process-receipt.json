@@ -1,0 +1,8 @@
+{
+  "runtime_source_commit": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+  "docker_exit": 1,
+  "container": "exited 1",
+  "broker_exit": 0,
+  "socket_removed": true,
+  "scope": "ARM64 software QA with explicit QEMU6.2 native-fd loopback diagnostic helper; not nativeJetson"
+}

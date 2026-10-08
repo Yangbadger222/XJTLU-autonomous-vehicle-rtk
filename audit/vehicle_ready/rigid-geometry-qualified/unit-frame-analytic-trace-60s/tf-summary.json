@@ -1,0 +1,47 @@
+{
+  "odom": {
+    "count": 1096,
+    "owners": 1,
+    "parents": [
+      "map"
+    ],
+    "norm_failures": 0,
+    "max_norm_error": 0.0,
+    "receive_age_s_range": [
+      -0.099887831,
+      -0.098709433
+    ]
+  },
+  "base_footprint": {
+    "count": 539,
+    "owners": 1,
+    "parents": [
+      "odom"
+    ],
+    "norm_failures": 0,
+    "max_norm_error": 4.440892098500626e-16,
+    "receive_age_s_range": [
+      0.011998806,
+      0.028709335
+    ]
+  },
+  "guards": {
+    "False": 34,
+    "True": 1079
+  },
+  "trial": {
+    "task_reached": true,
+    "distance_m": 3.1014462769569056,
+    "final_serial_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "nonzero_serial_count": 810,
+    "outcome": "TASK_REACHED",
+    "protocol_status": "PASS"
+  },
+  "scope": "read-only receive time; guard callback receive time not inferred"
+}

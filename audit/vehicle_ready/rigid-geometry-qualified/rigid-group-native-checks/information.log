@@ -1,0 +1,1 @@
+PASS: actual Jacobian,100 PSD-prior bounds,plane degeneration,insufficient/nonfinite features,worst iteration,full pose/body-twist covariance and independent attitude/cross-block finite differences

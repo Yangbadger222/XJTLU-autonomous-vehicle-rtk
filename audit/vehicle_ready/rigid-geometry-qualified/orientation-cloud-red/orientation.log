@@ -1,0 +1,7 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I1008 18:28:44.681016 1747080 ROSWrapper.cpp:18] [32m ---> [Param] map/save_map: false[0m
+I1008 18:28:44.681156 1747080 ROSWrapper.cpp:196] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+I1008 18:28:44.681159 1747080 ROSWrapper.cpp:280] [32m ---> Using Lidar type: LIVOX[0m
+source scale=1 published norm2=1
+source scale=1.0000239610671997 published norm2=1.0000000000000002
+orientation: /dev/shm/codex-shadow-delivery/scripts/validate_super_lio_orientation.cpp:127: int main(int, char**): Assertion `clouds.size()==cb && odoms.size()==ob && transforms.size()==tb' failed.

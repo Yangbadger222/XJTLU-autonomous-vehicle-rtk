@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/dev/shm/codex-shadow-delivery/scripts/validate_research_launch.py", line 178, in <module>
+    raise SystemExit(main())
+  File "/dev/shm/codex-shadow-delivery/scripts/validate_research_launch.py", line 63, in main
+    baseline=audit(args.repo,{"evidence":evidence},serial)
+  File "/dev/shm/codex-shadow-delivery/scripts/audit_research_runtime_parameters.py", line 80, in audit
+    actual_serial = parameters(serial["runtime_parameters"]["serial_twistctl_node"]["yaml"])
+KeyError: 'runtime_parameters'

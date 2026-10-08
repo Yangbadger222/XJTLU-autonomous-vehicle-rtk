@@ -1,0 +1,246 @@
+{
+  "domain": 93,
+  "mode": "default replay",
+  "test_only_overrides": {
+    "console_port": 8896
+  },
+  "deliberate_override_probes": [
+    {
+      "case": "normal_three_layer",
+      "status": "PASS",
+      "check_count": 157
+    },
+    {
+      "case": "runtime_lidar_imu_extrinsic",
+      "parameter_set_exit": 0,
+      "audit_status": "FAIL",
+      "rejected_checks": [
+        "lio.extrinsic.lidar_imu"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "runtime_model_wheel_offset",
+      "parameter_set_exit": 0,
+      "audit_status": "FAIL",
+      "rejected_checks": [
+        "robot_description.protected_source_geometry"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "runtime_guard_speed",
+      "parameter_set_exit": 0,
+      "audit_status": "FAIL",
+      "rejected_checks": [
+        "corridor_cmd_vel_guard.straight_max_mps"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "CLI_speed",
+      "exit": 1,
+      "status": "PASS"
+    },
+    {
+      "case": "CLI_footprint",
+      "exit": 1,
+      "status": "PASS"
+    },
+    {
+      "case": "YAML_yaw_limit",
+      "exit": 1,
+      "status": "PASS"
+    }
+  ],
+  "missing_expected_nodes": [],
+  "forbidden_nodes": [],
+  "launch_exit_before_cleanup": null,
+  "expected_child_count": 16,
+  "status": "PASS",
+  "cleanup_exit": 0,
+  "owned_child_shutdown": [
+    {
+      "pid": 1776293,
+      "launch_name": "robot_state_publisher-1",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776295,
+      "launch_name": "joint_state_publisher-2",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776297,
+      "launch_name": "super_lio_node-3",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776299,
+      "launch_name": "super_lio_vehicle_adapter-4",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776301,
+      "launch_name": "super_lio_cloud_frame_adapter-5",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776303,
+      "launch_name": "active_road_map-6",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776305,
+      "launch_name": "active_road_evidence-7",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776307,
+      "launch_name": "active_observation-8",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776309,
+      "launch_name": "research_observed_ground-9",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776311,
+      "launch_name": "research_local_obstacle_grid-10",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776313,
+      "launch_name": "motion_plan-11",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776315,
+      "launch_name": "research_tf_guard-12",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776317,
+      "launch_name": "rtk_map_odom_corrector_node-13",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776319,
+      "launch_name": "corridor_cmd_vel_guard_node-14",
+      "exit": -2,
+      "baseline_expected_interrupt": true,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776321,
+      "launch_name": "research_safety_bridge-15",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 1776323,
+      "launch_name": "research_operator_console-16",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    }
+  ],
+  "unexpected_shutdown_children": [],
+  "clean_shutdown_status": "PASS"
+}
+57179137] [robot_state_publisher]: got segment base_footprint
+[robot_state_publisher-1] [INFO] [1791459941.557215903] [robot_state_publisher]: got segment base_link
+[robot_state_publisher-1] [INFO] [1791459941.557219118] [robot_state_publisher]: got segment camera_link
+[robot_state_publisher-1] [INFO] [1791459941.557221170] [robot_state_publisher]: got segment handle_bar_link
+[robot_state_publisher-1] [INFO] [1791459941.557223350] [robot_state_publisher]: got segment handle_left_link
+[robot_state_publisher-1] [INFO] [1791459941.557225319] [robot_state_publisher]: got segment handle_right_link
+[robot_state_publisher-1] [INFO] [1791459941.557227385] [robot_state_publisher]: got segment imu_link
+[robot_state_publisher-1] [INFO] [1791459941.557229305] [robot_state_publisher]: got segment laser_link
+[robot_state_publisher-1] [INFO] [1791459941.557231199] [robot_state_publisher]: got segment left_back_wheel_link
+[robot_state_publisher-1] [INFO] [1791459941.557233718] [robot_state_publisher]: got segment left_caster_link
+[robot_state_publisher-1] [INFO] [1791459941.557235606] [robot_state_publisher]: got segment left_front_wheel_link
+[robot_state_publisher-1] [INFO] [1791459941.557237845] [robot_state_publisher]: got segment right_back_wheel_link
+[robot_state_publisher-1] [INFO] [1791459941.557239742] [robot_state_publisher]: got segment right_caster_link
+[robot_state_publisher-1] [INFO] [1791459941.557241704] [robot_state_publisher]: got segment right_front_wheel_link
+[WARNING] [launch]: user interrupted with ctrl-c (SIGINT)
+[INFO] [research_operator_console-16]: sending signal 'SIGINT' to process[research_operator_console-16]
+[INFO] [research_safety_bridge-15]: sending signal 'SIGINT' to process[research_safety_bridge-15]
+[INFO] [corridor_cmd_vel_guard_node-14]: sending signal 'SIGINT' to process[corridor_cmd_vel_guard_node-14]
+[INFO] [rtk_map_odom_corrector_node-13]: sending signal 'SIGINT' to process[rtk_map_odom_corrector_node-13]
+[INFO] [research_tf_guard-12]: sending signal 'SIGINT' to process[research_tf_guard-12]
+[INFO] [motion_plan-11]: sending signal 'SIGINT' to process[motion_plan-11]
+[INFO] [research_local_obstacle_grid-10]: sending signal 'SIGINT' to process[research_local_obstacle_grid-10]
+[INFO] [research_observed_ground-9]: sending signal 'SIGINT' to process[research_observed_ground-9]
+[INFO] [active_observation-8]: sending signal 'SIGINT' to process[active_observation-8]
+[INFO] [active_road_evidence-7]: sending signal 'SIGINT' to process[active_road_evidence-7]
+[INFO] [active_road_map-6]: sending signal 'SIGINT' to process[active_road_map-6]
+[INFO] [super_lio_cloud_frame_adapter-5]: sending signal 'SIGINT' to process[super_lio_cloud_frame_adapter-5]
+[INFO] [super_lio_vehicle_adapter-4]: sending signal 'SIGINT' to process[super_lio_vehicle_adapter-4]
+[INFO] [super_lio_node-3]: sending signal 'SIGINT' to process[super_lio_node-3]
+[INFO] [joint_state_publisher-2]: sending signal 'SIGINT' to process[joint_state_publisher-2]
+[INFO] [robot_state_publisher-1]: sending signal 'SIGINT' to process[robot_state_publisher-1]
+[research_tf_guard-12] [INFO] [1791459947.447828629] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[motion_plan-11] [INFO] [1791459947.448836431] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[corridor_cmd_vel_guard_node-14] Traceback (most recent call last):
+[corridor_cmd_vel_guard_node-14]   File "/dev/shm/codex-stop-fresh-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node", line 33, in <module>
+[corridor_cmd_vel_guard_node-14]     sys.exit(load_entry_point('gps-waypoint-dispatcher==1.0.0', 'console_scripts', 'corridor_cmd_vel_guard_node')())
+[corridor_cmd_vel_guard_node-14]   File "/dev/shm/codex-stop-fresh-ws/install/gps_waypoint_dispatcher/lib/python3.10/site-packages/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node.py", line 117, in main
+[corridor_cmd_vel_guard_node-14]     rclpy.spin(node)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 229, in spin
+[corridor_cmd_vel_guard_node-14]     executor.spin_once()
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 773, in spin_once
+[corridor_cmd_vel_guard_node-14]     self._spin_once_impl(timeout_sec)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 762, in _spin_once_impl
+[corridor_cmd_vel_guard_node-14]     handler, entity, node = self.wait_for_ready_callbacks(timeout_sec=timeout_sec)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 745, in wait_for_ready_callbacks
+[corridor_cmd_vel_guard_node-14]     return next(self._cb_iter)
+[corridor_cmd_vel_guard_node-14]   File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 642, in _wait_for_ready_callbacks
+[corridor_cmd_vel_guard_node-14]     wait_set.wait(timeout_nsec)
+[corridor_cmd_vel_guard_node-14] KeyboardInterrupt
+[super_lio_node-3] [INFO] [1791459947.457156585] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[super_lio_node-3] I1008 19:45:47.457396 1776297 timer.h:40] >>> ===== Printing run time =====
+[robot_state_publisher-1] [INFO] [1791459947.458887319] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+[ERROR] [corridor_cmd_vel_guard_node-14]: process has died [pid 1776319, exit code -2, cmd '/dev/shm/codex-stop-fresh-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node --ros-args -r __node:=corridor_cmd_vel_guard --params-file /dev/shm/codex-stop-fresh-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /dev/shm/launch_params_vvpb96_2'].
+[INFO] [research_tf_guard-12]: process has finished cleanly [pid 1776315]
+[INFO] [motion_plan-11]: process has finished cleanly [pid 1776313]
+[INFO] [robot_state_publisher-1]: process has finished cleanly [pid 1776293]
+[INFO] [super_lio_node-3]: process has finished cleanly [pid 1776297]
+[INFO] [research_safety_bridge-15]: process has finished cleanly [pid 1776321]
+[INFO] [research_local_obstacle_grid-10]: process has finished cleanly [pid 1776311]
+[INFO] [super_lio_vehicle_adapter-4]: process has finished cleanly [pid 1776299]
+[INFO] [research_observed_ground-9]: process has finished cleanly [pid 1776309]
+[INFO] [rtk_map_odom_corrector_node-13]: process has finished cleanly [pid 1776317]
+[INFO] [joint_state_publisher-2]: process has finished cleanly [pid 1776295]
+[INFO] [active_road_map-6]: process has finished cleanly [pid 1776303]
+[INFO] [active_road_evidence-7]: process has finished cleanly [pid 1776305]
+[INFO] [active_observation-8]: process has finished cleanly [pid 1776307]
+[INFO] [super_lio_cloud_frame_adapter-5]: process has finished cleanly [pid 1776301]
+[INFO] [research_operator_console-16]: process has finished cleanly [pid 1776323]

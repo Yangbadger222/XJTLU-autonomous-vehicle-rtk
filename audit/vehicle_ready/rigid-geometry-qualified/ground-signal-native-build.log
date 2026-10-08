@@ -1,0 +1,20 @@
+[0.189s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'research_runtime' is in: /dev/shm/codex-terminal-native-ws/install/research_runtime, /dev/shm/codex-shutdown-native-ws/install/research_runtime, /dev/shm/codex-stop-fresh-ws/install/research_runtime
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding research_runtime
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> research_runtime
+--- stderr: research_runtime
+warning: build_py: byte-compiling is disabled, skipping.
+
+warning: install_lib: byte-compiling is disabled, skipping.
+
+---
+Finished <<< research_runtime [0.51s]
+
+Summary: 1 package finished [0.65s]
+  1 package had stderr output: research_runtime

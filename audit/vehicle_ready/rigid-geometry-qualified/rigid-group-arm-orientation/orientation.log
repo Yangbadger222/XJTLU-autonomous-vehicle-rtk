@@ -1,0 +1,7 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I1008 11:08:55.418666   179 ROSWrapper.cpp:18] [32m ---> [Param] map/save_map: false[0m
+I1008 11:08:55.424324   179 ROSWrapper.cpp:196] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+I1008 11:08:55.424394   179 ROSWrapper.cpp:280] [32m ---> Using Lidar type: LIVOX[0m
+source scale=1 published norm2=1
+source scale=1.0000239610671997 published norm2=1.0000000000000002
+orientation: /research-ws/rigid-group-qa/scripts/validate_super_lio_orientation.cpp:133: int main(int, char**): Assertion `(Eigen::Vector3d(cloud[0].x,cloud[0].y,cloud[0].z)-expected).norm()<1e-6' failed.

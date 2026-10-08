@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "binary_sha256": "b7958b0788e3b22116a237dfff5685456ef38fa0619c16b3c9269aaf80f521ed",
+  "stdout": "step=10000 gram=6.5190347969400864e-08 determinant_error=2.4290666256199245e-08 tolerance=0.00034526697709225118\nstep=20000 gram=8.1425432706943262e-08 determinant_error=3.7420522569497905e-08 tolerance=0.00034526697709225118\nstep=30000 gram=8.8744722533636649e-08 determinant_error=1.8050039907180349e-08 tolerance=0.00034526697709225118\nstep=40000 gram=6.8834650464337144e-08 determinant_error=1.640318325613066e-08 tolerance=0.00034526697709225118\nstep=50000 gram=6.4169873906593698e-08 determinant_error=2.5202108622224273e-08 tolerance=0.00034526697709225118\nstep=60000 gram=6.6270631893457496e-08 determinant_error=2.5086837052157307e-08 tolerance=0.00034526697709225118\nPASS: actual ESKF 60000 predictions and forward cache stay rigid; max gram=1.320298903040789e-07 max determinant=1.0280665352357943e-07\n",
+  "actual_loader_init": [
+    "1766763:\tcalling init: /dev/shm/codex-super-rigid-group-ws/install/basic/lib/libbasic.so",
+    "1766763:\tcalling init: /dev/shm/codex-super-rigid-group-ws/install/super_lio/lib/liblio.so"
+  ],
+  "LD_LIBRARY_PATH": "/dev/shm/codex-super-rigid-group-ws/install/super_lio/lib:/dev/shm/codex-super-rigid-group-ws/install/basic/lib:/dev/shm/codex-super-unit-q-ws/install/super_lio/lib:/dev/shm/codex-stop-fresh-ws/install/um982_rtk_driver/lib:/dev/shm/codex-stop-fresh-ws/install/super_lio/lib:/dev/shm/codex-stop-fresh-ws/install/serial/lib:/dev/shm/codex-stop-fresh-ws/install/ego_planner/lib:/dev/shm/codex-stop-fresh-ws/install/research_interfaces/lib:/dev/shm/codex-stop-fresh-ws/install/livox_ros_driver2/lib:/dev/shm/codex-stop-fresh-ws/install/basic/lib:/usr/lib/x86_64-linux-gnu/gazebo-11/plugins:/opt/ros/humble/opt/rviz_ogre_vendor/lib:/opt/ros/humble/lib/x86_64-linux-gnu:/opt/ros/humble/lib",
+  "scope": "actual same compiled integration binary reexecuted in exact native probe overlay environment; loader trace confirms actual basic+lio shared libraries",
+  "wall_s": 0.14903538400540128
+}

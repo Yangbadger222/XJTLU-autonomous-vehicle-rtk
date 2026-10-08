@@ -1,0 +1,5 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I1008 18:49:22.297412 1760257 ROSWrapper.cpp:18] [32m ---> [Param] map/save_map: false[0m
+I1008 18:49:22.297551 1760257 ROSWrapper.cpp:196] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+I1008 18:49:22.297554 1760257 ROSWrapper.cpp:280] [32m ---> Using Lidar type: LIVOX[0m
+PASS: actual unordered MID parser uses maximum accepted offset, preserves each point time and real lookahead, rejects mismatched array/count

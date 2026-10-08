@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+  "runtime_source_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
   "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
   "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
   "physical_motion": "not_performed",
@@ -182,24 +182,58 @@
       "status": "PASS",
       "runtime_source": "No ROS nodes/device access; imports Humble CDR deserialization only. Installed ce46418 unchanged.",
       "evidence": "audit/vehicle_contract_review/recorded-response.json"
+    },
+    {
+      "name": "244 portable checks and seven entry lifecycles",
+      "status": "PASS",
+      "runtime_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-portable-qualified.log"
+    },
+    {
+      "name": "currentnativeentryand157effectiveparameters",
+      "status": "PASS",
+      "runtime_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-three-layer-parameters.json"
+    },
+    {
+      "name": "currentHMIoriginalfinalserial13",
+      "status": "PASS",
+      "runtime_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-hmi-qualified.json"
+    },
+    {
+      "name": "currentARMdefaultandshutdown",
+      "status": "PASS",
+      "runtime_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json"
+    },
+    {
+      "name": "rigidgeometryrealfullEOF",
+      "status": "PASS",
+      "runtime_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-full-0715.json"
+    },
+    {
+      "name": "actualgroundprefix",
+      "status": "FAIL",
+      "runtime_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-raw-ground-0721-am-prefix.json"
+    },
+    {
+      "name": "sixpolicyprotocol",
+      "status": "FAIL",
+      "runtime_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+      "evidence": "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
     }
   ],
   "publication": {
-    "status": "PASS",
-    "anchor_commit": "4aa569628df6f680303dbea99873adda6aa43e78",
-    "qualified_runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
-    "remote_research_head": "4aa569628df6f680303dbea99873adda6aa43e78",
-    "original_branch_head": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-    "normal_push": true,
-    "force_push": false,
-    "production_merged": false,
+    "status": "PENDING",
+    "qualified_runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+    "scope": "normal research branch/report publication follows actual qualification; previous publication retained separately",
     "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "draft": true,
-    "goal_status": "ACTIVE",
-    "local_mac_sync": "PENDING_ENOSPC",
-    "scope": "verified normal publication anchor; this later report-only descendant does not replace the runtime evidence identity"
+    "draft": true
   },
-  "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418.",
+  "lineage": "Current77d5c5a runtime, solee54 vehicle baseline; nativeSDK14foundation8c937ed and ARMSDK14foundationa66cc7e; basic/SuperCPP rebuilt49b44ee, mapping85eb28c, adapter6b15c7d, research_runtime77d5c5a. Each stage source identity retained; actual61CPPfreeze and34Pythonhashes perarchitecture bind unchanged source to current runtime. Not a freshall14 build at77d5.",
   "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
   "vehicle_contract_correction": {
     "scope": "Original mounting/source limits present; corrected Y-forward and gyro fields, retained header-clock stillness/measurement displacement, isolated feedback outliers. No new driving permission.",
@@ -207,14 +241,14 @@
   },
   "goal_status": "ACTIVE",
   "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-  "qualification_workspace": "/dev/shm/codex-terminal-native-ws over prior qualified SDK14/shutdown overlays",
+  "qualification_workspace": "staged native SDK14 plus rigid-group CPP, mapping-signal, adapter-signal and ground-signal Python overlays; per-package identities in rigid-geometry-qualified/current-build.json",
   "completed_qualification": {
-    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
-    "portable": 223,
-    "console_unit": 19,
+    "runtime_source_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+    "portable": 244,
+    "actual_main_signal_cases": 21,
     "hmi": 13,
     "parameters": 157,
-    "loaded_python_hashes_per_architecture": 30,
+    "loaded_python_hashes_per_architecture": 34,
     "native_default_children": 16,
     "emulated_default_children": 16,
     "old_original_guard_expected_interrupt": true
@@ -222,28 +256,25 @@
   "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
   "finite_tests": "All current finite qualifier sessions completed and owned groups cleaned; preserved preview alone intentionally runs.",
   "current_qualification_checkpoint": {
-    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
-    "cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
-    "current_compile": "staged native/ARM Python overlays on previously qualified SDK14",
-    "native_default": "PASS",
-    "emulated_default_with_fd_helper": "PASS",
-    "physical_acceptance": "PENDING",
-    "actual_ground": "FAIL",
-    "policy_benefit": "not established"
+    "runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+    "software_runtime": "PASS",
+    "build": "audit/vehicle_ready/rigid-geometry-qualified/current-build.json",
+    "cohort": "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
+    "road_support": "FAIL",
+    "policy_protocol": "FAIL:5PASS1FAIL",
+    "policy_goals": "0/6",
+    "target_physical": "PENDING"
   },
   "previous_checkpoint_state": "audit/vehicle_ready/history_pre_control_stop_qualification/RUN_STATE.json",
   "current_finite_qualifiers": {
     "status": "TERMINAL",
-    "native_default_domain": 93,
-    "hmi_domain": 99,
-    "native_http_ports": [
-      8887,
-      8888
-    ],
-    "emulator_http_port": 8886,
-    "emulator_container": "codex-arm64-a66cc7e",
-    "emulator_current_state": "exited",
-    "native_fd_broker": "terminated and socket removed"
+    "native_default_exit": 0,
+    "hmi_exit": 0,
+    "arm_container": "exited 0",
+    "arm_driver_exit": 0,
+    "arm_broker_exit": 0,
+    "arm_socket_removed": true,
+    "evidence": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-process-receipt.json"
   },
   "local_workspace_recovery": {
     "status": "PENDING",
@@ -291,21 +322,20 @@
     "isolated_delivery_checkout": "/dev/shm/codex-shadow-delivery"
   },
   "arm64_emulator_diagnostic": {
-    "historical": "previous_shutdown_checkpoint_fields.arm64_emulator_diagnostic",
-    "current_cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "current_cohort": "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
     "explicit_environment_helper": true,
     "native_jetson_claim": false
   },
-  "previous_runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "previous_runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
   "ordered_shutdown_checkpoint": {
-    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
-    "evidence": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
-    "native_and_arm_default": "PASS",
-    "all_finite_jobs": "TERMINAL",
-    "native_fd_socket": "removed after owned broker exit",
-    "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-    "protected_preview_untouched": true,
-    "mac_sync": "PENDING_ENOSPC"
+    "runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+    "native": "PASS",
+    "diagnosticARM": "PASS",
+    "preserved_baseline_guard_interrupt": true,
+    "evidence": [
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-native-default.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json"
+    ]
   },
   "previous_shutdown_checkpoint_fields": {
     "current_qualification_checkpoint": {
@@ -486,24 +516,169 @@
   },
   "previous_publication": {
     "status": "PASS",
-    "verified_at_utc": "2026-10-08T04:37:23.867930+00:00",
-    "published_implementation_and_report_commit": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
-    "remote_research_branch_at_verification": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
-    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-    "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-    "push_mode": "normal fast-forward research branch only; no force or merge",
+    "anchor_commit": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "qualified_runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "remote_research_head": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "original_branch_head": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "normal_push": true,
+    "force_push": false,
+    "production_merged": false,
     "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "initial_attempts": [
+    "draft": true,
+    "goal_status": "ACTIVE",
+    "local_mac_sync": "PENDING_ENOSPC",
+    "scope": "verified normal publication anchor; this later report-only descendant does not replace the runtime evidence identity"
+  },
+  "rigid_geometry_checkpoint": {
+    "status": "MIXED",
+    "software_runtime_qualification": "PASS",
+    "runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+    "native_default": "PASS",
+    "arm_emulator_default": "PASS",
+    "strict_hmi_cases": 13,
+    "portable_cases": 244,
+    "actual_main_signal_cases": 21,
+    "source_parsed_runtime_checks": 157,
+    "loaded_python_files_per_architecture": 34,
+    "original_files_unchanged": 1011,
+    "cpp_native_probe_count": 6,
+    "cpp_arm_current_probe_count": 2,
+    "cpp_rebuild_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+    "full_real_EOF_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+    "full_real_EOF": "PASS:2850native/vehicle/control/cloud outputs; no rotation rejection/gap latch",
+    "actual_ground_prefix": "FAIL:281ground acquisitions,0positive support and vehicle-width strips",
+    "policy_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+    "policy_trials": 6,
+    "policy_protocol_pass": 5,
+    "policy_protocol_fail": 1,
+    "policy_goals_reached": 0,
+    "policy_benefit": "NOT_ESTABLISHED",
+    "arm_scope": "actual aarch64 build/ELF and finite native-fd loopback diagnostic under QEMU6.2; not nativeJetson or performance/physical acceptance",
+    "baseline_guard_shutdown": "original protected SIGINT KeyboardInterrupt/exit-2 exception; all other15mustexit0",
+    "failure_classification": {
+      "orientation-unit-norm-red": "actual native output norm RED",
+      "orientation-cloud-red": "actual invalid state leaked world cloud RED",
+      "unit-frame-raw-full-0715.json": "actual72e150b EOF FAIL702late rotation denials; output normalization alone insufficient",
+      "rotation-integration-red": "actual ideal-IMU ESKF4000floatcomposition rigid-bound RED",
+      "rigid-group-native-receipt-first-loader-env.json": "WRONG_METADATA:ldd outside real overlay; superseded by actual loader reexecution",
+      "eigen-lifetime-red.log": "ASAN actual QA stack-use-after-scope; owningVector3d fixes unchanged1e-6 bound",
+      "rigid-group-arm-orientation": "QA_FAIL:old dangling expected-expression; corrected orientation qualifies both architectures",
+      "rigid-group-arm-default.json": "actual49b44ee evidence main SIGINT RuntimeError/exit1 RED",
+      "evidence-signal-actual-red.log": "actual production-main SIGINT/SIGTERM RED before mapping fix",
+      "mapping-signal-peer-actual-red.log": "actual map/observer peer signal RED",
+      "adapter-signal-actual-red.log": "actual vehicle main two signal RED before6b15",
+      "ground-signal-peer-actual-red.log": "actual ground/grid/bridge six signal RED before77d5",
+      "mapping-signal-arm-default-qualified.log": "actual85eb28c240souterTIMEOUT124 and adapterexit1; no finalJSON, notPASS",
+      "adapter-signal-arm-default.json": "actual6b15allparameters PASS but ground SIGINT exit1, overallFAIL",
+      "mapping-signal-native-wrong-domain-setup.log": "SETUP_FAIL:domain94instead of required93; noROSran",
+      "mapping-signal-arm-default.log": "SETUP_FAIL:domain95instead of required93; build/sourcechecksPASS but noROSran",
+      "mapping-signal-portable-green.log": "TEST_FIXTURE_SETUP_FAIL:ASTfactory symbol missing; corrected actual21tests use productionmain",
+      "evidence-signal-red.log": "SETUP_FAIL:wrong testdirectory; not behavioralRED",
+      "ground-signal-native-precommit-build.log": "PRECOMMIT_BUILD:later whitespace cleanup/rebuild supersedes source bytes",
+      "rigid-group-arm-python-source.json": "WRONG_FOUNDATION_METADATA:hardcoded native8c field;34hash checks remain source-bound; currentARMreceipt names actuala66foundation",
+      "rigid-group-default-comparison/result.json": "REAL_RESEARCH_NEGATIVE:PASSIVE1no confirmedroad/noactuation strictFAIL; all0/6goals; notrerunforpositive",
+      "rigid-group-raw-ground-0721-am-prefix.json": "REAL_DATA_NEGATIVE:actual transport/geometry passes but0support; nofakepermission",
+      "mapping-signal-arm-python-source.json": "WRONG_FOUNDATION_METADATA:hardcoded native8c field; actual Python hashes remain retained; current77d5ARMreceipt correctly binds a66foundation",
+      "adapter-signal-arm-python-source.json": "WRONG_FOUNDATION_METADATA:hardcoded native8c field; actual Python hashes remain retained; current77d5ARMreceipt correctly binds a66foundation"
+    },
+    "previous_cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "previous_reports": "prior-reports/",
+    "target_shadow": "PENDING",
+    "physical_acceptance": "PENDING",
+    "goal_status": "ACTIVE",
+    "local_mac_sync": "PENDING_ENOSPC",
+    "evidence": "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json"
+  },
+  "preview_process_snapshot": {
+    "source": "ce4641836c265432c74086669fca8dbd6362b7d7",
+    "actuator_enabled": false,
+    "scope": "read-only original recorded process inventory; norestart",
+    "processes": [
       {
-        "result": "FAIL",
-        "reason": "remote credential helper had no GitHub username"
+        "pid": 1356150,
+        "alive": true
       },
       {
-        "result": "FAIL",
-        "reason": "authenticated remote direct github443 connect timeout"
+        "pid": 1356152,
+        "alive": true
+      },
+      {
+        "pid": 1356154,
+        "alive": true
+      },
+      {
+        "pid": 1356156,
+        "alive": true
+      },
+      {
+        "pid": 1356158,
+        "alive": true
+      },
+      {
+        "pid": 1356160,
+        "alive": true
+      },
+      {
+        "pid": 1356162,
+        "alive": true
+      },
+      {
+        "pid": 1356164,
+        "alive": true
+      },
+      {
+        "pid": 1356166,
+        "alive": true
+      },
+      {
+        "pid": 1356168,
+        "alive": true
+      },
+      {
+        "pid": 1356170,
+        "alive": true
+      },
+      {
+        "pid": 1356172,
+        "alive": true
+      },
+      {
+        "pid": 1356174,
+        "alive": true
+      },
+      {
+        "pid": 1356176,
+        "alive": true
+      },
+      {
+        "pid": 1356178,
+        "alive": true
+      },
+      {
+        "pid": 1356180,
+        "alive": true
       }
-    ],
-    "successful_transport": "temporary loopback-only SSH proxy forward through authorized Mac networking; local existing GitHub authentication transmitted only through SSH stdin/environment; no credential written to files or process arguments",
-    "receipt_scope": "Verifies already-published algorithm/report anchor. Subsequent publication-receipt commit has unchanged installed runtime; final branch head independently verified externally. Mac source/report sync remainsPENDINGENOSPC."
+    ]
+  },
+  "previous_geometry_checkpoint_fields": {
+    "completed_qualification": {
+      "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+      "portable": 223,
+      "console_unit": 19,
+      "hmi": 13,
+      "parameters": 157,
+      "loaded_python_hashes_per_architecture": 30,
+      "native_default_children": 16,
+      "emulated_default_children": 16,
+      "old_original_guard_expected_interrupt": true
+    },
+    "qualification_workspace": "/dev/shm/codex-terminal-native-ws over prior qualified SDK14/shutdown overlays",
+    "arm64_emulator_diagnostic": {
+      "historical": "previous_shutdown_checkpoint_fields.arm64_emulator_diagnostic",
+      "current_cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "explicit_environment_helper": true,
+      "native_jetson_claim": false
+    },
+    "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418."
   }
 }

@@ -1,0 +1,152 @@
+{
+  "strategy": "PERIODIC_LOOK",
+  "task": 1,
+  "wall_s": 67.5199530509999,
+  "task_reached": true,
+  "final_truth_pose": [
+    3.0798197172461514,
+    0.017978153755410314,
+    -0.09079415437643384
+  ],
+  "actual_superlio_odometry_count": 646,
+  "processed_limited_depth_frames": 645,
+  "known_ground_cells": 219,
+  "distance_m": 3.0812843325055255,
+  "observation_attempts": [
+    "gap:goal:left:cell(11,0):yaw(0)",
+    "gap:goal:start:cell(7,0):yaw(0)"
+  ],
+  "resolved_geometry_events": [],
+  "tracking_reason_counts": {
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:map_stale,grid_stale,tf_integrity_or_age,permission_missing_or_age": 1,
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:map_stale,grid_stale,tf_integrity_or_age,permission_missing_or_age,trajectory_version": 2,
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale,tf_integrity_or_age": 13,
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale": 24,
+    "lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale": 6,
+    "trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied": 5,
+    "trajectory_invalid;stop_override;original_guard_preflight_denied": 1,
+    "trajectory_invalid": 167,
+    "allowed": 736,
+    "trajectory_invalid:tracker:feedback_curvature_limit": 113,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.0046108,w=0.00275112": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00347152,w=0.00195318": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00197541,w=0.000726732": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.000825751,w=0.000726727": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00205154,w=0.00105809": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.000164485,w=0.00105809": 1,
+    "map_invalid;trajectory_invalid:trajectory_version": 32,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00202203,w=0.000285584": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00131295,w=0.000346712": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.000459181,w=0.00065244": 1,
+    "trajectory_invalid:tracker:rotation_stop_confirmation_missing": 114,
+    "post_slew_curvature_rejected": 3,
+    "trajectory_invalid:tracker:rotation_measured_translation_or_yaw_limit": 2,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00295165,w=-0.00532448": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00242581,w=-0.00461379": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00127948,w=-0.00461381": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.0028097,w=-0.00810508": 13,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00241592,w=0.000116876": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.0016119,w=-0.000152891": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00444111,w=-0.0018253": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00329418,w=-0.0018253": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00581707,w=-0.00276227": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00394022,w=-0.00276233": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00412382,w=-0.00286014": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-0.00145831,w=-0.00286027": 1,
+    "trajectory_invalid;stop_override;original_guard_preflight_denied:tracker:rotation_stop_confirmation_missing": 39
+  },
+  "planning_result_counts": {
+    "measured_odom_state_unavailable": 23,
+    "road_reference_unavailable_or_unconfirmed": 39,
+    "ego_planner_vehicle_feasibility_rejected": 92,
+    "OK": 403,
+    "original_stop_rate_tolerance_confirmed_heading_recovery": 84,
+    "local_obstacle_grid_unavailable_or_unknown": 1
+  },
+  "selected_views": [
+    {
+      "id": "gap:goal:start:cell(7,0):yaw(0)",
+      "event": "gap:goal:start",
+      "pose": [
+        1.9687719217649313,
+        -0.11360378634808446,
+        0.022183959393155827
+      ],
+      "cost": 4.9,
+      "score": 0.0,
+      "reason": "known_approach:terminal_cell_uncertain;actual_timed_planner_validated;bounded_connectivity_difference;fresh_commit_query"
+    },
+    {
+      "id": "gap:goal:left:cell(11,0):yaw(0)",
+      "event": "gap:goal:left",
+      "pose": [
+        3.4171779152980797,
+        -0.12451462201428062,
+        -0.004837711221099081
+      ],
+      "cost": 4.9,
+      "score": 0.0,
+      "reason": "current_known_space_only;actual_timed_planner_validated;bounded_connectivity_difference;fresh_commit_query"
+    }
+  ],
+  "observed_evidence_count": 219,
+  "persisted_graph_increment_count": 2,
+  "anchored_graph_increment_count": 0,
+  "previous_graph_increment_count": 0,
+  "previous_verified_graph_count": 0,
+  "previous_evidence_uuid_count": 0,
+  "previous_evidence_uuids_preserved": true,
+  "localization_session_id": "PERIODIC_LOOK-task-1",
+  "saved_verified_graph_count": 2,
+  "saved_map_version_before_shutdown_fault": "8a312760636a91158b9192e41356dc875275f999f63010cf7c7d72539d1c8eb0",
+  "planned_observation_cost_s": 9.8,
+  "resolved_event_correctness": {
+    "correct": 0,
+    "incorrect": 0,
+    "unscored": 0,
+    "scope": "evaluator-only synthetic prior gaps have support; other events are not assigned invented truth"
+  },
+  "sensor_fault": "none",
+  "fault_phase_final_serial_tail": [],
+  "nonzero_before_fault": 736,
+  "map_version": "d03e9d0c3637da71818d496c94cb8abf80fa3b99fc64ca38e991cd536e0e1cd7",
+  "final_serial_tail": [
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n"
+  ],
+  "nonzero_serial_count": 736,
+  "actuation_exercised": true,
+  "child_exit_before_cleanup": {
+    "super-lio": null,
+    "map": null,
+    "evidence": null,
+    "perception": null,
+    "local-grid": null,
+    "ego": null,
+    "tf-guard": null,
+    "safety": null,
+    "guard": null,
+    "serial": null,
+    "observer": null,
+    "truth": null
+  },
+  "child_cleanup_exits": {
+    "super-lio": 0,
+    "map": 0,
+    "evidence": 0,
+    "perception": 0,
+    "local-grid": 0,
+    "ego": 0,
+    "tf-guard": 0,
+    "safety": 0,
+    "guard": -2,
+    "serial": 0,
+    "observer": 0,
+    "truth": 0
+  },
+  "outcome": "TASK_REACHED",
+  "protocol_status": "PASS"
+}

@@ -1,0 +1,298 @@
+....FFF....FFF.......                                                    [100%]
+=================================== FAILURES ===================================
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-observed_ground_node.py-ObservedGroundNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x757860598f10>
+signum = <Signals.SIGINT: 2>, module = <module 'observed_ground_node.py'>
+class_name = 'ObservedGroundNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/observed_ground_node.py:265: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f26f2b0>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-local_obstacle_grid_node.py-LocalObstacleGridNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75785f0f9630>
+signum = <Signals.SIGINT: 2>, module = <module 'local_obstacle_grid_node.py'>
+class_name = 'LocalObstacleGridNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/local_obstacle_grid_node.py:203: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f0f8280>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-safety_bridge.py-SafetyBridgeNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75785f15e890>
+signum = <Signals.SIGINT: 2>, module = <module 'safety_bridge.py'>
+class_name = 'SafetyBridgeNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/safety_bridge.py:473: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f15d780>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-observed_ground_node.py-ObservedGroundNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75785f0fd900>
+signum = <Signals.SIGTERM: 15>, module = <module 'observed_ground_node.py'>
+class_name = 'ObservedGroundNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/observed_ground_node.py:265: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f0fd8d0>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-local_obstacle_grid_node.py-LocalObstacleGridNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75785f0b1150>
+signum = <Signals.SIGTERM: 15>, module = <module 'local_obstacle_grid_node.py'>
+class_name = 'LocalObstacleGridNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/local_obstacle_grid_node.py:203: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f0b1c00>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+_ test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-safety_bridge.py-SafetyBridgeNode] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x75785f0fa110>
+signum = <Signals.SIGTERM: 15>, module = <module 'safety_bridge.py'>
+class_name = 'SafetyBridgeNode'
+
+    @pytest.mark.parametrize("module,class_name", ENTRIES)
+    @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
+    def test_message_take_keeps_context_alive_until_owned_node_cleanup(monkeypatch, signum, module, class_name):
+        events=[]
+        previous={s:signal.getsignal(s) for s in (signal.SIGINT,signal.SIGTERM)}
+        runtime=SimpleNamespace(alive=False)
+        def shutdown():events.append(("shutdown",runtime.alive));runtime.alive=False
+        def init(**kwargs):
+            runtime.alive=True
+            if kwargs.get("signal_handler_options") != "NO":
+                # Default rclpy closes the context asynchronously on these signals.
+                for s in previous:signal.signal(s,lambda *_:shutdown())
+        def take(*_args,**_kwargs):
+            signal.raise_signal(signum)
+            if not runtime.alive:
+                raise RuntimeError("take_message: context closed during conversion")
+            events.append(("take_completed",runtime.alive))
+        class Node:
+            def destroy_node(self):events.append(("destroy",runtime.alive))
+        monkeypatch.setattr(module,"rclpy",SimpleNamespace(init=init,ok=lambda:runtime.alive,
+            spin=take,spin_once=take,shutdown=shutdown))
+        monkeypatch.setattr(module,"SignalHandlerOptions",SimpleNamespace(NO="NO"),raising=False)
+        monkeypatch.setattr(module,class_name,Node,raising=False)
+        try:
+>           module.main()
+
+src/research_runtime/test/test_evidence_signal_ownership.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/research_runtime/research_runtime/safety_bridge.py:473: in main
+    rclpy.spin(node)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+_args = (<test_evidence_signal_ownership.test_message_take_keeps_context_alive_until_owned_node_cleanup.<locals>.Node object at 0x75785f0fb640>,)
+_kwargs = {}
+
+    def take(*_args,**_kwargs):
+        signal.raise_signal(signum)
+        if not runtime.alive:
+>           raise RuntimeError("take_message: context closed during conversion")
+E           RuntimeError: take_message: context closed during conversion
+
+src/research_runtime/test/test_evidence_signal_ownership.py:41: RuntimeError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-observed_ground_node.py-ObservedGroundNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-local_obstacle_grid_node.py-LocalObstacleGridNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGINT-safety_bridge.py-SafetyBridgeNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-observed_ground_node.py-ObservedGroundNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-local_obstacle_grid_node.py-LocalObstacleGridNode]
+FAILED src/research_runtime/test/test_evidence_signal_ownership.py::test_message_take_keeps_context_alive_until_owned_node_cleanup[Signals.SIGTERM-safety_bridge.py-SafetyBridgeNode]
+6 failed, 15 passed in 0.06s

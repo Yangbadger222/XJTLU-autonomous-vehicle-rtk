@@ -1,0 +1,19 @@
+Starting >>> super_lio
+--- stderr: super_lio
+/dev/shm/codex-super-unit-rotation-source/src/super_lio/src/lio/super_lio.cpp: In member function ‘void LI2Sup::SuperLIO::caceData()’:
+/dev/shm/codex-super-unit-rotation-source/src/super_lio/src/lio/super_lio.cpp:220:38: error: ‘rotation’ was not declared in this scope
+  220 |   transformation.block<3, 3>(0, 0) = rotation->cast<float>();
+      |                                      ^~~~~~~~
+/dev/shm/codex-super-unit-rotation-source/src/super_lio/src/lio/super_lio.cpp:220:53: error: expected primary-expression before ‘float’
+  220 |   transformation.block<3, 3>(0, 0) = rotation->cast<float>();
+      |                                                     ^~~~~
+gmake[2]: *** [CMakeFiles/lio.dir/build.make:104: CMakeFiles/lio.dir/src/lio/super_lio.cpp.o] Error 1
+gmake[2]: *** Waiting for unfinished jobs....
+gmake[1]: *** [CMakeFiles/Makefile2:597: CMakeFiles/lio.dir/all] Error 2
+gmake: *** [Makefile:146: all] Error 2
+---
+Failed   <<< super_lio [22.1s, exited with code 2]
+
+Summary: 0 packages finished [22.2s]
+  1 package failed: super_lio
+  1 package had stderr output: super_lio

@@ -1,0 +1,20 @@
+[0.190s] WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+	'super_lio_vehicle_adapter' is in: /dev/shm/codex-stop-fresh-ws/install/super_lio_vehicle_adapter, /dev/shm/codex-shutdown-native-ws/install/super_lio_vehicle_adapter
+If a package in a merged underlay workspace is overridden and it installs headers, then all packages in the overlay must sort their include directories by workspace order. Failure to do so may result in build failures or undefined behavior at run time.
+If the overridden package is used by another package in any underlay, then the overriding package in the overlay must be API and ABI compatible or undefined behavior at run time may occur.
+
+If you understand the risks and want to override a package anyways, add the following to the command line:
+	--allow-overriding super_lio_vehicle_adapter
+
+This may be promoted to an error in a future release of colcon-override-check.
+Starting >>> super_lio_vehicle_adapter
+--- stderr: super_lio_vehicle_adapter
+warning: build_py: byte-compiling is disabled, skipping.
+
+warning: install_lib: byte-compiling is disabled, skipping.
+
+---
+Finished <<< super_lio_vehicle_adapter [0.51s]
+
+Summary: 1 package finished [0.66s]
+  1 package had stderr output: super_lio_vehicle_adapter

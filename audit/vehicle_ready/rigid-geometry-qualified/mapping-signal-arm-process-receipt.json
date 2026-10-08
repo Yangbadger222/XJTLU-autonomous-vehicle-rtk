@@ -1,0 +1,11 @@
+{
+  "runtime_source_commit": "85eb28c2b92576df876668587301c013500b4690",
+  "docker_exit": 1,
+  "container": "exited 1",
+  "broker_exit": 0,
+  "socket_removed": true,
+  "scope": "ARM64 software QA with explicit QEMU6.2 native-fd loopback diagnostic helper; not native Jetson",
+  "broker_source_sha256": "3104c13e691f6eac2adf994e17ed5e9a4a1d7bfc37b8a27a7a05e0f5dd5df457",
+  "recipe_sha256": "5e0dd448caf0c6fcbc8d7fc114159b9ef208094f195ecb57614336c3c36f699f",
+  "phase_sha256": "3982386daa0a64da20a9c42062e53a4d6280e7c92b0271ba54dc3cdec2a4ba8d"
+}

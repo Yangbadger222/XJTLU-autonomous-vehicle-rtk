@@ -1,0 +1,11 @@
+Starting >>> basic
+--- stderr: basic
+** WARNING ** io features related to pcap will be disabled
+---
+Finished <<< basic [5.84s]
+Starting >>> super_lio
+[Processing: super_lio]
+Finished <<< super_lio [36.7s]
+
+Summary: 2 packages finished [42.7s]
+  1 package had stderr output: basic

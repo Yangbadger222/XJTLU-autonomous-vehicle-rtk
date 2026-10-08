@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "information",
+      "status": "PASS",
+      "source_sha256": "27d863d99146dac8808aacbf5114f9122b8332c8a792619705b4ebca01770089",
+      "binary_sha256": "e61c2b1598b35bfb4f77ea2acdc3a14456de8b4f0083be43ea469d0814e004b4",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/information.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "failed_update",
+      "status": "PASS",
+      "source_sha256": "c7b20635585ba4b6723888abf19fcf403bb4500a800d808b8a7281be2603a6b2",
+      "binary_sha256": "20b66b920e18deef3f214958bfb1362ca6af3ea428d7ecb1b96632d59f00f2be",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/failed_update.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "deskew",
+      "status": "PASS",
+      "source_sha256": "d7117fb08d4f62865c094e6bcf9d7114c0c79da739e9e4a9488c067217a593ea",
+      "binary_sha256": "028cc30a503be6215aa6153d8b1306bd2f6cc2399c88181012ffbb592c274481",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/deskew.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "packet",
+      "status": "PASS",
+      "source_sha256": "669f6d7dd8b15c5e4d5888b79360ac44a24fdf8e39090a4b476c9535a7a2d8f1",
+      "binary_sha256": "9e9768841f719d472c8e88abb0dcd062fa2ee72ca30ba4526c9f510738a9e20b",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/packet.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "orientation",
+      "status": "PASS",
+      "source_sha256": "91d1221607a791b1d401c14a6f1251bcc54d9bb17a20bcc9d0fd98cfca3ebf0b",
+      "binary_sha256": "5de39bb71a85685e45841bc85315bd7ff2cbc6d6044d19f8bebb75fb514e1e27",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/orientation.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    },
+    {
+      "name": "rotation_integration",
+      "status": "PASS",
+      "source_sha256": "43f307960a830266d1ff3df35c849227698b51276a241351825bbf83ea26cf85",
+      "binary_sha256": "b7958b0788e3b22116a237dfff5685456ef38fa0619c16b3c9269aaf80f521ed",
+      "log": "/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/rigid-group-native-checks/rotation_integration.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    }
+  ],
+  "workspace": "/dev/shm/codex-super-rigid-group-ws",
+  "scope": "native software equations and failure paths; synthetic inputs do not prove physical acceptance"
+}

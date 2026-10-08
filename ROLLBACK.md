@@ -1,6 +1,6 @@
 # Rollback without changing production history
 
-Current qualified runtime is a7dc39774c4421b40a6a0abb7d1709a81bdc72b0. Ordered native/diagnostic ARM shutdown and terminal console revocation are PASS; actual ground-to-road support remains FAIL, research benefit unproved and target/physical acceptance PENDING. Complete current results and source-bound evidence are in AUDIT_REPORT.md and audit/vehicle_ready/shutdown-qualified/COHORT.json. Prior measurements below keep their original source identities. Previous report bytes are archived in shutdown-qualified/prior-reports/.
+Current qualified native runtime is 77d5c5a5ce26b52b22d5631d67ba88a71ad410b3. Native16-node cleanup, current13HMI/final serialPTY,157three-layer checks and244portable cases PASS. Architecture-specific staged compilation/loading and ARM diagnostic results are in AUDIT_REPORT.md and audit/vehicle_ready/rigid-geometry-qualified/COHORT.json. Actual ground support FAIL, policy protocol5PASS/1FAIL with0/6goals; target/physical and Mac sync PENDING. Prior reports and measurements retain their original source identities in this cohort's prior-reports/.
 
 The protected source baseline is corridor-authority-stability at e54c6afbcb5a58db22d7c468085a87d658b0b932. The research branch is separate; no production merge, force push, firmware flash or Jetson source edit is part of this task.
 

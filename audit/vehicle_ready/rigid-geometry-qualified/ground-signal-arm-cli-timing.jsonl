@@ -1,0 +1,34 @@
+{"event": "start", "command": ["ros2", "node", "list", "--no-daemon"], "monotonic_s": 336841.421417601}
+{"event": "raised", "command": ["ros2", "node", "list", "--no-daemon"], "wall_s": 20.147318515984807, "exception_type": "TimeoutExpired"}
+{"event": "start", "command": ["ros2", "node", "list", "--no-daemon"], "monotonic_s": 336861.569690138}
+{"event": "end", "command": ["ros2", "node", "list", "--no-daemon"], "wall_s": 14.94354549300624, "exit": 0}
+{"event": "start", "command": ["ros2", "topic", "list", "--no-daemon", "-t"], "monotonic_s": 336876.513581412}
+{"event": "end", "command": ["ros2", "topic", "list", "--no-daemon", "-t"], "wall_s": 6.092581695003901, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_safety_bridge"], "monotonic_s": 336882.606388321}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_safety_bridge"], "wall_s": 14.964034878008533, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_operator_console"], "monotonic_s": 336897.570628706}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_operator_console"], "wall_s": 12.509633087960538, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/ego_vehicle_adapter"], "monotonic_s": 336910.080504975}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/ego_vehicle_adapter"], "wall_s": 15.387136312026996, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "monotonic_s": 336925.467951558}
+{"event": "raised", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "wall_s": 20.01154737197794, "exception_type": "TimeoutExpired"}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "monotonic_s": 336945.479734914}
+{"event": "raised", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "wall_s": 20.095299831999, "exception_type": "TimeoutExpired"}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "monotonic_s": 336965.575393176}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"], "wall_s": 18.134232281998266, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/corridor_cmd_vel_guard"], "monotonic_s": 336983.709821992}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/corridor_cmd_vel_guard"], "wall_s": 12.022942803043406, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_vehicle_adapter"], "monotonic_s": 336995.732961498}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_vehicle_adapter"], "wall_s": 13.759776396967936, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_tf_integrity_guard"], "monotonic_s": 337009.492925531}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_tf_integrity_guard"], "wall_s": 11.608634479984175, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_cloud_frame_adapter"], "monotonic_s": 337021.101774372}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_cloud_frame_adapter"], "wall_s": 12.790213220985606, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_observed_ground"], "monotonic_s": 337033.892183699}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_observed_ground"], "wall_s": 13.299076765018981, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_local_obstacle_grid"], "monotonic_s": 337047.191457723}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_local_obstacle_grid"], "wall_s": 13.526058235031087, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_node"], "monotonic_s": 337060.717845245}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_node"], "wall_s": 16.98733492702013, "exit": 0}
+{"event": "start", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/robot_state_publisher"], "monotonic_s": 337077.705527565}
+{"event": "end", "command": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/robot_state_publisher"], "wall_s": 13.510046983021311, "exit": 0}

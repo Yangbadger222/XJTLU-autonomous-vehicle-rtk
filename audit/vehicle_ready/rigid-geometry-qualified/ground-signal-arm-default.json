@@ -1,0 +1,296 @@
+{
+  "domain": 93,
+  "mode": "default replay",
+  "test_only_overrides": {
+    "console_port": 8897
+  },
+  "evidence": {
+    "nodes": {
+      "exit": 0,
+      "output": "/active_observation\n/active_road_evidence\n/active_road_map\n/corridor_cmd_vel_guard\n/ego_vehicle_adapter\n/joint_state_publisher\n/research_local_obstacle_grid\n/research_observed_ground\n/research_operator_console\n/research_safety_bridge\n/research_tf_integrity_guard\n/robot_state_publisher\n/rtk_map_odom_corrector\n/super_lio_cloud_frame_adapter\n/super_lio_node\n/super_lio_vehicle_adapter\n",
+      "stderr": ""
+    },
+    "topics": {
+      "exit": 0,
+      "output": "/clock [rosgraph_msgs/msg/Clock]\n/cmd_vel [geometry_msgs/msg/Twist]\n/cmd_vel_guarded [geometry_msgs/msg/Twist]\n/fastlio2/degeneracy [std_msgs/msg/Float32MultiArray]\n/fix [sensor_msgs/msg/NavSatFix]\n/gps_corridor/enu_to_map [std_msgs/msg/Float64MultiArray]\n/gps_corridor/stop_override [std_msgs/msg/Bool]\n/gps_nav/road_rejoin_active [std_msgs/msg/Bool]\n/heading [geometry_msgs/msg/QuaternionStamped]\n/joint_states [sensor_msgs/msg/JointState]\n/lio/cloud_filtered_body [sensor_msgs/msg/PointCloud2]\n/lio/cloud_filtered_world [sensor_msgs/msg/PointCloud2]\n/lio/cloud_odom [sensor_msgs/msg/PointCloud2]\n/lio/cloud_world [sensor_msgs/msg/PointCloud2]\n/lio/health [std_msgs/msg/String]\n/lio/imu/odom [nav_msgs/msg/Odometry]\n/lio/odom [nav_msgs/msg/Odometry]\n/lio/odom_vehicle [nav_msgs/msg/Odometry]\n/lio/path [nav_msgs/msg/Path]\n/lio/robo/odom [nav_msgs/msg/Odometry]\n/lio/vehicle_health [std_msgs/msg/String]\n/livox/imu [sensor_msgs/msg/Imu]\n/livox/lidar [livox_ros_driver2/msg/CustomMsg]\n/localization_authority/diagnostics [diagnostic_msgs/msg/DiagnosticArray]\n/localization_authority/max_linear_speed_mps [std_msgs/msg/Float32]\n/localization_authority/mode [std_msgs/msg/String]\n/localization_authority/motion_allowed [std_msgs/msg/Bool]\n/localization_authority/status [std_msgs/msg/String]\n/parameter_events [rcl_interfaces/msg/ParameterEvent]\n/research/ego_trajectory [research_interfaces/msg/TimedTrajectory2D]\n/research/ground_observation_cloud [sensor_msgs/msg/PointCloud2]\n/research/ground_status [std_msgs/msg/String]\n/research/local_evidence_grid [research_interfaces/msg/LocalEvidenceGrid2D]\n/research/local_frame_integrity [std_msgs/msg/Bool]\n/research/local_obstacle_grid [nav_msgs/msg/OccupancyGrid]\n/research/localization_session_id [std_msgs/msg/String]\n/research/map_version [std_msgs/msg/String]\n/research/measured_road_questions [research_interfaces/msg/RoadEvent]\n/research/observation_status [research_interfaces/msg/ResearchStatus]\n/research/observed_ground_grid [research_interfaces/msg/LocalEvidenceGrid2D]\n/research/odom_control [nav_msgs/msg/Odometry]\n/research/operator_permit [research_interfaces/msg/OperatorPermit]\n/research/permission_grid [nav_msgs/msg/OccupancyGrid]\n/research/road_events [research_interfaces/msg/RoadEvent]\n/research/road_evidence [research_interfaces/msg/RoadEvidence2D]\n/research/road_evidence_ack [std_msgs/msg/String]\n/research/road_graph_updates [research_interfaces/msg/RoadGraphUpdate2D]\n/research/road_reference [nav_msgs/msg/Path]\n/research/road_reference_input [nav_msgs/msg/Path]\n/research/status [research_interfaces/msg/ResearchStatus]\n/research/tf_integrity [std_msgs/msg/Bool]\n/research/vehicle_acceleration [geometry_msgs/msg/AccelStamped]\n/research/visual_local_trajectory [nav_msgs/msg/Path]\n/robot_description [std_msgs/msg/String]\n/rosout [rcl_interfaces/msg/Log]\n/rtk/health [diagnostic_msgs/msg/DiagnosticArray]\n/rtk/nmea_sentence [nmea_msgs/msg/Sentence]\n/tf [tf2_msgs/msg/TFMessage]\n/tf_static [tf2_msgs/msg/TFMessage]\n",
+      "stderr": ""
+    },
+    "safety_parameters": {
+      "exit": 0,
+      "output": "/research_safety_bridge:\n  ros__parameters:\n    actuator_enabled: false\n    allow_analytical_grid_fixture: false\n    authority_timeout_s: 0.5\n    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1\n    footprint_xy:\n    - 0.33\n    - 0.305\n    - 0.33\n    - -0.305\n    - -0.33\n    - -0.305\n    - -0.33\n    - 0.305\n    grid_timeout_s: 0.5\n    health_timeout_s: 0.5\n    health_topic: /lio/vehicle_health\n    localization_session_id: 887323d528a543fdbb0c0a154552fb81\n    map_timeout_s: 0.5\n    map_version_topic: /research/map_version\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 0.34602076124567477\n    max_decel_mps2: 1.2\n    max_lateral_accel_mps2: 0.25\n    max_lateral_speed_mps: 0.05\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    min_speed_mps: 0.0\n    mode: replay\n    normal_slew_fraction: 0.5\n    obstacle_grid_topic: /research/local_evidence_grid\n    odom_topic: /research/odom_control\n    permission_grid_topic: /research/permission_grid\n    state_timeout_s: 0.2\n    tracker_heading_gain: 1.0\n    tracker_lateral_gain: 1.5\n    tracker_longitudinal_gain: 0.8\n    tracker_preview_s: 0.1\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "console_parameters": {
+      "exit": 0,
+      "output": "/research_operator_console:\n  ros__parameters:\n    actuator_enabled: false\n    bag_catalog_path: ''\n    execution_mode: replay\n    http_port: 8897\n    mission_execution_enabled: false\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "ego_parameters": {
+      "exit": 0,
+      "output": "/ego_vehicle_adapter:\n  ros__parameters:\n    allow_analytical_grid_fixture: false\n    allow_reverse: false\n    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1\n    enable_stationary_heading_recovery: true\n    firmware_command_model_source: LOCKED_STM32_SOURCE; actual flashed identity requires\n      field verification\n    footprint_source: LOCKED_CORRIDOR_POLYGON; physical deployment still requires\n      confirmation\n    grid_timeout_s: 0.5\n    grid_unknown_is_occupied: true\n    inflate_radius_m: 0.4493606569338264\n    initial_map_version: UNKNOWN\n    localization_session_id: 887323d528a543fdbb0c0a154552fb81\n    map_resolution_m: 0.3\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 0.34602076124567477\n    max_decel_mps2: 1.2\n    max_jerk_mps3: 1.7\n    max_lateral_accel_mps2: 0.25\n    max_lateral_speed_mps: 0.05\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    min_speed_mps: 0.0\n    odom_topic: /research/odom_control\n    output_topic: /research/ego_trajectory\n    planning_acceleration_fraction: 0.5\n    planning_speed_fraction: 0.8\n    planning_turn_fraction: 0.8\n    planning_turn_penalty_weight: 10.0\n    qos_overrides:\n      /clock:\n        subscription:\n          depth: 1\n          durability: volatile\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    replan_period_s: 1.0\n    state_timeout_s: 0.2\n    use_measured_acceleration: false\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "authority_parameters": {
+      "exit": 0,
+      "output": "/rtk_map_odom_corrector:\n  ros__parameters:\n    alignment_topic: /gps_corridor/enu_to_map\n    allow_bounded_backlog_motion: true\n    allow_moving_backlog_release: true\n    authority_speed_recovery_accel_mps2: 0.2\n    backlog_translation_m: 0.5\n    backlog_yaw_deg: 5.0\n    base_frame: base_footprint\n    diagnostics_topic: /localization_authority/diagnostics\n    enable_local_odom_bridge: true\n    enu_origin_alt: 0.0\n    enu_origin_lat: 31.274927\n    enu_origin_lon: 120.737548\n    fault_translation_m: 2.0\n    fault_yaw_deg: 20.0\n    fix_quality_wait_s: 0.25\n    fix_topic: /fix\n    gate_max_candidates: 20\n    gate_max_failures: 10\n    gate_processable_timeout_s: 2.0\n    heading_control_min_samples: 5\n    heading_control_stable_duration_s: 5.0\n    heading_lio_crosscheck_enabled: true\n    heading_lio_crosscheck_gnss_jump_deg: 8.0\n    heading_lio_crosscheck_lio_turn_deg: 3.0\n    heading_lio_crosscheck_max_interval_s: 0.3\n    heading_locked_innovation_deg: 20.0\n    heading_quality_wait_s: 0.3\n    heading_quaternion_yaw_is_compass: true\n    heading_recovery_spread_deg: 7.5\n    heading_topic: /heading\n    lio_degeneracy_topic: /fastlio2/degeneracy\n    lio_min_eig_healthy: 75.0\n    lio_odom_topic: /lio/odom_vehicle\n    lio_reject_regularized: true\n    local_bridge_max_distance_m: 3.0\n    local_bridge_max_duration_s: 15.0\n    local_bridge_max_linear_speed_mps: 0.35\n    local_bridge_max_step_translation_m: 0.5\n    local_bridge_max_step_yaw_deg: 15.0\n    local_bridge_max_yaw_change_deg: 30.0\n    low_speed_heading_strict_mps: 0.1\n    map_frame: map\n    max_alignment_age_s: 1.0\n    max_fix_age_s: 1.0\n    max_future_stamp_s: 0.1\n    max_gga_age_s: 1.5\n    max_gga_heading_age_s: 1.5\n    max_heading_age_s: 1.0\n    max_heading_for_fix_age_s: 0.3\n    max_lio_age_s: 0.3\n    max_lio_degeneracy_age_s: 0.5\n    max_odom_bracket_s: 0.3\n    max_pending_observation_s: 0.3\n    max_rtk_health_age_s: 1.5\n    max_translation_rate_mps: 0.2\n    max_yaw_rate_degps: 2.0\n    mode_topic: /localization_authority/mode\n    motion_allowed_topic: /localization_authority/motion_allowed\n    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps\n    moving_reacquire_translation_rate_mps: 0.05\n    moving_reacquire_yaw_rate_degps: 0.5\n    nmea_topic: /rtk/nmea_sentence\n    observation_fifo_capacity: 10\n    odom_frame: odom\n    position_locked_innovation_m: 1.5\n    position_recovery_diameter_m: 0.5\n    publish_period_s: 0.1\n    recovery_confirmation_s: 1.0\n    recovery_min_samples: 5\n    recovery_min_span_s: 0.3\n    recovery_translation_m: 0.15\n    recovery_yaw_deg: 2.0\n    rtk_authoritative_max_linear_speed_mps: 1.2\n    rtk_health_topic: /rtk/health\n    rtk_max_hdop: 2.0\n    rtk_max_rtcm_age_s: 3.0\n    rtk_min_satellites: 10\n    rtk_reacquire_max_linear_speed_mps: 0.35\n    scene_points_file: ''\n    status_topic: /localization_authority/status\n    stopped_confirmation_s: 1.0\n    stopped_linear_rate_mps: 0.05\n    stopped_yaw_rate_degps: 2.0\n    tf_future_tolerance_s: 0.1\n    use_scene_identity_alignment: false\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "guard_parameters": {
+      "exit": 0,
+      "output": "/corridor_cmd_vel_guard:\n  ros__parameters:\n    command_timeout_s: 0.25\n    heartbeat_timeout_s: 0.5\n    input_topic: /cmd_vel\n    min_turn_rate_radps: 0.05\n    motion_allowed_topic: /localization_authority/motion_allowed\n    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps\n    output_topic: /cmd_vel_guarded\n    require_speed_limit: true\n    road_rejoin_active_topic: /gps_nav/road_rejoin_active\n    road_rejoin_max_mps: 0.35\n    stop_override_topic: /gps_corridor/stop_override\n    straight_max_mps: 0.85\n    turn_product_limit: 0.25\n    use_sim_time: false\n\n",
+      "stderr": ""
+    },
+    "adapter_parameters": {
+      "exit": 0,
+      "output": "/super_lio_vehicle_adapter:\n  ros__parameters:\n    base_frame: base_footprint\n    control_child_frame: chassis_control_origin\n    control_odom_topic: /research/odom_control\n    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1\n    control_translation_imu_m:\n    - 0.05900000000000001\n    - -0.14329\n    - -0.40288\n    health_topic: /lio/vehicle_health\n    imu_to_base_extrinsic_verified: false\n    imu_to_base_quaternion_xyzw:\n    - 0.0\n    - 0.0\n    - 0.0\n    - 1.0\n    imu_to_base_translation_m:\n    - 0.0\n    - 0.0\n    - 0.0\n    input_topic: /lio/odom\n    navigation_reference_contract: corridor_e54c6af_fast_imu_origin_v1\n    navigation_reference_convention: locked_fast_imu_origin\n    publish_unhealthy_odometry: true\n    require_covariance: true\n    require_source_health_ok: true\n    source_child_frame: imu\n    source_frame: world\n    source_health_topic: /lio/health\n    tf_timeout_s: 0.05\n    use_sim_time: true\n    vehicle_odom_topic: /lio/odom_vehicle\n    world_frame: odom\n    world_gauge_mode: source_local_world\n\n",
+      "stderr": ""
+    },
+    "tf_guard_parameters": {
+      "exit": 0,
+      "output": "/research_tf_integrity_guard:\n  ros__parameters:\n    protect_world_gauge: true\n    qos_overrides:\n      /clock:\n        subscription:\n          depth: 1\n          durability: volatile\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "cloud_frame_parameters": {
+      "exit": 0,
+      "output": "/super_lio_cloud_frame_adapter:\n  ros__parameters:\n    height_odom_topic: /lio/odom\n    input_topic: /lio/cloud_world\n    obstacle_max_z_m: 1.2\n    obstacle_min_z_m: 0.08\n    output_topic: /lio/cloud_odom\n    publish_max_z_m: 0.3\n    publish_min_z_m: -0.33\n    require_owned_identity_gauge: true\n    source_frame: world\n    target_frame: odom\n    tf_timeout_s: 0.05\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "ground_parameters": {
+      "exit": 0,
+      "output": "/research_observed_ground:\n  ros__parameters:\n    floor_band_m: 0.05\n    height: 100\n    lidar_height_m: 0.447\n    lidar_in_imu_m:\n    - -0.011\n    - -0.02329\n    - 0.04412\n    localization_session_id: 887323d528a543fdbb0c0a154552fb81\n    max_neighbor_height_jump_m: 0.025\n    max_plane_residual_m: 0.025\n    max_slope: 0.1\n    obstacle_height_m: 1.2\n    resolution_m: 0.3\n    subcells: 4\n    use_sim_time: true\n    width: 100\n\n",
+      "stderr": ""
+    },
+    "local_grid_parameters": {
+      "exit": 0,
+      "output": "/research_local_obstacle_grid:\n  ros__parameters:\n    allow_analytical_grid_fixture: false\n    ground_timeout_s: 0.5\n    height: 100\n    input_height_filter_applied: true\n    input_topic: /lio/cloud_odom\n    localization_session_id: 887323d528a543fdbb0c0a154552fb81\n    map_version_topic: /research/map_version\n    observed_ground_topic: /research/observed_ground_grid\n    obstacle_max_z_m: 1.2\n    obstacle_min_z_m: 0.08\n    origin_x_m: -15.0\n    origin_y_m: -15.0\n    output_topic: /research/local_obstacle_grid\n    resolution_m: 0.3\n    target_frame: odom\n    unknown_is_occupied: true\n    use_sim_time: true\n    width: 100\n\n",
+      "stderr": ""
+    },
+    "superlio_parameters": {
+      "exit": 0,
+      "output": "/super_lio_node:\n  ros__parameters:\n    lio:\n      eva:\n        timer: true\n      extrinsic:\n        lidar_imu:\n        - -0.011\n        - -0.02329\n        - 0.04412\n        - 1.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 1.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 1.0\n        odom_robo:\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n      hash_map:\n        hash_capacity: 2000000\n        vox_resolution: 0.5\n      kf:\n        kf_align_gravity: true\n        kf_max_iterations: 4\n        kf_quit_eps: 0.001\n        kf_type: 0\n      map:\n        ds_size: 0.25\n        if_filter: true\n        map_name: super_lio_local.pcd\n        save_interval: 500\n        save_map: false\n        save_map_dir: runtime-data/research/active_road/super_lio\n      output:\n        dense: true\n        map: true\n        ml_map: false\n        plan_env_body: true\n        plan_env_world: true\n        planner: false\n        pub_step: 1\n        robot: true\n      relocation:\n        init_pose:\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        - 0.0\n        update_map: false\n      ros:\n        imu_topic: /livox/imu\n        lidar_topic: /livox/lidar\n      sensor:\n        blind: 0.5\n        enable_downsample: false\n        filter_rate: 4\n        gravity_norm: 9.7946\n        imu_na: 0.01\n        imu_nba: 0.0001\n        imu_nbg: 0.0001\n        imu_ng: 0.01\n        imu_type: 1\n        lidar_type: 1\n        maxrange: 25.0\n        voxel_fliter_size: 0.2\n      submap:\n        submap_capacity: 0\n        submap_resolution: 0.0\n    qos_overrides:\n      /clock:\n        subscription:\n          depth: 1\n          durability: volatile\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n      /tf:\n        publisher:\n          depth: 100\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    use_sim_time: true\n\n",
+      "stderr": ""
+    },
+    "robot_description_parameters": {
+      "exit": 0,
+      "output": "/robot_state_publisher:\n  ros__parameters:\n    frame_prefix: ''\n    ignore_timestamp: false\n    publish_frequency: 20.0\n    qos_overrides:\n      /joint_states:\n        subscription:\n          depth: 5\n          history: keep_last\n          reliability: best_effort\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n      /tf:\n        publisher:\n          depth: 100\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n      /tf_static:\n        publisher:\n          depth: 1\n          history: keep_last\n          reliability: reliable\n    robot_description: \"<?xml version=\\\"1.0\\\" ?>\\n<!-- ===================================================================================\\\n      \\ -->\\n<!-- |    This document was autogenerated by xacro from /research-ws/fresh14/install/bringup/share/bringup/urdf/rosbot/rosbot.urdf.xacro\\\n      \\ | -->\\n<!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED            \\\n      \\                     | -->\\n<!-- ===================================================================================\\\n      \\ -->\\n<robot name=\\\"rosbot\\\">\\n  <link name=\\\"base_footprint\\\"/>\\n  <!-- \\u673A\\\n      \\u5668\\u4EBA\\u8EAB\\u4F53\\u90E8\\u5206 -->\\n  <link name=\\\"base_link\\\">\\n    <!--\\\n      \\ \\u90E8\\u4EF6\\u5916\\u89C2\\u63CF\\u8FF0 -->\\n    <visual>\\n      <!-- \\u6CBF\\u81EA\\\n      \\u5DF1\\u51E0\\u4F55\\u4E2D\\u5FC3\\u7684\\u504F\\u79FB\\u548C\\u65CB\\u8F6C\\u91CF -->\\n\\\n      \\      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <!-- \\u51E0\\u4F55\\\n      \\u5F62\\u72B6 -->\\n      <geometry>\\n        <!-- \\u6B63\\u65B9\\u4F53 -->\\n  \\\n      \\      <box size=\\\"0.5 0.45 0.14\\\"/>\\n      </geometry>\\n      <!-- \\u6750\\u8D28\\\n      \\u5B50\\u6807\\u7B7E -->\\n      <material name=\\\"grey\\\">\\n        <color rgba=\\\"\\\n      0.5 0.5 0.5 0.9\\\"/>\\n      </material>\\n    </visual>\\n    <collision>\\n   \\\n      \\   <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n  \\\n      \\      <box size=\\\"0.5 0.45 0.14\\\"/>\\n      </geometry>\\n      <!-- \\u6750\\u8D28\\\n      \\u5B50\\u6807\\u7B7E -->\\n      <material name=\\\"grey\\\">\\n        <color rgba=\\\"\\\n      0.5 0.5 0.5 0.9\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n \\\n      \\     <mass value=\\\"1.0\\\"/>\\n      <inertia ixx=\\\"0.018508333333333335\\\" ixy=\\\"\\\n      0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.022466666666666666\\\" iyz=\\\"0.0\\\" izz=\\\"0.03770833333333333\\\"\\\n      />\\n    </inertial>\\n  </link>\\n  <link name=\\\"handle_left_link\\\">\\n    <visual>\\n\\\n      \\      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <box size=\\\"0.03 0.03 0.30\\\"/>\\n      </geometry>\\n      <material\\\n      \\ name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.9\\\"/>\\n      </material>\\n\\\n      \\    </visual>\\n    <collision>\\n      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0\\\n      \\ 0.0 0.0\\\"/>\\n      <geometry>\\n        <box size=\\\"0.03 0.03 0.30\\\"/>\\n  \\\n      \\    </geometry>\\n      <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0\\\n      \\ 0.0 0.0 0.9\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n   \\\n      \\   <mass value=\\\"0.05\\\"/>\\n      <inertia ixx=\\\"0.00037874999999999996\\\" ixy=\\\"\\\n      0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00037874999999999996\\\" iyz=\\\"0.0\\\" izz=\\\"7.499999999999999e-06\\\"\\\n      />\\n    </inertial>\\n  </link>\\n  <link name=\\\"handle_right_link\\\">\\n    <visual>\\n\\\n      \\      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <box size=\\\"0.03 0.03 0.30\\\"/>\\n      </geometry>\\n      <material\\\n      \\ name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.9\\\"/>\\n      </material>\\n\\\n      \\    </visual>\\n    <collision>\\n      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0\\\n      \\ 0.0 0.0\\\"/>\\n      <geometry>\\n        <box size=\\\"0.03 0.03 0.30\\\"/>\\n  \\\n      \\    </geometry>\\n      <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0\\\n      \\ 0.0 0.0 0.9\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n   \\\n      \\   <mass value=\\\"0.05\\\"/>\\n      <inertia ixx=\\\"0.00037874999999999996\\\" ixy=\\\"\\\n      0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00037874999999999996\\\" iyz=\\\"0.0\\\" izz=\\\"7.499999999999999e-06\\\"\\\n      />\\n    </inertial>\\n  </link>\\n  <link name=\\\"handle_bar_link\\\">\\n    <visual>\\n\\\n      \\      <origin rpy=\\\"0.0 0.0 1.57079\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <box size=\\\"0.23 0.03 0.03\\\"/>\\n      </geometry>\\n      <material\\\n      \\ name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.9\\\"/>\\n      </material>\\n\\\n      \\    </visual>\\n    <collision>\\n      <origin rpy=\\\"0.0 0.0 1.57079\\\" xyz=\\\"\\\n      0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <box size=\\\"0.23 0.03 0.03\\\"/>\\n\\\n      \\      </geometry>\\n      <material name=\\\"black\\\">\\n        <color rgba=\\\"\\\n      0.0 0.0 0.0 0.9\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n \\\n      \\     <mass value=\\\"0.05\\\"/>\\n      <inertia ixx=\\\"0.00022416666666666668\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"7.499999999999999e-06\\\" iyz=\\\"0.0\\\" izz=\\\"0.00022416666666666668\\\"\\\n      />\\n    </inertial>\\n  </link>\\n  <joint name=\\\"base_joint\\\" type=\\\"fixed\\\"\\\n      >\\n    <parent link=\\\"base_footprint\\\"/>\\n    <child link=\\\"base_link\\\"/>\\n\\\n      \\    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.229\\\"/>\\n  </joint>\\n  <joint\\\n      \\ name=\\\"handle_left_joint\\\" type=\\\"fixed\\\">\\n    <parent link=\\\"base_link\\\"\\\n      />\\n    <child link=\\\"handle_left_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\"\\\n      \\ xyz=\\\"0.23 0.13 0.22\\\"/>\\n  </joint>\\n  <joint name=\\\"handle_right_joint\\\"\\\n      \\ type=\\\"fixed\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"handle_right_link\\\"\\\n      />\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.23 -0.13 0.22\\\"/>\\n  </joint>\\n\\\n      \\  <joint name=\\\"handle_bar_joint\\\" type=\\\"fixed\\\">\\n    <parent link=\\\"base_link\\\"\\\n      />\\n    <child link=\\\"handle_bar_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"\\\n      0.23 0.0 0.30\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"base_link\\\">\\n    <material>Gazebo/Yellow</material>\\n\\\n      \\  </gazebo>\\n  <gazebo reference=\\\"handle_left_link\\\">\\n    <material>Gazebo/Black</material>\\n\\\n      \\  </gazebo>\\n  <gazebo reference=\\\"handle_right_link\\\">\\n    <material>Gazebo/Black</material>\\n\\\n      \\  </gazebo>\\n  <gazebo reference=\\\"handle_bar_link\\\">\\n    <material>Gazebo/Black</material>\\n\\\n      \\  </gazebo>\\n  <link name=\\\"imu_link\\\">\\n    <visual>\\n      <origin rpy=\\\"\\\n      0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <box size=\\\"\\\n      0.02 0.02 0.02\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\">\\n   \\\n      \\     <color rgba=\\\"0.0 0.0 0.0 0.5\\\"/>\\n      </material>\\n    </visual>\\n\\\n      \\    <collision>\\n      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n\\\n      \\      <geometry>\\n        <box size=\\\"0.02 0.02 0.02\\\"/>\\n      </geometry>\\n\\\n      \\      <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.5\\\"/>\\n\\\n      \\      </material>\\n    </collision>\\n    <inertial>\\n      <mass value=\\\"0.05\\\"\\\n      />\\n      <inertia ixx=\\\"3.3333333333333333e-06\\\" ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"\\\n      3.3333333333333333e-06\\\" iyz=\\\"0.0\\\" izz=\\\"3.3333333333333333e-06\\\"/>\\n    </inertial>\\n\\\n      \\  </link>\\n  <joint name=\\\"imu_joint\\\" type=\\\"fixed\\\">\\n    <parent link=\\\"\\\n      base_link\\\"/>\\n    <child link=\\\"imu_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\"\\\n      \\ xyz=\\\"0.0 0.0 0.02\\\"/>\\n  </joint>\\n  <link name=\\\"laser_link\\\">\\n    <visual>\\n\\\n      \\      <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <cylinder length=\\\"0.02\\\" radius=\\\"0.02\\\"/>\\n      </geometry>\\n  \\\n      \\    <material name=\\\"green\\\">\\n        <color rgba=\\\"0.0 1.0 0.0 0.8\\\"/>\\n\\\n      \\      </material>\\n    </visual>\\n    <collision>\\n      <origin rpy=\\\"0.0\\\n      \\ 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"\\\n      0.02\\\" radius=\\\"0.02\\\"/>\\n      </geometry>\\n      <material name=\\\"green\\\"\\\n      >\\n        <color rgba=\\\"0.0 1.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n\\\n      \\    <inertial>\\n      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"1.3333333333333332e-05\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"1.3333333333333332e-05\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      2e-05\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"laser_joint\\\" type=\\\"\\\n      fixed\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"laser_link\\\"/>\\n\\\n      \\    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.10 -0.10 0.07\\\"/>\\n  </joint>\\n  <gazebo\\\n      \\ reference=\\\"laser_link\\\">\\n    <material>Gazebo/Black</material>\\n  </gazebo>\\n\\\n      \\  <link name=\\\"camera_link\\\">\\n    <visual>\\n      <origin rpy=\\\"0.0 0.0 0.0\\\"\\\n      \\ xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <box size=\\\"0.02 0.10 0.02\\\"\\\n      />\\n      </geometry>\\n      <material name=\\\"green\\\">\\n        <color rgba=\\\"\\\n      0.0 1.0 0.0 0.5\\\"/>\\n      </material>\\n    </visual>\\n    <collision>\\n   \\\n      \\   <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n  \\\n      \\      <box size=\\\"0.02 0.02 0.02\\\"/>\\n      </geometry>\\n      <material name=\\\"\\\n      green\\\">\\n        <color rgba=\\\"0.0 1.0 0.0 0.5\\\"/>\\n      </material>\\n   \\\n      \\ </collision>\\n    <inertial>\\n      <mass value=\\\"0.1\\\"/>\\n      <inertia\\\n      \\ ixx=\\\"8.666666666666668e-05\\\" ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"6.666666666666667e-06\\\"\\\n      \\ iyz=\\\"0.0\\\" izz=\\\"8.666666666666668e-05\\\"/>\\n    </inertial>\\n  </link>\\n\\\n      \\  <joint name=\\\"camera_joint\\\" type=\\\"fixed\\\">\\n    <parent link=\\\"base_link\\\"\\\n      />\\n    <child link=\\\"camera_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"\\\n      0.15 0 0.07\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"camera_link\\\">\\n    <material>Gazebo/Black</material>\\n\\\n      \\  </gazebo>\\n  <link name=\\\"left_front_wheel_link\\\">\\n    <visual>\\n      <origin\\\n      \\ rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder\\\n      \\ length=\\\"0.04\\\" radius=\\\"0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"\\\n      black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n   \\\n      \\ </visual>\\n    <collision>\\n      <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0\\\n      \\ 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"0.04\\\" radius=\\\"\\\n      0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\">\\n        <color\\\n      \\ rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n\\\n      \\      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"0.00026333333333333336\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00026333333333333336\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      0.0005000000000000001\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"left_front_wheel_joint\\\"\\\n      \\ type=\\\"continuous\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"\\\n      left_front_wheel_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.24 0.25 -0.13\\\"\\\n      />\\n    <axis xyz=\\\"0.0 1.0 0.0\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"left_front_wheel_link\\\"\\\n      >\\n    <material>Gazebo/Black</material>\\n  </gazebo>\\n  <gazebo reference=\\\"\\\n      left_front_wheel_link\\\">\\n    <mu1 value=\\\"20.0\\\"/>\\n    <mu2 value=\\\"20.0\\\"\\\n      />\\n    <kp value=\\\"1000000000.0\\\"/>\\n    <kd value=\\\"1.0\\\"/>\\n  </gazebo>\\n\\\n      \\  <link name=\\\"left_back_wheel_link\\\">\\n    <visual>\\n      <origin rpy=\\\"\\\n      1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder\\\n      \\ length=\\\"0.04\\\" radius=\\\"0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"\\\n      black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n   \\\n      \\ </visual>\\n    <collision>\\n      <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0\\\n      \\ 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"0.04\\\" radius=\\\"\\\n      0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\">\\n        <color\\\n      \\ rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n\\\n      \\      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"0.00026333333333333336\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00026333333333333336\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      0.0005000000000000001\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"left_back_wheel_joint\\\"\\\n      \\ type=\\\"continuous\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"\\\n      left_back_wheel_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"-0.24 0.25 -0.13\\\"\\\n      />\\n    <axis xyz=\\\"0.0 1.0 0.0\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"left_back_wheel_link\\\"\\\n      >\\n    <material>Gazebo/Black</material>\\n  </gazebo>\\n  <gazebo reference=\\\"\\\n      left_back_wheel_link\\\">\\n    <mu1 value=\\\"20.0\\\"/>\\n    <mu2 value=\\\"20.0\\\"\\\n      />\\n    <kp value=\\\"1000000000.0\\\"/>\\n    <kd value=\\\"1.0\\\"/>\\n  </gazebo>\\n\\\n      \\  <link name=\\\"right_front_wheel_link\\\">\\n    <visual>\\n      <origin rpy=\\\"\\\n      1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder\\\n      \\ length=\\\"0.04\\\" radius=\\\"0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"\\\n      black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n   \\\n      \\ </visual>\\n    <collision>\\n      <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0\\\n      \\ 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"0.04\\\" radius=\\\"\\\n      0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\">\\n        <color\\\n      \\ rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n    <inertial>\\n\\\n      \\      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"0.00026333333333333336\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00026333333333333336\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      0.0005000000000000001\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"right_front_wheel_joint\\\"\\\n      \\ type=\\\"continuous\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"\\\n      right_front_wheel_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.24 -0.25\\\n      \\ -0.13\\\"/>\\n    <axis xyz=\\\"0.0 1.0 0.0\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"\\\n      right_front_wheel_link\\\">\\n    <material>Gazebo/Black</material>\\n  </gazebo>\\n\\\n      \\  <gazebo reference=\\\"right_front_wheel_link\\\">\\n    <mu1 value=\\\"20.0\\\"/>\\n\\\n      \\    <mu2 value=\\\"20.0\\\"/>\\n    <kp value=\\\"1000000000.0\\\"/>\\n    <kd value=\\\"\\\n      1.0\\\"/>\\n  </gazebo>\\n  <link name=\\\"right_back_wheel_link\\\">\\n    <visual>\\n\\\n      \\      <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <cylinder length=\\\"0.04\\\" radius=\\\"0.10\\\"/>\\n      </geometry>\\n  \\\n      \\    <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n\\\n      \\      </material>\\n    </visual>\\n    <collision>\\n      <origin rpy=\\\"1.57079\\\n      \\ 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"\\\n      0.04\\\" radius=\\\"0.10\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\"\\\n      >\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n\\\n      \\    <inertial>\\n      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"0.00026333333333333336\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00026333333333333336\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      0.0005000000000000001\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"right_back_wheel_joint\\\"\\\n      \\ type=\\\"continuous\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"\\\n      right_back_wheel_link\\\"/>\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"-0.24 -0.25\\\n      \\ -0.13\\\"/>\\n    <axis xyz=\\\"0.0 1.0 0.0\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"\\\n      right_back_wheel_link\\\">\\n    <material>Gazebo/Black</material>\\n  </gazebo>\\n\\\n      \\  <gazebo reference=\\\"right_back_wheel_link\\\">\\n    <mu1 value=\\\"20.0\\\"/>\\n\\\n      \\    <mu2 value=\\\"20.0\\\"/>\\n    <kp value=\\\"1000000000.0\\\"/>\\n    <kd value=\\\"\\\n      1.0\\\"/>\\n  </gazebo>\\n  <link name=\\\"left_caster_link\\\">\\n    <visual>\\n   \\\n      \\   <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <cylinder length=\\\"0.04\\\" radius=\\\"0.09\\\"/>\\n      </geometry>\\n  \\\n      \\    <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n\\\n      \\      </material>\\n    </visual>\\n    <collision>\\n      <origin rpy=\\\"1.57079\\\n      \\ 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n        <cylinder length=\\\"\\\n      0.04\\\" radius=\\\"0.09\\\"/>\\n      </geometry>\\n      <material name=\\\"black\\\"\\\n      >\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </collision>\\n\\\n      \\    <inertial>\\n      <mass value=\\\"0.1\\\"/>\\n      <inertia ixx=\\\"0.00021583333333333337\\\"\\\n      \\ ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"0.00021583333333333337\\\" iyz=\\\"0.0\\\" izz=\\\"\\\n      0.000405\\\"/>\\n    </inertial>\\n  </link>\\n  <joint name=\\\"left_caster_joint\\\"\\\n      \\ type=\\\"fixed\\\">\\n    <parent link=\\\"base_link\\\"/>\\n    <child link=\\\"left_caster_link\\\"\\\n      />\\n    <origin rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 0.25 -0.14\\\"/>\\n    <axis xyz=\\\"\\\n      0.0 0.0 0.0\\\"/>\\n  </joint>\\n  <gazebo reference=\\\"left_caster_link\\\">\\n   \\\n      \\ <material>Gazebo/Black</material>\\n  </gazebo>\\n  <gazebo reference=\\\"left_caster_link\\\"\\\n      >\\n    <mu1 value=\\\"0.0\\\"/>\\n    <mu2 value=\\\"0.0\\\"/>\\n    <kp value=\\\"1000000000.0\\\"\\\n      />\\n    <kd value=\\\"1.0\\\"/>\\n  </gazebo>\\n  <link name=\\\"right_caster_link\\\"\\\n      >\\n    <visual>\\n      <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n\\\n      \\      <geometry>\\n        <cylinder length=\\\"0.04\\\" radius=\\\"0.09\\\"/>\\n   \\\n      \\   </geometry>\\n      <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0\\\n      \\ 0.0 0.0 0.8\\\"/>\\n      </material>\\n    </visual>\\n    <collision>\\n     \\\n      \\ <origin rpy=\\\"1.57079 0.0 0.0\\\" xyz=\\\"0.0 0.0 0.0\\\"/>\\n      <geometry>\\n\\\n      \\        <cylinder length=\\\"0.04\\\" radius=\\\"0.09\\\"/>\\n      </geometry>\\n  \\\n      \\    <material name=\\\"black\\\">\\n        <color rgba=\\\"0.0 0.0 0.0 0.8\\\"/>\\n\\\n      \\      </material>\\n    </collision>\\n    <inertial>\\n      <mass value=\\\"0.1\\\"\\\n      />\\n      <inertia ixx=\\\"0.00021583333333333337\\\" ixy=\\\"0.0\\\" ixz=\\\"0.0\\\" iyy=\\\"\\\n      0.00021583333333333337\\\" iyz=\\\"0.0\\\" izz=\\\"0.000405\\\"/>\\n    </inertial>\\n \\\n      \\ </link>\\n  <joint name=\\\"right_caster_joint\\\" type=\\\"fixed\\\">\\n    <parent\\\n      \\ link=\\\"base_link\\\"/>\\n    <child link=\\\"right_caster_link\\\"/>\\n    <origin\\\n      \\ rpy=\\\"0.0 0.0 0.0\\\" xyz=\\\"0.0 -0.25 -0.14\\\"/>\\n    <axis xyz=\\\"0.0 0.0 0.0\\\"\\\n      />\\n  </joint>\\n  <gazebo reference=\\\"right_caster_link\\\">\\n    <material>Gazebo/Black</material>\\n\\\n      \\  </gazebo>\\n  <gazebo reference=\\\"right_caster_link\\\">\\n    <mu1 value=\\\"\\\n      0.0\\\"/>\\n    <mu2 value=\\\"0.0\\\"/>\\n    <kp value=\\\"1000000000.0\\\"/>\\n    <kd\\\n      \\ value=\\\"1.0\\\"/>\\n  </gazebo>\\n  <gazebo>\\n    <plugin filename=\\\"libgazebo_ros_diff_drive.so\\\"\\\n      \\ name=\\\"diff_drive\\\">\\n      <ros>\\n        <namespace>/</namespace>\\n    \\\n      \\    <remapping>cmd_vel:=cmd_vel</remapping>\\n        <remapping>odom:=odom</remapping>\\n\\\n      \\      </ros>\\n      <update_rate>30</update_rate>\\n      <!-- wheels -->\\n\\\n      \\      <left_joint>left_front_wheel_joint</left_joint>\\n      <right_joint>right_front_wheel_joint</right_joint>\\n\\\n      \\      <!-- kinematics -->\\n      <wheel_separation>0.5</wheel_separation>\\n\\\n      \\      <wheel_diameter>0.2</wheel_diameter>\\n      <!-- limits -->\\n      <max_wheel_torque>20</max_wheel_torque>\\n\\\n      \\      <max_wheel_acceleration>1.0</max_wheel_acceleration>\\n      <!-- output\\\n      \\ -->\\n      <publish_odom>true</publish_odom>\\n      <publish_odom_tf>true</publish_odom_tf>\\n\\\n      \\      <publish_wheel_tf>true</publish_wheel_tf>\\n      <odometry_frame>odom</odometry_frame>\\n\\\n      \\      <robot_bae_frame>base_footprint</robot_bae_frame>\\n    </plugin>\\n  </gazebo>\\n\\\n      </robot>\\n\"\n    use_sim_time: false\n\n",
+      "stderr": ""
+    },
+    "persistent_graph_probe": {
+      "exit": 0,
+      "nodes": [
+        "/robot_state_publisher",
+        "/joint_state_publisher",
+        "/super_lio_node",
+        "/super_lio_vehicle_adapter",
+        "/super_lio_cloud_frame_adapter",
+        "/active_road_map",
+        "/active_road_evidence",
+        "/active_observation",
+        "/research_observed_ground",
+        "/research_local_obstacle_grid",
+        "/ego_vehicle_adapter",
+        "/research_tf_integrity_guard",
+        "/rtk_map_odom_corrector",
+        "/corridor_cmd_vel_guard",
+        "/research_safety_bridge",
+        "/research_operator_console"
+      ]
+    },
+    "cmd_vel_publishers": [
+      {
+        "node": "research_safety_bridge",
+        "namespace": "/",
+        "type": "geometry_msgs/msg/Twist"
+      }
+    ],
+    "owned_child_processes": [
+      {
+        "pid": 280,
+        "alive": true
+      },
+      {
+        "pid": 284,
+        "alive": true
+      },
+      {
+        "pid": 288,
+        "alive": true
+      },
+      {
+        "pid": 292,
+        "alive": true
+      },
+      {
+        "pid": 296,
+        "alive": true
+      },
+      {
+        "pid": 300,
+        "alive": true
+      },
+      {
+        "pid": 304,
+        "alive": true
+      },
+      {
+        "pid": 308,
+        "alive": true
+      },
+      {
+        "pid": 312,
+        "alive": true
+      },
+      {
+        "pid": 316,
+        "alive": true
+      },
+      {
+        "pid": 320,
+        "alive": true
+      },
+      {
+        "pid": 324,
+        "alive": true
+      },
+      {
+        "pid": 328,
+        "alive": true
+      },
+      {
+        "pid": 332,
+        "alive": true
+      },
+      {
+        "pid": 336,
+        "alive": true
+      },
+      {
+        "pid": 340,
+        "alive": true
+      }
+    ]
+  },
+  "deliberate_override_probes": [],
+  "missing_expected_nodes": [],
+  "forbidden_nodes": [],
+  "launch_exit_before_cleanup": null,
+  "expected_child_count": 16,
+  "status": "PASS",
+  "cleanup_exit": 0,
+  "owned_child_shutdown": [
+    {
+      "pid": 280,
+      "launch_name": "robot_state_publisher-1",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 284,
+      "launch_name": "joint_state_publisher-2",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 288,
+      "launch_name": "super_lio_node-3",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 292,
+      "launch_name": "super_lio_vehicle_adapter-4",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 296,
+      "launch_name": "super_lio_cloud_frame_adapter-5",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 300,
+      "launch_name": "active_road_map-6",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 304,
+      "launch_name": "active_road_evidence-7",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 308,
+      "launch_name": "active_observation-8",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 312,
+      "launch_name": "research_observed_ground-9",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 316,
+      "launch_name": "research_local_obstacle_grid-10",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 320,
+      "launch_name": "motion_plan-11",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 324,
+      "launch_name": "research_tf_guard-12",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 328,
+      "launch_name": "rtk_map_odom_corrector_node-13",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 332,
+      "launch_name": "corridor_cmd_vel_guard_node-14",
+      "exit": -2,
+      "baseline_expected_interrupt": true,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 336,
+      "launch_name": "research_safety_bridge-15",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    },
+    {
+      "pid": 340,
+      "launch_name": "research_operator_console-16",
+      "exit": 0,
+      "baseline_expected_interrupt": false,
+      "alive_after_cleanup": false
+    }
+  ],
+  "unexpected_shutdown_children": [],
+  "clean_shutdown_status": "PASS"
+}

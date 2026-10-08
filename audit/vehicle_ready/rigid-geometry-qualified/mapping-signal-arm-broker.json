@@ -1,0 +1,12 @@
+{
+  "state": "COMPLETED",
+  "attempt_id": "d4a4ac06-d22d-4bbf-b973-70d5bbc53201",
+  "scope": "finite emulator-only native socket option broker; not vehicle code",
+  "container_id": "eb92b079d63d9b6d796ee255430f1019bcda3f09874cce43a612adc88783d8cf",
+  "duration_s": 14.62020374299027,
+  "configured_requests": 0,
+  "failed_requests": 0,
+  "python_optimize": null,
+  "records": [],
+  "failure": null
+}

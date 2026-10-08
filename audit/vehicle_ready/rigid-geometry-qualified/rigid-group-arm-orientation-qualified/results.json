@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "orientation",
+      "status": "PASS",
+      "source_sha256": "b774ac1b951f9425da5c65caa196d1ec4bd5fd21cb099f473d59d7576c0fa539",
+      "binary_sha256": "17488a17f98611d758aacbcf2e463b7ef298d0f2724db94537229a8d4aba54ad",
+      "log": "/research-ws/qualification/rigid-group-arm-orientation-qualified/orientation.log",
+      "link_scope": "actual built liblio and original CMake native dependencies"
+    }
+  ],
+  "workspace": "/research-ws/rigid-group-overlay",
+  "scope": "native software equations and failure paths; synthetic inputs do not prove physical acceptance"
+}

@@ -1,0 +1,509 @@
+{
+  "branch": "codex/superlio-ego-active-road",
+  "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+  "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
+  "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
+  "physical_motion": "not_performed",
+  "production_source_workspaces": "not edited",
+  "actuator_mode": "finite tests allocated PTYs only; current user preview has actuator_enabled=false",
+  "active_processes": [
+    {
+      "status": "RUNNING",
+      "launch_pid": 1356150,
+      "supervisor_pid": 1356149,
+      "process_group": 1356150,
+      "command": [
+        "ros2",
+        "launch",
+        "bringup",
+        "system_active_road_research.launch.py",
+        "bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json"
+      ],
+      "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+      "domain": 100,
+      "localhost_only": true,
+      "mode": "replay",
+      "actuator_enabled": false,
+      "mission_execution_enabled": false,
+      "owned_processes": [
+        {
+          "pid": 1356150,
+          "argv": "/usr/bin/python3 /opt/ros/humble/bin/ros2 launch bringup system_active_road_research.launch.py bag_catalog_path:=/home/badger/codex-research/superlio-ego-20261007/logs/optimization-v2/sealed-bag-catalog.json "
+        },
+        {
+          "pid": 1356152,
+          "argv": "/opt/ros/humble/lib/robot_state_publisher/robot_state_publisher --ros-args --params-file /tmp/launch_params_vj8ww4oa "
+        },
+        {
+          "pid": 1356154,
+          "argv": "/usr/bin/python3 /opt/ros/humble/lib/joint_state_publisher/joint_state_publisher --ros-args -r __node:=joint_state_publisher "
+        },
+        {
+          "pid": 1356156,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio/lib/super_lio/super_lio_node --ros-args -r __node:=super_lio_node --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_vehicle.yaml --params-file /tmp/launch_params_odiyu4mh "
+        },
+        {
+          "pid": 1356158,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter --ros-args -r __node:=super_lio_vehicle_adapter --params-file /tmp/launch_params_k729ra54 --params-file /tmp/launch_params_j3481fsb "
+        },
+        {
+          "pid": 1356160,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_cloud_frame_adapter --ros-args -r __node:=super_lio_cloud_frame_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/super_lio_cloud_frame.yaml --params-file /tmp/launch_params_wb6q19zv "
+        },
+        {
+          "pid": 1356162,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_map --ros-args -r __node:=active_road_map --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_mapping.yaml --params-file /tmp/launch_params_zmyipgpa "
+        },
+        {
+          "pid": 1356164,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_road_evidence --ros-args -r __node:=active_road_evidence --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_road_evidence.yaml --params-file /tmp/launch_params_53eywfst "
+        },
+        {
+          "pid": 1356166,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/active_road_mapping/lib/active_road_mapping/active_observation --ros-args -r __node:=active_observation --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/active_observation.yaml --params-file /tmp/launch_params_p6c5aehw "
+        },
+        {
+          "pid": 1356168,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_local_obstacle_grid --ros-args -r __node:=research_local_obstacle_grid --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_local_grid.yaml --params-file /tmp/launch_params_lnds_el1 "
+        },
+        {
+          "pid": 1356170,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/motion_plan --ros-args -r __node:=ego_vehicle_adapter --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/ego_vehicle_adapter.yaml --params-file /tmp/launch_params_igyn6o6w "
+        },
+        {
+          "pid": 1356172,
+          "argv": "/home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/ego_planner/lib/ego_planner/research_tf_guard --ros-args -r __node:=research_tf_integrity_guard --params-file /tmp/launch_params_ya6vbbpo "
+        },
+        {
+          "pid": 1356174,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/rtk_map_odom_corrector_node --ros-args -r __node:=rtk_map_odom_corrector --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_6_6p_vpz --params-file /tmp/launch_params_xha47my7 "
+        },
+        {
+          "pid": 1356176,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/gps_waypoint_dispatcher/lib/gps_waypoint_dispatcher/corridor_cmd_vel_guard_node --ros-args -r __node:=corridor_cmd_vel_guard --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/master_params.yaml --params-file /tmp/launch_params_1vsa7ywr "
+        },
+        {
+          "pid": 1356178,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_safety_bridge --ros-args -r __node:=research_safety_bridge --params-file /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/bringup/share/bringup/config/research_safety_bridge.yaml --params-file /tmp/launch_params_fed4aw8m --params-file /tmp/launch_params_06q8m63f "
+        },
+        {
+          "pid": 1356180,
+          "argv": "/usr/bin/python3 /home/badger/codex-research/superlio-ego-20261007/clean-ce46418-ws/install/research_runtime/lib/research_runtime/research_operator_console --ros-args -r __node:=research_operator_console --params-file /tmp/launch_params_nyq5tisj "
+        }
+      ],
+      "logs": "/home/badger/codex-research/superlio-ego-20261007/logs/operator-preview",
+      "scope": "User-facing actuator-free replay cockpit; no raw player started, no sensor driver or physical serial. Stop only this recorded process group."
+    }
+  ],
+  "historical_state": "audit/delivery_v1/RUN_STATE.json",
+  "logging_exception": "Historical 128 native fallback log files retained unchanged; all v2 runs and preview use explicit task-only FYP/ROS roots. No original serial source/protocol changes.",
+  "commands": [
+    {
+      "name": "clean SDK/14 packages",
+      "command": "bash scripts/build_active_road_research.sh /absolute/clean-ws",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/clean-build.json"
+    },
+    {
+      "name": "35 original serial faults",
+      "command": "scripts/validate_mock_serial_ros.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-serial-faults.json"
+    },
+    {
+      "name": "paused measurement clock",
+      "command": "scripts/validate_mock_serial_ros.py --paused-clock-probe",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-paused-clock.json"
+    },
+    {
+      "name": "default entry/overrides",
+      "command": "scripts/validate_research_launch.py --override-probes",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-entry.json"
+    },
+    {
+      "name": "HTTP seven faults",
+      "command": "scripts/validate_console_mock_ros.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/current-console-http.json"
+    },
+    {
+      "name": "CUA actual GET-only outage",
+      "command": "scripts/validate_console_mock_ros.py --serve-seconds 300 + scripts/console_browser_fault_proxy.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/browser-acceptance.json"
+    },
+    {
+      "name": "raw cockpit controls",
+      "command": "scripts/validate_console_raw_replay_ros.py --catalog /absolute/sealed-bag-catalog.json",
+      "status": "PASS",
+      "runtime_source": "ce46418 installed runtime; test script added after build",
+      "evidence": "audit/optimization_v2/console-raw-controls.json"
+    },
+    {
+      "name": "raw receiver queue diagnosis",
+      "command": "scripts/validate_raw_transport_probe_ros.py",
+      "status": "PASS",
+      "runtime_source": "ce46418",
+      "evidence": "audit/optimization_v2/raw-transport-monitor.json"
+    },
+    {
+      "name": "six 60s policy tasks",
+      "command": "scripts/validate_restricted_policy_ros.py --budget-s 60",
+      "status": "PASS",
+      "runtime_source": "ed4b7f6",
+      "evidence": "audit/optimization_v2/policy-comparison.json"
+    },
+    {
+      "name": "straight EGO loop",
+      "command": "scripts/validate_mock_serial_ros.py --ego-loop",
+      "status": "PASS",
+      "runtime_source": "1f110dc",
+      "evidence": "audit/optimization_v2/final-ego-straight.json"
+    },
+    {
+      "name": "arc EGO loop",
+      "command": "scripts/validate_mock_serial_ros.py --arc-loop",
+      "status": "PASS",
+      "runtime_source": "1f110dc",
+      "evidence": "audit/optimization_v2/final-ego-arc.json"
+    },
+    {
+      "name": "read-only repository vehicle contract and recorded chassis response",
+      "command": "python3 scripts/audit_recorded_chassis_response.py --catalog /absolute/sealed-bag-catalog.json --serial-log-root /absolute/rosbag-analysis --output /absolute/recorded-response.json",
+      "status": "PASS",
+      "runtime_source": "No ROS nodes/device access; imports Humble CDR deserialization only. Installed ce46418 unchanged.",
+      "evidence": "audit/vehicle_contract_review/recorded-response.json"
+    }
+  ],
+  "publication": {
+    "status": "PASS",
+    "anchor_commit": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "qualified_runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "remote_research_head": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "original_branch_head": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "normal_push": true,
+    "force_push": false,
+    "production_merged": false,
+    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+    "draft": true,
+    "goal_status": "ACTIVE",
+    "local_mac_sync": "PENDING_ENOSPC",
+    "scope": "verified normal publication anchor; this later report-only descendant does not replace the runtime evidence identity"
+  },
+  "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418.",
+  "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
+  "vehicle_contract_correction": {
+    "scope": "Original mounting/source limits present; corrected Y-forward and gyro fields, retained header-clock stillness/measurement displacement, isolated feedback outliers. No new driving permission.",
+    "evidence": "audit/vehicle_contract_review/REVIEW.md"
+  },
+  "goal_status": "ACTIVE",
+  "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+  "qualification_workspace": "/dev/shm/codex-terminal-native-ws over prior qualified SDK14/shutdown overlays",
+  "completed_qualification": {
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "portable": 223,
+    "console_unit": 19,
+    "hmi": 13,
+    "parameters": 157,
+    "loaded_python_hashes_per_architecture": 30,
+    "native_default_children": 16,
+    "emulated_default_children": 16,
+    "old_original_guard_expected_interrupt": true
+  },
+  "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
+  "finite_tests": "All current finite qualifier sessions completed and owned groups cleaned; preserved preview alone intentionally runs.",
+  "current_qualification_checkpoint": {
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "current_compile": "staged native/ARM Python overlays on previously qualified SDK14",
+    "native_default": "PASS",
+    "emulated_default_with_fd_helper": "PASS",
+    "physical_acceptance": "PENDING",
+    "actual_ground": "FAIL",
+    "policy_benefit": "not established"
+  },
+  "previous_checkpoint_state": "audit/vehicle_ready/history_pre_control_stop_qualification/RUN_STATE.json",
+  "current_finite_qualifiers": {
+    "status": "TERMINAL",
+    "native_default_domain": 93,
+    "hmi_domain": 99,
+    "native_http_ports": [
+      8887,
+      8888
+    ],
+    "emulator_http_port": 8886,
+    "emulator_container": "codex-arm64-a66cc7e",
+    "emulator_current_state": "exited",
+    "native_fd_broker": "terminated and socket removed"
+  },
+  "local_workspace_recovery": {
+    "status": "PENDING",
+    "cause": "Mac filesystemENOSPC; all new implementation/receipts committedremotely",
+    "missing_temporary_pack": "work/ego-four-patch-verification/.git/objects/pack/pack-32afa50187ffcea2a14cc4f45896dbf01ee16053.pack",
+    "intact_original": "work/ego-four-patch-final-source/.git/objects/pack/pack-32afa50187ffcea2a14cc4f45896dbf01ee16053.pack",
+    "pack_bytes": 58608619,
+    "protected_research_sources_lost": false,
+    "retained_remote_transport_bundles": [
+      "ego-transfer.bundle",
+      "vehicle-history-load-source.bundle",
+      "vehicle-cache-source.bundle",
+      "vehicle-prefix-source.bundle",
+      "vehicle-circle-source.bundle"
+    ],
+    "external_Mac_report_sync": "PENDING"
+  },
+  "latest_jetson_probe": {
+    "status": "PENDING",
+    "exit": 255,
+    "result": "SSH connect timeout",
+    "evidence": "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
+    "source_modified": false
+  },
+  "sensor_ingress_checkpoint": {
+    "base_core_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+    "runtime_implementation_source": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+    "optional_tool_sources": "tools/shadow_sensor_ingress/",
+    "formal_entry": "scripts/run_shadow_sensor_ingress.py",
+    "humble_fixture_checks": 17,
+    "humble_fixture_status": "PASS",
+    "actual_bag_prefix_checks": 12,
+    "actual_bag_status": "PASS",
+    "prefix_s": 20,
+    "bag_scope": "PREFIX",
+    "actual_observed_delivery": "100% of each of6 recorded sensor topics",
+    "legacy_tf_lio_source_counts_each": 199,
+    "legacy_tf_lio_target_counts_each": 0,
+    "source_domain_publishers": 0,
+    "default_entry_changed": false,
+    "ARM64_SDK_14_build": "PASS_AFTER_DEPENDENCY_REPAIR",
+    "ARM64_default_entry": "FAIL_DDS_DISCOVERY",
+    "no_target_or_physical_acceptance": true,
+    "frozen_build_source_checkout": "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready",
+    "isolated_delivery_checkout": "/dev/shm/codex-shadow-delivery"
+  },
+  "arm64_emulator_diagnostic": {
+    "historical": "previous_shutdown_checkpoint_fields.arm64_emulator_diagnostic",
+    "current_cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "explicit_environment_helper": true,
+    "native_jetson_claim": false
+  },
+  "previous_runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "ordered_shutdown_checkpoint": {
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "evidence": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "native_and_arm_default": "PASS",
+    "all_finite_jobs": "TERMINAL",
+    "native_fd_socket": "removed after owned broker exit",
+    "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+    "protected_preview_untouched": true,
+    "mac_sync": "PENDING_ENOSPC"
+  },
+  "previous_shutdown_checkpoint_fields": {
+    "current_qualification_checkpoint": {
+      "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+      "goal_status": "ACTIVE",
+      "executor": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
+      "fresh_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+      "fresh_workspace": "/dev/shm/codex-stop-fresh-ws",
+      "fresh_build_status": "PASS",
+      "current_runtime_rebuild_status": "PASS",
+      "current_receipt_fresh_before_build": false,
+      "patch_source_status": "PASS",
+      "dependencies": {
+        "super_lio_patches": 2,
+        "ego_patches": 11
+      },
+      "finite_child_tests_closed": true,
+      "runtime_domains": [
+        91,
+        93,
+        94,
+        98,
+        99,
+        104,
+        109
+      ],
+      "ROS_LOCALHOST_ONLY": true,
+      "actual_raw_ground_status": "FAIL",
+      "policy_tasks_reached": {
+        "PASSIVE": "0/2",
+        "PERIODIC_LOOK": "0/2",
+        "TASK_AWARE_LOOK": "0/2"
+      },
+      "physical_actuator_runs": 0,
+      "firmware_flashes": 0,
+      "Jetson_source_edits": 0,
+      "evidence_root": "audit/vehicle_ready/control-stop-qualified/",
+      "preserved_preview": {
+        "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+        "launch_pid": 1356150,
+        "port": 8765,
+        "unchanged": true
+      },
+      "remaining": "Actual positive MID360ground adaptation/qualification; target effectiveoverlay/shadow and physical acceptance. Existing nominal mounting/STM data alreadyused."
+    },
+    "current_finite_qualifiers": [
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-heading-loop.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-arc-loop.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-ego-interface.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-observer-session.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
+        "status": "PASS",
+        "runtime_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+        "status": "FAIL",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
+        "status": "FAIL",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      }
+    ],
+    "completed_qualification": [
+      "69b9b75 full3 raw replays EOF0",
+      "DA fresh SDK/14 package build",
+      "DA exact2Super/6EGO patch proof",
+      "DA16 actualgroundROS fixtures",
+      "DA10 EGO interface cases",
+      "DA39 final serial PTY faults",
+      "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained",
+      "63fc control-reference/stop qualification:222portable,2/11exactsource,stagedSDK14,44linear50yaw5RTK11HMI10receipt-edge,10EGO2query,heading/arcgoal,7observer,16entry157parameter7override; realgroundFAIL; policyall0/2"
+    ],
+    "arm64_emulator_diagnostic": {
+      "core_source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+      "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+      "minimal_bus": "PASS native actual socket option intervention",
+      "default_startup": "PASS16owned/12queries",
+      "aux_compile": "PASSaarch64",
+      "ingress_fixture": "PASS17",
+      "clean_shutdown": "FAIL2research node errors after SIGINT",
+      "target": "PENDING TCP22timeout from non-Jetson",
+      "no_vehicle_parameter_change": true,
+      "no_host_binfmt_change": true,
+      "goal_status": "active",
+      "receipt": "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
+      "helper_boundary_review": "PASS6CLI/5request/1foreign/3DDS under optimize1; previous receipts/sources retained"
+    }
+  },
+  "previous_publication": {
+    "status": "PASS",
+    "verified_at_utc": "2026-10-08T04:37:23.867930+00:00",
+    "published_implementation_and_report_commit": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
+    "remote_research_branch_at_verification": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
+    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+    "push_mode": "normal fast-forward research branch only; no force or merge",
+    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+    "initial_attempts": [
+      {
+        "result": "FAIL",
+        "reason": "remote credential helper had no GitHub username"
+      },
+      {
+        "result": "FAIL",
+        "reason": "authenticated remote direct github443 connect timeout"
+      }
+    ],
+    "successful_transport": "temporary loopback-only SSH proxy forward through authorized Mac networking; local existing GitHub authentication transmitted only through SSH stdin/environment; no credential written to files or process arguments",
+    "receipt_scope": "Verifies already-published algorithm/report anchor. Subsequent publication-receipt commit has unchanged installed runtime; final branch head independently verified externally. Mac source/report sync remainsPENDINGENOSPC."
+  }
+}

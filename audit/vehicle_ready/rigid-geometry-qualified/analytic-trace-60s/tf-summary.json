@@ -1,0 +1,70 @@
+{
+  "events": {
+    "scope": 1,
+    "guard": 1328,
+    "tf": 1928,
+    "control_odom": 636
+  },
+  "tf": {
+    "odom": {
+      "count": 1292,
+      "gids": 1,
+      "parents": {
+        "map": 1292
+      },
+      "static": 0,
+      "invalid_norm_count": 0,
+      "max_norm_error": 0.0,
+      "age_min": -0.099873508,
+      "age_max": -0.099075016,
+      "source_stale_count": 0,
+      "future_count": 0
+    },
+    "base_footprint": {
+      "count": 636,
+      "gids": 1,
+      "parents": {
+        "odom": 636
+      },
+      "static": 0,
+      "invalid_norm_count": 353,
+      "max_norm_error": 1.8191637128905924e-05,
+      "age_min": 0.011237775,
+      "age_max": 0.028516746000000003,
+      "source_stale_count": 0,
+      "future_count": 0
+    }
+  },
+  "guard": {
+    "false": 763,
+    "true": 565
+  },
+  "trial": {
+    "protocol": "PASS",
+    "distance_m": 1.5940733878391098,
+    "reached": false,
+    "top_tracking": [
+      [
+        "map_invalid;trajectory_invalid;stop_override;original_guard_preflight_denied:tf_integrity_or_age:tracker:feedback_curvature_limit",
+        683
+      ],
+      [
+        "allowed",
+        422
+      ],
+      [
+        "map_invalid;trajectory_invalid:trajectory_version",
+        48
+      ],
+      [
+        "trajectory_invalid",
+        39
+      ],
+      [
+        "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale,tf_integrity_or_age",
+        35
+      ]
+    ]
+  },
+  "scope": "Native observed TF source payloads/GIDs plus actual guard flags; timestamps are probe receive time, not the guard callback time."
+}

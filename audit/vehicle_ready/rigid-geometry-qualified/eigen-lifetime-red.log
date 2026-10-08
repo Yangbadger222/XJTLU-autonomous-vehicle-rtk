@@ -1,0 +1,73 @@
+=================================================================
+==1771244==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7e6d70f00290 at pc 0x5a2b6fda6e67 bp 0x7fff8d636b60 sp 0x7fff8d636b50
+READ of size 8 at 0x7e6d70f00290 thread T0
+    #0 0x5a2b6fda6e66 in Eigen::MatrixBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_sum_op<double, double>, Eigen::Product<Eigen::Matrix<double, 3, 3, 0, 3, 3>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, 0> const, Eigen::CwiseUnaryOp<Eigen::internal::scalar_cast_op<float, double>, Eigen::Matrix<float, 3, 1, 0, 3, 1> const> const> >::squaredNorm() const (/dev/shm/codex-eigen-lifetime-red+0x3e66)
+    #1 0x5a2b6fda5194 in main (/dev/shm/codex-eigen-lifetime-red+0x2194)
+    #2 0x7e6d74229d8f in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+    #3 0x7e6d74229e3f in __libc_start_main_impl ../csu/libc-start.c:392
+    #4 0x5a2b6fda4344 in _start (/dev/shm/codex-eigen-lifetime-red+0x1344)
+
+Address 0x7e6d70f00290 is located in stack of thread T0 at offset 656 in frame
+    #0 0x5a2b6fda4418 in main (/dev/shm/codex-eigen-lifetime-red+0x1418)
+
+  This frame has 24 object(s):
+    [32, 33) '<unknown>'
+    [48, 49) '<unknown>'
+    [64, 65) '<unknown>'
+    [80, 81) '<unknown>'
+    [96, 97) '<unknown>'
+    [112, 113) '<unknown>'
+    [128, 129) '<unknown>'
+    [144, 145) '<unknown>'
+    [160, 163) '<unknown>'
+    [176, 180) '<unknown>'
+    [192, 200) '<unknown>'
+    [224, 232) 'dstEvaluator'
+    [256, 272) '<unknown>'
+    [288, 304) '<unknown>'
+    [320, 336) '<unknown>'
+    [352, 384) '<unknown>'
+    [416, 448) 'srcEvaluator'
+    [480, 512) 'kernel'
+    [544, 584) 'expected' (line 6)
+    [624, 636) 'position' (line 4)
+    [656, 680) '<unknown>' <== Memory access at offset 656 is inside this variable
+    [720, 752) 'q' (line 5)
+    [784, 816) '<unknown>'
+    [848, 920) '<unknown>'
+HINT: this may be a false positive if your program uses some custom stack unwind mechanism, swapcontext or vfork
+      (longjmp and C++ exceptions *are* supported)
+SUMMARY: AddressSanitizer: stack-use-after-scope (/dev/shm/codex-eigen-lifetime-red+0x3e66) in Eigen::MatrixBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_sum_op<double, double>, Eigen::Product<Eigen::Matrix<double, 3, 3, 0, 3, 3>, Eigen::Matrix<double, 3, 1, 0, 3, 1>, 0> const, Eigen::CwiseUnaryOp<Eigen::internal::scalar_cast_op<float, double>, Eigen::Matrix<float, 3, 1, 0, 3, 1> const> const> >::squaredNorm() const
+Shadow bytes around the buggy address:
+  0x0fce2e1d8000: f1 f1 f1 f1 f8 f2 f8 f2 f8 f2 f8 f2 f8 f2 f8 f2
+  0x0fce2e1d8010: f8 f2 f8 f2 f8 f2 f8 f2 f8 f2 f2 f2 f8 f2 f2 f2
+  0x0fce2e1d8020: f8 f8 f2 f2 f8 f8 f2 f2 f8 f8 f2 f2 f8 f8 f8 f8
+  0x0fce2e1d8030: f2 f2 f2 f2 f8 f8 f8 f8 f2 f2 f2 f2 f8 f8 f8 f8
+  0x0fce2e1d8040: f2 f2 f2 f2 00 00 00 00 00 f2 f2 f2 f2 f2 00 04
+=>0x0fce2e1d8050: f2 f2[f8]f8 f8 f2 f2 f2 f2 f2 00 00 00 00 f2 f2
+  0x0fce2e1d8060: f2 f2 f8 f8 f8 f8 f2 f2 f2 f2 f8 f8 f8 f8 f8 f8
+  0x0fce2e1d8070: f8 f8 f8 f3 f3 f3 f3 f3 00 00 00 00 00 00 00 00
+  0x0fce2e1d8080: f1 f1 f1 f1 f1 f1 01 f2 f8 f2 01 f2 01 f2 01 f2
+  0x0fce2e1d8090: 00 f2 f2 f2 f8 f8 f2 f2 00 00 f2 f2 00 00 00 00
+  0x0fce2e1d80a0: f2 f2 f2 f2 00 00 00 00 00 f2 f2 f2 f2 f2 00 00
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+  Shadow gap:              cc
+==1771244==ABORTING

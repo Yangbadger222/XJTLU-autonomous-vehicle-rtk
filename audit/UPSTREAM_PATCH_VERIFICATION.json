@@ -1,8 +1,8 @@
 {
   "schema": 3,
-  "current_source_proof": "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
-  "current_clean_build": "audit/vehicle_ready/shutdown-qualified/current-build.json",
-  "current_build_log": "audit/vehicle_ready/shutdown-qualified/terminal-native-build.log",
+  "current_source_proof": "audit/vehicle_ready/rigid-geometry-qualified/current-source-proof-77d5c5a.json",
+  "current_clean_build": "audit/vehicle_ready/rigid-geometry-qualified/current-build.json",
+  "current_build_log": "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-native-build.log",
   "historical_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_pre_ground.json",
   "dependencies": {
     "super_lio": {
@@ -15,7 +15,7 @@
         },
         {
           "path": "patches/super_lio/0002-certify-source-observations-and-covariance.patch",
-          "sha256": "3dc13a16aac06262652ea24fe8908f13ee50c52de02c32076f580995713081bf",
+          "sha256": "fe8cdd4c71b895d835804f3c07048e1d68587609add24c5dbc59bc00d9c164f5",
           "check_apply": "PASS"
         }
       ],
@@ -39,7 +39,7 @@
         "src/basic/include/basic/logs.h": "6a5009392743a3f7f5ab7a5b54a47a536bc40160c8ac2cc69682a817c090bbbf",
         "src/basic/include/basic/math.h": "dfd0e2d900281bbd43c45f4ffcc23a53631400b90f99990353d9d21cb1a4b387",
         "src/basic/package.xml": "814cc437e7d8d5c1b2b1bc9c8c9197ac2e51791d86acc256a33cdd441955ade9",
-        "src/basic/src/Manifold.cpp": "b411e2ffaf37cdd7d475fb72c0d9349b6616bf19ca5452fee4f7edf8e2d04deb",
+        "src/basic/src/Manifold.cpp": "9d892502af13b1f663681cab16a48bc9a7f5dfe7dcf804a09e5b8282aaf53fc4",
         "src/basic/src/logs.cpp": "1fc154f5ead855bb2ea29c324a3f75db002bec3c20e9e7a9b85f08fa38539890",
         "src/super_lio/3rdparty/.gitkeep": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "src/super_lio/CMakeLists.txt": "1d6e60f7af85d2904cbf36c486fe68d85dced16b4aa4b8d07f3d665b3206c403",
@@ -67,7 +67,7 @@
         "src/super_lio/include/lio/params.h": "1ba09590f5d277b12843ef139cbe216565fc0e9771b319e8f24c7d2bfedac082",
         "src/super_lio/include/lio/super_lio.h": "5006f94e9945d60e775990925562ce02b2604359cf776ea1ccee42faba30398a",
         "src/super_lio/include/lio/super_lio_reloc.h": "4af49111ee77ca3c7c110e85c070fcac4a2c8c541a9b1de3b47b1c71ad0b3999",
-        "src/super_lio/include/ros/ROSWrapper.h": "f9b7a1ea08323874f7026397c7595b226fb1acf4d9c343ce480f362262f507f2",
+        "src/super_lio/include/ros/ROSWrapper.h": "7a5500a266f5a2c90c236dddf12e4986a8ddb482614eead26a6f925fcc31a6f4",
         "src/super_lio/launch/Livox_mid360.py": "92ecd6e7932480173d97aacf8970f2b4e49d148d9d16e8c677482fa55f39169b",
         "src/super_lio/launch/M2DGR.py": "cf9816654f5711f11073e2293aa5a51f12ac7e9413e27c29b40ba0c8f6a6b58d",
         "src/super_lio/launch/MCD_ATH.py": "451e88f031e239274ccbc66cdb9010790fb1eba37e51e7eff072be32c2da3358",
@@ -87,9 +87,9 @@
         "src/super_lio/src/apps/super_lio_node.cpp": "3720cf654eb2f8fbd83ae7535d0016493c62c6f2cc425cb0d87a88b5b8acb547",
         "src/super_lio/src/lio/ESKF.cpp": "66371512cb1e8ece633ec469bbaad33ca9df142b8633ac24aa54cfbff0420940",
         "src/super_lio/src/lio/params.cpp": "afad0bb2126e7cc081cafec645d7f475281cef7ec9e2d97c5c420b248117b56f",
-        "src/super_lio/src/lio/super_lio.cpp": "5f56476d4c4d2f37fe05d5bddb438341c2c4ac5a76ec7c7a87b5c7b9716f4957",
-        "src/super_lio/src/lio/super_lio_reloc.cpp": "8ff7759bf24e8b074498c21d2a97190ee6fab082c8d885bf8875109d85240486",
-        "src/super_lio/src/ros/ROSWrapper.cpp": "3aa63232899a8134fc68229dcd20eaab497ee6860f289627f887e0e03fe2da20"
+        "src/super_lio/src/lio/super_lio.cpp": "764c1c6ec3db6c4b605e133e340a031592e23e95afc9b39563c753962d34623a",
+        "src/super_lio/src/lio/super_lio_reloc.cpp": "2d096d4d97e5a6adba08869f76ddfb2cb6e010435544c541e0b7a9584d5247e0",
+        "src/super_lio/src/ros/ROSWrapper.cpp": "c79549d8a93a24d4bf51ef27618ce922934ccc781ebf4e6477362c8ef5c086ae"
       }
     },
     "ego_planner_2d_ros2": {
@@ -265,6 +265,6 @@
   },
   "previous_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_70dd12d.json",
   "current_fresh_foundation": "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
-  "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-  "build_scope": "8c fresh SDK/14 foundation plus current63 research_runtime rebuild; not a fresh14 rebuild at63"
+  "runtime_source_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "build_scope": "architecture-specific qualified SDK14 foundations plus every changed package rebuilt in isolated overlays; source freeze/actual ELF+loader and34 actual loaded Python file hashes per architecture; no fresh-all14 at current tip"
 }

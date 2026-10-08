@@ -1,0 +1,20 @@
+{
+  "runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "scope": "test-only staged fixture",
+  "packages": {
+    "active_road_mapping": "/dev/shm/codex-mapping-signal-native-ws/install/active_road_mapping",
+    "basic": "/dev/shm/codex-super-rigid-group-ws/install/basic",
+    "bringup": "/dev/shm/codex-stop-fresh-ws/install/bringup",
+    "ego_planner": "/dev/shm/codex-stop-fresh-ws/install/ego_planner",
+    "ego_vehicle_adapter": "/dev/shm/codex-stop-fresh-ws/install/ego_vehicle_adapter",
+    "gps_waypoint_dispatcher": "/dev/shm/codex-stop-fresh-ws/install/gps_waypoint_dispatcher",
+    "livox_ros_driver2": "/dev/shm/codex-stop-fresh-ws/install/livox_ros_driver2",
+    "research_interfaces": "/dev/shm/codex-stop-fresh-ws/install/research_interfaces",
+    "research_runtime": "/dev/shm/codex-ground-signal-native-ws/install/research_runtime",
+    "serial": "/dev/shm/codex-stop-fresh-ws/install/serial",
+    "serial_twistctl": "/dev/shm/codex-stop-fresh-ws/install/serial_twistctl",
+    "super_lio": "/dev/shm/codex-super-rigid-group-ws/install/super_lio",
+    "super_lio_vehicle_adapter": "/dev/shm/codex-adapter-signal-native-ws/install/super_lio_vehicle_adapter",
+    "um982_rtk_driver": "/dev/shm/codex-stop-fresh-ws/install/um982_rtk_driver"
+  }
+}

@@ -1,0 +1,3 @@
+FINITE_LOOPBACK_FD_BROKER_RESERVED
+FINITE_LOOPBACK_FD_BROKER_READY
+{"state": "COMPLETED", "attempt_id": "edc32c56-cbb6-478e-b91b-9825269251f5", "scope": "finite emulator-only native socket option broker; not vehicle code", "container_id": "eb92b079d63d9b6d796ee255430f1019bcda3f09874cce43a612adc88783d8cf", "duration_s": 252.7623919500038, "configured_requests": 46, "failed_requests": 0, "python_optimize": null, "failure": null}

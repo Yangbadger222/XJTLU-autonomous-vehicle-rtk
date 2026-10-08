@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "source_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "runtime_source_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "build_exit": 0,
+  "package_count": 14,
+  "fresh_before_build": false,
+  "scope": "architecture-specific qualified SDK14 foundations plus every changed package rebuilt in isolated overlays; source freeze/actual ELF+loader and34 actual loaded Python file hashes per architecture; no fresh-all14 at current tip",
+  "native_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "arm_foundation_source": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "cpp_rebuild_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+  "mapping_rebuild_source": "85eb28c2b92576df876668587301c013500b4690",
+  "adapter_rebuild_source": "6b15c7dda33d4110ba247cf37425abc67da1dd6d",
+  "runtime_rebuild_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "evidence": [
+    "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
+    "audit/vehicle_ready/arm64-emulated/build-qualified.json",
+    "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-native-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-arm-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/mapping-signal-native-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/mapping-signal-arm-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/adapter-signal-native-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/adapter-signal-arm-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-native-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-build.log",
+    "audit/vehicle_ready/rigid-geometry-qualified/current-cpp-source-loader-proof.json",
+    "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-native-python-source.json",
+    "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-python-source.json"
+  ]
+}

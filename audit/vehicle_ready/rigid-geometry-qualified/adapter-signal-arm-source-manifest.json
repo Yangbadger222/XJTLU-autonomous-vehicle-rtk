@@ -1,0 +1,17 @@
+{
+  "runtime_source_commit": "6b15c7dda33d4110ba247cf37425abc67da1dd6d",
+  "files": {
+    "installed_source_receipt.py": "95e5dc210ace2675e006cff15c74dd5cfb67f6f86c1a729377cff589be72ccc4",
+    "super_lio_vehicle_adapter/package.xml": "5c13ef63283193439954f3a8bf6a3783344fc19160764db607f98928e78c91f7",
+    "super_lio_vehicle_adapter/resource/super_lio_vehicle_adapter": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "super_lio_vehicle_adapter/setup.cfg": "2728850ec4973359c69705d886b2739923e49a8d8c2648010bced4366d76a7ee",
+    "super_lio_vehicle_adapter/setup.py": "8d587d9b62ddd36c7a98be10245dfe5cc6f48a47405f54b540ffffc2f65bc7bf",
+    "super_lio_vehicle_adapter/super_lio_vehicle_adapter/__init__.py": "2ee86218d3843c61d2fb5b6c7a9880dbedb8763098652522c07a000eff82cfff",
+    "super_lio_vehicle_adapter/super_lio_vehicle_adapter/adapter_node.py": "11d770a27cdd04b727e80e9146220529d498d130856d0f1329eea7503090ce40",
+    "super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py": "b726d4bc60bd585c732918b0c6cfe087133f08f7adf5c3b78a46e783c21005ae",
+    "super_lio_vehicle_adapter/super_lio_vehicle_adapter/control_reference_lock.py": "dc4de505fcfc285f25fff6390a700dac8387ce9b291933b509daed58bf13d21b",
+    "super_lio_vehicle_adapter/test/test_control_reference.py": "04ce534b92fc1ee95c02b38541c88334bdebc3aef4b89c487189ec8e9cfac618",
+    "super_lio_vehicle_adapter/test/test_source_reference_contract.py": "7305d872fcdbba94e6d06cdb4f4e6c19b47aa78faaaaf48c8103fbe0dfc50b49",
+    "super_lio_vehicle_adapter/test/test_transform_math.py": "f5c6e6454b5318f6ac0cc4b4d64f23870b50581df2d8da1064d8dc352bde7f96"
+  }
+}

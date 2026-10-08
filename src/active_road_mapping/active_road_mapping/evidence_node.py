@@ -11,6 +11,7 @@ import math
 import os
 import tempfile
 import hashlib
+import copy
 
 try:
     import rclpy
@@ -238,10 +239,14 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
                 observed_length_m=float(msg.observed_length_m),
                 valid_depth_m=depth,
                 supported_width_m=float(msg.supported_width_m) if msg.supported_width_m != 0 else None)
-            added = self._store.add(evidence)
+            candidate = copy.deepcopy(self._store)
+            added = candidate.add(evidence)
             if added:
-                _atomic_save(self._store, self._path)
+                # Publish neither the UUID nor its in-memory version before
+                # durable replacement succeeds. A failed write stays retryable.
+                _atomic_save(candidate, self._path)
                 self._store_mtime_ns = self._path.stat().st_mtime_ns
+                self._store = candidate
             self._ack_pub.publish(String(data=evidence.evidence_id))
             self._publish_evidence_event(evidence)
             self._last_rejection = ""
@@ -261,8 +266,10 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
                 end_node_id=msg.end_node_id,geometry_xy=[(p.x,p.y) for p in msg.geometry],stamp=stamp,
                 supported_width_m=msg.supported_width_m,source=msg.source,local_submap_id=msg.local_submap_id,
                 pose_uncertainty_m=msg.pose_uncertainty_m,evidence_ids=list(msg.evidence_ids))
-            if self._store.add_graph_update(update):
-                _atomic_save(self._store,self._path);self._store_mtime_ns=self._path.stat().st_mtime_ns
+            candidate=copy.deepcopy(self._store)
+            if candidate.add_graph_update(update):
+                _atomic_save(candidate,self._path);self._store_mtime_ns=self._path.stat().st_mtime_ns
+                self._store=candidate
         except (TypeError,ValueError,KeyError,OSError) as exc:self._reject('graph increment rejected: '+str(exc))
 
     def _publish_evidence_event(self, evidence: RoadEvidence) -> None:

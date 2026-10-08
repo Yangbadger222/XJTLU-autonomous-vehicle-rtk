@@ -200,12 +200,14 @@ def main():
                 bounded_geometric_evidence=all(record.state.value=='OBSERVED_GEOMETRY' and
                     record.local_submap_id.startswith(session+'/') and record.supported_width_m>0 and
                     record.valid_depth_m and record.observed_length_m>0 for record in records))
+            positive_closed_loop=bool(support_keys and records and road_evidence and questions)
+            ground_checks['positive_geometric_persistence_loop_executed']=positive_closed_loop
             ground_result=dict(status='PASS' if all(ground_checks.values()) else 'FAIL',checks=ground_checks,
                 actual_ground_acquisitions=len(ground_acquisitions),ground_messages=len(ground_grids),combined_messages=len(combined_grids),
                 acquisitions_with_positive_support=len(support_keys),maximum_supported_cells=max((item['free'] for item in ground_grids),default=0),
                 positive_support_raw_status='PASS' if support_keys else 'FAIL',
                 persisted_geometry_count=len(records),measured_question_count=len(set(questions)),
-                road_evidence_source_status='PASS' if records else 'NOT_RUN',
+                road_evidence_source_status='PASS' if records else 'FAIL',
                 evidence_store=str(evidence_path),global_TF_true_count=sum(full_frames),local_TF_true_count=sum(local_frames),
                 scope='Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance')
             checks['actual_ground_pipeline']=ground_result['status']=='PASS'

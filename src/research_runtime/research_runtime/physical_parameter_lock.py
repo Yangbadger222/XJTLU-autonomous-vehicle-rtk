@@ -8,6 +8,7 @@ FIRMWARE_COMMAND_MODEL = {'radius_m': 0.1, 'track_m': 0.46, 'gear_ratio': 19.2, 
 RESEARCH_EXECUTION_PROFILE = {'max_curvature_1pm': 0.34602076124567477, 'max_lateral_speed_mps': 0.05, 'max_jerk_mps3': 1.7}
 MID360_GROUND_REFERENCE = {'lidar_height_m': 0.447, 'lidar_in_imu_m': (-0.011, -0.02329, 0.04412)}
 MID360_MOUNTING_NOTES_SHA256 = '68c13b201ca622ead792b388d4404c4344c0a73e1a7e56ea1d34ea121c9e95fa'
+from super_lio_vehicle_adapter.control_reference_lock import CONTROL_REFERENCE_CONTRACT, CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME
 
 def require_locked_motion_parameters(actual):
     import math

@@ -29,3 +29,7 @@ research_safety_bridge:
     # a source carry-over, not a new measurement; runtime confirmation still
     # remains required before live motion.
     footprint_xy: [0.33, 0.305, 0.33, -0.305, -0.33, -0.305, -0.33, 0.305]
+
+    odom_topic: /research/odom_control
+
+    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1

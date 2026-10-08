@@ -28,6 +28,7 @@ def main():
             _last_source_stamp=None,_last_source_pose=None,_pending_odom=None).items():setattr(node,key,value)
     outputs=[];health=[];steps=[]
     node._odom=SimpleNamespace(publish=outputs.append)
+    node._control_odom=SimpleNamespace(publish=lambda msg:None)
     node._vehicle_tf=SimpleNamespace(sendTransform=lambda msg:None)
     node._publish_health=health.append
     node.get_parameter=lambda key:SimpleNamespace(value={'base_frame':'base_footprint'}[key])

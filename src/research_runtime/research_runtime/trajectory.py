@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 from typing import Iterable, Optional, Sequence
-from .physical_parameter_lock import PHYSICAL_LIMITS
+from .physical_parameter_lock import PHYSICAL_LIMITS, CONTROL_REFERENCE_CONTRACT
 from .firmware_command import within_firmware_command_envelope
 
 
@@ -57,12 +57,15 @@ class TimedTrajectory:
     valid_until: float
     points: tuple[TimedPoint, ...]
     source: str = "ego_planner_2d_vehicle_adaptation"
+    control_reference_contract: str = CONTROL_REFERENCE_CONTRACT
 
     @classmethod
     def from_points(cls, trajectory_id: str, map_version: str, frame_id: str,
                     generated_at: float, valid_until: float,
-                    points: Iterable[TimedPoint], source: str = "ego_planner_2d_vehicle_adaptation"):
-        return cls(trajectory_id, map_version, frame_id, generated_at, valid_until, tuple(points), source)
+                    points: Iterable[TimedPoint], source: str = "ego_planner_2d_vehicle_adaptation",
+                    *, control_reference_contract: str = CONTROL_REFERENCE_CONTRACT):
+        return cls(trajectory_id, map_version, frame_id, generated_at, valid_until, tuple(points), source,
+                   control_reference_contract)
 
 
 @dataclass
@@ -106,6 +109,8 @@ def validate_trajectory(
     point-only path cannot silently become a vehicle command.
     """
     result = ValidationResult(valid=True, checked_points=len(trajectory.points))
+    if trajectory.control_reference_contract != CONTROL_REFERENCE_CONTRACT:
+        result.fail('control_reference_contract_mismatch')
     if not str(trajectory.trajectory_id):
         result.fail("trajectory_id_missing")
     if not str(trajectory.map_version).strip() or str(trajectory.map_version).strip().upper() == "UNKNOWN":

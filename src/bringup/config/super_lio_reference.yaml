@@ -23,3 +23,11 @@ super_lio_vehicle_adapter:
     # channel stays UNKNOWN and the final safety bridge forbids motion.
     publish_unhealthy_odometry: true
     tf_timeout_s: 0.05
+
+    control_odom_topic: /research/odom_control
+
+    control_child_frame: chassis_control_origin
+
+    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1
+
+    control_translation_imu_m: [0.05900000000000001, -0.14329, -0.40288]

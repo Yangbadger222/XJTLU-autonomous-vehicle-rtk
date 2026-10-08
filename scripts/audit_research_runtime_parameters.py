@@ -103,6 +103,20 @@ def audit(root, default_entry, serial):
             "imu_to_base_extrinsic_verified":False,"imu_to_base_translation_m":[0.,0.,0.],"imu_to_base_quaternion_xyzw":[0.,0.,0.,1.],
             "world_gauge_mode":"source_local_world","require_source_health_ok":True,"require_covariance":True}.items():
         checked("audited_reference."+key,value,reference.get(key),reference_runtime.get(key))
+    import sys
+    sys.path.insert(0,str(root/'src/super_lio_vehicle_adapter'))
+    from super_lio_vehicle_adapter.control_reference_lock import (CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME,
+        CONTROL_REFERENCE_CONTRACT, IMU_TO_CONTROL_TRANSLATION_M)
+    for key,value in dict(control_odom_topic=CONTROL_ODOM_TOPIC,control_child_frame=CONTROL_CHILD_FRAME,
+            control_reference_contract=CONTROL_REFERENCE_CONTRACT,
+            control_translation_imu_m=list(IMU_TO_CONTROL_TRANSLATION_M)).items():
+        checked('source_derived_control_reference.'+key,value,reference.get(key),reference_runtime.get(key))
+        checks[-1]['scope']='recorded mount translation + original configured attitude, not new physical calibration'
+    for label,name in (('ego_parameters','ego_vehicle_adapter'),('safety_parameters','research_safety_bridge')):
+        parsed=yaml.safe_load((root/f'src/bringup/config/{name}.yaml').read_text())[name]['ros__parameters']
+        actual=parameters(evidence[label]['output'])
+        for key,value in dict(odom_topic=CONTROL_ODOM_TOPIC,control_reference_contract=CONTROL_REFERENCE_CONTRACT).items():
+            checked(name+'.'+key,value,parsed.get(key),actual.get(key))
     checked("cloud.owned_identity_gauge",True,parsed_cloud.get("require_owned_identity_gauge"),cloud_runtime.get("require_owned_identity_gauge"))
     checked("tf_guard.protect_world_gauge",True,
             "\"protect_world_gauge\": True" in (root/"src/bringup/launch/system_active_road_research.launch.py").read_text(),

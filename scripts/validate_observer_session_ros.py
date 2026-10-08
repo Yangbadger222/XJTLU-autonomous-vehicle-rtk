@@ -33,7 +33,7 @@ def main():
           '-p','policy:=PASSIVE','-p','policy_snapshot_path:='+str(snapshot),'-p','evidence_store_path:='+str(store_path),
           '-p','sensor_range_m:=1.8','-p','sensor_fov_rad:='+str(2*math.pi),'-p','max_curvature_1pm:=1.0']
     rclpy.init(args=args);observer=ActiveObservationNode();fixture=rclpy.create_node('observer_session_fixture')
-    pubs={key:fixture.create_publisher(typ,topic,100) for key,typ,topic in [('odom',Odometry,'/lio/odom_vehicle'),
+    pubs={key:fixture.create_publisher(typ,topic,100) for key,typ,topic in [('odom',Odometry,'/research/odom_control'),
         ('grid',OccupancyGrid,'/research/local_obstacle_grid'),('permission',OccupancyGrid,'/research/permission_grid'),
         ('health',String,'/lio/vehicle_health'),('version',String,'/research/map_version'),('mode',String,'/localization_authority/mode'),
         ('authority',Bool,'/localization_authority/motion_allowed'),('tf',TFMessage,'/tf'),('evidence',RoadEvidence2D,'/research/road_evidence')]}
@@ -50,7 +50,7 @@ def main():
         evidence_stamp=fixture.get_clock().now().to_msg()
         while time.monotonic()<until:
             now=fixture.get_clock().now();stamp=now.to_msg()
-            odom=Odometry();odom.header.stamp=stamp;odom.header.frame_id='odom';odom.child_frame_id='base_footprint';odom.pose.pose.orientation.w=1.
+            odom=Odometry();odom.header.stamp=stamp;odom.header.frame_id='odom';odom.child_frame_id='chassis_control_origin';odom.pose.pose.orientation.w=1.
             odom.pose.covariance=[.0009 if i%7==0 else 0. for i in range(36)];pubs['odom'].publish(odom)
             grid=OccupancyGrid();grid.header.stamp=stamp;grid.header.frame_id='odom';grid.info.resolution=.3
             grid.info.width=grid.info.height=100;grid.info.origin.position.x=grid.info.origin.position.y=-15.;grid.info.origin.orientation.w=1.;grid.data=[0]*10000

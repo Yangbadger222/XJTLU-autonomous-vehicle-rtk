@@ -87,7 +87,7 @@ def trial(args,mode,index,manifest):
         q=msg.pose.pose.orientation
         inputs['state']=[msg.pose.pose.position.x,msg.pose.pose.position.y,2*math.atan2(q.z,q.w),
                          msg.twist.twist.linear.x,msg.twist.twist.angular.z]
-    probe.create_subscription(Odometry,'/lio/odom_vehicle',odom_cb,100)
+    probe.create_subscription(Odometry,'/research/odom_control',odom_cb,100)
     probe.create_subscription(AccelStamped,'/research/vehicle_acceleration',lambda msg:inputs.update(
         acceleration=[msg.accel.linear.x,msg.accel.linear.y]),100)
     probe.create_subscription(RosPath,'/research/road_reference',lambda msg:inputs.update(

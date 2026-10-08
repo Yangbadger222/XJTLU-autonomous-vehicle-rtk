@@ -31,7 +31,7 @@ def main():
     node = rclpy.create_node("ego_vehicle_input_probe")
     messages = []
     node.create_subscription(TimedTrajectory2D, "/research/ego_trajectory", messages.append, 100)
-    odom_pub = node.create_publisher(Odometry, "/lio/odom_vehicle", 10)
+    odom_pub = node.create_publisher(Odometry, "/research/odom_control", 10)
     grid_pub = node.create_publisher(LocalEvidenceGrid2D, "/research/local_evidence_grid", 10)
     ref_pub = node.create_publisher(RosPath, "/research/road_reference", 10)
     ver_pub = node.create_publisher(String, "/research/map_version", 10)
@@ -54,7 +54,7 @@ def main():
             ver_pub.publish(String(data="UNKNOWN" if scenario == "unknown_map" else "sim-input-map"))
             odom = Odometry()
             odom.header.frame_id = "map" if scenario == "wrong_odom_frame" else "odom"
-            odom.header.stamp, odom.child_frame_id = stamp, "base_footprint"
+            odom.header.stamp, odom.child_frame_id = stamp, "chassis_control_origin"
             odom.pose.pose.orientation.z, odom.pose.pose.orientation.w = math.sin(yaw/2), math.cos(yaw/2)
             odom.twist.twist.linear.x = speed
             if scenario == "arc_moving":

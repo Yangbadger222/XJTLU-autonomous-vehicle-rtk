@@ -32,7 +32,7 @@ from research_runtime.active_observation import (FiniteObservationPolicy, fronti
     planned_views, visible_fraction, prior_gap_events, task_impact, supported_gap_updates, save_snapshot, load_snapshot,
     RoadGraph,GraphEdge,current_session_evidence)
 from research_runtime.active_road import RoadEvidence, EvidenceState,EvidenceStore
-from research_runtime.physical_parameter_lock import LOCKED_FOOTPRINT
+from research_runtime.physical_parameter_lock import LOCKED_FOOTPRINT, CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME
 from research_runtime.runtime_paths import research_path
 from research_runtime.prior_mission import registered_prior, transform_graph, confirmed_route_prefix
 from research_runtime.grid_map import LocalObstacleGrid
@@ -117,7 +117,7 @@ class ActiveObservationNode(Node):
         self.status = self.create_publisher(ResearchStatus, "/research/observation_status", 10)
         self.create_subscription(String, "/research/map_version", self._version, 10)
         self.create_subscription(OccupancyGrid, "/research/local_obstacle_grid", self._grid, 10)
-        self.create_subscription(Odometry, "/lio/odom_vehicle", self._odom, 10)
+        self.create_subscription(Odometry, CONTROL_ODOM_TOPIC, self._odom, 10)
         self.create_subscription(String, "/lio/vehicle_health", self._health, 10)
         self.create_subscription(Bool, "/localization_authority/motion_allowed", self._authority, 10)
         self.create_subscription(String,"/localization_authority/mode",self._authority_mode,10)
@@ -240,7 +240,7 @@ class ActiveObservationNode(Node):
         norm = math.sqrt(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w)
         age = (self.get_clock().now().nanoseconds-
                (msg.header.stamp.sec*10**9+msg.header.stamp.nanosec))*1e-9
-        if (msg.header.frame_id != "odom" or msg.child_frame_id != "base_footprint" or
+        if (msg.header.frame_id != "odom" or msg.child_frame_id != CONTROL_CHILD_FRAME or
                 not math.isfinite(norm) or norm <= 1e-12 or not 0 <= age <= .20):
             self.pose = None
             return
@@ -324,7 +324,8 @@ class ActiveObservationNode(Node):
         seconds = lambda t: t.sec+t.nanosec*1e-9
         trajectory = TimedTrajectory.from_points(msg.trajectory_id, msg.map_version, msg.header.frame_id,
             seconds(msg.generated_at), seconds(msg.valid_until),
-            [TimedPoint(p.t,p.x,p.y,p.yaw,p.v,p.w,p.a,p.alpha,p.curvature,p.motion_mode) for p in msg.points])
+            [TimedPoint(p.t,p.x,p.y,p.yaw,p.v,p.w,p.a,p.alpha,p.curvature,p.motion_mode) for p in msg.points],
+            control_reference_contract=msg.control_reference_contract)
         from research_runtime.trajectory import validate_trajectory
         if not validate_trajectory(trajectory,self.limits,now=self.get_clock().now().nanoseconds*1e-9,
             expected_map_version=self.version,footprint=self.footprint,occupied=self.permission.occupied,

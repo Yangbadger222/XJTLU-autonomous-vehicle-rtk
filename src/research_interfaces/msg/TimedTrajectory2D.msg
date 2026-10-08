@@ -10,3 +10,6 @@ uint8 STATUS_UNKNOWN_MAP=3
 uint8 status
 string failure_reason
 TimedTrajectoryPoint2D[] points
+# Points/footprint are centred on this source-derived control origin.
+# Missing or different contracts are rejected by the motion edge.
+string control_reference_contract

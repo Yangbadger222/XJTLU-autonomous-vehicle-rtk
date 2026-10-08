@@ -26,6 +26,7 @@ from livox_ros_driver2.msg import CustomMsg
 from raw_replay_contract import replay_contract
 from replay_acceptance import quaternion_distance, requested_prefix_completed, stream_continuity
 from super_lio_vehicle_adapter.adapter_node import _covariance_is_known, _source_certificate
+from super_lio_vehicle_adapter.control_reference_lock import CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, IMU_TO_CONTROL_TRANSLATION_M
 
 
 def main():
@@ -42,7 +43,7 @@ def main():
     args.output.parent.mkdir(parents=True,exist_ok=True)
     rclpy.init();node=rclpy.create_node('source_reference_raw_probe',parameter_overrides=[Parameter('use_sim_time',value=True)])
     stamp=lambda msg:msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
-    native={};vehicle={};certificates={};eligible_acquisitions=set();health=Counter();reasons=Counter();vehicle_health=Counter()
+    native={};vehicle={};control={};certificates={};eligible_acquisitions=set();health=Counter();reasons=Counter();vehicle_health=Counter()
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
     children=[];logs=[];player=None;child_commands=[];map_parameters=None;ground_statuses=Counter()
@@ -110,6 +111,7 @@ def main():
         if data['iterations']>0:bounds.append(data['legacy_min_eig_lower_bound'])
     node.create_subscription(Odometry,'/lio/odom',lambda msg:odometry(msg,'native_odom',native),100)
     node.create_subscription(Odometry,'/lio/odom_vehicle',lambda msg:odometry(msg,'vehicle_odom',vehicle),100)
+    node.create_subscription(Odometry,CONTROL_ODOM_TOPIC,lambda msg:odometry(msg,'control_odom',control),100)
     node.create_subscription(String,'/lio/health',source_health,100)
     def adapter_health(msg):
         nonlocal last_vehicle_health
@@ -193,6 +195,30 @@ def main():
             quaternions=((qa.x,qa.y,qa.z,qa.w),(qb.x,qb.y,qb.z,qb.w))
             if quaternion_distance(*quaternions)>1e-6:mismatches.append(key)
         continuity=stream_continuity(raw_lidar_stamps,raw_imu_stamps,native,vehicle)
+        control_mismatches=[]
+        r=IMU_TO_CONTROL_TRANSLATION_M
+        for key in sorted(set(vehicle)&set(control)):
+            a,b=vehicle[key],control[key];q=a.pose.pose.orientation
+            import numpy as np
+            rotation=np.array([[1-2*(q.y*q.y+q.z*q.z),2*(q.x*q.y-q.z*q.w),2*(q.x*q.z+q.y*q.w)],
+                [2*(q.x*q.y+q.z*q.w),1-2*(q.x*q.x+q.z*q.z),2*(q.y*q.z-q.x*q.w)],
+                [2*(q.x*q.z-q.y*q.w),2*(q.y*q.z+q.x*q.w),1-2*(q.x*q.x+q.y*q.y)]])
+            offset=rotation@np.array(r)
+            wa=a.twist.twist.angular;va=a.twist.twist.linear
+            expected_position=np.array([a.pose.pose.position.x,a.pose.pose.position.y,a.pose.pose.position.z])+offset
+            expected_velocity=np.array([va.x,va.y,va.z])+np.cross([wa.x,wa.y,wa.z],r)
+            skew=lambda v:np.array([[0.,-v[2],v[1]],[v[2],0.,-v[0]],[-v[1],v[0],0.]])
+            pose_j=np.eye(6);pose_j[:3,3:]=-skew(offset)
+            twist_j=np.eye(6);twist_j[:3,3:]=-skew(r)
+            expected_pose_cov=pose_j@np.array(a.pose.covariance).reshape(6,6)@pose_j.T
+            expected_twist_cov=twist_j@np.array(a.twist.covariance).reshape(6,6)@twist_j.T
+            actual_position=[b.pose.pose.position.x,b.pose.pose.position.y,b.pose.pose.position.z]
+            vb=b.twist.twist.linear
+            if (not np.allclose(actual_position,expected_position,rtol=0.,atol=1e-8) or
+                not np.allclose([vb.x,vb.y,vb.z],expected_velocity,rtol=0.,atol=1e-8) or
+                not np.allclose(b.pose.covariance,expected_pose_cov.ravel(),rtol=0.,atol=1e-8) or
+                not np.allclose(b.twist.covariance,expected_twist_cov.ravel(),rtol=0.,atol=1e-8) or
+                b.header!=a.header or b.child_frame_id!=CONTROL_CHILD_FRAME):control_mismatches.append(key)
         frame_ok=all(msg.header.frame_id=='world' and msg.child_frame_id=='imu' for msg in native.values()) and all(
             msg.header.frame_id=='odom' and msg.child_frame_id=='base_footprint' for msg in vehicle.values())
         identity=lambda t:t.header.frame_id=='odom' and abs(t.transform.translation.x)+abs(t.transform.translation.y)+abs(t.transform.translation.z)<1e-9 and (
@@ -208,6 +234,8 @@ def main():
                 'terminal_vehicle_measurement_present':bool(vehicle) and max(vehicle)==max(native),
                 'no_reference_fault_latched':not fault_capture,
                 'identity_reference_mean_covariance':not mismatches,'finite_PSD_covariances':not covariance_failures,
+                'control_reference_stream_exact_stamp_coverage':bool(control) and set(control)==set(vehicle),
+                'recorded_control_lever_mean_full_covariance':not control_mismatches and len(control)>50,
                 'frames':frame_ok,'owned_identity_world':bool(world_edges) and all(map(identity,world_edges)),
                 'acquisition_transformed_cloud':counts['cloud_odom']>10 and counts['wrong_cloud_frame']==0,
                 'vehicle_healthy_received':health_labels['OK']>0,

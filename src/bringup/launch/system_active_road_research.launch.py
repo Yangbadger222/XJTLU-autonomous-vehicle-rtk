@@ -115,7 +115,7 @@ def generate_launch_description():
                     parameters=[safety_config, {"mode": LaunchConfiguration("execution_mode"),
                                  "actuator_enabled": LaunchConfiguration("enable_serial"),
                                  "health_topic": "/lio/vehicle_health",
-                                 "odom_topic": "/lio/odom_vehicle",
+                                 "odom_topic": "/research/odom_control",
                                  "obstacle_grid_topic": "/research/local_evidence_grid",
                                  "localization_session_id":LaunchConfiguration("localization_session_id"),
                                  "map_version_topic": "/research/map_version"}, {"use_sim_time": simulated_time}])

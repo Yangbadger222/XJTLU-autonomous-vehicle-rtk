@@ -1,0 +1,56 @@
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index 26f3be1..183a96b 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -62,6 +62,9 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+     return std::isfinite(actual) && std::abs(actual-expected) <= 1e-12;
+   };
+   using namespace research_vehicle_lock;
++  if(declare_parameter<std::string>("odom_topic",control_odom_topic)!=control_odom_topic ||
++      declare_parameter<std::string>("control_reference_contract",control_reference_contract)!=control_reference_contract)
++    throw std::invalid_argument("source-derived control reference override rejected");
+   if (!locked(max_speed_mps_,max_speed_mps) || !locked(min_speed_mps, research_vehicle_lock::min_speed_mps) ||
+       !locked(max_yaw_rate_rps_,max_yaw_rate_rps) || !locked(max_accel_mps2_,max_accel_mps2) ||
+       !locked(max_decel_mps2_,max_decel_mps2) || !locked(max_yaw_accel_rps2_,max_yaw_accel_rps2) ||
+@@ -113,7 +116,7 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+       measured_acceleration_stamp_=rclcpp::Time(message->header.stamp);
+     });
+   odom_subscriber_ = create_subscription<nav_msgs::msg::Odometry>(
+-    "/lio/odom_vehicle", 10,
++    research_vehicle_lock::control_odom_topic, 10,
+     std::bind(&TrajectoryAndObstaclesPublisher::odom_callback, this, std::placeholders::_1));
+   road_reference_subscriber_ = create_subscription<nav_msgs::msg::Path>(
+     "/research/road_reference", 10,
+@@ -180,7 +183,7 @@ double TrajectoryAndObstaclesPublisher::finite_or_zero(double value)
+ 
+ void TrajectoryAndObstaclesPublisher::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+ {
+-  if (msg->header.frame_id != "odom" || msg->child_frame_id != "base_footprint") {
++  if (msg->header.frame_id != "odom" || msg->child_frame_id != research_vehicle_lock::control_child_frame) {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     state_valid_ = false;
+     stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+@@ -367,6 +370,7 @@ void TrajectoryAndObstaclesPublisher::map_version_callback(const std_msgs::msg::
+ void TrajectoryAndObstaclesPublisher::publish_failure(uint8_t status, const std::string & reason)
+ {
+   research_interfaces::msg::TimedTrajectory2D message;
++  message.control_reference_contract=research_vehicle_lock::control_reference_contract;
+   const rclcpp::Time generated = now();
+   message.header.stamp = to_builtin_time(generated);
+   message.header.frame_id = "odom";
+@@ -520,6 +524,7 @@ bool TrajectoryAndObstaclesPublisher::stationary_heading_recovery()
+     std::sqrt(5.774*std::abs(delta)/(.5*std::min(max_yaw_accel_rps2_,max_yaw_decel_rps2_)))});
+   duration=std::ceil(duration/kSamplePeriod)*kSamplePeriod;
+   research_interfaces::msg::TimedTrajectory2D message;
++  message.control_reference_contract=research_vehicle_lock::control_reference_contract;
+   message.header.stamp=to_builtin_time(now());message.header.frame_id="odom";
+   message.generated_at=message.header.stamp;
+   message.valid_until=to_builtin_time(now()+rclcpp::Duration::from_seconds(kTrajectoryValidity));
+@@ -606,6 +611,7 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+ void TrajectoryAndObstaclesPublisher::publish_timed_trajectory(const std::vector<PathPoint> & points)
+ {
+   research_interfaces::msg::TimedTrajectory2D message;
++  message.control_reference_contract=research_vehicle_lock::control_reference_contract;
+   const rclcpp::Time generated = now();
+   message.header.stamp = to_builtin_time(generated);
+   message.header.frame_id = "odom";

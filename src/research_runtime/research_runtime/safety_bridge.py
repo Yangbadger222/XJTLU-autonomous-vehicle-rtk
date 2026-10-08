@@ -33,7 +33,8 @@ from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
 from .grid_map import LocalObstacleGrid
 from .firmware_command import within_firmware_command_envelope
 from .command_smoother import slew_command
-from .physical_parameter_lock import PHYSICAL_LIMITS, LOCKED_FOOTPRINT, require_locked_motion_parameters
+from .physical_parameter_lock import (PHYSICAL_LIMITS, LOCKED_FOOTPRINT, require_locked_motion_parameters,
+    CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, CONTROL_REFERENCE_CONTRACT)
 
 
 def _parameter_bool(value) -> bool:
@@ -78,7 +79,10 @@ if rclpy:
             self.declare_parameter("max_curvature_1pm", 0.0)
             self.declare_parameter("max_lateral_speed_mps", 0.0)
             self.declare_parameter("health_topic", "/lio/vehicle_health")
-            self.declare_parameter("odom_topic", "/lio/odom_vehicle")
+            if self.declare_parameter("odom_topic", CONTROL_ODOM_TOPIC).value != CONTROL_ODOM_TOPIC:
+                raise ValueError('control odometry topic override rejected')
+            if self.declare_parameter("control_reference_contract",CONTROL_REFERENCE_CONTRACT).value != CONTROL_REFERENCE_CONTRACT:
+                raise ValueError('control reference contract override rejected')
             self.declare_parameter("obstacle_grid_topic", "/research/local_evidence_grid")
             self._localization_session = str(self.declare_parameter("localization_session_id","UNKNOWN").value)
             self._allow_fixture_grid = _parameter_bool(self.declare_parameter("allow_analytical_grid_fixture",False).value)
@@ -178,7 +182,7 @@ if rclpy:
             norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
             stamp = self._time_seconds(msg.header.stamp)
             age = self.get_clock().now().nanoseconds * 1e-9 - stamp
-            if (msg.header.frame_id != "odom" or msg.child_frame_id != "base_footprint" or
+            if (msg.header.frame_id != "odom" or msg.child_frame_id != CONTROL_CHILD_FRAME or
                     not math.isfinite(norm) or norm <= 1e-12 or stamp <= 0 or
                     age < -0.10 or age > self._state_timeout_s):
                 self._state = None
@@ -263,7 +267,8 @@ if rclpy:
                 self._trajectory_contract = TimedTrajectory.from_points(
                     msg.trajectory_id, msg.map_version, msg.header.frame_id,
                     self._time_seconds(msg.generated_at),
-                    self._time_seconds(msg.valid_until), points)
+                    self._time_seconds(msg.valid_until), points,
+                    control_reference_contract=msg.control_reference_contract)
             except (TypeError, ValueError):
                 self._trajectory_contract = None
 

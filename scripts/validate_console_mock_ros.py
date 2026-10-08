@@ -47,7 +47,7 @@ def main():
     rclpy.init();node=rclpy.create_node("console_mock_acceptance_probe")
     topics={"authority":(Bool,"/localization_authority/motion_allowed"),"mode":(String,"/localization_authority/mode"),
         "speed":(Float32,"/localization_authority/max_linear_speed_mps"),"health":(String,"/lio/vehicle_health"),
-        "version":(String,"/research/map_version"),"odom":(Odometry,"/lio/odom_vehicle"),
+        "version":(String,"/research/map_version"),"odom":(Odometry,"/research/odom_control"),
         "grid":(OccupancyGrid,"/research/local_obstacle_grid"),"permission":(OccupancyGrid,"/research/permission_grid"),
         "trajectory":(TimedTrajectory2D,"/research/ego_trajectory"),"tf":(TFMessage,"/tf")}
     pubs={k:node.create_publisher(kind,topic,10) for k,(kind,topic) in topics.items()}
@@ -77,7 +77,7 @@ def main():
         stamp=node.get_clock().now().to_msg()
         pubs["authority"].publish(Bool(data=authority));pubs["mode"].publish(String(data="RTK_AUTHORITATIVE" if authority else "RTK_HOLD"))
         pubs["speed"].publish(Float32(data=.85));pubs["health"].publish(String(data="OK: SIMULATED HMI fixture"));pubs["version"].publish(String(data="console-simulation-m1"))
-        odom=Odometry();odom.header.frame_id,odom.child_frame_id="odom","base_footprint";odom.header.stamp=stamp
+        odom=Odometry();odom.header.frame_id,odom.child_frame_id="odom","chassis_control_origin";odom.header.stamp=stamp
         odom.pose.pose.orientation.w=1.;odom.pose.covariance[0]=odom.pose.covariance[7]=.0009;pubs["odom"].publish(odom)
         for kind in ("grid","permission"):
             grid=OccupancyGrid();grid.header.stamp,grid.header.frame_id=stamp,"odom";grid.info.resolution=.3
@@ -90,7 +90,7 @@ def main():
             tf=TransformStamped();tf.header.stamp,tf.header.frame_id,tf.child_frame_id=stamp,parent,child
             tf.transform.rotation.w=1.;transforms.append(tf)
         pubs["tf"].publish(TFMessage(transforms=transforms))
-        trajectory=TimedTrajectory2D();trajectory.header.stamp,trajectory.header.frame_id=stamp,"odom"
+        trajectory=TimedTrajectory2D();trajectory.control_reference_contract="corridor_e54c6af_mid360_ground_control_origin_v1";trajectory.header.stamp,trajectory.header.frame_id=stamp,"odom"
         trajectory.generated_at=stamp;trajectory.valid_until.sec,trajectory.valid_until.nanosec=stamp.sec+2,stamp.nanosec
         trajectory.trajectory_id,trajectory.map_version="HMI-synthetic-track-fixture","console-simulation-m1";trajectory.status=trajectory.STATUS_OK
         for t,x in ((0.,0.),(2.,.4)):

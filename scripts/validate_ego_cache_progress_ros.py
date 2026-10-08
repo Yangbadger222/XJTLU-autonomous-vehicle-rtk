@@ -21,12 +21,12 @@ def main():
   if m.status==m.STATUS_OK:samples.append({'generated':m.generated_at.sec+m.generated_at.nanosec*1e-9,'stamp':m.header.stamp.sec+m.header.stamp.nanosec*1e-9})
   else:failures.append(m.header.stamp.sec+m.header.stamp.nanosec*1e-9)
  node.create_subscription(TimedTrajectory2D,'/research/ego_trajectory',cb,100)
- pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/lio/odom_vehicle'),(LocalEvidenceGrid2D,'/research/local_evidence_grid'),(String,'/research/map_version'),(RosPath,'/research/road_reference')]]
+ pubs=[node.create_publisher(typ,topic,10) for typ,topic in [(Odometry,'/research/odom_control'),(LocalEvidenceGrid2D,'/research/local_evidence_grid'),(String,'/research/map_version'),(RosPath,'/research/road_reference')]]
  child=subprocess.Popen([str(a.install/'ego_planner/lib/ego_planner/motion_plan'),'--ros-args','--params-file',str(a.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),'-p','max_curvature_1pm:=1.0','-p','max_lateral_speed_mps:=0.05','-p','max_jerk_mps3:=3.0','-p','localization_session_id:=mock-only','-p','allow_analytical_grid_fixture:=true'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
  try:
   started=time.monotonic();until=started+6
   while time.monotonic()<until:
-   stamp=node.get_clock().now().to_msg();o=Odometry();o.header.frame_id='odom';o.header.stamp=stamp;o.child_frame_id='base_footprint'
+   stamp=node.get_clock().now().to_msg();o=Odometry();o.header.frame_id='odom';o.header.stamp=stamp;o.child_frame_id='chassis_control_origin'
    o.pose.pose.position.x,o.pose.pose.position.y=s[:2];o.pose.pose.orientation.z=math.sin(s[2]/2);o.pose.pose.orientation.w=math.cos(s[2]/2)
    o.twist.twist.linear.x,o.twist.twist.angular.z=s[3:5]
    m=OccupancyGrid();m.header.frame_id='odom';m.header.stamp=stamp;m.info.resolution=g['resolution'];m.info.width=g['width'];m.info.height=g['height']

@@ -38,3 +38,7 @@ ego_vehicle_adapter:
     # retains yaw/alpha/RPM/full-footprint checks and every original authority.
     enable_stationary_heading_recovery: true
     output_topic: /research/ego_trajectory
+
+    odom_topic: /research/odom_control
+
+    control_reference_contract: corridor_e54c6af_mid360_ground_control_origin_v1

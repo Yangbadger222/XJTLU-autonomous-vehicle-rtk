@@ -29,6 +29,10 @@ from rosgraph_msgs.msg import Clock
 from rclpy.qos import QoSProfile, DurabilityPolicy
 from research_interfaces.msg import TimedTrajectory2D, TimedTrajectoryPoint2D, ResearchStatus, OperatorPermit
 from research_interfaces.msg import LocalEvidenceGrid2D
+from super_lio_vehicle_adapter.control_reference_lock import (
+    CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, CONTROL_REFERENCE_CONTRACT,
+    IMU_TO_CONTROL_TRANSLATION_M)
+from super_lio_vehicle_adapter.adapter_node import control_odometry_from_legacy, _qrotate
 
 
 def main():
@@ -72,6 +76,7 @@ def main():
     goal_stopped=False
     goal_arrival_pose=None
     minimum_goal_distance=float("inf")
+    max_imu_translation_during_centre_rotation=0.
     trajectory_counts = {"ok": 0, "failed": 0, "explicit_rotation": 0}
     operator_sequence = 0
     operator_last = None
@@ -90,6 +95,7 @@ def main():
         "stop": node.create_publisher(Bool, "/gps_corridor/stop_override", 10),
         "health": node.create_publisher(String, "/lio/vehicle_health", 10),
         "odom": node.create_publisher(Odometry, "/lio/odom_vehicle", 10),
+        "control": node.create_publisher(Odometry, CONTROL_ODOM_TOPIC, 10),
         "grid": node.create_publisher(LocalEvidenceGrid2D, "/research/local_evidence_grid", 10),
         "version": node.create_publisher(String, "/research/map_version", 10),
         "trajectory": node.create_publisher(TimedTrajectory2D, "/research/ego_trajectory", 10),
@@ -234,7 +240,27 @@ def main():
             odom.twist.twist.linear.x = simulated_velocity[0] if args.ego_loop else (
                 0. if args.rotation_fixture and fault!='rotation_measured_translation' else 0.2)
             odom.twist.twist.angular.z = simulated_velocity[1] if args.ego_loop else 0.0
+            # The simulated centre follows STM command kinematics. Emit the
+            # IMU-origin measurement with the recorded lever before applying
+            # the production conversion, rather than assuming IMU==centre.
+            r=IMU_TO_CONTROL_TRANSLATION_M
+            offset=_qrotate((0.,0.,math.sin(simulated_pose[2]/2),math.cos(simulated_pose[2]/2)),r)
+            odom.pose.pose.position.x-=offset[0];odom.pose.pose.position.y-=offset[1]
+            odom.pose.pose.position.z=-offset[2]
+            w=odom.twist.twist.angular.z
+            odom.twist.twist.linear.x+=w*r[1];odom.twist.twist.linear.y=-w*r[0]
             pubs["odom"].publish(odom)
+            if fault not in ('wrong_odom_frame','zero_quaternion'):
+                control=control_odometry_from_legacy(odom)
+            else:
+                import copy
+                control=copy.deepcopy(odom);control.child_frame_id=CONTROL_CHILD_FRAME
+            if fault=='wrong_control_child':control.child_frame_id='base_footprint'
+            pubs['control'].publish(control)
+            if args.ego_loop and abs(simulated_velocity[0])<.001:
+                nonlocal max_imu_translation_during_centre_rotation
+                max_imu_translation_during_centre_rotation=max(max_imu_translation_during_centre_rotation,
+                    math.hypot(odom.twist.twist.linear.x,odom.twist.twist.linear.y))
         if fault != "tf_stream_lost":
             transforms = []
             for parent, child in ((("odom", "base_footprint"),) if args.rtk_classifier else (("map", "odom"), ("odom", "base_footprint"))):
@@ -242,7 +268,11 @@ def main():
                 transform.header.stamp, transform.header.frame_id, transform.child_frame_id = stamp, parent, child
                 transform.transform.rotation.w = 1.0
                 if child == "base_footprint":
-                    transform.transform.translation.x, transform.transform.translation.y = simulated_pose[:2]
+                    r=IMU_TO_CONTROL_TRANSLATION_M
+                    offset=_qrotate((0.,0.,math.sin(simulated_pose[2]/2),math.cos(simulated_pose[2]/2)),r)
+                    transform.transform.translation.x=simulated_pose[0]-offset[0]
+                    transform.transform.translation.y=simulated_pose[1]-offset[1]
+                    transform.transform.translation.z=-offset[2]
                     transform.transform.rotation.z = math.sin(simulated_pose[2]/2)
                     transform.transform.rotation.w = math.cos(simulated_pose[2]/2)
                 transforms.append(transform)
@@ -295,6 +325,8 @@ def main():
             pubs["reference"].publish(reference)
         elif fault != "planner_stream_lost":
             msg = TimedTrajectory2D()
+            msg.control_reference_contract='' if fault=='missing_control_contract' else (
+                'corridor_e54c6af_fast_imu_origin_v1' if fault=='legacy_control_contract' else CONTROL_REFERENCE_CONTRACT)
             msg.header.frame_id, msg.header.stamp = "odom", stamp
             msg.trajectory_id, msg.map_version = "synthetic-safety-fixture", "m1"
             msg.generated_at = stamp
@@ -394,6 +426,8 @@ def main():
                       "trajectory_counts": trajectory_counts, "wire_message_count": len(normal),
                       "loop_budget_s": args.loop_budget_s,
                       "heading_recovery_loop":args.heading_recovery_loop,
+                      "control_reference_contract":CONTROL_REFERENCE_CONTRACT,
+                      "max_imu_translation_during_centre_rotation_mps":max_imu_translation_during_centre_rotation,
                       "tracker_reason_counts": tracker_reasons,
                       "status": "PASS" if reached and stopped and trajectory_counts["ok"] > 10 else "FAIL"}
             result["wire_limits_preserved"]=(result["final_wire_max_turn_product"]<=locked['corridor.guard.turn_product_limit']+1e-9 and
@@ -403,6 +437,7 @@ def main():
             if not result["wire_limits_preserved"]:result["status"]="FAIL"
             if args.heading_recovery_loop:
                 result['explicit_heading_recovery_executed']=(trajectory_counts['explicit_rotation']>0 and
+                    max_imu_translation_during_centre_rotation>.001 and
                     any(line.startswith('vcx=0.000,') and abs(float(line.split(',')[1][3:]))>.001 for line in normal))
                 if not result['explicit_heading_recovery_executed']:result['status']='FAIL'
             args.output.write_text(json.dumps(result, indent=2) + "\n")
@@ -414,6 +449,7 @@ def main():
                       "footprint_interior_obstacle", "stop_override", "stop_heartbeat_lost", "speed_permission_zero",
                       "speed_permission_stale", "speed_permission_invalid",
                       "wrong_odom_frame", "old_odom_stamp", "zero_quaternion", "pose_jump",
+                      "wrong_control_child", "missing_control_contract", "legacy_control_contract",
                       "tf_stream_lost", "tf_double_publisher", "permission_stream_lost", "keepout",
                       "operator_stop","operator_heartbeat_lost","operator_duplicate","operator_wrong_map","operator_competing_publisher",
                       "grid_old_payload_version","grid_wrong_payload_session","grid_wrong_support_model","grid_mismatched_acquisition")

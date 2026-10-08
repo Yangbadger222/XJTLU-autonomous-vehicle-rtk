@@ -13,6 +13,8 @@ import time
 import json
 import math
 import copy
+from .control_reference_lock import (CONTROL_REFERENCE_CONTRACT, CONTROL_ODOM_TOPIC,
+    CONTROL_CHILD_FRAME, IMU_TO_CONTROL_TRANSLATION_M, IMU_TO_CONTROL_QUATERNION_XYZW)
 
 try:
     import rclpy
@@ -220,6 +222,39 @@ def _covariance_is_known(covariance):
     return True
 
 
+def control_odometry_from_legacy(msg):
+    """Shift the locked IMU-origin navigation state to the source-derived
+    nominal ground-level control origin. Keep acquisition time and every
+    covariance cross block. No navigation TF or legacy odom is modified.
+    """
+    if msg.header.frame_id != 'odom' or msg.child_frame_id != 'base_footprint':
+        raise ValueError('control conversion requires the locked legacy IMU-origin contract')
+    q = _normalize_quaternion((msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                               msg.pose.pose.orientation.z, msg.pose.pose.orientation.w))
+    if q is None: raise ValueError('invalid legacy IMU attitude')
+    output = copy.deepcopy(msg)
+    output.child_frame_id = CONTROL_CHILD_FRAME
+    r = IMU_TO_CONTROL_TRANSLATION_M
+    offset = _qrotate(q, r)
+    p = output.pose.pose.position
+    p.x += offset[0]; p.y += offset[1]; p.z += offset[2]
+    qb = _qmul(q, IMU_TO_CONTROL_QUATERNION_XYZW)
+    output.pose.pose.orientation.x, output.pose.pose.orientation.y = qb[0], qb[1]
+    output.pose.pose.orientation.z, output.pose.pose.orientation.w = qb[2], qb[3]
+    v, w = msg.twist.twist.linear, msg.twist.twist.angular
+    velocity, angular = _source_twist_to_base(IMU_TO_CONTROL_QUATERNION_XYZW,
+        (v.x,v.y,v.z), (w.x,w.y,w.z), r)
+    output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = velocity
+    output.twist.twist.angular.x, output.twist.twist.angular.y, output.twist.twist.angular.z = angular
+    output.pose.covariance = list(_lever_covariance(msg.pose.covariance,q,
+        IMU_TO_CONTROL_QUATERNION_XYZW,r,pose=True))
+    output.twist.covariance = list(_lever_covariance(msg.twist.covariance,q,
+        IMU_TO_CONTROL_QUATERNION_XYZW,r))
+    if not _finite((p.x,p.y,p.z)+velocity+angular):
+        raise ValueError('nonfinite control reference state')
+    return output
+
+
 
 class SuperLioVehicleAdapter(Node if rclpy else object):
     def __init__(self):
@@ -242,6 +277,13 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self.declare_parameter("navigation_reference_contract", "")
         self.declare_parameter("world_gauge_mode", "external_stamped_tf")
         self.declare_parameter("publish_unhealthy_odometry", False)
+        for key, expected in (("control_odom_topic",CONTROL_ODOM_TOPIC),
+                              ("control_child_frame",CONTROL_CHILD_FRAME),
+                              ("control_reference_contract",CONTROL_REFERENCE_CONTRACT),
+                              ("control_translation_imu_m",list(IMU_TO_CONTROL_TRANSLATION_M))):
+            actual=self.declare_parameter(key,expected).value
+            if (tuple(actual)!=tuple(expected) if isinstance(expected,list) else actual!=expected):
+                raise ValueError('source-derived control reference override rejected: '+key)
         self._verified = _parameter_bool(
             self.get_parameter("imu_to_base_extrinsic_verified").value)
         self._source_frame = str(self.get_parameter("source_frame").value)
@@ -255,6 +297,8 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
             str(self.get_parameter("navigation_reference_contract").value), self._translation, self._rotation)
         if str(self.get_parameter("navigation_reference_convention").value) == "locked_fast_imu_origin" and not self._legacy_reference:
             raise ValueError("locked navigation reference contract/identity override rejected")
+        if self._legacy_reference and (self._target_frame!='odom' or self.get_parameter('base_frame').value!='base_footprint'):
+            raise ValueError('locked navigation/control reference frame override rejected')
         self._own_gauge = str(self.get_parameter("world_gauge_mode").value) == "source_local_world"
         if self._own_gauge and (not self._legacy_reference or self._source_frame != "world" or self._target_frame != "odom"):
             raise ValueError("source local-world gauge requires the audited world/odom legacy reference")
@@ -285,6 +329,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._source_health_received=0.
         self._health = self.create_publisher(String, str(self.get_parameter("health_topic").value), 10)
         self._odom = self.create_publisher(Odometry, str(self.get_parameter("vehicle_odom_topic").value), 10)
+        self._control_odom = self.create_publisher(Odometry, CONTROL_ODOM_TOPIC, 10)
         self.create_subscription(String, str(self.get_parameter("source_health_topic").value), self._health_callback, 10)
         self.create_subscription(Odometry, str(self.get_parameter("input_topic").value), self._callback, 10)
         self._publish_health("UNKNOWN: awaiting matched native odometry and observation certificate")
@@ -437,7 +482,10 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         output.twist.covariance = list(rotated_twist_covariance)
         output.twist.twist.linear.x, output.twist.twist.linear.y, output.twist.twist.linear.z = body_velocity
         output.twist.twist.angular.x, output.twist.twist.angular.y, output.twist.twist.angular.z = body_angular
+        control_output = control_odometry_from_legacy(output) if self._legacy_reference else None
         self._odom.publish(output)
+        if control_output is not None:
+            self._control_odom.publish(control_output)
         self._last_source_stamp = source_stamp
         if self._legacy_reference:
             self._last_source_pose = ((position.x, position.y, position.z), q_wi)

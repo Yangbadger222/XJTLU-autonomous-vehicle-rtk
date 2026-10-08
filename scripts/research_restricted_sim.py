@@ -29,6 +29,9 @@ from tf2_ros import TransformBroadcaster
 from livox_ros_driver2.msg import CustomMsg, CustomPoint
 from research_runtime.physical_parameter_lock import PHYSICAL_LIMITS
 from research_runtime.grid_map import LocalObstacleGrid
+from super_lio_vehicle_adapter.control_reference_lock import (
+    CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, IMU_TO_CONTROL_TRANSLATION_M)
+from super_lio_vehicle_adapter.adapter_node import control_odometry_from_legacy
 
 
 def stamp_seconds(stamp):return stamp.sec+stamp.nanosec*1e-9
@@ -56,6 +59,8 @@ class TruthSensor(Node):
         self.imu=self.create_publisher(Imu,'/livox/imu',qos_profile_sensor_data)
         self.depth=self.create_publisher(PointCloud2,'/simulation/depth_points_base',10)
         self.scene=self._world_surfaces()  # Never loaded or accepted by perception/policy.
+        self.scene[:,2]+=1.2  # Synthetic room floor at nominal ground z=0.
+        self.imu_in_control=-np.asarray(IMU_TO_CONTROL_TRANSLATION_M)
         self.il_translation=np.array([-.011,-.02329,.04412]) # Exact locked lidar->IMU translation.
         self.create_timer(.005,self.physics)
         self.create_timer(.1,self.scan)
@@ -107,10 +112,14 @@ class TruthSensor(Node):
         # normalizes by its initialization mean. Gyro remains rad/s.
         msg.linear_acceleration.x=(self.velocity[0]-old[0])/max(dt,1e-6)/9.7946
         msg.linear_acceleration.y=self.velocity[0]*self.velocity[1]/9.7946
+        alpha=(self.velocity[1]-old[1])/max(dt,1e-6)
+        d=self.imu_in_control;w=self.velocity[1]
+        msg.linear_acceleration.x+=(-alpha*d[1]-w*w*d[0])/9.7946
+        msg.linear_acceleration.y+=(alpha*d[0]-w*w*d[1])/9.7946
         msg.linear_acceleration.z=1.;msg.angular_velocity.z=float(self.velocity[1]);
         if not (self.sensor_fault=='imu_lost' and now-self.started>=self.fault_after_s):self.imu.publish(msg)
         if now-self.last_permission>=.05:
-            encoder=TwistStamped();encoder.header=Header(stamp=stamp,frame_id='base_footprint')
+            encoder=TwistStamped();encoder.header=Header(stamp=stamp,frame_id=CONTROL_CHILD_FRAME)
             encoder.twist.linear.x,encoder.twist.angular.z=map(float,self.velocity);self.encoder.publish(encoder)
             self.authority.publish(Bool(data=self.mock_rtk_allowed and now-self.started>2.))
             self.authority_mode.publish(String(data='RTK_AUTHORITATIVE' if self.mock_rtk_allowed else 'RTK_DEGRADED'))
@@ -125,13 +134,16 @@ class TruthSensor(Node):
         offsets=np.linspace(0,.099999999,len(self.scene))
         acquisition=start+offsets
         x=np.interp(acquisition,times,poses[:,0]);y=np.interp(acquisition,times,poses[:,1]);yaw=np.interp(acquisition,times,poses[:,2])
+        d=self.imu_in_control
+        x=x+np.cos(yaw)*d[0]-np.sin(yaw)*d[1]
+        y=y+np.sin(yaw)*d[0]+np.cos(yaw)*d[1]
         dx=self.scene[:,0]-x;dy=self.scene[:,1]-y
-        local=np.column_stack((np.cos(yaw)*dx+np.sin(yaw)*dy,-np.sin(yaw)*dx+np.cos(yaw)*dy,self.scene[:,2]))-self.il_translation
+        local=np.column_stack((np.cos(yaw)*dx+np.sin(yaw)*dy,-np.sin(yaw)*dx+np.cos(yaw)*dy,self.scene[:,2]-d[2]))-self.il_translation
         # The same opaque wall occludes raw LiDAR and synthetic depth rays.
         denominator=self.scene[:,0]-x
         ray_t=np.divide(2.2-x,denominator,out=np.full_like(x,-1.),where=np.abs(denominator)>1e-8)
-        cross_y=y+ray_t*(self.scene[:,1]-y);cross_z=ray_t*self.scene[:,2]
-        occluded=(ray_t>0)&(ray_t<1)&(cross_y>=1)&(cross_y<=3)&(cross_z>=-1.2)&(cross_z<=2)
+        cross_y=y+ray_t*(self.scene[:,1]-y);cross_z=d[2]+ray_t*(self.scene[:,2]-d[2])
+        occluded=(ray_t>0)&(ray_t<1)&(cross_y>=1)&(cross_y<=3)&(cross_z>=0)&(cross_z<=3.2)
         msg=CustomMsg();msg.header.frame_id='livox_frame';msg.header.stamp.sec=int(start)
         msg.header.stamp.nanosec=int((start-int(start))*1e9);msg.timebase=int(start*1e9);msg.lidar_id=0
         for index,point in enumerate(local):
@@ -160,7 +172,7 @@ class TruthSensor(Node):
         self.depth.publish(point_cloud2.create_cloud_xyz32(header,depth))
 
     def save(self):
-        self.drain();self.output.write_text(json.dumps({'model':'synthetic room; unit-g IMU; scan-per-point acquisition; restricted local depth',
+        self.drain();self.output.write_text(json.dumps({'model':'synthetic room; source-derived MID360 mounting lever; unit-g IMU with rigid lever acceleration; scan-per-point acquisition; restricted simulated depth',
             'final_pose':self.pose.tolist(),'distance_m':self.distance,'trace':self.trace,'wire_tail':self.wire[-5:],
             'sensor_fault':self.sensor_fault,'fault_after_s':self.fault_after_s,
             'fault_phase_wire_tail_before_authority_cleanup':getattr(self,'precleanup_fault_tail',[]),
@@ -187,6 +199,7 @@ class MeasuredPerception(Node):
         self.tf=TransformBroadcaster(self)
         self.acceleration=self.create_publisher(AccelStamped,"/research/vehicle_acceleration",10)
         self.odom_pub=self.create_publisher(Odometry,'/lio/odom_vehicle',10)
+        self.control_pub=self.create_publisher(Odometry,CONTROL_ODOM_TOPIC,10)
         self.health=self.create_publisher(String,'/lio/vehicle_health',10)
         self.evidence=self.create_publisher(RoadEvidence2D,"/research/road_evidence",1000)
         from research_interfaces.msg import LocalEvidenceGrid2D
@@ -203,13 +216,11 @@ class MeasuredPerception(Node):
 
     def source_odom(self,msg):
         self.received+=1;self.last_source=time.monotonic()
-        # This bridge is simulation-only: the model has IMU=controlled base
-        # and map=initial odom. It supplies an explicit conservative synthetic
+        # This bridge is simulation-only, with the source-derived IMU mount.
+        # It supplies an explicit conservative synthetic
         # uncertainty for the experiment, not a measured source covariance or
         # an equivalent FAST-LIO degeneracy metric. /lio/health stays UNKNOWN.
         yaw=yaw_of(msg.pose.pose.orientation);stamp=stamp_seconds(msg.header.stamp)
-        self.source_pose=(stamp,msg.pose.pose.position.x,msg.pose.pose.position.y,yaw)
-        self.history.append(self.source_pose)
         output=Odometry();output.header.stamp=msg.header.stamp;output.header.frame_id='odom';output.child_frame_id='base_footprint'
         output.pose.pose=msg.pose.pose;output.twist=msg.twist
         vx,vy=msg.twist.twist.linear.x,msg.twist.twist.linear.y
@@ -221,16 +232,31 @@ class MeasuredPerception(Node):
         encoder=min(samples,key=lambda entry:abs(stamp_seconds(entry.header.stamp)-stamp))
         # Actual simulated encoder measurement supplies body twist; no truth
         # pose/map reaches this process. Real wheel telemetry remains pending.
-        output.twist.twist=encoder.twist
+        import copy
+        output.twist.twist=copy.deepcopy(encoder.twist)
+        r=IMU_TO_CONTROL_TRANSLATION_M;w=encoder.twist.angular.z
+        output.twist.twist.linear.x+=w*r[1]
+        output.twist.twist.linear.y=-w*r[0]
+        control=control_odometry_from_legacy(output)
+        self.source_pose=(stamp,control.pose.pose.position.x,control.pose.pose.position.y,yaw)
+        self.history.append(self.source_pose)
         measurements=[sample for sample in self.imu_samples if abs(stamp_seconds(sample.header.stamp)-stamp)<=.1]
         if not measurements:return
         imu=min(measurements,key=lambda sample:abs(stamp_seconds(sample.header.stamp)-stamp))
         a=AccelStamped();a.header=output.header
         ax,ay=imu.linear_acceleration.x*9.7946,imu.linear_acceleration.y*9.7946
+        previous=[entry for entry in self.encoder_samples if .001<=stamp_seconds(encoder.header.stamp)-stamp_seconds(entry.header.stamp)<=.10]
+        alpha=0.
+        if previous:
+            earlier=max(previous,key=lambda entry:stamp_seconds(entry.header.stamp))
+            alpha=(w-earlier.twist.angular.z)/(stamp_seconds(encoder.header.stamp)-stamp_seconds(earlier.header.stamp))
+        d=-np.asarray(r)
+        ax-=(-alpha*d[1]-w*w*d[0]);ay-=(alpha*d[0]-w*w*d[1])
         a.accel.linear.x=math.cos(yaw)*ax-math.sin(yaw)*ay
         a.accel.linear.y=math.sin(yaw)*ax+math.cos(yaw)*ay
         self.acceleration.publish(a)
         self.odom_pub.publish(output)
+        self.control_pub.publish(control)
         transform=TransformStamped();transform.header=output.header;transform.child_frame_id='base_footprint'
         transform.transform.translation.x=output.pose.pose.position.x;transform.transform.translation.y=output.pose.pose.position.y
         transform.transform.translation.z=output.pose.pose.position.z;transform.transform.rotation=output.pose.pose.orientation
@@ -285,6 +311,11 @@ class MeasuredPerception(Node):
         self.health.publish(String(data='OK: SIMULATION_SOURCE_HEALTH_AND_UNCERTAINTY_ASSUMPTION' if fresh else 'UNKNOWN: simulated sensor source stale'))
         if self.source_pose:
             transform=TransformStamped();transform.header.frame_id='map';transform.child_frame_id='odom'
+            # Explicit simulation registration: source world starts at the
+            # IMU, while the synthetic map starts at the chassis centre.
+            transform.transform.translation.x=-IMU_TO_CONTROL_TRANSLATION_M[0]
+            transform.transform.translation.y=-IMU_TO_CONTROL_TRANSLATION_M[1]
+            transform.transform.translation.z=-IMU_TO_CONTROL_TRANSLATION_M[2]
             # Mirror the unchanged original RTK TF's 0.10 s horizon. This is
             # an explicitly registered constant model transform, never truth pose.
             transform.header.stamp=(self.get_clock().now()+rclpy.duration.Duration(seconds=.10)).to_msg()

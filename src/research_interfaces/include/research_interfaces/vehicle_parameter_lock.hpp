@@ -10,6 +10,9 @@ inline constexpr double max_yaw_accel_rps2 = 1.3999999999999999;
 inline constexpr double max_yaw_decel_rps2 = 1.8;
 inline constexpr double max_lateral_accel_mps2 = 0.25;
 inline constexpr double stopped_confirmation_s = 1;
+inline constexpr char control_reference_contract[] = "corridor_e54c6af_mid360_ground_control_origin_v1";
+inline constexpr char control_child_frame[] = "chassis_control_origin";
+inline constexpr char control_odom_topic[] = "/research/odom_control";
 namespace firmware_command {
 inline constexpr double radius_m = 0.10000000000000001;
 inline constexpr double track_m = 0.46000000000000002;

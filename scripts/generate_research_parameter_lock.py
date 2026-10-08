@@ -6,6 +6,7 @@ import argparse
 import re
 import math
 import subprocess
+import xml.etree.ElementTree as ET
 import yaml
 from pathlib import Path
 
@@ -53,6 +54,59 @@ def main():
     lidar_params = yaml.safe_load(master_path.read_text())["/fastlio2"]["lio_node"]["ros__parameters"]
     ground_reference = dict(lidar_height_m=float(height_match.group(1)),
                             lidar_in_imu_m=tuple(lidar_params['t_il']))
+    # The recorded height is above ground, not above the URDF base_link
+    # (whose configured height is 0.229 m). Use a separately named nominal
+    # ground-level command/footprint origin. Translation is measured in the
+    # notes; orientation is the original configured model, not new metrology.
+    mounting = []
+    for row in ('安装X偏移', '安装Y偏移'):
+        match = re.search(r'\| '+row+r' \| \*\*([+-]?[0-9.]+) m\*\*', original_notes.decode())
+        if not match: raise SystemExit('recorded MID360 mounting offset unavailable: '+row)
+        mounting.append(float(match.group(1)))
+    mounting.append(ground_reference['lidar_height_m'])
+    attitude_sources = {}
+    for relative, joint in (('src/bringup/urdf/rosbot/base.urdf.xacro','base_joint'),
+                            ('src/bringup/urdf/rosbot/sensor/laser.urdf.xacro','laser_joint')):
+        original = subprocess.check_output(['git','show',payload['source_commit']+':'+relative],cwd=root)
+        if (root/relative).read_bytes() != original:
+            raise SystemExit('protected configured mounting attitude differs: '+relative)
+        origin = ET.fromstring(original).find(".//joint[@name='"+joint+"']/origin")
+        if origin is None or tuple(map(float,origin.get('rpy','').split())) != (0.,0.,0.):
+            raise SystemExit('source configured mounting orientation is not the audited zero rotation')
+        attitude_sources[relative] = hashlib.sha256(original).hexdigest()
+    if lidar_params['r_il'] != [1.,0.,0.,0.,1.,0.,0.,0.,1.]:
+        raise SystemExit('factory LiDAR-IMU rotation differs from audited source')
+    # Original lidar_processor.cpp uses p_I=R_IL*p_L+t_IL. Thus
+    # p_BI=p_BL-R_BI*t_IL; here the source-configured rotations are identity.
+    imu_in_control = tuple(mounting[i]-lidar_params['t_il'][i] for i in range(3))
+    control_translation = tuple(-v for v in imu_in_control)
+    control_contract = 'corridor_e54c6af_mid360_ground_control_origin_v1'
+    control_python = root/'src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/control_reference_lock.py'
+    control_python_text = ('"""Generated source-derived control origin; no new physical calibration."""\n'
+        +f'CONTROL_REFERENCE_CONTRACT = {control_contract!r}\n'
+        +'CONTROL_ODOM_TOPIC = "/research/odom_control"\n'
+        +'CONTROL_CHILD_FRAME = "chassis_control_origin"\n'
+        +f'IMU_TO_CONTROL_TRANSLATION_M = {control_translation!r}\n'
+        +'IMU_TO_CONTROL_QUATERNION_XYZW = (0., 0., 0., 1.)\n'
+        +f'CONTROL_REFERENCE_PROVENANCE = {dict(source_commit=payload["source_commit"], measured_lidar_in_ground_reference_m=tuple(mounting), factory_lidar_in_imu_m=tuple(lidar_params["t_il"]), attitude_basis="original URDF configured zero rotation; not newly measured", origin_basis="recorded chassis XY origin at nominal ground level; not URDF base_link", mounting_notes_sha256=hashlib.sha256(original_notes).hexdigest(), attitude_source_sha256=attitude_sources)!r}\n')
+    for name, expected in (
+        ('super_lio_reference', dict(control_odom_topic='/research/odom_control',
+            control_child_frame='chassis_control_origin',control_reference_contract=control_contract,
+            control_translation_imu_m=list(control_translation))),
+        ('ego_vehicle_adapter',dict(odom_topic='/research/odom_control',control_reference_contract=control_contract)),
+        ('research_safety_bridge',dict(odom_topic='/research/odom_control',control_reference_contract=control_contract))):
+        path=root/f'src/bringup/config/{name}.yaml';text=path.read_text()
+        node='super_lio_vehicle_adapter' if name=='super_lio_reference' else name
+        parsed=yaml.safe_load(text)[node]['ros__parameters']
+        for key,value in expected.items():
+            if args.check and parsed.get(key)!=value:
+                raise SystemExit('source-derived control reference YAML differs: '+name+'.'+key)
+            if not args.check:
+                encoded=repr(value) if isinstance(value,list) else str(value)
+                row='    '+key+': '+encoded
+                text,count=re.subn(r'^    '+key+r': .*$',lambda _:row,text,flags=re.MULTILINE)
+                if not count:text+='\n'+row+'\n'
+        if not args.check:path.write_text(text)
     stopped = (master["stopped_linear_rate_mps"], math.radians(master["stopped_yaw_rate_degps"]),
                master["stopped_confirmation_s"])
     python = root/"src/research_runtime/research_runtime/physical_parameter_lock.py"
@@ -66,6 +120,7 @@ def main():
         +f"RESEARCH_EXECUTION_PROFILE = {execution_profile!r}\n"
         +f"MID360_GROUND_REFERENCE = {ground_reference!r}\n"
         +f"MID360_MOUNTING_NOTES_SHA256 = {hashlib.sha256(original_notes).hexdigest()!r}\n"
+        +'from super_lio_vehicle_adapter.control_reference_lock import CONTROL_REFERENCE_CONTRACT, CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME\n'
         +'''\ndef require_locked_motion_parameters(actual):
     import math
     for key, expected in PHYSICAL_LIMITS.items():
@@ -78,6 +133,9 @@ def main():
         +"namespace research_vehicle_lock {\n"+"".join(f"inline constexpr double {key} = {value:.17g};\n"
                                                       for key,value in values.items())
         +f"inline constexpr double stopped_confirmation_s = {stopped[2]:.17g};\n"
+        +f'inline constexpr char control_reference_contract[] = "{control_contract}";\n'
+        +'inline constexpr char control_child_frame[] = "chassis_control_origin";\n'
+        +'inline constexpr char control_odom_topic[] = "/research/odom_control";\n'
         +"namespace firmware_command {\n"+"".join(f"inline constexpr double {key} = {value:.17g};\n"
                                                       for key,value in firmware.items())+"}\n}\n")
     # These are new research files. Original baseline YAML/launch files remain
@@ -128,7 +186,7 @@ def main():
             if count!=1:raise SystemExit('one observation setting required: '+key)
     if not args.check:observation.write_text(observation_text)
     if args.check:
-        for path, expected in ((python, python_text), (header, header_text)):
+        for path, expected in ((python, python_text), (header, header_text), (control_python, control_python_text)):
             if not path.exists() or path.read_text() != expected:
                 raise SystemExit(f"generated physical lock differs: {path}")
         print("Shared Python/C++ physical constants match the approved lock")
@@ -136,6 +194,7 @@ def main():
         header.parent.mkdir(parents=True,exist_ok=True)
         python.write_text(python_text)
         header.write_text(header_text)
+        control_python.write_text(control_python_text)
         print("Generated Python/C++ constants from approved corridor launch values")
 
 

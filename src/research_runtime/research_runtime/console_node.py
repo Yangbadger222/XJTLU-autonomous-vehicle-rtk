@@ -21,7 +21,7 @@ from research_interfaces.srv import ManageResearchTask
 
 from .console_http import ConsoleHTTP
 from .operator_console import OperatorConsole
-from .physical_parameter_lock import STOP_CONFIRMATION
+from .physical_parameter_lock import STOP_CONFIRMATION, CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME
 from .runtime_paths import research_path
 from .safety_bridge import _parameter_bool
 from .bag_identity import verify_cataloged_bag
@@ -43,7 +43,7 @@ class ConsoleNode(Node):
         self.create_subscription(Bool,"/localization_authority/motion_allowed",lambda m:self.console.update("authority",bool(m.data)),10)
         self.create_subscription(String,"/lio/vehicle_health",lambda m:self.console.update("health",str(m.data)),10)
         self.create_subscription(Bool,"/research/tf_integrity",lambda m:self.console.update("tf",bool(m.data)),10)
-        self.create_subscription(Odometry,"/lio/odom_vehicle",self._odom,10)
+        self.create_subscription(Odometry,CONTROL_ODOM_TOPIC,self._odom,10)
         self.create_subscription(OccupancyGrid,"/research/local_obstacle_grid",lambda m:self._grid(m,"grid"),10)
         self.create_subscription(OccupancyGrid,"/research/permission_grid",lambda m:self._grid(m,"permission"),10)
         self.create_subscription(ResearchStatus,"/research/observation_status",lambda m:self._status(m,"observer"),10)
@@ -80,7 +80,7 @@ class ConsoleNode(Node):
         q=msg.pose.pose.orientation
         norm=q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w
         values=(msg.pose.pose.position.x,msg.pose.pose.position.y,msg.twist.twist.linear.x,msg.twist.twist.angular.z)
-        if (msg.header.frame_id!="odom" or msg.child_frame_id!="base_footprint" or not 0<=self._age(msg)<=.2 or
+        if (msg.header.frame_id!="odom" or msg.child_frame_id!=CONTROL_CHILD_FRAME or not 0<=self._age(msg)<=.2 or
             not all(math.isfinite(v) for v in (*values,norm)) or abs(norm-1)>1e-5): return
         self.console.update("odom",dict(zip(("x","y","v","w"),values),yaw=math.atan2(
             2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))))

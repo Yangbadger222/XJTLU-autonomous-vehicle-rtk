@@ -1,0 +1,202 @@
+{
+  "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "compiled_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "scope": "Lightweight executed receipts. Historical control-reference evidence retains original source identities. Complete terminal/build logs remain on authorized executor; no bag/PCD/binary/credential is committed.",
+  "full_build_log": {
+    "path": "/home/badger/codex-research/superlio-ego-20261007/logs/stop-qualified/fresh-build.log",
+    "sha256": "b6de9c09cf9925380a0f2547d617cc81afcb4ab563fa2c6124702d3efd86fc9a",
+    "bytes": 310222
+  },
+  "files": [
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/build-summary.log",
+      "sha256": "d4a0795f0210b307cd43f02f7f6107f28784db61e4c0f40661a06f1454b9b760",
+      "bytes": 962
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-arc-loop.json",
+      "sha256": "b4efcc4ff76f1d53b80f91282a11c1571a24af15bfec60942ee963142d8b9b50",
+      "bytes": 5232
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-build.json",
+      "sha256": "d8ee77e5cd5155d9b4769625f0d3672772de0ac3096a33d29b0c143a3aa410f2",
+      "bytes": 3002
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
+      "sha256": "6574f9140939a60dbe28c65caf467c262a8b944a25ee035fc8432bde6a2cb8ef",
+      "bytes": 42327
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-ego-interface.json",
+      "sha256": "6b93c119057832ff5cd45922d7f55731dfa5e76eb4a3a27e0c898eb3727c6031",
+      "bytes": 5305
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-heading-loop.json",
+      "sha256": "a61025f5b125774a5910bee467edd5613229f545eb5c9f9ffed3c9d53d8ea946",
+      "bytes": 4973
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
+      "sha256": "bd7c56adf6406e76a48688141968248538339c74dc969a951f379e2eeb02f096",
+      "bytes": 4089
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
+      "sha256": "d7208341f28c1260c4064fb2e29fa4a095feadae2c51ed72febd5e9202802fd9",
+      "bytes": 20582
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-observer-session.json",
+      "sha256": "9261487e775620d50ec10590747c8fb1f64f9a1cff032c4fb1b685cf05b506e4",
+      "bytes": 2750
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
+      "sha256": "7519bdb7c97ed3e8731b053347a6e417dd7a48e010bd90b6acf50519270f829a",
+      "bytes": 23710
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
+      "sha256": "d124612279453d62f4469133a216a47e762a9dd7975f62f93c14e4fe322086cf",
+      "bytes": 6455
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-runtime-rebuild.log",
+      "sha256": "3185287ce4024a9ca40f54a40f2c6a1d7225fcbb7b044d34a5b46e00cdd56278",
+      "bytes": 2942
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
+      "sha256": "8241dd06d19fd3eeebee13c03881449c78a798582d0b3765367f7834284e9911",
+      "bytes": 25678
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-source-proof.log",
+      "sha256": "42b53aceb492547dd16d81613300125637d815a30ff8beefdf693f43b9e6d20b",
+      "bytes": 538
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
+      "sha256": "caf6f64cad9b6593dfd1b604f164043d9d66bcc054f021ab6ea0bc6813bd9ffd",
+      "bytes": 30819
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/fresh-build-receipt-count-parser-error.json",
+      "sha256": "986654660402b747e22316bfdceddf3a0dd9b0b8d2e03a7fd7c7133c46717814",
+      "bytes": 404
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
+      "sha256": "f2f9d4bf73f0a7585f2f42e0a379c970e11d94372772113271e2468b1826f1ba",
+      "bytes": 571
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/ground-short-window-diagnostic.json",
+      "sha256": "486d69eb6f87293e40cc3d517089058ef63fc52f5a303599987bde479eb0b969",
+      "bytes": 38985
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/ground-short-window-diagnostic.py",
+      "sha256": "a3332f74c8053b3b8b81383babc20832c5569f780b16715895d404bb9de83024",
+      "bytes": 3219
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
+      "sha256": "71d5282cd42e6e9f594f7eee68872e77eee6900c45a2efbb60842d030bee3205",
+      "bytes": 65
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
+      "sha256": "94d5b2690a424b6b7bfb7ec22d9f7c2fae928cd37f6fcb6d7ce976483a89eee5",
+      "bytes": 38102
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/portable-current.log",
+      "sha256": "737da9d52d44cbf59ce01877371f91c6f8b1e5d0d0fbdbddaf9d17971384e9e0",
+      "bytes": 340
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
+      "sha256": "a934e7f6dce333ac9574bd713ab8a84324546351a25bd479894b1de856b37664",
+      "bytes": 2392
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
+      "sha256": "1c60ba6d40558cc3992d1169acd9504194bacf58c5bda8d630bd8e32e1172c3b",
+      "bytes": 13318
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix-unnormalized-diagnostic-error.log",
+      "sha256": "08e31a8bd4493ee50483944f444f20810a815aaf252ede985171e0b8ed7abe3d",
+      "bytes": 1889
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+      "sha256": "76c830fe37ae88062e0cbeaacbd4ed3abe4109ce4559440a6efa0994aeba7e32",
+      "bytes": 213246
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix-unnormalized-diagnostic-error.log",
+      "sha256": "08e31a8bd4493ee50483944f444f20810a815aaf252ede985171e0b8ed7abe3d",
+      "bytes": 1889
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
+      "sha256": "ae85170a7ce6c035821e88fb957f58a4887dc9aeca8cdefb29d33f154b4f8b49",
+      "bytes": 175587
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
+      "sha256": "59ee219d8b358e00464ffe6ff100dc19aab05876709b61b3ebb928a276b94c91",
+      "bytes": 4975
+    },
+    {
+      "path": "audit/vehicle_ready/control-stop-qualified/receipt-denial-red.log",
+      "sha256": "4d82671046dff46cf693768de55769ebe79cf68ed349e072f357999d13343225",
+      "bytes": 13505
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/control-reference.json",
+      "sha256": "47233b94983095e85e7deb0713ec2748c0fed6d4f35c58bd31305b96dc0df533",
+      "bytes": 542
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/ground-fixture.json",
+      "sha256": "973264845d2e39936444a4da7d9a318c220aa716d09a38da847d6212040a85ec",
+      "bytes": 2347
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/policy-comparison.json",
+      "sha256": "4e5246f7a1d2ba797846594d785acf88d922a721fca75e4e6eb42065f8dca530",
+      "bytes": 41840
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
+      "sha256": "3aba4d9846019549b87c42353eab2a0d0a5f597a8369599ebad29771130a465a",
+      "bytes": 34434
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/recorded-control-response.json",
+      "sha256": "481267e73a7541d7a8bdaef72bb7c88e45bbf999732d05cc3f8dec257c77753e",
+      "bytes": 593903
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/stop-tolerance-portable.log",
+      "sha256": "2293f65e6203b27ee8d501e60813d051cf5d7fbe19140591e2efd2379942a9b8",
+      "bytes": 99
+    },
+    {
+      "path": "audit/vehicle_ready/control-reference-qualified/stop-tolerance-unrelated-pytest-plugin.log",
+      "sha256": "61822e76383671663cee87a69f3f5dec415ff871048df02d98886de181f9358f",
+      "bytes": 3073
+    }
+  ],
+  "normalized_transport_log": {
+    "path": "/home/badger/codex-research/superlio-ego-20261007/logs/stop-qualified/jetson-read-only-probe.log",
+    "sha256": "a1a6985070598408ed22d705a37f81797297bcf14b5e942e922b93cc2adde607",
+    "operation": "CRLF to LF in committed text; original stdout/stderr retained unchanged remotely"
+  }
+}

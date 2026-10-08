@@ -48,3 +48,5 @@ Read `audit/optimization_v2/`, `RESULTS.json` and
 Raw pause uses SIGSTOP on the owned player group; resume may catch up scheduling time. The pause/resume acceptance is not a strict wall-clock pacing test.
 
 Current qualification uses a separate source-bound14-package workspace with2 Super/6 EGO patches,16 ROS support fixtures and39 final-PTY faults. The preserved preview remains atce46418; it is not evidence that the new default control/real terrain/road pipeline or hardware acceptance is complete. Recorded vehicle data are available and used; firmware identity and physical braking/estop remain on-site requirements. See RESULTS.json.
+
+Current control-reference/stop qualification: see research_control_reference.md and AUDIT_REPORT.md. Reset and task start require renewed original1s full3D rate-tolerance confirmation; this is not physical brake certification.

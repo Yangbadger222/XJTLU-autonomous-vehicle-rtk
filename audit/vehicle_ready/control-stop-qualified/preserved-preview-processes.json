@@ -1,0 +1,121 @@
+{
+  "scope": "read-only inventory of preserved previewprocessgroup; no args/secrets or unrelated processes",
+  "at_utc": "2026-10-08T04:27:16.393003+00:00",
+  "preview_group": 1356150,
+  "processes": [
+    {
+      "pid": 1356150,
+      "ppid": 1356149,
+      "pgid": 1356150,
+      "stat": "Ssl",
+      "comm": "ros2"
+    },
+    {
+      "pid": 1356152,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "robot_state_pub"
+    },
+    {
+      "pid": 1356154,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "joint_state_pub"
+    },
+    {
+      "pid": 1356156,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "super_lio_node"
+    },
+    {
+      "pid": 1356158,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "super_lio_vehic"
+    },
+    {
+      "pid": 1356160,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "super_lio_cloud"
+    },
+    {
+      "pid": 1356162,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "active_road_map"
+    },
+    {
+      "pid": 1356164,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "active_road_evi"
+    },
+    {
+      "pid": 1356166,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "active_observat"
+    },
+    {
+      "pid": 1356168,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "research_local_"
+    },
+    {
+      "pid": 1356170,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "motion_plan"
+    },
+    {
+      "pid": 1356172,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "research_tf_gua"
+    },
+    {
+      "pid": 1356174,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "rtk_map_odom_co"
+    },
+    {
+      "pid": 1356176,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "corridor_cmd_ve"
+    },
+    {
+      "pid": 1356178,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "research_safety"
+    },
+    {
+      "pid": 1356180,
+      "ppid": 1356150,
+      "pgid": 1356150,
+      "stat": "Sl",
+      "comm": "research_operat"
+    }
+  ],
+  "current_finite_sessions": "allcompleted",
+  "physicalmotion": false
+}

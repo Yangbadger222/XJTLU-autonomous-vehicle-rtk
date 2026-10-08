@@ -1,0 +1,453 @@
+{
+  "status": "PASS",
+  "checks": {
+    "all_children_alive": true,
+    "EOF_or_requested_prefix": true,
+    "actual_raw_inputs": true,
+    "source_observations": true,
+    "native_certificate_decode": true,
+    "healthy_observations_exist": true,
+    "native_vehicle_exact_stamp_pairs": true,
+    "sustained_vehicle_odom_coverage": true,
+    "terminal_vehicle_measurement_present": true,
+    "no_reference_fault_latched": true,
+    "identity_reference_mean_covariance": true,
+    "finite_PSD_covariances": true,
+    "control_reference_stream_exact_stamp_coverage": true,
+    "recorded_control_lever_mean_full_covariance": true,
+    "frames": true,
+    "owned_identity_world": true,
+    "acquisition_transformed_cloud": true,
+    "vehicle_healthy_received": true,
+    "source_terminal_health_OK": true,
+    "vehicle_terminal_health_OK": true,
+    "native_input_terminal_covered": true,
+    "native_input_span_covered": true,
+    "native_no_prolonged_output_gap": true,
+    "vehicle_input_terminal_covered": true,
+    "vehicle_input_span_covered": true,
+    "vehicle_no_prolonged_output_gap": true,
+    "actual_raw_control_rotation_probe": true
+  },
+  "counts": {
+    "imu": 5447,
+    "lidar": 288,
+    "native_odom": 271,
+    "vehicle_odom": 271,
+    "control_odom": 271,
+    "cloud_odom": 271
+  },
+  "source_health_counts": {
+    "OK": 271,
+    "FAIL": 5
+  },
+  "source_reasons": {
+    "observation_lower_bound_pass": 271,
+    "point_before_retained_state_interval": 5
+  },
+  "vehicle_health_counts": {
+    "UNKNOWN": 6,
+    "OK": 271
+  },
+  "vehicle_health_reasons": {
+    "UNKNOWN: awaiting matched native odometry and observation certificate": 1,
+    "OK: measurement-matched observation bound and audited navigation reference applied": 271,
+    "UNKNOWN: source observation certificate not eligible": 5
+  },
+  "reference_fault_capture": [],
+  "measurement_continuity": {
+    "checks": {
+      "native_input_terminal_covered": true,
+      "native_input_span_covered": true,
+      "native_no_prolonged_output_gap": true,
+      "vehicle_input_terminal_covered": true,
+      "vehicle_input_span_covered": true,
+      "vehicle_no_prolonged_output_gap": true
+    },
+    "streams": {
+      "raw_lidar": {
+        "count": 288,
+        "first_ns": 1784111475568625108,
+        "last_ns": 1784111502715162555,
+        "span_s": 27.146537447,
+        "max_gap_s": 0.10133882100000001
+      },
+      "raw_imu": {
+        "count": 5447,
+        "first_ns": 1784111475580979012,
+        "last_ns": 1784111502811181793,
+        "span_s": 27.230202781000003,
+        "max_gap_s": 0.00981738
+      },
+      "native": {
+        "count": 271,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111502713591575,
+        "span_s": 26.741915941000002,
+        "max_gap_s": 0.105482817,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": 0.00157098,
+        "ahead_of_last_imu_s": -0.097590218,
+        "post_start_span_ratio": 0.9999412574730946
+      },
+      "vehicle": {
+        "count": 271,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111502713591575,
+        "span_s": 26.741915941000002,
+        "max_gap_s": 0.105482817,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": 0.00157098,
+        "ahead_of_last_imu_s": -0.097590218,
+        "post_start_span_ratio": 0.9999412574730946
+      }
+    },
+    "tolerances": {
+      "terminal_and_internal_gap_s": 0.5,
+      "initialization_allowance_s": 5.0,
+      "minimum_post_start_span_ratio": 0.95
+    },
+    "scope": "actual received input/output stamps; tolerances grant no motion or authority"
+  },
+  "terminal_source_health": {
+    "source": "super_lio/f89f48dc",
+    "certificate": "fixed_extrinsic_observation_lower_bound_v1",
+    "twist_convention": "imu_body_full_state_v1",
+    "stamp_ns": 1784111502713591575,
+    "status": "OK",
+    "legacy_min_eig_lower_bound": 99999.99999999999,
+    "minimum_observation_information": 263501.8259309298,
+    "effective_points": 1119,
+    "iterations": 2,
+    "reason": "observation_lower_bound_pass"
+  },
+  "terminal_vehicle_health": "OK: measurement-matched observation bound and audited navigation reference applied",
+  "information_bound_summary": {
+    "min": 99999.99999999999,
+    "median": 99999.99999999999,
+    "max": 99999.99999999999
+  },
+  "paired_odom_count": 271,
+  "covariance_failures": [],
+  "reference_mismatches": [],
+  "playback_exit_before_cleanup": null,
+  "child_exits_before_cleanup": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "duration_s": 30.0,
+  "requested_prefix_completed_before_cleanup": true,
+  "replay_scope": "PREFIX",
+  "rate": 1.0,
+  "domain": 104,
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "topics": [
+    "/livox/lidar",
+    "/livox/imu"
+  ],
+  "replay_contract": {
+    "duration_s": 287.369579396,
+    "expected_raw_counts": {
+      "/livox/lidar": 2867,
+      "/livox/imu": 57008
+    },
+    "wall_budget_s": 318.1065373356,
+    "rule": "2 s startup + full recorded duration at 1x + max(20 s, 10%) EOF margin"
+  },
+  "resources": [
+    {
+      "elapsed_s": 0.010237706010229886,
+      "cpu_s": 0.12,
+      "rss_kb": 58020
+    },
+    {
+      "elapsed_s": 1.006151998997666,
+      "cpu_s": 0.15,
+      "rss_kb": 58316
+    },
+    {
+      "elapsed_s": 2.006233445019461,
+      "cpu_s": 0.18,
+      "rss_kb": 58316
+    },
+    {
+      "elapsed_s": 3.015083117992617,
+      "cpu_s": 0.24,
+      "rss_kb": 59880
+    },
+    {
+      "elapsed_s": 4.022213299002033,
+      "cpu_s": 0.44,
+      "rss_kb": 65244
+    },
+    {
+      "elapsed_s": 5.001672194979619,
+      "cpu_s": 0.61,
+      "rss_kb": 65904
+    },
+    {
+      "elapsed_s": 6.001787821005564,
+      "cpu_s": 0.75,
+      "rss_kb": 65992
+    },
+    {
+      "elapsed_s": 7.001642999006435,
+      "cpu_s": 0.9,
+      "rss_kb": 66064
+    },
+    {
+      "elapsed_s": 8.001539129996672,
+      "cpu_s": 1.04,
+      "rss_kb": 66128
+    },
+    {
+      "elapsed_s": 9.001887772988994,
+      "cpu_s": 1.17,
+      "rss_kb": 66196
+    },
+    {
+      "elapsed_s": 10.001715452002827,
+      "cpu_s": 1.31,
+      "rss_kb": 66272
+    },
+    {
+      "elapsed_s": 11.00161495397333,
+      "cpu_s": 1.44,
+      "rss_kb": 66316
+    },
+    {
+      "elapsed_s": 12.001599260023795,
+      "cpu_s": 1.56,
+      "rss_kb": 66480
+    },
+    {
+      "elapsed_s": 13.001610271981917,
+      "cpu_s": 1.69,
+      "rss_kb": 66444
+    },
+    {
+      "elapsed_s": 14.001665251969825,
+      "cpu_s": 1.82,
+      "rss_kb": 66692
+    },
+    {
+      "elapsed_s": 15.0018260210054,
+      "cpu_s": 1.94,
+      "rss_kb": 66676
+    },
+    {
+      "elapsed_s": 16.00177278200863,
+      "cpu_s": 2.06,
+      "rss_kb": 66556
+    },
+    {
+      "elapsed_s": 17.00145490397699,
+      "cpu_s": 2.18,
+      "rss_kb": 66768
+    },
+    {
+      "elapsed_s": 18.00170474499464,
+      "cpu_s": 2.29,
+      "rss_kb": 66812
+    },
+    {
+      "elapsed_s": 19.001630794024095,
+      "cpu_s": 2.41,
+      "rss_kb": 66544
+    },
+    {
+      "elapsed_s": 20.00176478398498,
+      "cpu_s": 2.53,
+      "rss_kb": 66924
+    },
+    {
+      "elapsed_s": 21.000252939003985,
+      "cpu_s": 2.66,
+      "rss_kb": 66932
+    },
+    {
+      "elapsed_s": 22.001624313998036,
+      "cpu_s": 2.79,
+      "rss_kb": 66952
+    },
+    {
+      "elapsed_s": 23.00172720302362,
+      "cpu_s": 2.92,
+      "rss_kb": 66912
+    },
+    {
+      "elapsed_s": 24.001819151977543,
+      "cpu_s": 3.04,
+      "rss_kb": 66924
+    },
+    {
+      "elapsed_s": 25.001955269020982,
+      "cpu_s": 3.19,
+      "rss_kb": 66632
+    },
+    {
+      "elapsed_s": 26.001736078993417,
+      "cpu_s": 3.32,
+      "rss_kb": 66940
+    },
+    {
+      "elapsed_s": 27.001812590984628,
+      "cpu_s": 3.47,
+      "rss_kb": 67008
+    },
+    {
+      "elapsed_s": 28.000249326985795,
+      "cpu_s": 3.59,
+      "rss_kb": 67016
+    },
+    {
+      "elapsed_s": 29.001805108971894,
+      "cpu_s": 3.72,
+      "rss_kb": 67020
+    },
+    {
+      "elapsed_s": 30.001923113013618,
+      "cpu_s": 3.87,
+      "rss_kb": 66976
+    }
+  ],
+  "runtime_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "source_binary_sha256": "1d3fac7fcf72aebdf46e51af782aecdd001ba96c0052c0499197901de7046f33",
+  "input_hashes": {
+    "patches/super_lio/0002-certify-source-observations-and-covariance.patch": "3dc13a16aac06262652ea24fe8908f13ee50c52de02c32076f580995713081bf",
+    "src/bringup/config/super_lio_vehicle.yaml": "0aa0d5162bd56ac1c8e48e01a11172ecddf41916f816c10dc32e5aa27f948649",
+    "src/bringup/config/super_lio_reference.yaml": "d2212edb79ca91d64fc37da99c9b5ef841497ff3f079db6f5e17141dd85d401b",
+    "src/bringup/config/super_lio_cloud_frame.yaml": "7c4dc53deca656cc4f19d001d59247f4adc0cf7f790cbcffc0bed84800f29668"
+  },
+  "ground_pipeline": null,
+  "controller_state_diagnostics": {
+    "scope": "actual current control odometry; measured rate gates, no independent physical stop labels",
+    "original_stop_definition": {
+      "quiet_samples": 271,
+      "negative_vx_quiet_samples": 137,
+      "longest_contiguous_quiet_s": 26.741915941000002,
+      "samples_after_full_confirmation": 258
+    },
+    "strict_research_rotation_entry": {
+      "quiet_samples": 1,
+      "negative_vx_quiet_samples": 0,
+      "longest_contiguous_quiet_s": 0.0,
+      "samples_after_full_confirmation": 0
+    }
+  },
+  "actual_control_ego_probe": {
+    "status": "PASS",
+    "checks": {
+      "actual_control_stop_confirmation": true,
+      "measured_negative_vx_inside_original_tolerance": true,
+      "explicit_rotation_received": true,
+      "actual_yaw_boundary_preserved": true,
+      "pure_yaw_new_action": true,
+      "continuous_original_derivative_bounds": true
+    },
+    "cases": [
+      {
+        "trajectory_id": "vehicle-heading-recovery-61",
+        "first_w": -0.0005378555506467819,
+        "first_alpha": -0.010442521466756052,
+        "matched_actual_control_acquisitions": [
+          1784111477013304233
+        ],
+        "continuous_w_bounds": [
+          -0.0008738850768720819,
+          0.34933608458916743
+        ],
+        "continuous_alpha_bounds": [
+          -0.12757890638625446,
+          0.12778610718986458
+        ],
+        "carries_measured_w_and_alpha": true,
+        "pure_yaw_geometry": true,
+        "physical_derivative_bounds": true
+      },
+      {
+        "trajectory_id": "vehicle-heading-recovery-62",
+        "first_w": 0.0019018752500414848,
+        "first_alpha": 0.045546688169079086,
+        "matched_actual_control_acquisitions": [
+          1784111485813891887
+        ],
+        "continuous_w_bounds": [
+          -2.1649348980190553e-15,
+          0.334523506142668
+        ],
+        "continuous_alpha_bounds": [
+          -0.1164646365677375,
+          0.11806027915397513
+        ],
+        "carries_measured_w_and_alpha": true,
+        "pure_yaw_geometry": true,
+        "physical_derivative_bounds": true
+      },
+      {
+        "trajectory_id": "vehicle-heading-recovery-63",
+        "first_w": -0.0010291468352079391,
+        "first_alpha": -0.02112863827044098,
+        "matched_actual_control_acquisitions": [
+          1784111494615982532
+        ],
+        "continuous_w_bounds": [
+          -0.002748646063963775,
+          0.32051185633180346
+        ],
+        "continuous_alpha_bounds": [
+          -0.10703490371628922,
+          0.10763021129240807
+        ],
+        "carries_measured_w_and_alpha": true,
+        "pure_yaw_geometry": true,
+        "physical_derivative_bounds": true
+      }
+    ],
+    "received_messages": 340,
+    "scope": "actual raw MID360/Super/control state and original source profile; analytical safe grid/reference only; no physical stop, ground acceptance or actuator"
+  },
+  "ground_map_runtime_parameters": null,
+  "child_commands": [
+    [
+      "/dev/shm/codex-stop-fresh-ws/install/super_lio/lib/super_lio/super_lio_node",
+      "--ros-args",
+      "--params-file",
+      "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/src/bringup/config/super_lio_vehicle.yaml",
+      "-p",
+      "use_sim_time:=true"
+    ],
+    [
+      "/dev/shm/codex-stop-fresh-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_vehicle_adapter",
+      "--ros-args",
+      "--params-file",
+      "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/src/bringup/config/super_lio_reference.yaml",
+      "-p",
+      "use_sim_time:=true"
+    ],
+    [
+      "/dev/shm/codex-stop-fresh-ws/install/super_lio_vehicle_adapter/lib/super_lio_vehicle_adapter/super_lio_cloud_frame_adapter",
+      "--ros-args",
+      "--params-file",
+      "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/src/bringup/config/super_lio_cloud_frame.yaml",
+      "-p",
+      "use_sim_time:=true"
+    ],
+    [
+      "/dev/shm/codex-stop-fresh-ws/install/ego_planner/lib/ego_planner/motion_plan",
+      "--ros-args",
+      "--params-file",
+      "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/src/bringup/config/ego_vehicle_adapter.yaml",
+      "-p",
+      "localization_session_id:=analytical-stop-probe",
+      "-p",
+      "allow_analytical_grid_fixture:=true",
+      "-p",
+      "use_sim_time:=true"
+    ]
+  ],
+  "wall_elapsed_s": 34.21473839500686,
+  "scope": "Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim"
+}

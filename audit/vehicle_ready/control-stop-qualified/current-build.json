@@ -1,0 +1,42 @@
+{
+  "status": "PASS",
+  "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "workspace": "/dev/shm/codex-stop-fresh-ws",
+  "build_exit": 0,
+  "package_count": 14,
+  "fresh_before_build": false,
+  "base_fresh_build": "fresh-build.json",
+  "base_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "rebuilt_packages": [
+    "research_runtime"
+  ],
+  "installed_current_python_sha256": {
+    "geometry.py": "acfe053cf3d2fb47c044f3149f6acbaadb693804f045a73f18cc7a7afc5ed0d5",
+    "local_road_evidence.py": "086691603a7a85b6e1374eec8006da7cc8f7d74b177a6229a6b44cf9949db392",
+    "trajectory_tracker.py": "5c884acd4920a195f3aec1c60d89e115dd073676db2f100923d9d3981c0d158b",
+    "operator_console.py": "a1afa1a58095b378ff8e9d4201b71daf903b01e53fc33775995783a17983fc05",
+    "replay_sim.py": "41b18b39915dfc4d6825a3d243b18c58393e58f3cfbe32d050b374920c3aca95",
+    "footprint.py": "d2d9c0f5c0c97ae7b42deab9f77b37685591cdb3714397256428403c3d29470a",
+    "stopped_state.py": "be1951dc7f2480bbc15fc61aa6efabbbbb24bcf1469ccb7f5781632585fc14fc",
+    "safety_bridge.py": "6e957b8750986145c86cf97fdb35621e6a9ae73c1fb28b59bbeda3c700c47a05",
+    "runtime_paths.py": "405a6076954980bac2286891bacd832f4fd31ec0448247881d0435cccab8487d",
+    "local_obstacle_grid_node.py": "8d6efd791e15b37527f6668ea35eb8e837af576c1d07ce76d2b20f20ec6f24a6",
+    "physical_parameter_lock.py": "3815884529e34489ad7fd34895f449517ba7c100a7d5afeee84926dc23ad5297",
+    "__init__.py": "fbc4b1e47f84841d1389f79d2439874740a0db6226719b6f1d4326b6d8d8cb5e",
+    "bag_identity.py": "d248676488da65feaa775414a75312bd34e2ad6443aa8b80ce87cd4a2aaff920",
+    "active_observation.py": "2a793309f549d7d0e80eb1f6867f2f9350c10128fbae33ed1716ae6b5cdd21f2",
+    "prior_mission.py": "0b06528c23b07fbbd78b579cb66a2067a92330d9ee5b1e2d1e80d119b70d9887",
+    "firmware_command.py": "9137c9dc35bed6b6e9da46bdf37ac22614126d79bd3cb57af857250a071913d9",
+    "command_smoother.py": "354c360619dae6694c3df427e9fcebd045741ce1864df13cff9a04e5e3bc1d53",
+    "active_road.py": "e4a0de00ed6ce2a15c61c493802c810b8756e689a69f517286ea192fb0643f66",
+    "observed_ground_node.py": "9e095ef20fa0492462a53cf45d8f94ff2f492307493bbe264e857e46c44c60c5",
+    "observed_ground.py": "d899720a9be0f5ca37141df1972c9defb40c4fc6bb5ba5bfeda2183ff97cf0c0",
+    "grid_map.py": "d1ec61b7859860cb32d9f8adb6ab86a3c24c096a5d2ea9c7946d5ebf4cc18de1",
+    "trajectory.py": "1e3fa6ea306731cde763330fee2eb5cffa68bb60581623f9858eb9eda62774b7",
+    "console_node.py": "5f32810d129db7b2b7164d459dfcecffd41fcafd9990c7b1eafa3c3c848ca29f",
+    "authority.py": "2fdf67589daa1d9c175aa4e1d05ccd4c72c56d3a387b22699e3e2ae6c843d260",
+    "console_http.py": "321810dc00bc28a720631e92e862155d53cfe23e81787509a0ad86026cedd825",
+    "operator_gate.py": "8df63b8b10ebc97d71f171dc0f1f4235ca06217b9c2fadff3a30fd6a8d73531a"
+  },
+  "scope": "fresh isolated actual SDK14 at 8c937ed plus current research_runtime rebuild; all installed runtime Python hashes exact; not a single all14 rebuild at current HEAD"
+}

@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "checks": {
+    "actual_adapter_alive": true,
+    "sustained_same_acquisition_two_references": true,
+    "fixed_control_pivot_zero_speed_original_imu_unchanged_full_covariance": true,
+    "ineligible_source_withholds_both_references": true
+  },
+  "pairs": 93,
+  "mismatches": [],
+  "imu_translation_speed_mps": 0.05423647713716295,
+  "scope": "actual ROS adapter; analytical recorded mounting/configured attitude and covariance; no physical acceptance",
+  "source_commit": "6c66778d9de48f4e91ff2b40cc26f35f71ed29b4"
+}

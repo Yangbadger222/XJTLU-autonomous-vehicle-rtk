@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "runtime_source_commit": "da361f24b15f417787647c224cabde22d404fd73",
   "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
   "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
   "physical_motion": "not_performed",
@@ -185,21 +185,26 @@
     }
   ],
   "publication": {
-    "status": "PENDING",
-    "research_branch": "codex/superlio-ego-active-road",
-    "scope": "Qualified source63fc and report checkpoint await normal research-branch push; previous publication receipts remain in historical RUN_STATE",
+    "status": "PASS",
+    "verified_at_utc": "2026-10-07T18:08:23.525670+00:00",
+    "published_implementation_and_report_commit": "baa41113fa2586397003ae568ee6bc047e8758a7",
+    "remote_research_branch_at_verification": "baa41113fa2586397003ae568ee6bc047e8758a7",
+    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "runtime_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+    "push_mode": "normal fast-forward; research branch only; no force or merge",
     "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "mode": "OPEN draft; no production merge or forcepush"
+    "pull_request_mode": "OPEN draft, base corridor-authority-stability, head verified baa4111 via connector",
+    "receipt_scope": "Confirms the already-published implementation/report ancestor. This receipt and current static/status prose are subsequent publication-only descendants; installed sources remain ce46418."
   },
-  "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418.",
-  "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
+  "lineage": "Paired estimator binaries remain frozen 08d1835. Actual 60s policy runs use full ed4b7f6 foundation; ce46418 changes only same-value locked operator timeout, stale UI confirmation and monitoring/test scripts. Core planner/map/safety code unchanged between ed4 and ce. Previous straight/arc 1f results remain explicitly source-bound historical components; current final-wire/HTTP/default-entry repeat is ce.",
+  "final_process_evidence": "audit/optimization_v2/final-process-snapshot.json",
   "vehicle_contract_correction": {
     "scope": "Original mounting/source limits present; corrected Y-forward and gyro fields, retained header-clock stillness/measurement displacement, isolated feedback outliers. No new driving permission.",
     "evidence": "audit/vehicle_contract_review/REVIEW.md"
   },
   "goal_status": "ACTIVE",
   "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-  "qualification_workspace": "/dev/shm/codex-stop-fresh-ws",
+  "qualification_workspace": "/home/badger/codex-research/superlio-ego-20261007/ground-da361f2-ws",
   "completed_qualification": [
     "69b9b75 full3 raw replays EOF0",
     "DA fresh SDK/14 package build",
@@ -207,183 +212,46 @@
     "DA16 actualgroundROS fixtures",
     "DA10 EGO interface cases",
     "DA39 final serial PTY faults",
-    "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained",
-    "63fc control-reference/stop qualification:222portable,2/11exactsource,stagedSDK14,44linear50yaw5RTK11HMI10receipt-edge,10EGO2query,heading/arcgoal,7observer,16entry157parameter7override; realgroundFAIL; policyall0/2"
+    "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained"
   ],
   "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
-  "finite_tests": "All current finite qualifier sessions completed and owned groups cleaned; preserved preview alone intentionally runs.",
+  "finite_tests": "all current checkpoint child groups ended; only preserved ce46418 preview intentionally running",
   "current_qualification_checkpoint": {
-    "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+    "source_commit": "3c6ec9fc1e8ddfb9c0f4add87ea5fc2b292fb477",
     "goal_status": "ACTIVE",
-    "executor": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
-    "fresh_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
-    "fresh_workspace": "/dev/shm/codex-stop-fresh-ws",
+    "executor": "authorized non-Jetson Humble host",
+    "fresh_workspace": "/dev/shm/codex-heading-final-3c6-ws",
     "fresh_build_status": "PASS",
-    "current_runtime_rebuild_status": "PASS",
-    "current_receipt_fresh_before_build": false,
     "patch_source_status": "PASS",
     "dependencies": {
       "super_lio_patches": 2,
-      "ego_patches": 11
+      "ego_patches": 9
     },
     "finite_child_tests_closed": true,
     "runtime_domains": [
       91,
       93,
       94,
-      98,
-      99,
       104,
-      109
+      106,
+      107
     ],
     "ROS_LOCALHOST_ONLY": true,
     "actual_raw_ground_status": "FAIL",
     "policy_tasks_reached": {
       "PASSIVE": "0/2",
       "PERIODIC_LOOK": "0/2",
-      "TASK_AWARE_LOOK": "0/2"
+      "TASK_AWARE_LOOK": "1/2"
     },
     "physical_actuator_runs": 0,
     "firmware_flashes": 0,
-    "Jetson_source_edits": 0,
-    "evidence_root": "audit/vehicle_ready/control-stop-qualified/",
     "preserved_preview": {
       "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
       "launch_pid": 1356150,
       "port": 8765,
       "unchanged": true
     },
-    "remaining": "Actual positive MID360ground adaptation/qualification; target effectiveoverlay/shadow and physical acceptance. Existing nominal mounting/STM data alreadyused."
-  },
-  "previous_checkpoint_state": "audit/vehicle_ready/history_pre_control_stop_qualification/RUN_STATE.json",
-  "current_finite_qualifiers": [
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-heading-loop.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-arc-loop.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-ego-interface.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-observer-session.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
-      "status": "PASS",
-      "runtime_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
-      "status": "FAIL",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
-      "status": "FAIL",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    }
-  ],
-  "local_workspace_recovery": {
-    "status": "PENDING",
-    "cause": "Mac filesystemENOSPC; all new implementation/receipts committedremotely",
-    "missing_temporary_pack": "work/ego-four-patch-verification/.git/objects/pack/pack-32afa50187ffcea2a14cc4f45896dbf01ee16053.pack",
-    "intact_original": "work/ego-four-patch-final-source/.git/objects/pack/pack-32afa50187ffcea2a14cc4f45896dbf01ee16053.pack",
-    "pack_bytes": 58608619,
-    "protected_research_sources_lost": false,
-    "retained_remote_transport_bundles": [
-      "ego-transfer.bundle",
-      "vehicle-history-load-source.bundle",
-      "vehicle-cache-source.bundle",
-      "vehicle-prefix-source.bundle",
-      "vehicle-circle-source.bundle"
-    ],
-    "external_Mac_report_sync": "PENDING"
-  },
-  "latest_jetson_probe": {
-    "status": "PENDING",
-    "exit": 255,
-    "result": "SSH connect timeout",
-    "evidence": "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
-    "source_modified": false
+    "evidence_root": "audit/vehicle_ready/heading-qualified",
+    "remaining": "actual MID360 dense-support adaptation, target shadow and physical acceptance; existing mounting/STM data already used"
   }
 }

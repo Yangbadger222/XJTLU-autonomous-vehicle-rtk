@@ -52,3 +52,5 @@ HTTP 只接受同源 Host/Origin、会话 cookie、窗口标识与 CSRF。
 `RESULTS.json` 与 `LIVE_ACCEPTANCE_CHECKLIST.md`。
 
 回放暂停采用所属播放器进程组 SIGSTOP；恢复可能追赶暂停期间的调度时间。本轮暂停/恢复验证不等于恢复后严格墙钟匀速验证。
+
+Current control-reference/stop qualification: see research_control_reference.md and AUDIT_REPORT.md. Reset and task start require renewed original1s full3D rate-tolerance confirmation; this is not physical brake certification.

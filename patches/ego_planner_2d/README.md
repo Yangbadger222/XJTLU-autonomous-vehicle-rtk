@@ -43,13 +43,10 @@ the audited identity `odom <- world` gauge. A competing static owner, any
 dynamic world edge, wrong parent or nonidentity transform latches denial.
 Historical four-patch evidence does not validate this new guard.
 
-All five patches apply sequentially to the pinned raw commit. See
-`audit/UPSTREAM_PATCH_VERIFICATION.json` and the exact source comparison in
-`audit/ego_four_patch_source_verification.json`. Current Humble validation is reported in
-`AUDIT_REPORT.md`; it is not a physical vehicle acceptance.
-
 The fourth patch also preserves the original coupled `|v*w| <= 0.25` guard cap in optimization, continuous certification and tracking. A validated 10 Hz heartbeat retains the trajectory generation time between 1 Hz geometry replans; every heartbeat still checks fresh state, TF, reference, map version and the remaining footprint against the current grid. Candidate queries cannot replace the execution cache.
 
 ## Current qualification
 
-Six patches apply sequentially to develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877. Patch0005 protects the owned local-world TF gauge;0006 carries atomic LocalEvidenceGrid2D map/session/acquisition identity into the pinned planner and rejects foreign/unsupported payloads. Fresh14 build and source byte equality: audit/vehicle_ready/da361f2/. Ordinary entry disables analytical fixture grids. Earlier four-patch receipts remain historical.
+Eleven patches apply sequentially to develop@7f5be6d4cee34871e85aa1f15285cfaf17b23877. Patch0006 binds atomic evidence identity;0007 separates local perception integrity from global motion authority;0008 checks original four signed STM motor targets;0009 adds explicit stationary heading recovery;0010 tags the source-derived chassis control reference without changing old RTK navigation;0011 uses original stop tolerances and measured yaw/acceleration boundary conditions with continuous derivative proof.
+
+Exact runtime/source proof and the staged SDK/14 foundation build are under audit/vehicle_ready/control-stop-qualified/. Earlier2/9 and other receipts retain historical identities. Current fault handling includes independent final-bridge admission and immediate callback revocation. Physical terrain/braking and policy benefit remain separate from software tests.

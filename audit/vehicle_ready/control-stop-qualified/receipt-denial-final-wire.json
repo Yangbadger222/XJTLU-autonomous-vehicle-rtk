@@ -1,0 +1,159 @@
+{
+  "status": "PASS",
+  "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "cases": [
+    {
+      "case": "authority",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "mode",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "health",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "tf",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "stop",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "speed",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "map",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "duplicate_stamp",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "out_of_order_stamp",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "acquisition_gap",
+      "nominal_rotation_reached_serial": true,
+      "token_committed_before_fault": true,
+      "receipt_denial_revoked_before_next_tick": true,
+      "restored_within_original_one_second_window": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "domain": 109,
+  "sink": "owned PTY",
+  "scope": "Actual installed ROS class receipt callbacks before tick; analytical state/grid/TF/consent; actual original guard and serial binary/final wire. No physical motion or emergency-stop claim"
+}

@@ -1,11 +1,17 @@
-# Current checkpoint review
+# Control-reference and immediate-denial review
+
+Review source: 63fc00c3c92c23b873b00ece8586f676921a87e1 on the authorized non-Jetson Humble host. Both reviews were read-only.
 
 ## Standards
 
-Independent increment review found no new actionable P1/P2 in explicit stationary rotation relative to9a0ec9b.1011 originals unchanged; generated stop confirmation duration retains the source YAML. Mode boundaries, fixed pivot, zero translation, full footprint, yaw/acceleration/source-RPM and original permission chain remain enforced. The persistence P2 is closed after2a61329: failed directory sync, reload, duplicate retry and recovered durable ack are covered without changing file bytes. Runtime qualification remains separate from this static conclusion.
+The independent Standards review closes the timer-gap P2: denial callbacks immediately revoke the rotation token and clear stop confirmation; restoring inputs before the timer cannot bypass the original one-second window. It independently checked 1011 original hashes, source-generator --check, 26 installed current runtime hashes and exact Super2/EGO11 patch proof. No new hard Standards P1/P2 was found in this increment.
 
 ## Spec
 
-No new actionable P1/P2 in the explicit rotation increment. Query cannot call a rotation-only preparatory step a complete reachable route; cache retains generated_at and rechecks the current map. Independent rotation/footprint8-test run passes. Earlier full6D covariance propagation and empty-ground vacuous PASS findings are closed; actual raw-positive failure is retained. Standards and Spec are separate judgments, without merged ranking.
+The independent Spec review closes the same receipt-ordering P2 after inspecting authority/mode/health/TF/map revocation. It checked five old-implementation RED counterexamples, current 222 portable passes and ten actual installed callbacks-to-original-serial PTY cases. No new Spec P1/P2 was found in this increment.
 
-Executed after review: fresh SDK/14 Humble packages and2/9 all-source proof pass;10 fresh EGO ROS cases,22 ground ROS fixtures,47 rotation/41 fresh linear final-wire faults,5 fresh original-RTK-classifier rotation fault cases, three default arcs and90-degree EGO recovery pass. Three-layer checks149 pass with the final audit helper. Six current default-policy tasks complete with unchanged foundation/prior; task-aware reaches1/2 and other modes0/2. Actual raw support remains FAIL, target/physical acceptance PENDING, and the whole goal remains active.
+The original measured stop rates are tolerances, not physical brake confirmation. Measured yaw velocity/acceleration remain recovery boundary conditions; admission is committed only after the final gates and invalidated on denial or stamp discontinuity.
+
+Executed evidence is audit/vehicle_ready/control-stop-qualified/: immediate-denial10, linear44, yaw50, RTK5, HMI11, heading/arc goals, EGO10 plus2 queries, observer7, entry16 and parameter157 checks. Current build is explicitly an 8c937ed fresh SDK/14 foundation plus a63fc00c runtime rebuild, with fresh=False in the staged receipt. Historical reviews and receipts remain in history_pre_control_stop_qualification/.
+
+Neither review certifies real terrain, strategy benefit, target deployment or physical braking. Actual ground support remains FAIL; the current strategy cohort reaches0/2 goals for each strategy; target shadow and physical acceptance remain pending.

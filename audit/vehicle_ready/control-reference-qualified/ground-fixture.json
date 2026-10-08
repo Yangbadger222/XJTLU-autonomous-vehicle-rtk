@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "dense_supported_ground_reaches_combined_grid",
+      "ok": true
+    },
+    {
+      "case": "padded_pcl_full_XYZI_stride_transforms_without_crash",
+      "ok": true
+    },
+    {
+      "case": "padded_pcl_bigendian_full_XYZI_stride_transforms_without_crash",
+      "ok": true
+    },
+    {
+      "case": "static_gauge_transform_retains_original_scan_stamp",
+      "ok": true
+    },
+    {
+      "case": "measured_strip_persists_only_local_geometric_width_and_range",
+      "ok": true
+    },
+    {
+      "case": "correlated_repeat_does_not_add_confirmation",
+      "ok": true
+    },
+    {
+      "case": "unknown_strip_end_proposes_only_finite_question",
+      "ok": true
+    },
+    {
+      "case": "reverse_order_never_refreshes_previous_support",
+      "ok": true
+    },
+    {
+      "case": "missing_subcell_unknown",
+      "ok": true
+    },
+    {
+      "case": "six_cm_obstacle_not_lost_by_old_height_filter",
+      "ok": true
+    },
+    {
+      "case": "measured_drop_blocked",
+      "ok": true
+    },
+    {
+      "case": "adjacent_flat_nine_cm_step_blocked",
+      "ok": true
+    },
+    {
+      "case": "health_denied_does_not_preserve_support",
+      "ok": true
+    },
+    {
+      "case": "tf_denied_does_not_preserve_support",
+      "ok": true
+    },
+    {
+      "case": "unmatched_does_not_preserve_support",
+      "ok": true
+    },
+    {
+      "case": "frame_does_not_preserve_support",
+      "ok": true
+    },
+    {
+      "case": "paused_clock_wall_expiry",
+      "ok": true
+    },
+    {
+      "case": "clock_regression_latched",
+      "ok": true
+    },
+    {
+      "case": "clock_fault_does_not_self_clear",
+      "ok": true
+    },
+    {
+      "case": "queued_old_version_cannot_rebind_free",
+      "ok": true
+    },
+    {
+      "case": "wrong_session_cannot_rebind_free",
+      "ok": true
+    },
+    {
+      "case": "CLI_mount_override_rejected",
+      "ok": true
+    }
+  ],
+  "provider_owned_stop_exit": 0,
+  "local_grid_alive": true,
+  "domain": 106,
+  "ground_messages": 491,
+  "combined_messages": 1149,
+  "evidence_record_count": 2,
+  "measured_question_count": 240,
+  "source_commit": "6c66778d9de48f4e91ff2b40cc26f35f71ed29b4",
+  "scope": "Actual installed ROS support/local-grid nodes with analytical fixtures; no physical terrain, LIO accuracy, authority or actuator claim"
+}

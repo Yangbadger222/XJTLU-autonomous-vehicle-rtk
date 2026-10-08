@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/scripts/validate_lio_reference_replay.py", line 427, in <module>
+    if __name__=='__main__':raise SystemExit(main())
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/scripts/validate_lio_reference_replay.py", line 207, in main
+    rclpy.spin_once(node,timeout_sec=.01)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py", line 208, in spin_once
+    executor.spin_once(timeout_sec=timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 773, in spin_once
+    self._spin_once_impl(timeout_sec)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 770, in _spin_once_impl
+    raise handler.exception()
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/task.py", line 254, in __call__
+    self._handler.send(None)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 463, in handler
+    await call_coroutine(entity, arg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 382, in _execute_subscription
+    await await_or_execute(sub.callback, msg)
+  File "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/executors.py", line 107, in await_or_execute
+    return callback(*args)
+  File "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready/scripts/validate_lio_reference_replay.py", line 98, in ground_cloud
+    floor=expected_ground_z((p.x,p.y,p.z),(q.x,q.y,q.z,q.w),
+  File "/dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/python3.10/site-packages/research_runtime/observed_ground.py", line 51, in expected_ground_z
+    raise ValueError("ground reference requires a unit quaternion")
+ValueError: ground reference requires a unit quaternion

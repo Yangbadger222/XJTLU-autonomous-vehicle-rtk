@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+  "workspace": "/dev/shm/codex-stop-fresh-ws",
+  "build_exit": 0,
+  "package_count": 14,
+  "fresh_before_build": true,
+  "elapsed_s": 275.7692099559936,
+  "source_unchanged": true,
+  "scope": "new system-only Humble, actual SDK and all14 allowlisted packages, single worker; no production overlay or physical devices",
+  "receipt_parser_correction": "Original regex escaped the digit class twice; compiler exit0 and actual Summary14 independently verified; original receipt retained"
+}

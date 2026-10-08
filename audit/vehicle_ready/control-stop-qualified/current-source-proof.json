@@ -1,9 +1,6 @@
 {
-  "schema": 3,
-  "current_source_proof": "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
-  "current_clean_build": "audit/vehicle_ready/control-stop-qualified/current-build.json",
-  "current_build_log": "audit/vehicle_ready/control-stop-qualified/build-summary.log",
-  "historical_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_pre_ground.json",
+  "status": "PASS",
+  "research_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
   "dependencies": {
     "super_lio": {
       "pinned_commit": "f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2",
@@ -263,8 +260,5 @@
       }
     }
   },
-  "previous_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_70dd12d.json",
-  "current_fresh_foundation": "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
-  "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-  "build_scope": "8c fresh SDK/14 foundation plus current63 research_runtime rebuild; not a fresh14 rebuild at63"
+  "scope": "fresh exact-pin sequential patches and actual runtime checkout byte equality; compile/replay are separate receipts"
 }

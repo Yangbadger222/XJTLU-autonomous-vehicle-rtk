@@ -1,0 +1,119 @@
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_authority-False-True] _
+
+name = '_authority', denied = False, restored = True
+
+    @pytest.mark.parametrize("name,denied,restored",[
+        ("_authority",False,True),
+        ("_authority_mode_cb","RTK_HOLD","RTK_AUTHORITATIVE"),
+        ("_health_cb","UNKNOWN:lost","OK:restored"),
+        ("_tf_cb",False,True),
+        ("_map_version_cb","UNKNOWN","map1")])
+    def test_denial_then_restore_before_next_tick_does_not_preserve_rotation(name,denied,restored):
+        target,plan=callback_target()
+        getattr(target,name)(SimpleNamespace(data=denied))
+        getattr(target,name)(SimpleNamespace(data=restored))
+        moving=TrackerState(0.,0.,0.,0.,.2,False)
+>       assert target._tracker.command(plan,moving,now=1.1) is None
+E       AssertionError: assert TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') is None
+E        +  where TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') = <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffc36b60>>(TimedTrajectory(trajectory_id='rotation', map_version='map1', frame_id='odom', generated_at=1.0, valid_until=2.0, poin...rce='ego_planner_2d_vehicle_adaptation', control_reference_contract='corridor_e54c6af_mid360_ground_control_origin_v1'), TrackerState(x=0.0, y=0.0, yaw=0.0, translation_speed=0.0, yaw_rate=0.2, stationary_confirmed=False), now=1.1)
+E        +    where <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffc36b60>> = <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffc36b60>.command
+E        +      where <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffc36b60> = namespace(_tf_cb=<function callback_target.<locals>.<lambda> at 0x7781ffb02050>, _map_version_cb=<function callback_ta...back_target.<locals>.<lambda> at 0x7781ffb02830>), _map_version='map1', _allowed=True, _allowed_stamp=307545.169392753)._tracker
+
+src/research_runtime/test/test_rotation_denial_callbacks.py:53: AssertionError
+_ test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_authority_mode_cb-RTK_HOLD-RTK_AUTHORITATIVE] _
+
+name = '_authority_mode_cb', denied = 'RTK_HOLD', restored = 'RTK_AUTHORITATIVE'
+
+    @pytest.mark.parametrize("name,denied,restored",[
+        ("_authority",False,True),
+        ("_authority_mode_cb","RTK_HOLD","RTK_AUTHORITATIVE"),
+        ("_health_cb","UNKNOWN:lost","OK:restored"),
+        ("_tf_cb",False,True),
+        ("_map_version_cb","UNKNOWN","map1")])
+    def test_denial_then_restore_before_next_tick_does_not_preserve_rotation(name,denied,restored):
+        target,plan=callback_target()
+        getattr(target,name)(SimpleNamespace(data=denied))
+        getattr(target,name)(SimpleNamespace(data=restored))
+        moving=TrackerState(0.,0.,0.,0.,.2,False)
+>       assert target._tracker.command(plan,moving,now=1.1) is None
+E       AssertionError: assert TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') is None
+E        +  where TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') = <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb5c850>>(TimedTrajectory(trajectory_id='rotation', map_version='map1', frame_id='odom', generated_at=1.0, valid_until=2.0, poin...rce='ego_planner_2d_vehicle_adaptation', control_reference_contract='corridor_e54c6af_mid360_ground_control_origin_v1'), TrackerState(x=0.0, y=0.0, yaw=0.0, translation_speed=0.0, yaw_rate=0.2, stationary_confirmed=False), now=1.1)
+E        +    where <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb5c850>> = <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb5c850>.command
+E        +      where <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb5c850> = namespace(_tf_cb=<function callback_target.<locals>.<lambda> at 0x7781ffb02b90>, _map_version_cb=<function callback_ta... at 0x7781ffb032e0>), _map_version='map1', _authority_mode='RTK_AUTHORITATIVE', _authority_mode_stamp=307545.183271452)._tracker
+
+src/research_runtime/test/test_rotation_denial_callbacks.py:53: AssertionError
+_ test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_health_cb-UNKNOWN:lost-OK:restored] _
+
+name = '_health_cb', denied = 'UNKNOWN:lost', restored = 'OK:restored'
+
+    @pytest.mark.parametrize("name,denied,restored",[
+        ("_authority",False,True),
+        ("_authority_mode_cb","RTK_HOLD","RTK_AUTHORITATIVE"),
+        ("_health_cb","UNKNOWN:lost","OK:restored"),
+        ("_tf_cb",False,True),
+        ("_map_version_cb","UNKNOWN","map1")])
+    def test_denial_then_restore_before_next_tick_does_not_preserve_rotation(name,denied,restored):
+        target,plan=callback_target()
+        getattr(target,name)(SimpleNamespace(data=denied))
+        getattr(target,name)(SimpleNamespace(data=restored))
+        moving=TrackerState(0.,0.,0.,0.,.2,False)
+>       assert target._tracker.command(plan,moving,now=1.1) is None
+E       AssertionError: assert TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') is None
+E        +  where TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') = <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb18520>>(TimedTrajectory(trajectory_id='rotation', map_version='map1', frame_id='odom', generated_at=1.0, valid_until=2.0, poin...rce='ego_planner_2d_vehicle_adaptation', control_reference_contract='corridor_e54c6af_mid360_ground_control_origin_v1'), TrackerState(x=0.0, y=0.0, yaw=0.0, translation_speed=0.0, yaw_rate=0.2, stationary_confirmed=False), now=1.1)
+E        +    where <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb18520>> = <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb18520>.command
+E        +      where <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffb18520> = namespace(_tf_cb=<function callback_target.<locals>.<lambda> at 0x7781ffb03370>, _map_version_cb=<function callback_ta...arget.<locals>.<lambda> at 0x7781ffb03ac0>), _map_version='map1', _health='OK:RESTORED', _health_stamp=307545.19262756)._tracker
+
+src/research_runtime/test/test_rotation_denial_callbacks.py:53: AssertionError
+_ test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_tf_cb-False-True] _
+
+name = '_tf_cb', denied = False, restored = True
+
+    @pytest.mark.parametrize("name,denied,restored",[
+        ("_authority",False,True),
+        ("_authority_mode_cb","RTK_HOLD","RTK_AUTHORITATIVE"),
+        ("_health_cb","UNKNOWN:lost","OK:restored"),
+        ("_tf_cb",False,True),
+        ("_map_version_cb","UNKNOWN","map1")])
+    def test_denial_then_restore_before_next_tick_does_not_preserve_rotation(name,denied,restored):
+        target,plan=callback_target()
+        getattr(target,name)(SimpleNamespace(data=denied))
+        getattr(target,name)(SimpleNamespace(data=restored))
+        moving=TrackerState(0.,0.,0.,0.,.2,False)
+>       assert target._tracker.command(plan,moving,now=1.1) is None
+E       AssertionError: assert TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') is None
+E        +  where TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') = <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffadf4f0>>(TimedTrajectory(trajectory_id='rotation', map_version='map1', frame_id='odom', generated_at=1.0, valid_until=2.0, poin...rce='ego_planner_2d_vehicle_adaptation', control_reference_contract='corridor_e54c6af_mid360_ground_control_origin_v1'), TrackerState(x=0.0, y=0.0, yaw=0.0, translation_speed=0.0, yaw_rate=0.2, stationary_confirmed=False), now=1.1)
+E        +    where <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffadf4f0>> = <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffadf4f0>.command
+E        +      where <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffadf4f0> = namespace(_tf_cb=<function callback_target.<locals>.<lambda> at 0x7781ffb03b50>, _map_version_cb=<function callback_ta... callback_target.<locals>.<lambda> at 0x7781ff9f4310>), _map_version='map1', _tf_valid=True, _tf_stamp=307545.20038682)._tracker
+
+src/research_runtime/test/test_rotation_denial_callbacks.py:53: AssertionError
+_ test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_map_version_cb-UNKNOWN-map1] _
+
+name = '_map_version_cb', denied = 'UNKNOWN', restored = 'map1'
+
+    @pytest.mark.parametrize("name,denied,restored",[
+        ("_authority",False,True),
+        ("_authority_mode_cb","RTK_HOLD","RTK_AUTHORITATIVE"),
+        ("_health_cb","UNKNOWN:lost","OK:restored"),
+        ("_tf_cb",False,True),
+        ("_map_version_cb","UNKNOWN","map1")])
+    def test_denial_then_restore_before_next_tick_does_not_preserve_rotation(name,denied,restored):
+        target,plan=callback_target()
+        getattr(target,name)(SimpleNamespace(data=denied))
+        getattr(target,name)(SimpleNamespace(data=restored))
+        moving=TrackerState(0.,0.,0.,0.,.2,False)
+>       assert target._tracker.command(plan,moving,now=1.1) is None
+E       AssertionError: assert TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') is None
+E        +  where TrackerCommand(linear_x=0.0, angular_z=0.33, target=TimedPoint(t=0.10000000000000009, x=0.0, y=0.0, yaw=0.030000000000000023, v=0.0, w=0.3, a=0.0, alpha=0.0, curvature=0.0, motion_mode=1), reason='tracked') = <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffaafe20>>(TimedTrajectory(trajectory_id='rotation', map_version='map1', frame_id='odom', generated_at=1.0, valid_until=2.0, poin...rce='ego_planner_2d_vehicle_adaptation', control_reference_contract='corridor_e54c6af_mid360_ground_control_origin_v1'), TrackerState(x=0.0, y=0.0, yaw=0.0, translation_speed=0.0, yaw_rate=0.2, stationary_confirmed=False), now=1.1)
+E        +    where <bound method TimedTrajectoryTracker.command of <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffaafe20>> = <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffaafe20>.command
+E        +      where <research_runtime.trajectory_tracker.TimedTrajectoryTracker object at 0x7781ffaafe20> = namespace(_tf_cb=<function callback_target.<locals>.<lambda> at 0x7781ffb036d0>, _map_version_cb=<function callback_ta...rity=<function callback_target.<locals>.<lambda> at 0x7781ffb03ac0>), _map_version='map1', _map_stamp=307545.211037428)._tracker
+
+src/research_runtime/test/test_rotation_denial_callbacks.py:53: AssertionError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_rotation_denial_callbacks.py::test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_authority-False-True]
+FAILED src/research_runtime/test/test_rotation_denial_callbacks.py::test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_authority_mode_cb-RTK_HOLD-RTK_AUTHORITATIVE]
+FAILED src/research_runtime/test/test_rotation_denial_callbacks.py::test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_health_cb-UNKNOWN:lost-OK:restored]
+FAILED src/research_runtime/test/test_rotation_denial_callbacks.py::test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_tf_cb-False-True]
+FAILED src/research_runtime/test/test_rotation_denial_callbacks.py::test_denial_then_restore_before_next_tick_does_not_preserve_rotation[_map_version_cb-UNKNOWN-map1]
+5 failed in 0.06s

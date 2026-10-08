@@ -1,0 +1,40 @@
+Starting >>> research_runtime
+running egg_info
+writing ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/PKG-INFO
+writing dependency_links to ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/dependency_links.txt
+writing entry points to ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/entry_points.txt
+writing requirements to ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/requires.txt
+writing top-level names to ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/top_level.txt
+reading manifest file '../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/SOURCES.txt'
+writing manifest file '../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info/SOURCES.txt'
+running build
+running build_py
+copying research_runtime/safety_bridge.py -> /dev/shm/codex-stop-fresh-ws/build/research_runtime/build/lib/research_runtime
+warning: build_py: byte-compiling is disabled, skipping.
+
+running install
+running install_lib
+copying /dev/shm/codex-stop-fresh-ws/build/research_runtime/build/lib/research_runtime/safety_bridge.py -> /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/python3.10/site-packages/research_runtime
+warning: install_lib: byte-compiling is disabled, skipping.
+
+running install_data
+running install_egg_info
+removing '/dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/python3.10/site-packages/research_runtime-0.1.0-py3.10.egg-info' (and everything under it)
+Copying ../../../../../../../dev/shm/codex-stop-fresh-ws/build/research_runtime/research_runtime.egg-info to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/python3.10/site-packages/research_runtime-0.1.0-py3.10.egg-info
+running install_scripts
+Installing research_local_obstacle_grid script to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/research_runtime
+Installing research_observed_ground script to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/research_runtime
+Installing research_operator_console script to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/research_runtime
+Installing research_replay script to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/research_runtime
+Installing research_safety_bridge script to /dev/shm/codex-stop-fresh-ws/install/research_runtime/lib/research_runtime
+writing list of installed files to '/dev/shm/codex-stop-fresh-ws/build/research_runtime/install.log'
+--- stderr: research_runtime
+warning: build_py: byte-compiling is disabled, skipping.
+
+warning: install_lib: byte-compiling is disabled, skipping.
+
+---
+Finished <<< research_runtime [0.47s]
+
+Summary: 1 package finished [0.61s]
+  1 package had stderr output: research_runtime

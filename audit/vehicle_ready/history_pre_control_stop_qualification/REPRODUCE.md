@@ -1,0 +1,17 @@
+# Current source qualification
+
+Goal is active. Fresh compile source3c6ec9fc1e8ddfb9c0f4add87ea5fc2b292fb477; subsequent audit/report-only commits leave installed sources unchanged. Exact pins and sequential Super2/EGO9 patches are checked by scripts/verify_current_upstream_patches.py; use a NEW verification-root and the actual patched dependency checkout. Fresh build recipe scripts/build_active_road_research.sh clears inherited overlays and compiles the original SDK plus14 allowlisted packages with one worker into an independent absolute workspace.
+
+Current non-Jetson fresh workspace: /dev/shm/codex-heading-final-3c6-ws. Earlier incremental qualification uses /dev/shm/codex-road-e2cba91-ws. Source checkout vehicle-lio-ready; original dirty checkout and historical preview/install remain preserved. No physical devices or drivers are opened by default replay. Surface and motion receipts name their own exact runtime source.
+
+Executed receipts and repeatable scripts:
+
+- Three full raw LIO/source-reference trials at69b9b75: scripts/validate_lio_reference_replay.py, domain104/localhost-only, raw /livox/lidar and /livox/imu plus clock. Actual metadata/EOF/span/gap/health checks, no duration prefix relabeled as full replay.
+- Current installed ground fixtures: scripts/validate_observed_ground_ros.py, domain106/localhost-only, actual22 ROS cases, no serial sink. Actual raw --ground-pipeline --ground-diagnostics returns FAIL for positive support; --duration-s30 is explicitly a PREFIX, never EOF.
+- Current EGO interface and final serial faults: scripts/validate_ego_vehicle_ros.py and scripts/validate_mock_serial_ros.py, domain91/localhost-only; --default-profile uses current source YAML, with analytical floor/sensors explicitly labelled. --rotation-fixture checks pure-yaw faults; --rtk-classifier adds actual original classifier GNSS fault fixtures. Serial only opens an allocated PTY.
+- Default control loops: --default-profile --arc-loop --arc-radius4 --loop-budget-s35, three executed repeats; --default-profile --heading-recovery-loop --loop-budget-s35 requires actual stationary90-degree recovery. Source limits and pass criteria are unchanged.
+- Finite policy comparison: research-venv/bin/python with system ROS paths; scripts/validate_restricted_policy_ros.py --default-profile --budget-s60 --tasks2, domain94/localhost-only. Six tasks complete on identical foundation; no truth is fed into policy. No real camera/prior qualification is inferred.
+- Current default entry: scripts/validate_research_launch.py, domain93/localhost-only, --console-port8876 --override-probes, preserved preview port8765 untouched. Actual graph/owners/parameters; deliberately invalid overrides must fail.
+- Portable tests: PYTHONPATH=src/research_runtime:src/active_road_mapping:src/super_lio_vehicle_adapter python3 -m pytest -q src/research_runtime/test src/super_lio_vehicle_adapter/test scripts/test_research_bag_contract.py scripts/test_recorded_chassis_response.py scripts/test_replay_acceptance.py. Current193 tests pass; scripts/generate_research_parameter_lock.py --check verifies generated source constants. Run the three-layer audit on Humble with xacro available; the Mac has no xacro executable.
+
+Real positive ground/road support, Jetson shadow and physical acceptance remain pending. Source-derived default control now runs. Historical command/evidence details are preserved under audit/vehicle_ready/history_pre_qualification/REPRODUCE.md; their older runtime hashes must not be applied to current sources.

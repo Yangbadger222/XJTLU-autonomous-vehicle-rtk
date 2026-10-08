@@ -1,0 +1,20 @@
+Cloning into '/dev/shm/codex-stop-receipt-callback-proof/super_lio'...
+done.
+HEAD is now at f89f48d fix: relocation issue, fixes #29
+Cloning into '/dev/shm/codex-stop-receipt-callback-proof/ego_planner_2d_ros2'...
+done.
+HEAD is now at 7f5be6d Update README.md
+{
+  "status": "PASS",
+  "research_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "dependencies": {
+    "super_lio": {
+      "patch_count": 2,
+      "differences": []
+    },
+    "ego_planner_2d_ros2": {
+      "patch_count": 11,
+      "differences": []
+    }
+  }
+}

@@ -39,6 +39,7 @@ def sha256(path: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--external-report", type=Path, help="distinct report copy on this executor; Mac synchronization is separately reported")
     args = parser.parse_args()
     checks: list[dict[str, object]] = []
 
@@ -96,7 +97,7 @@ def main() -> int:
     check("current_clean_humble_build",clean.get("status")=="PASS" and clean.get("build_exit")==0 and
           clean.get("package_count")==14 and compiled_sources_match,
           [str(clean_path),verification["current_build_log"]],
-          "fresh isolated SDK/14-package build; runtime changes since build: "+repr(runtime_changes))
+          "isolated SDK/14 foundation; current receipt fresh_before_build="+repr(clean.get("fresh_before_build"))+"; runtime changes since build: "+repr(runtime_changes))
 
     three_patch_recipe = Path("audit/container/ego-current-three-patch-build.Dockerfile")
     recipe_text = three_patch_recipe.read_text() if three_patch_recipe.is_file() else ""
@@ -216,8 +217,8 @@ def main() -> int:
           ["RESULTS.json"])
 
     report = Path("outputs/RESEARCH_DELIVERY_REPORT.md")
-    external_report = Path("/Users/badger/Documents/Codex/2026-10-07/codex-goal-superlio-ego-research-md/outputs/RESEARCH_DELIVERY_REPORT.md")
-    check("report_copy", report.is_file() and external_report.is_file() and filecmp.cmp(report, external_report, shallow=False),
+    external_report = args.external_report or Path("/Users/badger/Documents/Codex/2026-10-07/codex-goal-superlio-ego-research-md/outputs/RESEARCH_DELIVERY_REPORT.md")
+    check("report_copy", report.resolve() != external_report.resolve() and report.is_file() and external_report.is_file() and filecmp.cmp(report, external_report, shallow=False),
           [str(report), str(external_report)])
 
     payload = {"schema": 1, "branch": branch, "tip": tip, "base": BASE,

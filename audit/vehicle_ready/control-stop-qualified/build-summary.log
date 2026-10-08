@@ -1,0 +1,29 @@
+Starting >>> research_interfaces
+Finished <<< research_interfaces [14.1s]
+Starting >>> gps_waypoint_dispatcher
+Finished <<< gps_waypoint_dispatcher [0.47s]
+Starting >>> super_lio_vehicle_adapter
+Finished <<< super_lio_vehicle_adapter [0.47s]
+Starting >>> serial
+Finished <<< serial [1.09s]
+Starting >>> research_runtime
+Finished <<< research_runtime [0.48s]
+Starting >>> basic
+Finished <<< basic [5.74s]
+Starting >>> livox_ros_driver2
+Finished <<< livox_ros_driver2 [21.5s]
+Starting >>> ego_planner
+Finished <<< ego_planner [52.3s]
+Starting >>> serial_twistctl
+Finished <<< serial_twistctl [4.77s]
+Starting >>> super_lio
+Finished <<< super_lio [1min 24s]
+Starting >>> um982_rtk_driver
+Finished <<< um982_rtk_driver [4.82s]
+Starting >>> active_road_mapping
+Finished <<< active_road_mapping [0.48s]
+Starting >>> ego_vehicle_adapter
+Finished <<< ego_vehicle_adapter [0.47s]
+Starting >>> bringup
+Finished <<< bringup [0.46s]
+Summary: 14 packages finished [3min 12s]

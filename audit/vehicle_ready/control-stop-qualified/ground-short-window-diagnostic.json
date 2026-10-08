@@ -1,0 +1,1411 @@
+{
+  "scope": "Read-only diagnostic of actual compiled ground clouds and exact-acquisition odom. Existing geometry thresholds retained; temporal union NOT used for permission, evidence, control or acceptance. At most .4s history with .025m floor-reference agreement.",
+  "received_clouds": 266,
+  "matching_or_processing_faults": 0,
+  "rows": [
+    {
+      "stamp_ns": 1784615660795803546,
+      "input_points": 2997,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615660795803546,
+          "stats": {
+            "finite_points": 2997,
+            "nonfinite_points": 0,
+            "out_of_window": 80,
+            "supported_cells": 0,
+            "blocked_cells": 295,
+            "sparse_cells": 65,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615660693337202,
+          "stats": {
+            "finite_points": 5970,
+            "nonfinite_points": 0,
+            "out_of_window": 155,
+            "supported_cells": 0,
+            "blocked_cells": 439,
+            "sparse_cells": 56,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615660493711948,
+          "stats": {
+            "finite_points": 11952,
+            "nonfinite_points": 0,
+            "out_of_window": 299,
+            "supported_cells": 0,
+            "blocked_cells": 639,
+            "sparse_cells": 86,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615661795204401,
+      "input_points": 2992,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615661795204401,
+          "stats": {
+            "finite_points": 2992,
+            "nonfinite_points": 0,
+            "out_of_window": 72,
+            "supported_cells": 0,
+            "blocked_cells": 296,
+            "sparse_cells": 51,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615661694525480,
+          "stats": {
+            "finite_points": 5961,
+            "nonfinite_points": 0,
+            "out_of_window": 155,
+            "supported_cells": 0,
+            "blocked_cells": 444,
+            "sparse_cells": 79,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615661495087862,
+          "stats": {
+            "finite_points": 11896,
+            "nonfinite_points": 0,
+            "out_of_window": 300,
+            "supported_cells": 0,
+            "blocked_cells": 605,
+            "sparse_cells": 82,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615662793331384,
+      "input_points": 2970,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615662793331384,
+          "stats": {
+            "finite_points": 2970,
+            "nonfinite_points": 0,
+            "out_of_window": 84,
+            "supported_cells": 0,
+            "blocked_cells": 326,
+            "sparse_cells": 32,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615662593610525,
+          "stats": {
+            "finite_points": 8924,
+            "nonfinite_points": 0,
+            "out_of_window": 211,
+            "supported_cells": 0,
+            "blocked_cells": 560,
+            "sparse_cells": 70,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615662394654989,
+          "stats": {
+            "finite_points": 14908,
+            "nonfinite_points": 0,
+            "out_of_window": 382,
+            "supported_cells": 0,
+            "blocked_cells": 684,
+            "sparse_cells": 87,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615663795463800,
+      "input_points": 2978,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615663795463800,
+          "stats": {
+            "finite_points": 2978,
+            "nonfinite_points": 0,
+            "out_of_window": 89,
+            "supported_cells": 0,
+            "blocked_cells": 314,
+            "sparse_cells": 55,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615663693004369,
+          "stats": {
+            "finite_points": 5921,
+            "nonfinite_points": 0,
+            "out_of_window": 163,
+            "supported_cells": 0,
+            "blocked_cells": 431,
+            "sparse_cells": 65,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615663495088338,
+          "stats": {
+            "finite_points": 11939,
+            "nonfinite_points": 0,
+            "out_of_window": 339,
+            "supported_cells": 0,
+            "blocked_cells": 619,
+            "sparse_cells": 66,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615664795187473,
+      "input_points": 2983,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615664795187473,
+          "stats": {
+            "finite_points": 2983,
+            "nonfinite_points": 0,
+            "out_of_window": 83,
+            "supported_cells": 0,
+            "blocked_cells": 303,
+            "sparse_cells": 65,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615664693078041,
+          "stats": {
+            "finite_points": 5947,
+            "nonfinite_points": 0,
+            "out_of_window": 164,
+            "supported_cells": 0,
+            "blocked_cells": 438,
+            "sparse_cells": 61,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615664395318746,
+          "stats": {
+            "finite_points": 14923,
+            "nonfinite_points": 0,
+            "out_of_window": 405,
+            "supported_cells": 1,
+            "blocked_cells": 688,
+            "sparse_cells": 77,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615665793713569,
+      "input_points": 2979,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615665793713569,
+          "stats": {
+            "finite_points": 2979,
+            "nonfinite_points": 0,
+            "out_of_window": 80,
+            "supported_cells": 0,
+            "blocked_cells": 284,
+            "sparse_cells": 67,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615665695253849,
+          "stats": {
+            "finite_points": 5953,
+            "nonfinite_points": 0,
+            "out_of_window": 163,
+            "supported_cells": 0,
+            "blocked_cells": 449,
+            "sparse_cells": 56,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615665394478559,
+          "stats": {
+            "finite_points": 14818,
+            "nonfinite_points": 0,
+            "out_of_window": 390,
+            "supported_cells": 0,
+            "blocked_cells": 684,
+            "sparse_cells": 84,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615666794969558,
+      "input_points": 3007,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615666794969558,
+          "stats": {
+            "finite_points": 3007,
+            "nonfinite_points": 0,
+            "out_of_window": 77,
+            "supported_cells": 0,
+            "blocked_cells": 291,
+            "sparse_cells": 72,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615666693100690,
+          "stats": {
+            "finite_points": 5980,
+            "nonfinite_points": 0,
+            "out_of_window": 157,
+            "supported_cells": 0,
+            "blocked_cells": 440,
+            "sparse_cells": 72,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615666492417335,
+          "stats": {
+            "finite_points": 11986,
+            "nonfinite_points": 0,
+            "out_of_window": 320,
+            "supported_cells": 0,
+            "blocked_cells": 618,
+            "sparse_cells": 92,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615667794917106,
+      "input_points": 3008,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615667794917106,
+          "stats": {
+            "finite_points": 3008,
+            "nonfinite_points": 0,
+            "out_of_window": 80,
+            "supported_cells": 0,
+            "blocked_cells": 289,
+            "sparse_cells": 48,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615667693546056,
+          "stats": {
+            "finite_points": 5992,
+            "nonfinite_points": 0,
+            "out_of_window": 156,
+            "supported_cells": 0,
+            "blocked_cells": 444,
+            "sparse_cells": 67,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615667494596958,
+          "stats": {
+            "finite_points": 11920,
+            "nonfinite_points": 0,
+            "out_of_window": 312,
+            "supported_cells": 0,
+            "blocked_cells": 629,
+            "sparse_cells": 79,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615668792843341,
+      "input_points": 2962,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615668792843341,
+          "stats": {
+            "finite_points": 2962,
+            "nonfinite_points": 0,
+            "out_of_window": 85,
+            "supported_cells": 0,
+            "blocked_cells": 335,
+            "sparse_cells": 39,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615668592878580,
+          "stats": {
+            "finite_points": 8941,
+            "nonfinite_points": 0,
+            "out_of_window": 205,
+            "supported_cells": 0,
+            "blocked_cells": 555,
+            "sparse_cells": 70,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615668394938707,
+          "stats": {
+            "finite_points": 14919,
+            "nonfinite_points": 0,
+            "out_of_window": 369,
+            "supported_cells": 0,
+            "blocked_cells": 687,
+            "sparse_cells": 85,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615669795431852,
+      "input_points": 2997,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615669795431852,
+          "stats": {
+            "finite_points": 2997,
+            "nonfinite_points": 0,
+            "out_of_window": 88,
+            "supported_cells": 0,
+            "blocked_cells": 318,
+            "sparse_cells": 38,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615669692932605,
+          "stats": {
+            "finite_points": 5963,
+            "nonfinite_points": 0,
+            "out_of_window": 141,
+            "supported_cells": 0,
+            "blocked_cells": 462,
+            "sparse_cells": 65,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615669494891643,
+          "stats": {
+            "finite_points": 11891,
+            "nonfinite_points": 0,
+            "out_of_window": 312,
+            "supported_cells": 0,
+            "blocked_cells": 629,
+            "sparse_cells": 71,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615670794710874,
+      "input_points": 3004,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615670794710874,
+          "stats": {
+            "finite_points": 3004,
+            "nonfinite_points": 0,
+            "out_of_window": 83,
+            "supported_cells": 0,
+            "blocked_cells": 325,
+            "sparse_cells": 42,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615670693440198,
+          "stats": {
+            "finite_points": 5985,
+            "nonfinite_points": 0,
+            "out_of_window": 147,
+            "supported_cells": 0,
+            "blocked_cells": 456,
+            "sparse_cells": 75,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615670394932031,
+          "stats": {
+            "finite_points": 14893,
+            "nonfinite_points": 0,
+            "out_of_window": 390,
+            "supported_cells": 0,
+            "blocked_cells": 684,
+            "sparse_cells": 87,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615671794890642,
+      "input_points": 3002,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615671794890642,
+          "stats": {
+            "finite_points": 3002,
+            "nonfinite_points": 0,
+            "out_of_window": 98,
+            "supported_cells": 0,
+            "blocked_cells": 348,
+            "sparse_cells": 40,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615671595311403,
+          "stats": {
+            "finite_points": 8953,
+            "nonfinite_points": 0,
+            "out_of_window": 251,
+            "supported_cells": 0,
+            "blocked_cells": 574,
+            "sparse_cells": 71,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615671395314931,
+          "stats": {
+            "finite_points": 14960,
+            "nonfinite_points": 0,
+            "out_of_window": 408,
+            "supported_cells": 0,
+            "blocked_cells": 696,
+            "sparse_cells": 86,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615672794854402,
+      "input_points": 2982,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615672794854402,
+          "stats": {
+            "finite_points": 2982,
+            "nonfinite_points": 0,
+            "out_of_window": 83,
+            "supported_cells": 0,
+            "blocked_cells": 296,
+            "sparse_cells": 49,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615672695443153,
+          "stats": {
+            "finite_points": 6017,
+            "nonfinite_points": 0,
+            "out_of_window": 160,
+            "supported_cells": 0,
+            "blocked_cells": 417,
+            "sparse_cells": 79,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615672493774652,
+          "stats": {
+            "finite_points": 11999,
+            "nonfinite_points": 0,
+            "out_of_window": 296,
+            "supported_cells": 0,
+            "blocked_cells": 611,
+            "sparse_cells": 85,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615673794867992,
+      "input_points": 2992,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615673794867992,
+          "stats": {
+            "finite_points": 2992,
+            "nonfinite_points": 0,
+            "out_of_window": 93,
+            "supported_cells": 0,
+            "blocked_cells": 306,
+            "sparse_cells": 46,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615673595206022,
+          "stats": {
+            "finite_points": 8938,
+            "nonfinite_points": 0,
+            "out_of_window": 240,
+            "supported_cells": 0,
+            "blocked_cells": 539,
+            "sparse_cells": 79,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615673494083166,
+          "stats": {
+            "finite_points": 11889,
+            "nonfinite_points": 0,
+            "out_of_window": 335,
+            "supported_cells": 0,
+            "blocked_cells": 582,
+            "sparse_cells": 80,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615674794756412,
+      "input_points": 2982,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615674794756412,
+          "stats": {
+            "finite_points": 2982,
+            "nonfinite_points": 0,
+            "out_of_window": 57,
+            "supported_cells": 0,
+            "blocked_cells": 254,
+            "sparse_cells": 67,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615674693100452,
+          "stats": {
+            "finite_points": 5968,
+            "nonfinite_points": 0,
+            "out_of_window": 118,
+            "supported_cells": 0,
+            "blocked_cells": 451,
+            "sparse_cells": 75,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615674395107984,
+          "stats": {
+            "finite_points": 14941,
+            "nonfinite_points": 0,
+            "out_of_window": 349,
+            "supported_cells": 0,
+            "blocked_cells": 668,
+            "sparse_cells": 88,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615675795363903,
+      "input_points": 2987,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615675795363903,
+          "stats": {
+            "finite_points": 2987,
+            "nonfinite_points": 0,
+            "out_of_window": 63,
+            "supported_cells": 0,
+            "blocked_cells": 257,
+            "sparse_cells": 71,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615675692941665,
+          "stats": {
+            "finite_points": 5948,
+            "nonfinite_points": 0,
+            "out_of_window": 153,
+            "supported_cells": 0,
+            "blocked_cells": 451,
+            "sparse_cells": 74,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615675493968486,
+          "stats": {
+            "finite_points": 11873,
+            "nonfinite_points": 0,
+            "out_of_window": 321,
+            "supported_cells": 0,
+            "blocked_cells": 616,
+            "sparse_cells": 98,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615676795081138,
+      "input_points": 3008,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615676795081138,
+          "stats": {
+            "finite_points": 3008,
+            "nonfinite_points": 0,
+            "out_of_window": 74,
+            "supported_cells": 0,
+            "blocked_cells": 262,
+            "sparse_cells": 66,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615676695230960,
+          "stats": {
+            "finite_points": 5979,
+            "nonfinite_points": 0,
+            "out_of_window": 161,
+            "supported_cells": 0,
+            "blocked_cells": 430,
+            "sparse_cells": 77,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615676493527889,
+          "stats": {
+            "finite_points": 11920,
+            "nonfinite_points": 0,
+            "out_of_window": 335,
+            "supported_cells": 0,
+            "blocked_cells": 593,
+            "sparse_cells": 85,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615677794394969,
+      "input_points": 3005,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615677794394969,
+          "stats": {
+            "finite_points": 3005,
+            "nonfinite_points": 0,
+            "out_of_window": 73,
+            "supported_cells": 0,
+            "blocked_cells": 270,
+            "sparse_cells": 64,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615677595363855,
+          "stats": {
+            "finite_points": 8905,
+            "nonfinite_points": 0,
+            "out_of_window": 242,
+            "supported_cells": 0,
+            "blocked_cells": 569,
+            "sparse_cells": 71,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615677493084669,
+          "stats": {
+            "finite_points": 11920,
+            "nonfinite_points": 0,
+            "out_of_window": 330,
+            "supported_cells": 0,
+            "blocked_cells": 623,
+            "sparse_cells": 78,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615678795413494,
+      "input_points": 3003,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615678795413494,
+          "stats": {
+            "finite_points": 3003,
+            "nonfinite_points": 0,
+            "out_of_window": 76,
+            "supported_cells": 0,
+            "blocked_cells": 304,
+            "sparse_cells": 50,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615678695252895,
+          "stats": {
+            "finite_points": 6060,
+            "nonfinite_points": 0,
+            "out_of_window": 159,
+            "supported_cells": 0,
+            "blocked_cells": 420,
+            "sparse_cells": 75,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615678493222236,
+          "stats": {
+            "finite_points": 12045,
+            "nonfinite_points": 0,
+            "out_of_window": 279,
+            "supported_cells": 0,
+            "blocked_cells": 620,
+            "sparse_cells": 80,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615679795024871,
+      "input_points": 2982,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615679795024871,
+          "stats": {
+            "finite_points": 2982,
+            "nonfinite_points": 0,
+            "out_of_window": 89,
+            "supported_cells": 0,
+            "blocked_cells": 263,
+            "sparse_cells": 56,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615679695192813,
+          "stats": {
+            "finite_points": 5965,
+            "nonfinite_points": 0,
+            "out_of_window": 165,
+            "supported_cells": 0,
+            "blocked_cells": 457,
+            "sparse_cells": 68,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615679395246744,
+          "stats": {
+            "finite_points": 14873,
+            "nonfinite_points": 0,
+            "out_of_window": 404,
+            "supported_cells": 0,
+            "blocked_cells": 687,
+            "sparse_cells": 86,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615680795153617,
+      "input_points": 2994,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615680795153617,
+          "stats": {
+            "finite_points": 2994,
+            "nonfinite_points": 0,
+            "out_of_window": 58,
+            "supported_cells": 0,
+            "blocked_cells": 296,
+            "sparse_cells": 68,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615680692983150,
+          "stats": {
+            "finite_points": 6001,
+            "nonfinite_points": 0,
+            "out_of_window": 130,
+            "supported_cells": 0,
+            "blocked_cells": 464,
+            "sparse_cells": 52,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615680494110822,
+          "stats": {
+            "finite_points": 11968,
+            "nonfinite_points": 0,
+            "out_of_window": 298,
+            "supported_cells": 0,
+            "blocked_cells": 629,
+            "sparse_cells": 80,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615681795396566,
+      "input_points": 3009,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615681795396566,
+          "stats": {
+            "finite_points": 3009,
+            "nonfinite_points": 0,
+            "out_of_window": 83,
+            "supported_cells": 0,
+            "blocked_cells": 300,
+            "sparse_cells": 60,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615681692956447,
+          "stats": {
+            "finite_points": 5997,
+            "nonfinite_points": 0,
+            "out_of_window": 172,
+            "supported_cells": 0,
+            "blocked_cells": 454,
+            "sparse_cells": 53,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615681493664264,
+          "stats": {
+            "finite_points": 11936,
+            "nonfinite_points": 0,
+            "out_of_window": 343,
+            "supported_cells": 0,
+            "blocked_cells": 627,
+            "sparse_cells": 78,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615682795255422,
+      "input_points": 2989,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615682795255422,
+          "stats": {
+            "finite_points": 2989,
+            "nonfinite_points": 0,
+            "out_of_window": 94,
+            "supported_cells": 0,
+            "blocked_cells": 316,
+            "sparse_cells": 49,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615682695295095,
+          "stats": {
+            "finite_points": 5958,
+            "nonfinite_points": 0,
+            "out_of_window": 178,
+            "supported_cells": 0,
+            "blocked_cells": 435,
+            "sparse_cells": 57,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615682494403362,
+          "stats": {
+            "finite_points": 11938,
+            "nonfinite_points": 0,
+            "out_of_window": 340,
+            "supported_cells": 0,
+            "blocked_cells": 628,
+            "sparse_cells": 80,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615683795079469,
+      "input_points": 2975,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615683795079469,
+          "stats": {
+            "finite_points": 2975,
+            "nonfinite_points": 0,
+            "out_of_window": 87,
+            "supported_cells": 0,
+            "blocked_cells": 301,
+            "sparse_cells": 62,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615683595309019,
+          "stats": {
+            "finite_points": 8956,
+            "nonfinite_points": 0,
+            "out_of_window": 242,
+            "supported_cells": 0,
+            "blocked_cells": 522,
+            "sparse_cells": 83,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615683493094921,
+          "stats": {
+            "finite_points": 11916,
+            "nonfinite_points": 0,
+            "out_of_window": 324,
+            "supported_cells": 0,
+            "blocked_cells": 628,
+            "sparse_cells": 86,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615684795160770,
+      "input_points": 2999,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615684795160770,
+          "stats": {
+            "finite_points": 2999,
+            "nonfinite_points": 0,
+            "out_of_window": 93,
+            "supported_cells": 0,
+            "blocked_cells": 291,
+            "sparse_cells": 68,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 3,
+          "oldest_actual_stamp_ns": 1784615684595514297,
+          "stats": {
+            "finite_points": 9023,
+            "nonfinite_points": 0,
+            "out_of_window": 223,
+            "supported_cells": 0,
+            "blocked_cells": 543,
+            "sparse_cells": 70,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 4,
+          "oldest_actual_stamp_ns": 1784615684493293285,
+          "stats": {
+            "finite_points": 11966,
+            "nonfinite_points": 0,
+            "out_of_window": 309,
+            "supported_cells": 0,
+            "blocked_cells": 648,
+            "sparse_cells": 69,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    },
+    {
+      "stamp_ns": 1784615685794614791,
+      "input_points": 2999,
+      "windows": [
+        {
+          "horizon_s": 0.0,
+          "clouds": 1,
+          "oldest_actual_stamp_ns": 1784615685794614791,
+          "stats": {
+            "finite_points": 2999,
+            "nonfinite_points": 0,
+            "out_of_window": 72,
+            "supported_cells": 0,
+            "blocked_cells": 302,
+            "sparse_cells": 61,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.2,
+          "clouds": 2,
+          "oldest_actual_stamp_ns": 1784615685695034742,
+          "stats": {
+            "finite_points": 6002,
+            "nonfinite_points": 0,
+            "out_of_window": 160,
+            "supported_cells": 0,
+            "blocked_cells": 452,
+            "sparse_cells": 67,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        },
+        {
+          "horizon_s": 0.4,
+          "clouds": 5,
+          "oldest_actual_stamp_ns": 1784615685395163536,
+          "stats": {
+            "finite_points": 14903,
+            "nonfinite_points": 0,
+            "out_of_window": 386,
+            "supported_cells": 0,
+            "blocked_cells": 659,
+            "sparse_cells": 84,
+            "rejected_planes": 0,
+            "subcell_width_m": 0.075
+          },
+          "strips": 0
+        }
+      ]
+    }
+  ]
+}

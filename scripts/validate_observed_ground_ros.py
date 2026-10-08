@@ -7,12 +7,13 @@ from pathlib import Path
 import signal
 import subprocess
 import time
+import struct
 
 import rclpy
 from rclpy.qos import QoSProfile,DurabilityPolicy
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import OccupancyGrid,Odometry
-from sensor_msgs.msg import PointCloud2
+from sensor_msgs.msg import PointCloud2,PointField
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Header,Bool,String
 from tf2_msgs.msg import TFMessage
@@ -71,7 +72,17 @@ def main():
             legacy_min_eig_lower_bound=bound,effective_points=100,iterations=1,reason='analytical-fixture')
         pubs['health'].publish(String(data=json.dumps(cert)))
         header=Header(stamp=stamp,frame_id='wrong' if kind=='frame' else 'world')
-        pubs['cloud'].publish(point_cloud2.create_cloud_xyz32(header,points))
+        if kind in ('padded_pcl','padded_pcl_bigendian'):
+            cloud=PointCloud2(header=header,height=1,width=len(points),point_step=32,row_step=32*len(points))
+            cloud.fields=[PointField(name=name,offset=offset,datatype=PointField.FLOAT32,count=1)
+                          for name,offset in (('x',0),('y',4),('z',8),('intensity',16))]
+            cloud.is_bigendian=kind=='padded_pcl_bigendian'
+            data=bytearray(cloud.row_step)
+            for index,point in enumerate(points):
+                struct.pack_into(('>' if cloud.is_bigendian else '<')+'fff',data,index*32,*point)
+                struct.pack_into(('>' if cloud.is_bigendian else '<')+'f',data,index*32+16,7.)
+            cloud.data=bytes(data);pubs['cloud'].publish(cloud)
+        else:pubs['cloud'].publish(point_cloud2.create_cloud_xyz32(header,points))
         pubs['old_cloud'].publish(point_cloud2.create_cloud_xyz32(Header(stamp=stamp,frame_id='odom'),[]))
     def run(points,kind='normal',seconds=.8):
         g0,c0=len(ground),len(combined);end=time.monotonic()+seconds
@@ -97,6 +108,10 @@ def main():
         static.publish(TFMessage(transforms=[edge]));run([],seconds=2.)
         g,c=run(patch,seconds=1.2)
         cases.append(dict(case='dense_supported_ground_reaches_combined_grid',ok=bool(g and c and value(g[-1])==0 and value(c[-1])==0)))
+        for kind in ('padded_pcl','padded_pcl_bigendian'):
+            g,c=run(patch,kind,seconds=.8)
+            cases.append(dict(case=kind+'_full_XYZI_stride_transforms_without_crash',ok=bool(g and c and
+                value(g[-1])==0 and value(c[-1])==0 and children[0].poll() is None)))
         strip_patch=[(x+.3*col,y+.3*row,z) for col in range(4) for row in range(3) for x,y,z in patch]
         run(strip_patch,seconds=1.2)
         records=EvidenceStore.load(store_path).evidence()

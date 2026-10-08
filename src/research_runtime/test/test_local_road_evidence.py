@@ -42,6 +42,17 @@ def test_correlated_repeat_is_stable_but_new_session_is_independent():
     assert len(supported_strips(g,session='s1',minimum_width_m=.61,maximum=1))==1
 
 
+def test_rolling_window_preserves_global_strip_identity_for_same_support():
+    original=LocalObstacleGrid('odom','v1',.3,0.,0.,6,6,tuple([0]*36))
+    # Shift the window north by one cell. The world-aligned upper 0.9 m
+    # horizontal strip remains identical despite its new row indices.
+    shifted=LocalObstacleGrid('odom','v2',.3,0.,.3,6,6,tuple([0]*36))
+    a=supported_strips(original,session='s1',minimum_width_m=.61)
+    b=supported_strips(shifted,session='s1',minimum_width_m=.61)
+    common={s.identity for s in a if s.geometry_xy[0][1]==1.35}
+    assert common and common<={s.identity for s in b}
+
+
 def test_width_roundtrip_and_old_unknown_width_records_remain_loadable(tmp_path):
     store=EvidenceStore(GeoTransform('LOCAL:odom','LOCAL_SENSOR_FRAME',0.,0.,1.,1.),'v1')
     old=RoadEvidence('old',[(0.,0.),(1.,0.)],EvidenceState.OBSERVED_GEOMETRY,1.,'source','s1/native',.02,1.)

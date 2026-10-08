@@ -135,7 +135,9 @@ def main():
                                     "output_end_x": output.points[-1].x if output and output.points else None})
         else:
             query_cases.append({"status": "FAIL", "reason": "query_service_unavailable"})
-        result = {"source_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877", "patches": [1, 2, 3, 4],
+        result = {"upstream_commit": "7f5be6d4cee34871e85aa1f15285cfaf17b23877",
+                  "source_commit":subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
+                  "patches":[p.name for p in sorted((args.repo/'patches/ego_planner_2d').glob('*.patch'))],
                   "simulation_only_settings": {"max_curvature_1pm": 1.0, "max_lateral_speed_mps": 0.05,
                                                "max_jerk_mps3": 3.0},
                   "inflate_radius_from_locked_footprint_m": math.hypot(0.33, 0.305),

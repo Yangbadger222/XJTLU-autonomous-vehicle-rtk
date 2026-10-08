@@ -62,7 +62,9 @@ def supported_strips(grid: LocalObstacleGrid, *, session: str, minimum_width_m: 
         def cell(a,c):
             row,col=(a,c) if vertical else (c,a)
             return grid.cells[row*grid.width+col]
-        for c in range(0,cross-tile_width+1,tile_width):
+        origin_cross=grid.origin_x_m if vertical else grid.origin_y_m
+        first_cross=(-round(origin_cross/grid.resolution_m))%tile_width
+        for c in range(first_cross,cross-tile_width+1,tile_width):
             start=None
             for a in range(along+1):
                 free=a<along and all(cell(a,c+k)==0 for k in range(tile_width))

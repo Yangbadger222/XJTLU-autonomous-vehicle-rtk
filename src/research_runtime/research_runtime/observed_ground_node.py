@@ -235,7 +235,14 @@ class ObservedGroundNode(Node):
                 # This is an actual TF operation even for the owned identity;
                 # the original safety/display filtered clouds remain separate.
                 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud
-                self._cloud_publisher.publish(do_transform_cloud(cloud,transform))
+                # Native PCL has a padded 32-byte XYZI point stride. Humble's
+                # tf2 Python helper rebuilds an inferred packed dtype and
+                # asserts on that input. This geometry-only research channel
+                # packs every XYZ return (including invalid values) explicitly
+                # before the stamped transform, without a height/range filter.
+                xyz=point_cloud2.create_cloud_xyz32(cloud.header,
+                    [tuple(float(point[index]) for index in range(3)) for point in points])
+                self._cloud_publisher.publish(do_transform_cloud(xyz,transform))
                 self._last_grid,self._invalidated = wrapped,False
                 self._last_published_stamp = key
                 self._status.publish(String(data=f"OBSERVED: {stats}; flat-ground research assumptions"))

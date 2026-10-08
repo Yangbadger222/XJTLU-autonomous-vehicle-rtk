@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "verified_source_report_publication_anchor": "d501d722e9db86a78e2187e9ff1e78f9a3121570",
+  "remote_research_head_at_verification": "d501d722e9db86a78e2187e9ff1e78f9a3121570",
+  "original_branch_head_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "validator_source_commit": "1b915c5ea3dd6552f389d37e559658dcef8c831b",
+  "qualified_installed_runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "cpp_source_commit": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+  "normal_push": true,
+  "force_push": false,
+  "production_merged": false,
+  "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+  "draft": true,
+  "actual_PR_head_at_body_update": "d501d722e9db86a78e2187e9ff1e78f9a3121570",
+  "actual_PR_base_at_body_update": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "utc": "2026-10-08T13:22:43.270531+00:00",
+  "goal_status": "ACTIVE",
+  "local_mac_sync": "PENDING_ENOSPC",
+  "scope": "Actual normal push and remote ref readback; actual PR API PATCH result confirms draft/head/base. This later publication-metadata-only descendant is verified separately; runtime and experiment sources do not change."
+}

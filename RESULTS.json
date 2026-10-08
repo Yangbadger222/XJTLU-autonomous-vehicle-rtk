@@ -270,13 +270,14 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE; installed77d5native/diagnosticARM qualification remains source-bound. New validator1b915 diagnostics and six60s protocolsPASS,2/6goals, no benefit. ActualgroundFAIL,target/physical/MacENOSPCPENDING. Prior publication anchor retained; new checkpoint normal publication recorded separately.",
+    "scope": "GoalACTIVE. Installed77d5software/parameters/finalserial qualification unchanged; validator1b915current6/6protocolPASS,2/6goals,no benefit. RealgroundFAIL,target/physical/MacENOSPCPENDING. Actual normal source/report publication verified atd501d722e9db86a78e2187e9ff1e78f9a3121570; PR22draft/head/base confirmed by actual API. Later publication metadata keeps source identities separate.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
       "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
       "audit/vehicle_ready/rigid-geometry-qualified/publication.json",
-      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json"
+      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json",
+      "audit/vehicle_ready/road-reference-publication.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",

@@ -24,3 +24,5 @@ MID360 自带 IMU。已有安装记录、工厂 t_IL 和原 URDF 姿态已推导
 主要上车门槛是实际道路支持、目标车端源码/安装及生效覆盖/禁执行器shadow、实体停止与制动验收。资料已经用于实现和测试，剩余现场事实不以假参数或模拟结果代替。保持旧生产工作区、原分支、已测参数及旧资产；未自动开车、刷固件、合并生产或force push。
 
 既有编译/退出资格见audit/vehicle_ready/rigid-geometry-qualified/；新增七次有限运行、全六次结果、无损压缩为JSON的地面格快照、原始证据保留索引和新探测见audit/vehicle_ready/road-reference-diagnosed/。正常研究提交与轻量报告发布到既有draft PR22；Mac磁盘满导致本地同步仍PENDING，不冒称Mac已更新。用户旧ce46418预览保持执行器禁用，不能误认为当前版本。详细状态见AUDIT_REPORT.md、RESULTS.json及LIVE_ACCEPTANCE_CHECKLIST.md。
+
+本批源码/报告已正常推送并核对发布锚点d501d722e9db86a78e2187e9ff1e78f9a3121570，PR22仍draft、base仍e54。后续发布元数据提交不改变运行源码、参数或试验；Mac同步仍未完成。

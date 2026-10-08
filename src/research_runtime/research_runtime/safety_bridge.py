@@ -9,12 +9,14 @@ import math
 import argparse
 import sys
 import time
+import signal
 from .replay_sim import main as replay_main
 from .authority import AuthorityState, SafetyGate, SafetyCommand
 from .operator_gate import OperatorGate, consent_from_message
 
 try:
     import rclpy
+    from rclpy.signals import SignalHandlerOptions
     import math
     from rclpy.node import Node
     from rclpy.parameter import Parameter
@@ -467,16 +469,36 @@ if rclpy:
 
 def main() -> int:
     if rclpy:
-        rclpy.init()
-        node = SafetyBridgeNode()
+        # Finish pending application work before destroying the ROS context.
+        stopping = False
+        previous = {kind: signal.getsignal(kind) for kind in (signal.SIGINT, signal.SIGTERM)}
+
+        def request_stop(_kind, _frame):
+            nonlocal stopping
+            stopping = True
+
+        node = None
+        for kind in previous:
+            signal.signal(kind, request_stop)
         try:
-            rclpy.spin(node)
+            rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
+            if not stopping:
+                node = SafetyBridgeNode()
+            while node is not None and rclpy.ok() and not stopping:
+                rclpy.spin_once(node, timeout_sec=0.05)
         except KeyboardInterrupt:
             pass
         finally:
-            node.destroy_node()
-            if rclpy.ok():
-                rclpy.shutdown()
+            try:
+                if node is not None:
+                    node.destroy_node()
+            finally:
+                try:
+                    if rclpy.ok():
+                        rclpy.shutdown()
+                finally:
+                    for kind, handler in previous.items():
+                        signal.signal(kind, handler)
         return 0
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--mode", choices=("replay",), default="replay")

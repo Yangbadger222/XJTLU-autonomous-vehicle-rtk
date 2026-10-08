@@ -9,10 +9,12 @@ space.
 from __future__ import annotations
 import struct
 import time
+import signal
 from collections import OrderedDict
 
 try:
     import rclpy
+    from rclpy.signals import SignalHandlerOptions
     from nav_msgs.msg import OccupancyGrid
     from rclpy.node import Node
     from sensor_msgs.msg import PointCloud2
@@ -196,14 +198,34 @@ class LocalObstacleGridNode(Node if rclpy else object):
 
 def main(args=None):
     if rclpy is None:
-        raise RuntimeError("ROS 2 rclpy and sensor_msgs_py are required on the Humble target")
-    rclpy.init(args=args)
-    node = LocalObstacleGridNode()
+        raise RuntimeError("ROS 2 rclpy is required on the Humble target")
+    # Finish pending application work before destroying the ROS context.
+    stopping = False
+    previous = {kind: signal.getsignal(kind) for kind in (signal.SIGINT, signal.SIGTERM)}
+
+    def request_stop(_kind, _frame):
+        nonlocal stopping
+        stopping = True
+
+    node = None
+    for kind in previous:
+        signal.signal(kind, request_stop)
     try:
-        rclpy.spin(node)
+        rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
+        if not stopping:
+            node = LocalObstacleGridNode()
+        while node is not None and rclpy.ok() and not stopping:
+            rclpy.spin_once(node, timeout_sec=0.05)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        try:
+            if node is not None:
+                node.destroy_node()
+        finally:
+            try:
+                if rclpy.ok():
+                    rclpy.shutdown()
+            finally:
+                for kind, handler in previous.items():
+                    signal.signal(kind, handler)

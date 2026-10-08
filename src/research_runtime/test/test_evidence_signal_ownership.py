@@ -18,7 +18,10 @@ def _production_entry(filename, package="active_road_mapping"):
 ENTRIES=[(_production_entry("evidence_node.py"),"ActiveRoadEvidenceNode"),
          (_production_entry("map_node.py"),"ActiveRoadMapNode"),
          (_production_entry("observation_node.py"),"ActiveObservationNode"),
-         (_production_entry("adapter_node.py", "super_lio_vehicle_adapter"), "SuperLioVehicleAdapter")]
+         (_production_entry("adapter_node.py", "super_lio_vehicle_adapter"), "SuperLioVehicleAdapter"),
+         (_production_entry("observed_ground_node.py", "research_runtime"), "ObservedGroundNode"),
+         (_production_entry("local_obstacle_grid_node.py", "research_runtime"), "LocalObstacleGridNode"),
+         (_production_entry("safety_bridge.py", "research_runtime"), "SafetyBridgeNode")]
 
 @pytest.mark.parametrize("module,class_name", ENTRIES)
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])

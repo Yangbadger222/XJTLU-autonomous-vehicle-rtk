@@ -39,11 +39,21 @@ def audit(root, default_entry, serial):
                        "runtime": runtime_value,
                        "status": "PASS" if expected_value == parsed_value == runtime_value else "FAIL"})
     evidence = default_entry["evidence"]
+    import sys
+    sys.path.insert(0,str(root/"src/research_runtime"))
+    from research_runtime.physical_parameter_lock import RESEARCH_EXECUTION_PROFILE
     for node, label in (("research_safety_bridge", "safety_parameters"), ("ego_vehicle_adapter", "ego_parameters")):
         runtime = parameters(evidence[label]["output"])
         parsed = yaml.safe_load((root/f"src/bringup/config/{node}.yaml").read_text())[node]["ros__parameters"]
         for key, value in expected.items():
             checked(f"{node}.{key}", value, parsed.get(key), runtime.get(key))
+        for key,value in RESEARCH_EXECUTION_PROFILE.items():
+            if node=='research_safety_bridge' and key=='max_jerk_mps3':continue
+            checked(f"{node}.derived_execution.{key}",value,parsed.get(key),runtime.get(key))
+            checks[-1]['classification']='NEW_ALGORITHM_SETTING: generated conservative profile; physical caps independently locked'
+        if node=='ego_vehicle_adapter':
+            checked('ego_vehicle_adapter.stationary_heading_recovery',True,
+                parsed.get('enable_stationary_heading_recovery'),runtime.get('enable_stationary_heading_recovery'))
     expected_footprint=[value for point in locked["vehicle.corridor_footprint_xy"] for value in point]
     parsed_safety=yaml.safe_load((root/"src/bringup/config/research_safety_bridge.yaml").read_text())["research_safety_bridge"]["ros__parameters"]
     checked("corridor.footprint_xy",expected_footprint,parsed_safety["footprint_xy"],

@@ -57,11 +57,12 @@ def main():
     typed_grid=node.create_publisher(LocalEvidenceGrid2D,"/research/local_evidence_grid",10)
     base="http://127.0.0.1:"+str(args.console_port)
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[];result={}
+    csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[];result={};console=None
     node.create_subscription(OperatorPermit,"/research/operator_permit",
         lambda msg:permit_observations.append((time.monotonic(),
             msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec,
-            msg.session_id,msg.state,msg.motion_requested)),100)
+            msg.sequence,msg.session_id,msg.state,msg.motion_requested,
+            console is not None and console.poll() is None)),100)
     def request(action,payload=None,heartbeat=False):
         body=json.dumps({"action":action,"payload":payload or {},"request_id":str(uuid.uuid4())}).encode()
         req=urllib.request.Request(base+"/api/command",data=body,headers={"Content-Type":"application/json",
@@ -128,8 +129,15 @@ def main():
             phase(.1)
         reset=request("reset")
         assert reset["accepted"],reset["reason"]
-        assert request("task",{"start_node":"start","goal_node":"goal"})["accepted"]
+        deadline=time.monotonic()+3.
+        while not {"start","goal"}.issubset(snapshot()["task"]["node_ids"]) and time.monotonic()<deadline:
+            phase(.1)
+        task=request("task",{"start_node":"start","goal_node":"goal"})
+        assert task["accepted"],task["reason"]
         phase(.7)
+        deadline=time.monotonic()+3.
+        while not snapshot()["task"]["accepted"] and time.monotonic()<deadline:
+            phase(.1)
         result=request("start")
         assert result["accepted"],result["reason"]
         lines=phase(1.5)
@@ -204,13 +212,13 @@ def main():
                     latest=permit_observations[-1] if permit_observations else None
                     current=snapshot()
                     if (latest and time.monotonic()-latest[0]<=.3 and
-                        latest[3]=="AUTONOMOUS" and latest[4] and
+                        latest[4]=="AUTONOMOUS" and latest[5] and
                         current["state"]=="AUTONOMOUS" and wire and
                         float(wire[-1].split(",")[0][4:])>0):
                         active=latest
                         break
                 if active is None:raise RuntimeError("active console and current nonzero final wire not observed")
-                active_session=active[2]
+                active_sequence,active_session=active[2],active[3]
                 wire_before_signal=wire[-1]
                 sent_ros_ns=node.get_clock().now().nanoseconds
                 sent_at=time.monotonic()
@@ -218,13 +226,14 @@ def main():
                 lines=phase(.9,heartbeat=False)
                 console.wait(timeout=3)
                 delivered_stop=any(receipt>=sent_at and generated_ns>=sent_ros_ns and
-                    session==active_session and state=="STOP_LATCHED" and not motion
-                    for receipt,generated_ns,session,state,motion in permit_observations)
+                    sequence>active_sequence and session==active_session and
+                    state=="STOP_LATCHED" and not motion and console_alive
+                    for receipt,generated_ns,sequence,session,state,motion,console_alive in permit_observations)
                 check("console_"+termination.name+"_final_wire",nonzero,lines)
                 cases[-1].update(console_exit=console.returncode,
                     autonomous_at_signal=True,final_wire_before_signal=wire_before_signal,
-                    fresh_stop_permit_before_context_cleanup=delivered_stop,
-                    stop_freshness_basis="same session, generated stamp and receipt after signal marker")
+                    fresh_stop_permit_observed_before_console_exit=delivered_stop,
+                    stop_freshness_basis="same session; sequence > last AUTO; generated stamp and receipt after signal marker; console alive at receipt")
                 if console.returncode!=0 or not delivered_stop:cases[-1]["status"]="FAIL"
                 console=spawn("research_runtime","research_operator_console",[
                     "-p","execution_mode:=live","-p","actuator_enabled:=true",

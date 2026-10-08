@@ -227,11 +227,19 @@
     }
   ],
   "publication": {
-    "status": "PENDING",
+    "status": "PASS",
+    "verified_publication_anchor": "bc1473cb183fc9b30e9837205a2138a6d3730560",
     "qualified_runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
-    "scope": "normal research branch/report publication follows actual qualification; previous publication retained separately",
+    "remote_research_head_at_anchor_verification": "bc1473cb183fc9b30e9837205a2138a6d3730560",
+    "original_branch_head_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "normal_push": true,
+    "force_push": false,
+    "production_merged": false,
     "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "draft": true
+    "draft": true,
+    "goal_status": "ACTIVE",
+    "local_mac_sync": "PENDING_ENOSPC",
+    "scope": "actual normal push and remote ref verification of the source/report anchor; later publication-metadata-only descendant retains runtime77d5 and is checked separately"
   },
   "lineage": "Current77d5c5a runtime, solee54 vehicle baseline; nativeSDK14foundation8c937ed and ARMSDK14foundationa66cc7e; basic/SuperCPP rebuilt49b44ee, mapping85eb28c, adapter6b15c7d, research_runtime77d5c5a. Each stage source identity retained; actual61CPPfreeze and34Pythonhashes perarchitecture bind unchanged source to current runtime. Not a freshall14 build at77d5.",
   "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",

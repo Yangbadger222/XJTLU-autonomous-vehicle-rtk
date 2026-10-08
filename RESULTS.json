@@ -264,11 +264,12 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE. Software77d5native/diagnosticARMdefault+244portable+157parameters+13finalserialPTYPASS. ActualgroundFAIL, strategystrict1FAIL/all0of6goals, benefitunproved;target/physical/ MacENOSPCPENDING. Normalpublicationreported separately; no productionmerge/forcepush.",
+    "scope": "GoalACTIVE. Software77d5native/diagnosticARMdefault+244portable+157parameters+13finalserialPTYPASS. ActualgroundFAIL, strategystrict1FAIL/all0of6goals, benefitunproved;target/physical/ MacENOSPCPENDING. Normalpublicationreported separately; no productionmerge/forcepush. Verified normal publication anchorbc1473c; metadata-onlydescendantpreservesruntime77d5; PR22draft/unmerged andremoteoriginale54.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
-      "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
+      "audit/vehicle_ready/rigid-geometry-qualified/publication.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",

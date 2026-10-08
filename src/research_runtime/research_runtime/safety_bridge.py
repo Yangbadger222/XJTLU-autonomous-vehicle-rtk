@@ -179,7 +179,12 @@ if rclpy:
         def _operator_cb(self, msg):
             age = self.get_clock().now().nanoseconds*1e-9-self._time_seconds(msg.header.stamp)
             if msg.header.frame_id == "odom" and 0 <= age <= .5:
-                self._operator_gate.receive(consent_from_message(msg), time.monotonic())
+                received=self._operator_gate.receive(consent_from_message(msg), time.monotonic())
+                if (not received or not self._operator_gate.allowed(time.monotonic(),mode=self._mode,
+                        map_version=self._map_version,sole_publisher=self.count_publishers("/research/operator_permit")==1)):
+                    self._revoke_rotation(reset_stop=True)
+            else:
+                self._revoke_rotation(reset_stop=True)
 
         def _stop_override_cb(self, msg):
             self._stop_override = bool(msg.data)
@@ -203,13 +208,19 @@ if rclpy:
             self._allowed = bool(msg.data)
             self._allowed_stamp = time.monotonic()
             self._original_guard_preflight.update_authority(msg.data,received_s=self._allowed_stamp)
+            if not self._allowed:
+                self._revoke_rotation(reset_stop=True)
 
         def _authority_mode_cb(self,msg):
             self._authority_mode,self._authority_mode_stamp=str(msg.data),time.monotonic()
+            if self._authority_mode not in ("RTK_AUTHORITATIVE","RTK_REACQUIRING"):
+                self._revoke_rotation(reset_stop=True)
 
         def _health_cb(self, msg):
             self._health = str(msg.data).upper()
             self._health_stamp = time.monotonic()
+            if not self._health.startswith("OK"):
+                self._revoke_rotation(reset_stop=True)
 
         def _odom_cb(self, msg):
             q = msg.pose.pose.orientation
@@ -255,6 +266,8 @@ if rclpy:
 
         def _map_version_cb(self, msg):
             value = str(msg.data).strip()
+            if value != self._map_version or not _valid_map_version(value):
+                self._revoke_rotation(reset_stop=True)
             self._map_version = value if _valid_map_version(value) else "UNKNOWN"
             self._map_stamp = time.monotonic()
 
@@ -268,6 +281,7 @@ if rclpy:
                     wrapped.header != wrapped.grid.header or
                     (wrapped.support_model != "single_scan_flat_dense_with_locked_obstacles_v1" and
                      not (self._allow_fixture_grid and wrapped.support_model == "analytical_fixture_v1"))):
+                    self._revoke_rotation(reset_stop=True)
                     return
                 msg = wrapped.grid
                 stamp = self._time_seconds(msg.header.stamp)
@@ -275,11 +289,13 @@ if rclpy:
                 if (msg.header.frame_id != "odom" or not _valid_map_version(self._map_version) or
                         stamp <= 0 or age < -0.10 or age > self._grid_timeout_s):
                     self._grid = None
+                    self._revoke_rotation(reset_stop=True)
                     return
                 origin_q = msg.info.origin.orientation
                 if (abs(float(origin_q.x)) > 1e-9 or abs(float(origin_q.y)) > 1e-9 or
                         abs(float(origin_q.z)) > 1e-9 or abs(float(origin_q.w) - 1.0) > 1e-9):
                     self._grid = None
+                    self._revoke_rotation(reset_stop=True)
                     return
                 cells = tuple(-1 if int(value) < 0 else 100 if int(value) >= 50 else 0
                               for value in msg.data)
@@ -294,6 +310,7 @@ if rclpy:
                 self._grid_stamp = time.monotonic()
             except (TypeError, ValueError):
                 self._grid = None
+                self._revoke_rotation(reset_stop=True)
 
         @staticmethod
         def _time_seconds(stamp):
@@ -313,6 +330,8 @@ if rclpy:
                     control_reference_contract=msg.control_reference_contract)
             except (TypeError, ValueError):
                 self._trajectory_contract = None
+            if msg.status != TimedTrajectory2D.STATUS_OK or self._trajectory_contract is None:
+                self._revoke_rotation(reset_stop=True)
 
         def _permission_cb(self, msg):
             self._permission, self._permission_stamp = None, 0.0
@@ -321,6 +340,7 @@ if rclpy:
                 age = self.get_clock().now().nanoseconds*1e-9-self._time_seconds(msg.header.stamp)
                 if (msg.header.frame_id != "odom" or not 0 <= age <= self._grid_timeout_s or
                         abs(q.x)+abs(q.y)+abs(q.z) > 1e-9 or abs(q.w-1) > 1e-9):
+                    self._revoke_rotation(reset_stop=True)
                     return
                 # Only an explicitly permitted cell is allowed. No-data and
                 # every nonzero value stay forbidden; this is independent of
@@ -330,10 +350,12 @@ if rclpy:
                     msg.info.width, msg.info.height, tuple(0 if v == 0 else 100 for v in msg.data))
                 self._permission_stamp = time.monotonic()
             except (ValueError, TypeError):
-                pass
+                self._revoke_rotation(reset_stop=True)
 
         def _tf_cb(self, msg):
             self._tf_valid, self._tf_stamp = bool(msg.data), time.monotonic()
+            if not self._tf_valid:
+                self._revoke_rotation(reset_stop=True)
 
         def _tf_ready(self, now):
             return self._tf_valid and now-self._tf_stamp <= self._state_timeout_s

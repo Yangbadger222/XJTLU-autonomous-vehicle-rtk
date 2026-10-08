@@ -89,12 +89,12 @@ def main():
             headers_match=msg.header==msg.grid.header))
     def ground_cloud(msg):
         key=stamp(msg);ground_acquisitions.append(key)
-        if not args.ground_diagnostics or len(ground_acquisitions)%10 or len(ground_diagnostics)>=100 or key not in native:
+        if not args.ground_diagnostics or len(ground_acquisitions)%10 or len(ground_diagnostics)>=100 or key not in vehicle:
             return
         from sensor_msgs_py import point_cloud2
         from research_runtime.observed_ground import expected_ground_z
         from research_runtime.physical_parameter_lock import MID360_GROUND_REFERENCE
-        pose=native[key].pose.pose;p,q=pose.position,pose.orientation
+        pose=vehicle[key].pose.pose;p,q=pose.position,pose.orientation
         floor=expected_ground_z((p.x,p.y,p.z),(q.x,q.y,q.z,q.w),
             MID360_GROUND_REFERENCE['lidar_in_imu_m'],MID360_GROUND_REFERENCE['lidar_height_m'])
         residuals=Counter();coverage={};ranges=Counter();total=0
@@ -307,7 +307,7 @@ def main():
                     rotations.setdefault(msg.trajectory_id,msg)
             cases=[]
             for msg in rotations.values():
-                first,last=msg.points[0],msg.points[-1];generated=stamp(type('Header',(),{'header':type('H',(),{'stamp':msg.generated_at})()})())
+                first,last=msg.points[0],msg.points[-1];generated=msg.generated_at.sec*1_000_000_000+msg.generated_at.nanosec
                 candidates=[]
                 for i in range(1,len(ordered)):
                     key,previous=ordered[i],ordered[i-1]

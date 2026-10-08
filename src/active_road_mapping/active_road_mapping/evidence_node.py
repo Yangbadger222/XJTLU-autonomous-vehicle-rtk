@@ -53,6 +53,15 @@ def _finite_point(point) -> bool:
     return all(math.isfinite(float(value)) for value in (point.x, point.y, point.z))
 
 
+def _sync_saved_store(path: Path) -> None:
+    file_fd=os.open(path,os.O_RDONLY)
+    try:os.fsync(file_fd)
+    finally:os.close(file_fd)
+    directory_fd=os.open(path.parent,os.O_RDONLY | getattr(os,'O_DIRECTORY',0))
+    try:os.fsync(directory_fd)
+    finally:os.close(directory_fd)
+
+
 def _atomic_save(store: EvidenceStore, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
@@ -63,9 +72,7 @@ def _atomic_save(store: EvidenceStore, path: Path) -> None:
         try:os.fsync(sync_fd)
         finally:os.close(sync_fd)
         Path(temporary).replace(path)
-        directory_fd=os.open(path.parent,os.O_RDONLY | getattr(os,'O_DIRECTORY',0))
-        try:os.fsync(directory_fd)
-        finally:os.close(directory_fd)
+        _sync_saved_store(path)
     finally:
         try:
             Path(temporary).unlink()
@@ -253,6 +260,11 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
                 _atomic_save(candidate, self._path)
                 self._store_mtime_ns = self._path.stat().st_mtime_ns
                 self._store = candidate
+            else:
+                # A reload may observe replacement after directory fsync
+                # failed. A duplicate is acknowledged only after completing
+                # synchronization of the visible target and its directory.
+                _sync_saved_store(self._path)
             self._ack_pub.publish(String(data=evidence.evidence_id))
             self._publish_evidence_event(evidence)
             self._last_rejection = ""

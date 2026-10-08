@@ -242,10 +242,11 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE. Qualified runtime63fc current staged14 build/2Super11EGO proof. Ordinary research publication proceeds after static/report checks. Actual ground supportFAIL; physical acceptancePENDING; Mac local sync/cache-path repairPENDING dueENOSPC. Preserved previewce46418 untouched.",
+    "scope": "GoalACTIVE. Runtime63fc qualifies current stagedSDK14/2Super11EGO/software checks; algorithm and lightweightreport anchord29fab3 normallypublished to researchbranch, originalbaselinee54unchanged. CurrentrealgroundFAIL, physicalacceptancePENDING, Maclocal sync/cachepathrepairPENDINGENOSPC. Publicationreceipt is a later report-onlydescendant.",
     "evidence": [
       "RUN_STATE.json",
-      "outputs/RESEARCH_DELIVERY_REPORT.md"
+      "outputs/RESEARCH_DELIVERY_REPORT.md",
+      "audit/vehicle_ready/control-stop-qualified/publication.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",

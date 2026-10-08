@@ -32,14 +32,17 @@ int main() {
   const Eigen::Quaterniond expected(Eigen::AngleAxisd(omega.norm()*300.,omega.normalized()));
   assert(Eigen::Quaterniond(final).angularDistance(expected)<1e-3);
   for(int mode=0;mode<2;++mode) {
-    BASIC::SO3 rotation;
+    const Eigen::Matrix3d initial=Eigen::AngleAxisd(.7,Eigen::Vector3d::UnitX()).toRotationMatrix();
+    BASIC::SO3 rotation(initial.cast<BASIC::scalar>());
     const BASIC::V3 increment=imu.gyr*.005f;
     for(int i=0;i<10000;++i) {
       if(mode==0)rotation.update(increment);else rotation.updateRhs(increment);
     }
     const auto R=rotation.R_.cast<double>().eval();
     assert((R.transpose()*R-Eigen::Matrix3d::Identity()).norm()<=tolerance);
-    const Eigen::Quaterniond target(Eigen::AngleAxisd(omega.norm()*50.,omega.normalized()));
+    const Eigen::Matrix3d delta=Eigen::AngleAxisd(omega.norm()*50.,omega.normalized()).toRotationMatrix();
+    const Eigen::Matrix3d target_matrix=mode==0 ? (delta*initial).eval() : (initial*delta).eval();
+    const Eigen::Quaterniond target(target_matrix);
     assert(Eigen::Quaterniond(R).angularDistance(target)<1e-3);
   }
   for(int fault=0;fault<4;++fault) {

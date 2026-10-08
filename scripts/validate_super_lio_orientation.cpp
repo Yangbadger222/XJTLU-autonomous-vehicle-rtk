@@ -129,7 +129,7 @@ int main(int argc,char**argv) {
  cb=clouds.size();output.run(state);spin(100);assert(clouds.size()==cb+1);
  BASIC::PointCloudType cloud;pcl::fromROSMsg(clouds.back(),cloud);assert(cloud.size()==1);
  const auto& q=odoms.back().pose.pose.orientation;
- const auto expected=Eigen::Quaterniond(q.w,q.x,q.y,q.z).toRotationMatrix()*Eigen::Vector3d(2.,.5,.2)+state.p.cast<double>();
+ const Eigen::Vector3d expected=Eigen::Quaterniond(q.w,q.x,q.y,q.z).toRotationMatrix()*Eigen::Vector3d(2.,.5,.2)+state.p.cast<double>();
  assert((Eigen::Vector3d(cloud[0].x,cloud[0].y,cloud[0].z)-expected).norm()<1e-6);
  exec.remove_node(wrapper);exec.remove_node(sink);wrapper.reset();sink.reset();rclcpp::shutdown();
  std::cout<<"PASS: actual source pose/TF/body-twist/full covariance/world-cloud share one rotation; invalid SO3 withheld with explicit failure"<<std::endl;

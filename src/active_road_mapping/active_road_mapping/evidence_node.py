@@ -12,10 +12,12 @@ import os
 import tempfile
 import hashlib
 import copy
+import signal
 
 try:
     import rclpy
     from rclpy.node import Node
+    from rclpy.signals import SignalHandlerOptions
     from research_interfaces.msg import (RoadEvent, RoadEvidence2D,RoadGraphUpdate2D)
     from std_msgs.msg import Bool, String
     from tf2_ros import Buffer, TransformListener
@@ -315,13 +317,33 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
 def main(args=None):
     if rclpy is None:
         raise RuntimeError("ROS 2 rclpy and research_interfaces are required on the target")
-    rclpy.init(args=args)
-    node = ActiveRoadEvidenceNode()
+    # Finish pending application work before destroying the ROS context.
+    stopping = False
+    previous = {kind: signal.getsignal(kind) for kind in (signal.SIGINT, signal.SIGTERM)}
+
+    def request_stop(_kind, _frame):
+        nonlocal stopping
+        stopping = True
+
+    node = None
+    for kind in previous:
+        signal.signal(kind, request_stop)
     try:
-        rclpy.spin(node)
+        rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
+        if not stopping:
+            node = ActiveRoadEvidenceNode()
+        while node is not None and rclpy.ok() and not stopping:
+            rclpy.spin_once(node, timeout_sec=0.05)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
-        if rclpy.ok():
-            rclpy.shutdown()
+        try:
+            if node is not None:
+                node.destroy_node()
+        finally:
+            try:
+                if rclpy.ok():
+                    rclpy.shutdown()
+            finally:
+                for kind, handler in previous.items():
+                    signal.signal(kind, handler)

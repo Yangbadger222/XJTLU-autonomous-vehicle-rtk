@@ -25,10 +25,10 @@ def test_rotation_cannot_translate_or_change_modes_without_a_stopped_boundary():
 
 def test_rotation_tracking_remains_pure_yaw_and_rejects_real_translation():
     tracker=TimedTrajectoryTracker(VehicleLimits(max_curvature_1pm=.346),preview_s=.1)
-    command=tracker.command(rotation(),TrackerState(0.,0.,0.),now=1.)
+    command=tracker.command(rotation(),TrackerState(0.,0.,0.,stationary_confirmed=True),now=1.)
     assert command and command.linear_x==0. and 0<command.angular_z<=.7
-    assert tracker.command(rotation(),TrackerState(0.,0.,0.,translation_speed=.02),now=1.) is None
-    assert tracker.command(rotation(),TrackerState(0.,0.,0.,translation_speed=-.02),now=1.) is None
+    assert tracker.command(rotation(),TrackerState(0.,0.,0.,translation_speed=.051,stationary_confirmed=True),now=1.) is None
+    assert tracker.command(rotation(),TrackerState(0.,0.,0.,translation_speed=-.051,stationary_confirmed=True),now=1.) is None
     assert tracker.command(rotation(),TrackerState(.03,0.,0.),now=1.) is None
 
 

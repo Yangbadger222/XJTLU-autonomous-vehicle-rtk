@@ -33,8 +33,8 @@ ego_vehicle_adapter:
     footprint_source: "LOCKED_CORRIDOR_POLYGON; physical deployment still requires confirmation"
     firmware_command_model_source: "LOCKED_STM32_SOURCE; actual flashed identity requires field verification"
     allow_reverse: false
-    # NEW_ALGORITHM_SETTING: only after original 1 s stop-confirmation dwell
-    # with stricter 1 mm/s & 1 mrad/s measured rates. Explicit typed rotation
+    # NEW_ALGORITHM_SETTING: only after the original full stop-rate confirmation.
+    # It is measured-rate tolerance, not exact physical zero. Explicit rotation
     # retains yaw/alpha/RPM/full-footprint checks and every original authority.
     enable_stationary_heading_recovery: true
     output_topic: /research/ego_trajectory

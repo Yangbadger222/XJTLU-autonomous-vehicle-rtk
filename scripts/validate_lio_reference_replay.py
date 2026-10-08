@@ -17,10 +17,11 @@ import rclpy
 from rclpy.parameter import Parameter
 from rclpy.serialization import serialize_message
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, OccupancyGrid, Path as RosPath
+from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import Imu, PointCloud2
 from std_msgs.msg import String, Bool
-from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D
+from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D, TimedTrajectory2D
 from tf2_msgs.msg import TFMessage
 from livox_ros_driver2.msg import CustomMsg
 from raw_replay_contract import replay_contract
@@ -35,7 +36,11 @@ def main():
     parser.add_argument('--duration-s',type=float,default=0.,help='0 means full EOF; positive is explicitly a prefix')
     parser.add_argument('--ground-pipeline',action='store_true',help='actual local TF/ground/evidence without any RTK or actuator fixture')
     parser.add_argument('--ground-diagnostics',action='store_true',help='sample actual ground-return density and locked-height residuals; grants no acceptance or permission')
+    parser.add_argument('--ego-stop-probe',action='store_true',
+        help='Actual raw control state, explicitly analytical grid/reference; no motion/ground acceptance')
     args=parser.parse_args()
+    if args.ego_stop_probe and args.ground_pipeline:
+        parser.error('analytical EGO state probe and actual ground qualification must remain separate')
     if os.environ.get('ROS_DOMAIN_ID')!='104' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':
         raise SystemExit('requires isolated domain104 and localhost-only')
     if not math.isfinite(args.duration_s) or args.duration_s<0:raise SystemExit('invalid duration')
@@ -49,6 +54,32 @@ def main():
     children=[];logs=[];player=None;child_commands=[];map_parameters=None;ground_statuses=Counter()
     local_frames=[];full_frames=[];ground_grids=[];combined_grids=[];road_evidence={};questions=[]
     ground_acquisitions=[];ground_diagnostics=[]
+    ego_messages=[];ego_reference=None
+    if args.ego_stop_probe:
+        ego_grid_pub=node.create_publisher(LocalEvidenceGrid2D,'/research/local_evidence_grid',10)
+        ego_reference_pub=node.create_publisher(RosPath,'/research/road_reference',10)
+        ego_version_pub=node.create_publisher(String,'/research/map_version',10)
+        node.create_subscription(TimedTrajectory2D,'/research/ego_trajectory',ego_messages.append,100)
+        def ego_inputs():
+            nonlocal ego_reference
+            if not control:return
+            measured=control[max(control)];p=measured.pose.pose.position;q=measured.pose.pose.orientation
+            if ego_reference is None:
+                yaw=math.atan2(2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))+math.pi/2
+                ego_reference=[(p.x+i*.3*math.cos(yaw),p.y+i*.3*math.sin(yaw)) for i in range(12)]
+            now=node.get_clock().now().to_msg()
+            grid=OccupancyGrid();grid.header.frame_id='odom';grid.header.stamp=now
+            grid.info.resolution=.3;grid.info.width=grid.info.height=100
+            grid.info.origin.position.x=grid.info.origin.position.y=-15.;grid.info.origin.orientation.w=1.
+            grid.data=[0]*10000
+            ego_grid_pub.publish(LocalEvidenceGrid2D(header=grid.header,grid=grid,map_version='analytical-stop-probe',
+                localization_session_id='analytical-stop-probe',support_model='analytical_fixture_v1'))
+            reference=RosPath();reference.header=grid.header
+            for x,y in ego_reference:
+                point=PoseStamped();point.header=reference.header;point.pose.position.x=x;point.pose.position.y=y
+                point.pose.orientation.w=1.;reference.poses.append(point)
+            ego_reference_pub.publish(reference);ego_version_pub.publish(String(data='analytical-stop-probe'))
+        ego_timer=node.create_timer(.05,ego_inputs)
     session='raw-ground-'+args.output.stem
     evidence_path=args.output.with_name(args.output.stem+'-evidence.json')
     def ground_grid(msg,collection,label):
@@ -149,8 +180,11 @@ def main():
         source=spawn('super_lio','super_lio_node',['--params-file',str(args.repo/'src/bringup/config/super_lio_vehicle.yaml')])
         spawn('super_lio_vehicle_adapter','super_lio_vehicle_adapter',['--params-file',str(args.repo/'src/bringup/config/super_lio_reference.yaml')])
         spawn('super_lio_vehicle_adapter','super_lio_cloud_frame_adapter',['--params-file',str(args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')])
+        if args.ego_stop_probe:
+            spawn('ego_planner','motion_plan',['--params-file',str(args.repo/'src/bringup/config/ego_vehicle_adapter.yaml'),
+                '-p','localization_session_id:=analytical-stop-probe','-p','allow_analytical_grid_fixture:=true'])
         if args.ground_pipeline:
-            spawn('ego_planner','research_tf_guard',['-p','protect_world_gauge:=true'])
+            spawn('ego_planner' ,'research_tf_guard',['-p','protect_world_gauge:=true'])
             for package,binary,config in (
                 ('active_road_mapping','active_road_map','active_road_mapping.yaml'),
                 ('active_road_mapping','active_road_evidence','active_road_evidence.yaml'),
@@ -263,6 +297,56 @@ def main():
         state_diagnostics=dict(scope='actual current control odometry; measured rate gates, no independent physical stop labels',
             original_stop_definition=stationary_windows(STOP_CONFIRMATION[0],STOP_CONFIRMATION[1]),
             strict_research_rotation_entry=stationary_windows(.001,.001,True))
+        ego_result=None
+        if args.ego_stop_probe:
+            import numpy as np
+            from research_runtime.physical_parameter_lock import PHYSICAL_LIMITS
+            ordered=sorted(control);rotations={}
+            for msg in ego_messages:
+                if msg.status==msg.STATUS_OK and msg.points and msg.points[0].motion_mode==1:
+                    rotations.setdefault(msg.trajectory_id,msg)
+            cases=[]
+            for msg in rotations.values():
+                first,last=msg.points[0],msg.points[-1];generated=stamp(type('Header',(),{'header':type('H',(),{'stamp':msg.generated_at})()})())
+                candidates=[]
+                for i in range(1,len(ordered)):
+                    key,previous=ordered[i],ordered[i-1]
+                    a,b=control[key],control[previous]
+                    dt=(key-previous)*1e-9
+                    if not 0<dt<=.2 or not 0<=(generated-key)*1e-9<=.2:continue
+                    alpha=(a.twist.twist.angular.z-b.twist.twist.angular.z)/dt
+                    if abs(first.w-a.twist.twist.angular.z)<1e-9 and abs(first.alpha-alpha)<1e-8:
+                        candidates.append(key)
+                duration=last.t-.5;delta=last.yaw-first.yaw
+                b1,b2=duration*first.w,.5*duration*duration*first.alpha
+                coeff=np.array([0.,b1,b2,10*delta-6*b1-3*b2,-15*delta+8*b1+3*b2,6*delta-3*b1-b2])
+                velocity=np.polynomial.polynomial.polyder(coeff)/duration
+                acceleration=np.polynomial.polynomial.polyder(velocity)/duration
+                def extrema(polynomial):
+                    roots=np.polynomial.polynomial.polyroots(np.polynomial.polynomial.polyder(polynomial))
+                    values=[np.polynomial.polynomial.polyval(u,polynomial) for u in
+                        [0.,1.,*[z.real for z in roots if abs(z.imag)<1e-8 and 0<z.real<1]]]
+                    return float(min(values)),float(max(values))
+                vb,ab=extrema(velocity),extrema(acceleration)
+                cases.append(dict(trajectory_id=msg.trajectory_id,first_w=first.w,first_alpha=first.alpha,
+                    matched_actual_control_acquisitions=candidates,
+                    continuous_w_bounds=vb,continuous_alpha_bounds=ab,
+                    carries_measured_w_and_alpha=bool(candidates),
+                    pure_yaw_geometry=all(abs(point.x-first.x)<1e-10 and abs(point.y-first.y)<1e-10 and
+                        point.v==0 and point.motion_mode==1 for point in msg.points),
+                    physical_derivative_bounds=(min(vb)>=-PHYSICAL_LIMITS['max_yaw_rate_rps']-1e-8 and
+                        max(vb)<=PHYSICAL_LIMITS['max_yaw_rate_rps']+1e-8 and
+                        min(ab)>=-PHYSICAL_LIMITS['max_yaw_decel_rps2']-1e-8 and
+                        max(ab)<=PHYSICAL_LIMITS['max_yaw_accel_rps2']+1e-8)))
+            ego_checks=dict(actual_control_stop_confirmation=state_diagnostics['original_stop_definition']['samples_after_full_confirmation']>0,
+                measured_negative_vx_inside_original_tolerance=state_diagnostics['original_stop_definition']['negative_vx_quiet_samples']>0,
+                explicit_rotation_received=bool(cases),actual_yaw_boundary_preserved=bool(cases) and all(c['carries_measured_w_and_alpha'] for c in cases),
+                pure_yaw_new_action=bool(cases) and all(c['pure_yaw_geometry'] for c in cases),
+                continuous_original_derivative_bounds=bool(cases) and all(c['physical_derivative_bounds'] for c in cases))
+            ego_result=dict(status='PASS' if all(ego_checks.values()) else 'FAIL',checks=ego_checks,cases=cases,
+                received_messages=len(ego_messages),
+                scope='actual raw MID360/Super/control state and original source profile; analytical safe grid/reference only; no physical stop, ground acceptance or actuator')
+            checks['actual_raw_control_rotation_probe']=ego_result['status']=='PASS'
         ground_result=None
         if args.ground_pipeline:
             from research_runtime.active_road import EvidenceStore
@@ -323,7 +407,7 @@ def main():
                     args.repo/'patches/super_lio/0002-certify-source-observations-and-covariance.patch',
                     args.repo/'src/bringup/config/super_lio_vehicle.yaml',args.repo/'src/bringup/config/super_lio_reference.yaml',
                     args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')},
-                'ground_pipeline':ground_result,'controller_state_diagnostics':state_diagnostics,
+                'ground_pipeline':ground_result,'controller_state_diagnostics':state_diagnostics,'actual_control_ego_probe':ego_result,
                 'ground_map_runtime_parameters':map_parameters,'child_commands':child_commands,
                 'wall_elapsed_s':time.monotonic()-started,
                 'scope':'Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim'}

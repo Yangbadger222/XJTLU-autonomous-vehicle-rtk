@@ -1,0 +1,148 @@
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -12,6 +12,7 @@
+ 
+ #include <algorithm>
+ #include <cmath>
++#include <array>
+ #include <limits>
+ #include <sstream>
+ #include <utility>
+@@ -192,11 +193,15 @@
+   const double yaw = yaw_from_quaternion(msg->pose.pose.orientation);
+   const double body_vx = msg->twist.twist.linear.x;
+   const double body_vy = msg->twist.twist.linear.y;
++  const double body_vz = msg->twist.twist.linear.z;
++  const double body_speed = std::hypot(std::hypot(body_vx,body_vy),body_vz);
+   const double body_w = msg->twist.twist.angular.z;
+   const rclcpp::Time stamp(msg->header.stamp);
+   if (!std::isfinite(yaw) || !std::isfinite(body_vx) || !std::isfinite(body_vy) ||
+-      !std::isfinite(body_w) || !std::isfinite(msg->pose.pose.position.x) ||
+-      !std::isfinite(msg->pose.pose.position.y) || (!allow_reverse_ && body_vx < -1e-6) ||
++      !std::isfinite(body_vz) || !std::isfinite(body_w) || !std::isfinite(msg->pose.pose.position.x) ||
++      !std::isfinite(msg->pose.pose.position.y) || (!allow_reverse_ && body_vx < -1e-6 &&
++       (body_speed>research_vehicle_lock::stopped_linear_rate_mps ||
++        std::abs(body_w)>research_vehicle_lock::stopped_yaw_rate_rps)) ||
+       std::abs(body_w) > max_yaw_rate_rps_ || stamp.nanoseconds() <= 0) {
+     std::lock_guard<std::mutex> lock(data_mutex_);
+     state_valid_ = false;
+@@ -211,9 +216,11 @@
+   std::lock_guard<std::mutex> lock(data_mutex_);
+   if(have_previous_odom_ && ((stamp-previous_odom_stamp_).seconds()<=0. ||
+       (stamp-previous_odom_stamp_).seconds()>state_timeout_s_))stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+-  // Conservative research stationary evidence, stricter than the original
+-  // stop-rate thresholds, with the original full confirmation duration.
+-  if(std::abs(body_vx)<=.001 && std::abs(body_vy)<=.001 && std::abs(body_w)<=.001) {
++  // Original measured-rate tolerance, not exact physical zero. Preserve
++  // the real velocity/acceleration for the ordinary EGO start state.
++  measured_translation_speed_=body_speed;
++  if(body_speed<=research_vehicle_lock::stopped_linear_rate_mps &&
++     std::abs(body_w)<=research_vehicle_lock::stopped_yaw_rate_rps) {
+     if(stationary_since_.nanoseconds()==0)stationary_since_=stamp;
+   } else stationary_since_=rclcpp::Time(0,0,RCL_ROS_TIME);
+   if (have_previous_odom_) {
+@@ -222,6 +229,7 @@
+       state_valid_ = false;
+     } else {
+       start_acceleration_ = (world_velocity - previous_world_velocity_) / dt;
++      start_yaw_acceleration_ = (body_w-vehicle_state_.w)/dt;
+       state_valid_ = std::isfinite(start_acceleration_.x()) &&
+         std::isfinite(start_acceleration_.y()) &&
+         std::abs(body_vy) <= max_lateral_speed_mps_ + 0.05;
+@@ -510,7 +518,11 @@
+   // a preparatory rotation alone cannot assert that route is reachable.
+   if(query_active_ || !enable_stationary_heading_recovery_ || road_reference_.empty() ||
+      stationary_since_.nanoseconds()<=0 || (previous_odom_stamp_-stationary_since_).seconds()<research_vehicle_lock::stopped_confirmation_s ||
+-     vehicle_state_.v>.001 || std::abs(vehicle_state_.w)>.001)return false;
++     measured_translation_speed_>research_vehicle_lock::stopped_linear_rate_mps ||
++     std::abs(vehicle_state_.w)>research_vehicle_lock::stopped_yaw_rate_rps ||
++     !std::isfinite(start_yaw_acceleration_) ||
++     start_yaw_acceleration_>max_yaw_accel_rps2_ ||
++     start_yaw_acceleration_<-max_yaw_decel_rps2_)return false;
+   const auto& goal=road_reference_.back();
+   const double dx=goal.x-vehicle_state_.x,dy=goal.y-vehicle_state_.y;
+   if(std::hypot(dx,dy)<.05)return false;
+@@ -522,7 +534,47 @@
+   // yaw/alpha envelope for feedback, without changing the original limits.
+   double duration=std::max({1.,1.875*std::abs(delta)/(.5*max_yaw_rate_rps_),
+     std::sqrt(5.774*std::abs(delta)/(.5*std::min(max_yaw_accel_rps2_,max_yaw_decel_rps2_)))});
+-  duration=std::ceil(duration/kSamplePeriod)*kSamplePeriod;
++  const double initial_w=vehicle_state_.w,initial_alpha=start_yaw_acceleration_;
++  // Carry measured yaw-rate/acceleration at the new action boundary. The
++  // subdivided derivative Bezier convex hull bounds every continuous interval.
++  auto bounds=[](auto controls) {
++    using Curve=decltype(controls);
++    std::vector<Curve> intervals{controls};
++    for(int depth=0;depth<6;++depth) {
++      std::vector<Curve> next;
++      for(const auto &curve:intervals) {
++        Curve work=curve,left{},right{};
++        left[0]=work[0];right[work.size()-1]=work[work.size()-1];
++        for(size_t level=1;level<work.size();++level) {
++          for(size_t j=0;j+level<work.size();++j)work[j]=(work[j]+work[j+1])*.5;
++          left[level]=work[0];right[work.size()-level-1]=work[work.size()-level-1];
++        }
++        next.push_back(left);next.push_back(right);
++      }
++      intervals=std::move(next);
++    }
++    double lo=std::numeric_limits<double>::infinity(),hi=-lo;
++    for(const auto &curve:intervals)for(double value:curve) {
++      lo=std::min(lo,value);hi=std::max(hi,value);
++    }
++    return std::pair<double,double>(lo,hi);
++  };
++  bool bounded=false;
++  for(int attempt=0;attempt<60;++attempt) {
++    duration=std::ceil(duration/kSamplePeriod)*kSamplePeriod;
++    const std::array<double,6> yaw_controls{0.,duration*initial_w/5.,
++      2.*duration*initial_w/5.+duration*duration*initial_alpha/20.,delta,delta,delta};
++    std::array<double,5> velocity{};std::array<double,4> acceleration{};
++    for(size_t i=0;i<velocity.size();++i)velocity[i]=5.*(yaw_controls[i+1]-yaw_controls[i])/duration;
++    for(size_t i=0;i<acceleration.size();++i)acceleration[i]=4.*(velocity[i+1]-velocity[i])/duration;
++    const auto vb=bounds(velocity),ab=bounds(acceleration);
++    if(vb.first>=-.5*max_yaw_rate_rps_ && vb.second<=.5*max_yaw_rate_rps_ &&
++       ab.first>=-max_yaw_decel_rps2_ && ab.second<=max_yaw_accel_rps2_) {bounded=true;break;}
++    duration*=1.10;
++  }
++  if(!bounded)return false;
++  const double b1=duration*initial_w,b2=.5*duration*duration*initial_alpha;
++  const double b3=10.*delta-6.*b1-3.*b2,b4=-15.*delta+8.*b1+3.*b2,b5=6.*delta-3.*b1-b2;
+   research_interfaces::msg::TimedTrajectory2D message;
+   message.control_reference_contract=research_vehicle_lock::control_reference_contract;
+   message.header.stamp=to_builtin_time(now());message.header.frame_id="odom";
+@@ -530,15 +582,18 @@
+   message.valid_until=to_builtin_time(now()+rclcpp::Duration::from_seconds(kTrajectoryValidity));
+   message.trajectory_id="vehicle-heading-recovery-"+std::to_string(++trajectory_id_);
+   message.map_version=map_version_;message.status=message.STATUS_OK;
++  message.failure_reason="original_stop_rate_tolerance_confirmed_heading_recovery";
++  RCLCPP_INFO(get_logger(),"heading recovery within original stop tolerance: measured_3d_speed=%.9g w=%.9g alpha=%.9g confirmation=%.9g duration=%.9g",
++    measured_translation_speed_,initial_w,initial_alpha,(previous_odom_stamp_-stationary_since_).seconds(),duration);
+   for(int index=0;index<=int(std::round((duration+.5)/kSamplePeriod));++index) {
+     const double t=index*kSamplePeriod,u=std::min(1.,t/duration);
+-    const double s=10*u*u*u-15*u*u*u*u+6*u*u*u*u*u;
+-    const double ds=30*u*u-60*u*u*u+30*u*u*u*u;
+-    const double dds=60*u-180*u*u+120*u*u*u;
++    const double offset=b1*u+b2*u*u+b3*u*u*u+b4*u*u*u*u+b5*u*u*u*u*u;
++    const double velocity=b1+2.*b2*u+3.*b3*u*u+4.*b4*u*u*u+5.*b5*u*u*u*u;
++    const double acceleration=2.*b2+6.*b3*u+12.*b4*u*u+20.*b5*u*u*u;
+     research_interfaces::msg::TimedTrajectoryPoint2D point;
+     point.motion_mode=point.ROTATE_IN_PLACE;point.t=t;
+     point.x=vehicle_state_.x;point.y=vehicle_state_.y;
+-    point.yaw=vehicle_state_.z+delta*s;point.w=delta*ds/duration;point.alpha=delta*dds/(duration*duration);
++    point.yaw=vehicle_state_.z+offset;point.w=velocity/duration;point.alpha=acceleration/(duration*duration);
+     message.points.push_back(point);
+   }
+   executable_cache_=message;executable_cache_valid_=true;
+diff --git a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+--- a/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
++++ b/src/EgoPlanner-ROS2/include/trajectory_obstacles_publisher.h
+@@ -90,6 +90,7 @@
+   bool have_previous_odom_{false};
+   bool enable_stationary_heading_recovery_{false};
+   rclcpp::Time stationary_since_{0,0,RCL_ROS_TIME};
++  double start_yaw_acceleration_{0.},measured_translation_speed_{0.};
+   bool state_valid_{false};
+   bool reference_valid_{false};
+   bool grid_valid_{false};

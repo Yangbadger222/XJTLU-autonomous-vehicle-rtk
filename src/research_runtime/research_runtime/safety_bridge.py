@@ -23,7 +23,7 @@ try:
     from nav_msgs.msg import Odometry
     from nav_msgs.msg import OccupancyGrid
     from research_interfaces.msg import LocalEvidenceGrid2D
-    from std_msgs.msg import Bool, String
+    from std_msgs.msg import Bool, String, Float32
     from research_interfaces.msg import TimedTrajectory2D, ResearchStatus, OperatorPermit
 except ImportError:
     rclpy = None
@@ -34,7 +34,9 @@ from .grid_map import LocalObstacleGrid
 from .firmware_command import within_firmware_command_envelope
 from .command_smoother import slew_command
 from .physical_parameter_lock import (PHYSICAL_LIMITS, LOCKED_FOOTPRINT, require_locked_motion_parameters,
-    CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, CONTROL_REFERENCE_CONTRACT)
+    CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, CONTROL_REFERENCE_CONTRACT, AUTHORITY_HEARTBEAT_TIMEOUT_S)
+from .stopped_state import StopConfirmation
+from dataclasses import replace
 
 
 def _parameter_bool(value) -> bool:
@@ -136,6 +138,15 @@ if rclpy:
             self._trajectory_stamp = 0.0
             self._state = None
             self._state_stamp = 0.0
+            self._stop_confirmation = StopConfirmation(self._state_timeout_s)
+            self._stop_override = True
+            # Same protected guard class/conditions as the original downstream
+            # node. This is only a preflight; the original node remains owner.
+            from gps_waypoint_dispatcher.corridor_cmd_guard import CorridorCommandGuard
+            self._original_guard_preflight = CorridorCommandGuard(
+                straight_max_mps=PHYSICAL_LIMITS["max_speed_mps"],
+                turn_product_limit=PHYSICAL_LIMITS["max_lateral_accel_mps2"],
+                heartbeat_timeout_s=AUTHORITY_HEARTBEAT_TIMEOUT_S,require_speed_limit=True)
             self._map_version = ""
             self._map_stamp = 0.0
             self._grid = None
@@ -148,6 +159,10 @@ if rclpy:
             self._pub = self.create_publisher(Twist, "/cmd_vel", 10)
             self._status_pub = self.create_publisher(ResearchStatus, "/research/status", 10)
             self.create_subscription(Bool, "/localization_authority/motion_allowed", self._authority, 10)
+            self.create_subscription(Bool, "/gps_corridor/stop_override", self._stop_override_cb, 10)
+            self.create_subscription(Float32, "/localization_authority/max_linear_speed_mps", self._speed_limit_cb, 10)
+            self.create_subscription(Bool, "/gps_nav/road_rejoin_active",
+                lambda msg:self._original_guard_preflight.update_road_rejoin(msg.data),10)
             self.create_subscription(String,"/localization_authority/mode",self._authority_mode_cb,10)
             self.create_subscription(String, str(self.get_parameter("health_topic").value), self._health_cb, 10)
             self.create_subscription(Odometry, str(self.get_parameter("odom_topic").value), self._odom_cb, 10)
@@ -166,9 +181,28 @@ if rclpy:
             if msg.header.frame_id == "odom" and 0 <= age <= .5:
                 self._operator_gate.receive(consent_from_message(msg), time.monotonic())
 
+        def _stop_override_cb(self, msg):
+            self._stop_override = bool(msg.data)
+            self._original_guard_preflight.update_stop_override(msg.data,received_s=time.monotonic())
+            if self._stop_override:
+                self._revoke_rotation(reset_stop=True)
+
+        def _speed_limit_cb(self, msg):
+            self._original_guard_preflight.update_speed_limit(msg.data,received_s=time.monotonic())
+            if not math.isfinite(msg.data) or msg.data <= 0:
+                self._revoke_rotation(reset_stop=True)
+
+        def _revoke_rotation(self, *, reset_stop):
+            self._tracker.revoke_rotation()
+            if reset_stop:
+                self._stop_confirmation.invalidate()
+                if self._state is not None:
+                    self._state = replace(self._state, stationary_confirmed=False)
+
         def _authority(self, msg):
             self._allowed = bool(msg.data)
             self._allowed_stamp = time.monotonic()
+            self._original_guard_preflight.update_authority(msg.data,received_s=self._allowed_stamp)
 
         def _authority_mode_cb(self,msg):
             self._authority_mode,self._authority_mode_stamp=str(msg.data),time.monotonic()
@@ -187,19 +221,27 @@ if rclpy:
                     age < -0.10 or age > self._state_timeout_s):
                 self._state = None
                 self._state_stamp = 0.0
+                self._revoke_rotation(reset_stop=True)
                 return
             qx, qy, qz, qw = q.x/norm, q.y/norm, q.z/norm, q.w/norm
             sin_yaw = 2.0 * (qw * qz + qx * qy)
             cos_yaw = 1.0 - 2.0 * (qy * qy + qz * qz)
             yaw = math.atan2(sin_yaw, cos_yaw)
             values = (msg.pose.pose.position.x, msg.pose.pose.position.y, yaw,
-                math.hypot(msg.twist.twist.linear.x,msg.twist.twist.linear.y),msg.twist.twist.angular.z)
+                math.hypot(msg.twist.twist.linear.x,msg.twist.twist.linear.y,msg.twist.twist.linear.z),msg.twist.twist.angular.z)
             if all(math.isfinite(float(value)) for value in values):
-                self._state = TrackerState(*values)
+                confirmed = self._stop_confirmation.update(stamp, values[3], values[4])
+                if not self._stop_confirmation.continuity_valid:
+                    self._state = None
+                    self._state_stamp = 0.
+                    self._revoke_rotation(reset_stop=True)
+                    return
+                self._state = TrackerState(*values, stationary_confirmed=confirmed)
                 self._state_stamp = time.monotonic()
             else:
                 self._state = None
                 self._state_stamp = 0.0
+                self._revoke_rotation(reset_stop=True)
 
         @staticmethod
         def _parse_footprint(values):
@@ -313,30 +355,34 @@ if rclpy:
                               self._footprint and self._limits_configured and self._tf_ready(now) and
                               self._permission is not None and
                               now-self._permission_stamp <= self._grid_timeout_s)
-            if self._trajectory_contract is not None and self._state is not None and grid_ready:
+            health_fresh = self._health_stamp > 0.0 and now - self._health_stamp <= self._health_timeout_s
+            health_ok = health_fresh and self._health.startswith("OK")
+            operator_ok = self._operator_gate.allowed(now, mode=self._mode, map_version=self._map_version,
+                sole_publisher=self.count_publishers("/research/operator_permit") == 1)
+            authority_timeout = float(self.get_parameter("authority_timeout_s").value)
+            rtk_mode_ok=rtk_mode_is_allowed(self._authority_mode,now-self._authority_mode_stamp,authority_timeout)
+            self._original_guard_preflight.update_command(0.,0.,received_s=now)
+            original_guard_ready = self._original_guard_preflight.evaluate(now_s=now).allowed
+            base_ready = bool(original_guard_ready and self._actuator_enabled and self._mode == "live" and grid_ready
+                and health_ok and operator_ok and rtk_mode_ok and self._allowed and not self._stop_override
+                and 0 <= now-self._allowed_stamp <= authority_timeout
+                and self._state is not None and 0 <= now-self._state_stamp <= .25
+                and self._trajectory is not None and self._trajectory.status == TimedTrajectory2D.STATUS_OK
+                and 0 <= now-self._trajectory_stamp <= .25 and self._trajectory_contract is not None)
+            if base_ready:
                 tracked = self._tracker.command(
                     self._trajectory_contract, self._state, now=ros_now,
                     expected_map_version=self._map_version,
                     footprint=self._footprint, occupied=self._grid.occupied,
                     resolution=self._grid.resolution_m,
-                    occupied_polygon=self._occupied_polygon)
-            health_fresh = self._health_stamp > 0.0 and now - self._health_stamp <= self._health_timeout_s
-            health_ok = health_fresh and self._health.startswith("OK")
-            valid = bool(self._actuator_enabled and self._mode == "live"
-                         and tracked is not None and health_ok
-                         and (now - self._trajectory_stamp) <= 0.25
-                         and (now - self._state_stamp) <= 0.25
-                         and self._trajectory is not None
-                         and self._trajectory.status == TimedTrajectory2D.STATUS_OK)
-            operator_ok = self._operator_gate.allowed(now, mode=self._mode, map_version=self._map_version,
-                sole_publisher=self.count_publishers("/research/operator_permit") == 1)
-            valid = valid and operator_ok
-            rtk_mode_ok=rtk_mode_is_allowed(self._authority_mode,now-self._authority_mode_stamp,
-                float(self.get_parameter("authority_timeout_s").value))
+                    occupied_polygon=self._occupied_polygon,context=self._localization_session)
+            else:
+                self._revoke_rotation(reset_stop=True)
+            valid = base_ready and tracked is not None
             state = AuthorityState(self._allowed and rtk_mode_ok, self._allowed_stamp, now,
                                    "OK" if health_ok else "UNKNOWN",
                                    trajectory_ok=valid,
-                                   map_ok=grid_ready)
+                                   map_ok=grid_ready,stop_override=self._stop_override)
             command = self._gate.command(tracked.linear_x if tracked else 0.0,
                                          tracked.angular_z if tracked else 0.0, state)
             if command.allowed:
@@ -355,6 +401,20 @@ if rclpy:
             else:
                 # Authority and safety stops retain immediate stop precedence.
                 self._last_command = (0.0, 0.0)
+            if command.allowed:
+                self._original_guard_preflight.update_command(wire_v,wire_w,received_s=now)
+                guarded = self._original_guard_preflight.evaluate(now_s=now)
+                if (not guarded.allowed or abs(guarded.linear_x-wire_v)>1e-6 or
+                        abs(guarded.angular_z-wire_w)>1e-6):
+                    self._last_command=(0.,0.)
+                    command=SafetyCommand(0.,0.,False,"original_guard_preflight_rejected:"+guarded.reason)
+            if command.allowed:
+                self._tracker.commit_command(self._trajectory_contract,tracked,context=self._localization_session)
+            else:
+                # Waiting for this stop confirmation alone must not erase its
+                # own accumulating window; every other denial revokes it.
+                reset_stop = (not base_ready or self._tracker.last_rejection != "rotation_stop_confirmation_missing")
+                self._revoke_rotation(reset_stop=reset_stop)
             self._last_tick = now
             output = Twist()
             output.linear.x, output.angular.z = self._last_command
@@ -367,6 +427,7 @@ if rclpy:
             status.motion_allowed, status.actuator_enabled = self._allowed and rtk_mode_ok, self._actuator_enabled
             status.reason = command.reason
             if not operator_ok: status.reason += ";operator_consent_missing_stale_or_denied"
+            if not original_guard_ready:status.reason+=";original_guard_preflight_denied"
             if not rtk_mode_ok:status.reason+=";rtk_mode_or_age_denied:"+self._authority_mode
             if not grid_ready:
                 detail=[]

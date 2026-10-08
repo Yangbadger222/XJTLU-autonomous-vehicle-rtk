@@ -28,7 +28,7 @@ def main():
     args.verification_root.mkdir(parents=True, exist_ok=False)
     recipe = (
         ('super_lio', 'f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2', 'super_lio', 2),
-        ('ego_planner_2d_ros2', '7f5be6d4cee34871e85aa1f15285cfaf17b23877', 'ego_planner_2d', 10))
+        ('ego_planner_2d_ros2', '7f5be6d4cee34871e85aa1f15285cfaf17b23877', 'ego_planner_2d', 11))
     results = {}
     for name, pinned, patch_directory, count in recipe:
         built = args.repo/'src'/name

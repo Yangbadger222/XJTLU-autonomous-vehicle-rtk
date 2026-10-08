@@ -132,6 +132,8 @@ def main():
     header_text = (f"// Generated from approved vehicle parameter lock; SHA256 {digest}\n#pragma once\n"
         +"namespace research_vehicle_lock {\n"+"".join(f"inline constexpr double {key} = {value:.17g};\n"
                                                       for key,value in values.items())
+        +f"inline constexpr double stopped_linear_rate_mps = {stopped[0]:.17g};\n"
+        +f"inline constexpr double stopped_yaw_rate_rps = {stopped[1]:.17g};\n"
         +f"inline constexpr double stopped_confirmation_s = {stopped[2]:.17g};\n"
         +f'inline constexpr char control_reference_contract[] = "{control_contract}";\n'
         +'inline constexpr char control_child_frame[] = "chassis_control_origin";\n'

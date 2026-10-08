@@ -12,6 +12,7 @@ from typing import Callable, Sequence
 
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits, validate_trajectory
 from .firmware_command import within_firmware_command_envelope
+from .physical_parameter_lock import STOP_CONFIRMATION
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,7 @@ class TrackerState:
     yaw: float
     translation_speed: float = 0.
     yaw_rate: float = 0.
+    stationary_confirmed: bool = False
 
 
 @dataclass(frozen=True)
@@ -77,13 +79,30 @@ class TimedTrajectoryTracker:
             raise ValueError("tracker preview must be finite and within the trajectory validity window")
         self.preview_s = float(preview_s)
         self.last_rejection = ""
+        self._rotation_token = None
+
+    @staticmethod
+    def _token(trajectory, context):
+        # Heartbeat header/valid_until may advance; the motion content may not.
+        return (context, trajectory.trajectory_id, trajectory.generated_at,
+                trajectory.frame_id, trajectory.map_version,
+                trajectory.control_reference_contract, trajectory.points)
+
+    def revoke_rotation(self):
+        self._rotation_token = None
+
+    def commit_command(self, trajectory, command, *, context=""):
+        """Commit admission only after the caller's final authority/wire checks."""
+        self._rotation_token = (self._token(trajectory, context)
+                                if command.target.motion_mode == 1 else None)
 
     def command(self, trajectory: TimedTrajectory, state: TrackerState, *, now: float,
                 expected_map_version: str | None = None,
                 footprint: Sequence[tuple[float, float]] | None = None,
                 occupied: Callable[[float, float], bool] | None = None,
                 resolution: float | None = None,
-                occupied_polygon: Callable | None = None) -> TrackerCommand | None:
+                occupied_polygon: Callable | None = None,
+                context: str = "") -> TrackerCommand | None:
         if not all(math.isfinite(float(value)) for value in
                    (state.x, state.y, state.yaw,state.translation_speed,state.yaw_rate,now)):
             self.last_rejection = "nonfinite_state"
@@ -120,8 +139,11 @@ class TimedTrajectoryTracker:
                        self.heading_gain * heading_error)
         rotating=target.motion_mode==1
         if rotating:
-            if abs(state.translation_speed)>.001 or abs(state.yaw_rate)>self.limits.max_yaw_rate_rps:
+            if abs(state.translation_speed)>STOP_CONFIRMATION[0] or abs(state.yaw_rate)>self.limits.max_yaw_rate_rps:
                 self.last_rejection="rotation_measured_translation_or_yaw_limit"
+                return None
+            if self._rotation_token != self._token(trajectory, context) and not state.stationary_confirmed:
+                self.last_rejection="rotation_stop_confirmation_missing"
                 return None
             if math.hypot(dx,dy)>.02:
                 self.last_rejection="rotation_pivot_tracking_error"

@@ -20,5 +20,6 @@
   <exec_depend>tf2_sensor_msgs</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>super_lio_vehicle_adapter</exec_depend>
+  <exec_depend>gps_waypoint_dispatcher</exec_depend>
   <export><build_type>ament_python</build_type></export>
 </package>

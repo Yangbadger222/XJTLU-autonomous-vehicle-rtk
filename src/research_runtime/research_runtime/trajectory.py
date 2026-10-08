@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 import math
 from typing import Iterable, Optional, Sequence
 from .physical_parameter_lock import PHYSICAL_LIMITS
+from .firmware_command import within_firmware_command_envelope
 
 
 @dataclass(frozen=True)
@@ -149,6 +150,8 @@ def validate_trajectory(
             result.fail(f"speed_limit:{point.v:.6g}")
         if abs(point.v*point.w)>limits.max_lateral_accel_mps2+1e-9:
             result.fail("original_guard_turn_product_limit")
+        if not within_firmware_command_envelope(point.v,point.w):
+            result.fail("firmware_motor_target_limit")
         if abs(point.w) > limits.max_yaw_rate_rps + 1e-9:
             result.fail(f"yaw_rate_limit:{point.w:.6g}")
         if abs(point.a) > limits.max_accel_mps2 + 1e-9 and point.a >= 0:

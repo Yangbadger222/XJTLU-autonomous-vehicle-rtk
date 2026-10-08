@@ -31,6 +31,7 @@ except ImportError:
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits
 from .trajectory_tracker import TrackerState, TimedTrajectoryTracker
 from .grid_map import LocalObstacleGrid
+from .firmware_command import within_firmware_command_envelope
 from .command_smoother import slew_command
 from .physical_parameter_lock import PHYSICAL_LIMITS, LOCKED_FOOTPRINT, require_locked_motion_parameters
 
@@ -338,7 +339,8 @@ if rclpy:
                     self._normal_slew_fraction)
                 curvature_limit=self._tracker.limits.max_curvature_1pm
                 wire_v,wire_w=(float(f"{value:.3f}") for value in self._last_command)
-                if (abs(wire_v*wire_w)>self._tracker.limits.max_lateral_accel_mps2+1e-12 or
+                if (not within_firmware_command_envelope(wire_v,wire_w) or
+                    abs(wire_v*wire_w)>self._tracker.limits.max_lateral_accel_mps2+1e-12 or
                     (curvature_limit is not None and abs(wire_w)>curvature_limit*abs(wire_v)+1e-12)):
                     self._last_command=(0.,0.)
                     command=SafetyCommand(0.,0.,False,"post_slew_curvature_rejected")

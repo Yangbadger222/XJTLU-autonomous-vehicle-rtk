@@ -6,9 +6,10 @@ active_observation:
     settle_s: 1.0
     # NEW_ALGORITHM_SETTING: trust filter, not a measured covariance claim.
     pose_uncertainty_limit_m: 0.10
-    # Sensor validity/model and physical curvature are unresolved deployment
-    # inputs. Zero blocks all observation motion; simulated fixtures may supply
-    # explicitly labelled model values only in isolated domains.
-    sensor_range_m: 0.0
-    sensor_fov_rad: 0.0
-    max_curvature_1pm: 0.0
+    # NEW_ALGORITHM_SETTING: finite 3 m query horizon. This never establishes
+    # free ground; observed-space/occlusion tests still use the current grid.
+    sensor_range_m: 3.0
+    # MID360 horizontal FOV from the original mounting notes, generated.
+    sensor_fov_rad: 6.283185307179586
+    # Conservative algorithm envelope from original corridor w and v*w limits.
+    max_curvature_1pm: 0.34602076124567477

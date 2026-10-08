@@ -121,8 +121,9 @@ def test_vehicle_config_overrides_upstream_demo_limits_and_keeps_unknown_fail_cl
     assert "max_accel_mps2: 0.85" in config
     import yaml
     assert yaml.safe_load(config)["ego_vehicle_adapter"]["ros__parameters"]["max_yaw_rate_rps"] == 0.70
-    assert "max_curvature_1pm: 0.0" in config
-    assert "max_lateral_speed_mps: 0.0" in config
+    from research_runtime.physical_parameter_lock import RESEARCH_EXECUTION_PROFILE
+    parsed = yaml.safe_load(config)["ego_vehicle_adapter"]["ros__parameters"]
+    assert all(parsed[key] == value for key,value in RESEARCH_EXECUTION_PROFILE.items())
     import math
     assert yaml.safe_load(config)["ego_vehicle_adapter"]["ros__parameters"]["inflate_radius_m"]==math.sqrt(.33*.33+.305*.305)
     assert "map_resolution_m: 0.30" in config

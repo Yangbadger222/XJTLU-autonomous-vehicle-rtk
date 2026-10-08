@@ -9,6 +9,9 @@ contracts.
 from __future__ import annotations
 
 from pathlib import Path
+import os
+import tempfile
+import hashlib
 
 try:
     import rclpy
@@ -22,7 +25,7 @@ except ImportError:  # permits source tests without ROS 2 on the workstation
 
 from research_runtime.runtime_paths import research_path
 
-from research_runtime.active_road import EvidenceStore
+from research_runtime.active_road import EvidenceStore, GeoTransform
 
 
 def _valid_version(value: str) -> bool:
@@ -41,7 +44,23 @@ class ActiveRoadMapNode(Node if rclpy else object):
         self.declare_parameter(
             "road_reference_output_topic", "/research/road_reference")
         self.declare_parameter("reload_period_s", 1.0)
+        self.declare_parameter("initialize_local_evidence_store",False)
+        self.declare_parameter("localization_session_id","UNKNOWN")
         self._path = research_path(str(self.get_parameter("evidence_store_path").value))
+        if self.get_parameter("initialize_local_evidence_store").value is True and not self._path.exists():
+            session=str(self.get_parameter("localization_session_id").value)
+            if not session or session.upper()=='UNKNOWN':raise ValueError('local initialization requires a session')
+            # Empty local evidence has an explicitly nongeographic CRS. It is
+            # not a satellite prior or a map/RTK registration.
+            store=EvidenceStore(GeoTransform('LOCAL:odom','LOCAL_SENSOR_FRAME',0.,0.,1.,1.),
+                'local-'+hashlib.sha256(session.encode()).hexdigest())
+            self._path.parent.mkdir(parents=True,exist_ok=True)
+            fd,temporary=tempfile.mkstemp(prefix='.local-init-',dir=self._path.parent)
+            try:
+                os.close(fd);store.save(temporary)
+                try:os.link(temporary,self._path)  # Atomic creation; never replaces an existing asset.
+                except FileExistsError:pass
+            finally:Path(temporary).unlink()
         self._store: EvidenceStore | None = None
         self._store_mtime_ns: int | None = None
         self._last_rejection = ""

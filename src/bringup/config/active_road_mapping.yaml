@@ -1,6 +1,8 @@
 active_road_map:
   ros__parameters:
-    # Missing/invalid evidence publishes UNKNOWN and blocks EGO output.
+    # Initialize only a missing task-owned evidence file as an empty LOCAL
+    # sensor store. Invalid existing assets remain UNKNOWN and are preserved.
+    initialize_local_evidence_store: true
     evidence_store_path: runtime-data/research/active_road/evidence.json
     map_version_topic: /research/map_version
     road_reference_input_topic: /research/road_reference_input

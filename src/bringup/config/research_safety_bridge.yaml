@@ -1,8 +1,8 @@
 research_safety_bridge:
   ros__parameters:
-    # These are the locked corridor launch limits.  The curvature and
-    # lateral-speed gates stay zero until a measured footprint/vehicle model
-    # is supplied; the safety bridge then remains stopped by construction.
+    # Physical limits below are the locked corridor launch values. Curvature
+    # and numerical lateral tolerance are generated conservative research
+    # settings; they do not certify physical slip, terrain or braking.
     authority_timeout_s: 0.50
     health_timeout_s: 0.50
     map_timeout_s: 0.50
@@ -23,8 +23,8 @@ research_safety_bridge:
     max_yaw_accel_rps2: 1.4
     max_yaw_decel_rps2: 1.8
     max_lateral_accel_mps2: 0.25
-    max_curvature_1pm: 0.0
-    max_lateral_speed_mps: 0.0
+    max_curvature_1pm: 0.34602076124567477
+    max_lateral_speed_mps: 0.05
     # Exact corridor local-costmap polygon from the locked baseline.  This is
     # a source carry-over, not a new measurement; runtime confirmation still
     # remains required before live motion.

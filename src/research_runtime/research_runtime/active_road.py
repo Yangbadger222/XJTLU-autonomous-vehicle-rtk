@@ -149,6 +149,15 @@ class RoadEvidence:
     pose_uncertainty_m: float
     observed_length_m: float
     valid_depth_m: tuple[float, float] | None = None
+    supported_width_m: float | None = None
+
+
+def evidence_record(evidence):
+    record=asdict(evidence)
+    # Keep the hash and load contract of historical schema-1 records that did
+    # not carry width. A missing width remains unknown, never inferred.
+    if record.get('supported_width_m') is None:record.pop('supported_width_m',None)
+    return record
 
 
 @dataclass
@@ -216,7 +225,7 @@ class EvidenceStore:
         if self._defer_version_hash:
             return
         content = {"prior_version": self.prior_version, "transform": asdict(self.transform),
-                   "evidence": [asdict(self._evidence[key]) for key in sorted(self._evidence)]}
+                   "evidence": [evidence_record(self._evidence[key]) for key in sorted(self._evidence)]}
         if self.submap_anchors:
             content["submap_anchors"] = self.submap_anchors
         if self.graph_updates:
@@ -305,6 +314,8 @@ class EvidenceStore:
             raise ValueError("pose uncertainty must be finite and non-negative")
         if not math.isfinite(evidence.observed_length_m) or evidence.observed_length_m < 0.0:
             raise ValueError("observed length must be finite and non-negative")
+        if evidence.supported_width_m is not None and (not math.isfinite(evidence.supported_width_m) or evidence.supported_width_m<=0):
+            raise ValueError("supported width must be positive and finite, or unknown")
         geometry_length = sum(math.hypot(b[0]-a[0], b[1]-a[1]) for a,b in
                               zip(evidence.geometry_xy, evidence.geometry_xy[1:]))
         if evidence.observed_length_m > geometry_length + 1e-6:
@@ -325,7 +336,7 @@ class EvidenceStore:
                    "submap_anchors":self.submap_anchors,
                    "graph_updates":self.graph_updates,
                    "rolled_back_graph_updates":self.rolled_back_graph_updates,
-                   "evidence": [{**asdict(e), "state": e.state.value} for e in self.evidence()]}
+                   "evidence": [{**evidence_record(e), "state": e.state.value} for e in self.evidence()]}
         Path(path).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
     @classmethod

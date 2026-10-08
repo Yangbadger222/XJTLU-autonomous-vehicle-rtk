@@ -71,6 +71,7 @@ class LocalObstacleGridNode(Node if rclpy else object):
         self._map_version = "UNKNOWN"
         self._ground = None
         self._ground_stamp = None
+        self._ground_support_model = ""
         self._pending_clouds = OrderedDict()
         if not _parameter_bool(self.get_parameter("unknown_is_occupied").value):
             raise ValueError("unknown_is_occupied must remain true")
@@ -92,6 +93,7 @@ class LocalObstacleGridNode(Node if rclpy else object):
         if value != self._map_version:
             self._ground = None
             self._ground_stamp = None
+            self._ground_support_model = ""
             self._pending_clouds.clear()
         self._map_version = value if _valid_map_version(value) else "UNKNOWN"
 
@@ -113,14 +115,17 @@ class LocalObstacleGridNode(Node if rclpy else object):
                  (self._allow_fixture_ground and wrapped.support_model == "restricted_sensor_fixture_v1")) or
                 abs(q.x)+abs(q.y)+abs(q.z) > 1e-9 or abs(q.w-1) > 1e-9):
             self._ground = None
+            self._ground_support_model = ""
             return
         try:
             self._ground = LocalObstacleGrid("odom", self._map_version, msg.info.resolution,
                 msg.info.origin.position.x, msg.info.origin.position.y,
                 msg.info.width, msg.info.height, tuple(msg.data), True)
             self._ground_stamp = rclpy.time.Time.from_msg(msg.header.stamp)
+            self._ground_support_model = str(wrapped.support_model)
         except (TypeError, ValueError):
             self._ground = None
+            self._ground_support_model = ""
         key = msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec
         pending = self._pending_clouds.get(key)
         if pending is not None and (time.monotonic()-pending[1] <= float(self.get_parameter("ground_timeout_s").value) or
@@ -183,7 +188,9 @@ class LocalObstacleGridNode(Node if rclpy else object):
         self._publisher.publish(output)
         self._evidence_publisher.publish(LocalEvidenceGrid2D(header=output.header,
             map_version=self._map_version,localization_session_id=self._session,
-            support_model="single_scan_flat_dense_with_locked_obstacles_v1",grid=output))
+            support_model=("analytical_fixture_v1" if ground is not None and
+                self._ground_support_model == "restricted_sensor_fixture_v1" else
+                "single_scan_flat_dense_with_locked_obstacles_v1"),grid=output))
         self._last_rejection = ""
 
 

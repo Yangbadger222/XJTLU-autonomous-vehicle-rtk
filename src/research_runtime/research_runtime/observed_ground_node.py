@@ -1,6 +1,7 @@
 """Stamped MID360 support evidence from the unfiltered deskewed source cloud."""
 import math
 import time
+import numpy as np
 from collections import OrderedDict
 
 import rclpy
@@ -12,11 +13,13 @@ from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Bool, String
 from tf2_ros import Buffer, TransformException, TransformListener
-from research_interfaces.msg import LocalEvidenceGrid2D
+from geometry_msgs.msg import Point
+from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D, RoadEvent
 
-from super_lio_vehicle_adapter.adapter_node import _source_certificate
-from .physical_parameter_lock import MID360_GROUND_REFERENCE
+from super_lio_vehicle_adapter.adapter_node import _source_certificate, _covariance_is_known, _qrotate
+from .physical_parameter_lock import MID360_GROUND_REFERENCE, LOCKED_FOOTPRINT
 from .observed_ground import GroundPolicy, expected_ground_z, project_observed_ground
+from .local_road_evidence import supported_strips
 
 
 def _stamp(msg):
@@ -31,7 +34,7 @@ class ObservedGroundNode(Node):
         self._height = self.declare_parameter("height",100).value
         if (abs(self._resolution-0.30) > 1e-12 or type(self._width) is not int or
             type(self._height) is not int or not 1 <= self._width <= 200 or not 1 <= self._height <= 200):
-            raise ValueError("ground grid must retain locked resolution and bounded dimensions")
+            raise ValueError("ground grid must retain the research resolution and bounded dimensions")
         actual_height = self.declare_parameter("lidar_height_m",MID360_GROUND_REFERENCE["lidar_height_m"]).value
         actual_lever = self.declare_parameter("lidar_in_imu_m",list(MID360_GROUND_REFERENCE["lidar_in_imu_m"])).value
         if (actual_height != MID360_GROUND_REFERENCE["lidar_height_m"] or
@@ -55,12 +58,60 @@ class ObservedGroundNode(Node):
         self._publisher = self.create_publisher(LocalEvidenceGrid2D,"/research/observed_ground_grid",10)
         self._cloud_publisher = self.create_publisher(PointCloud2,"/research/ground_observation_cloud",10)
         self._status = self.create_publisher(String,"/research/ground_status",10)
+        self._road_pub = self.create_publisher(RoadEvidence2D,"/research/road_evidence",100)
+        self._question_pub = self.create_publisher(RoadEvent,"/research/measured_road_questions",100)
+        self._road_pending = OrderedDict()
+        self._road_seen = set()
+        self.create_subscription(String,"/research/road_evidence_ack",self._road_ack,100)
         self.create_subscription(String,"/research/map_version",self._version_callback,10)
         self.create_subscription(Odometry,"/lio/odom_vehicle",self._pose_callback,100)
         self.create_subscription(String,"/lio/health",self._certificate_callback,100)
-        self.create_subscription(Bool,"/research/tf_integrity",self._tf_callback,10)
+        self.create_subscription(Bool,"/research/local_frame_integrity",self._tf_callback,10)
         self.create_subscription(PointCloud2,"/lio/cloud_world",self._cloud_callback,20)
         self.create_timer(0.05,self._drain,clock=Clock(clock_type=ClockType.STEADY_TIME))
+        self.create_timer(0.20,self._retry_roads,clock=Clock(clock_type=ClockType.STEADY_TIME))
+
+    def _road_ack(self,msg):
+        self._road_pending.pop(str(msg.data),None)
+
+    def _retry_roads(self):
+        # Exactly the original acquisition object is resent. The persistence
+        # acknowledgement suppresses retry, never counts it as new evidence.
+        for msg in self._road_pending.values():self._road_pub.publish(msg)
+
+    def _record_roads(self,grid,pose,points,header):
+        covariance=tuple(pose.pose.covariance)+tuple(pose.twist.covariance)
+        if not _covariance_is_known(covariance):return
+        p,q=pose.pose.pose.position,pose.pose.pose.orientation
+        translation=_qrotate((q.x,q.y,q.z,q.w),MID360_GROUND_REFERENCE['lidar_in_imu_m'])
+        sensor=(p.x+translation[0],p.y+translation[1],p.z+translation[2])
+        ranges=[math.dist((float(point[0]),float(point[1]),float(point[2])),sensor) for point in points
+            if all(math.isfinite(float(value)) for value in (point[0],point[1],point[2]))]
+        ranges=[value for value in ranges if value>0]
+        if not ranges:return
+        # Conditional estimator uncertainty, not an external accuracy claim.
+        matrix=np.asarray(pose.pose.covariance).reshape((6,6))
+        uncertainty=math.sqrt(max(0.,float(np.linalg.eigvalsh(matrix[:2,:2])[-1])))+max(ranges)*math.sqrt(max(0.,float(matrix[5,5])))
+        width=max(y for _x,y in LOCKED_FOOTPRINT)-min(y for _x,y in LOCKED_FOOTPRINT)
+        for strip in supported_strips(grid,session=self._session,minimum_width_m=width):
+            identity=self._session+':mid360-strip:'+strip.identity
+            if identity not in self._road_seen and len(self._road_seen)<1024 and len(self._road_pending)<128:
+                msg=RoadEvidence2D(header=header,evidence_id=identity,
+                    source='mid360_single_scan_flat_geometry_v1',local_submap_id=self._session+'/native-odom',
+                    state='OBSERVED_GEOMETRY',pose_uncertainty_m=uncertainty,
+                    observed_length_m=strip.length_m,valid_depth_min_m=min(ranges),valid_depth_max_m=max(ranges),
+                    supported_width_m=strip.width_m,
+                    geometry=[Point(x=x,y=y,z=0.) for x,y in strip.geometry_xy])
+                self._road_seen.add(identity);self._road_pending[identity]=msg
+                self._road_pub.publish(msg)
+            # Questions remain current observations, even when the strip was
+            # already persisted. Unknown length is one tested cell, not a
+            # fabricated remote edge or an assertion of semantic road identity.
+            for index,(x,y) in enumerate(strip.frontier_xy):
+                self._question_pub.publish(RoadEvent(header=header,event_id=identity+':frontier:'+str(index),
+                    kind='geometric_entry',x=x,y=y,observed_length_m=strip.length_m,
+                    unknown_length_m=grid.resolution_m,state='UNCERTAIN',impact=0.,
+                    source='mid360_single_scan_flat_geometry_v1'))
 
     @staticmethod
     def _remember(collection,key,value,limit):
@@ -172,6 +223,7 @@ class ObservedGroundNode(Node):
                 wrapped = LocalEvidenceGrid2D(header=output.header,map_version=self._version,
                     localization_session_id=self._session,support_model="single_scan_flat_dense_v1",grid=output)
                 self._publisher.publish(wrapped)
+                self._record_roads(grid,pose,points,output.header)
                 # This is an actual TF operation even for the owned identity;
                 # the original safety/display filtered clouds remain separate.
                 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud

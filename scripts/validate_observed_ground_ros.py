@@ -32,7 +32,7 @@ def main():
     pubs={key:node.create_publisher(kind,topic,100) for key,kind,topic in (
         ('cloud',PointCloud2,'/lio/cloud_world'),('odom',Odometry,'/lio/odom_vehicle'),
         ('health',String,'/lio/health'),('version',String,'/research/map_version'),
-        ('integrity',Bool,'/research/tf_integrity'),('old_cloud',PointCloud2,'/lio/cloud_odom'),
+        ('integrity',Bool,'/research/local_frame_integrity'),('old_cloud',PointCloud2,'/lio/cloud_odom'),
         ('clock',Clock,'/clock'))}
     static=node.create_publisher(TFMessage,'/tf_static',QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
     ground_injection=node.create_publisher(LocalEvidenceGrid2D,'/research/observed_ground_grid',10)

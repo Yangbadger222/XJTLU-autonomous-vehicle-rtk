@@ -5,6 +5,7 @@ STOP_CONFIRMATION = (0.05, 0.03490658503988659, 1.0)
 STOP_CONFIRMATION_SOURCE_SHA256 = 'a332eea25d38058b330a9cce9da5cd3b8bb45993045da468c5cb66af83df3758'
 AUTHORITY_HEARTBEAT_TIMEOUT_S = 0.5
 FIRMWARE_COMMAND_MODEL = {'radius_m': 0.1, 'track_m': 0.46, 'gear_ratio': 19.2, 'radps_to_rpm': 9.55, 'max_motor_rpm': 20000.0}
+RESEARCH_EXECUTION_PROFILE = {'max_curvature_1pm': 0.34602076124567477, 'max_lateral_speed_mps': 0.05, 'max_jerk_mps3': 1.7}
 MID360_GROUND_REFERENCE = {'lidar_height_m': 0.447, 'lidar_in_imu_m': (-0.011, -0.02329, 0.04412)}
 MID360_MOUNTING_NOTES_SHA256 = '68c13b201ca622ead792b388d4404c4344c0a73e1a7e56ea1d34ea121c9e95fa'
 

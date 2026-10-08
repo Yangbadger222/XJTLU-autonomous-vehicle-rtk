@@ -68,7 +68,7 @@ def main() -> int:
     verification = json.loads(Path("audit/UPSTREAM_PATCH_VERIFICATION.json").read_text())
     proof_path=Path(verification["current_source_proof"])
     proof=json.loads(proof_path.read_text())
-    for name,pin,directory,count in (("super_lio",SUPER,"super_lio",2),("ego_planner_2d_ros2",EGO,"ego_planner_2d",6)):
+    for name,pin,directory,count in (("super_lio",SUPER,"super_lio",2),("ego_planner_2d_ros2",EGO,"ego_planner_2d",8)):
         item=proof.get("dependencies",{}).get(name,{})
         patches=sorted(Path("patches",directory).glob("*.patch"))
         expected=[{"path":str(p),"sha256":sha256(p),"check_apply":"PASS"} for p in patches]

@@ -20,17 +20,17 @@ ego_vehicle_adapter:
     planning_turn_penalty_weight: 10.0
     # Replan geometry at 1 Hz; validated trajectory heartbeat stays at 10 Hz.
     replan_period_s: 1.0
-    # Physical curvature/lateral/jerk acceptance remains unconfigured. The
-    # conservative footprint circle below is generated from the original polygon.
-    max_curvature_1pm: 0.0
-    max_lateral_speed_mps: 0.0
-    max_jerk_mps3: 0.0
+    # NEW_ALGORITHM_SETTING generated from original w and v*w limits at Vmax.
+    # Numerical lateral tolerance and jerk objective are research settings;
+    # these are not measured slip/terrain ability. The original gates remain.
+    max_curvature_1pm: 0.34602076124567477
+    max_lateral_speed_mps: 0.05
+    max_jerk_mps3: 1.7
     inflate_radius_m: 0.4493606569338264
     initial_map_version: "UNKNOWN"
     map_resolution_m: 0.30
     grid_unknown_is_occupied: true
     footprint_source: "LOCKED_CORRIDOR_POLYGON; physical deployment still requires confirmation"
-    measured_wheel_radius_m: "PENDING"
-    measured_track_m: "PENDING"
+    firmware_command_model_source: "LOCKED_STM32_SOURCE; actual flashed identity requires field verification"
     allow_reverse: false
     output_topic: /research/ego_trajectory

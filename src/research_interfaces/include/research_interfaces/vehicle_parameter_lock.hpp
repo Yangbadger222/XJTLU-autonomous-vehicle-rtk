@@ -9,4 +9,11 @@ inline constexpr double max_decel_mps2 = 1.2;
 inline constexpr double max_yaw_accel_rps2 = 1.3999999999999999;
 inline constexpr double max_yaw_decel_rps2 = 1.8;
 inline constexpr double max_lateral_accel_mps2 = 0.25;
+namespace firmware_command {
+inline constexpr double radius_m = 0.10000000000000001;
+inline constexpr double track_m = 0.46000000000000002;
+inline constexpr double gear_ratio = 19.199999999999999;
+inline constexpr double radps_to_rpm = 9.5500000000000007;
+inline constexpr double max_motor_rpm = 20000;
+}
 }

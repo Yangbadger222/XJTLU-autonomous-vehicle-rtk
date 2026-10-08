@@ -1,0 +1,66 @@
+diff --git a/src/EgoPlanner-ROS2/src/research_tf_guard.cpp b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+index c989a4c..2a31b80 100644
+--- a/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
++++ b/src/EgoPlanner-ROS2/src/research_tf_guard.cpp
+@@ -15,22 +15,28 @@ class ResearchTfGuard : public rclcpp::Node {
+   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr input_;
+   rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr static_input_;
+   bool protected_static_edge_=false;
++  bool local_static_edge_=false;
+   bool protect_world_gauge_=false;
+   bool dynamic_world_edge_=false;
+   bool invalid_world_static_=false;
+   std::unordered_map<std::string,bool> world_static_owners_;
+   rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr output_;
++  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr local_output_;
+   rclcpp::TimerBase::SharedPtr timer_;
+ public:
+   ResearchTfGuard() : Node("research_tf_integrity_guard") {
+     protect_world_gauge_=declare_parameter<bool>("protect_world_gauge",false);
+     output_=create_publisher<std_msgs::msg::Bool>("/research/tf_integrity",10);
++    // Local perception may continue without map/RTK authority. This channel
++    // checks only the sensor/odom/base chain and never grants motion.
++    local_output_=create_publisher<std_msgs::msg::Bool>("/research/local_frame_integrity",10);
+     static_input_=create_subscription<tf2_msgs::msg::TFMessage>("/tf_static",rclcpp::QoS(100).reliable().transient_local(),
+       [this](tf2_msgs::msg::TFMessage::ConstSharedPtr message, const rclcpp::MessageInfo& info) {
+         const auto& gid=info.get_rmw_message_info().publisher_gid;
+         std::string key(reinterpret_cast<const char*>(gid.data),RMW_GID_STORAGE_SIZE);
+         for(const auto& t:message->transforms) {
+           if(t.child_frame_id=="odom" || t.child_frame_id=="base_footprint")protected_static_edge_=true;
++          if(t.child_frame_id=="base_footprint")local_static_edge_=true;
+           if(protect_world_gauge_ && t.child_frame_id=="world") {
+             const auto& p=t.transform.translation;const auto& q=t.transform.rotation;
+             const bool identity=t.header.frame_id=="odom" &&
+@@ -59,21 +65,27 @@ public:
+         }
+       });
+     timer_=create_wall_timer(std::chrono::milliseconds(50),[this]() {
+-      bool valid=!protected_static_edge_; const auto receipt=std::chrono::steady_clock::now();
+-      if(protect_world_gauge_)valid=valid && !dynamic_world_edge_ && !invalid_world_static_ &&
+-        world_static_owners_.size()==1 && world_static_owners_.begin()->second;
++      const auto receipt=std::chrono::steady_clock::now();
++      const bool world_valid=!protect_world_gauge_ || (!dynamic_world_edge_ && !invalid_world_static_ &&
++        world_static_owners_.size()==1 && world_static_owners_.begin()->second);
++      bool valid=!protected_static_edge_ && world_valid;
++      bool local_valid=!local_static_edge_ && world_valid;
+       for (const std::string child : {"odom","base_footprint"}) {
+         size_t fresh=0;
++        bool child_valid=true;
+         for (const auto& item : owners_[child]) {
+           const auto& entry=item.second;
+           if (std::chrono::duration<double>(receipt-entry.received).count() > .20) continue;
+           const double age=(now()-entry.acquisition).seconds();
+           ++fresh;
+-          valid=valid && entry.valid && entry.acquisition.nanoseconds()>0 && age>=-.10 && age<=.20;
++          child_valid=child_valid && entry.valid && entry.acquisition.nanoseconds()>0 && age>=-.10 && age<=.20;
+         }
+-        valid=valid && fresh==1;
++        child_valid=child_valid && fresh==1;
++        valid=valid && child_valid;
++        if(child=="base_footprint")local_valid=local_valid && child_valid;
+       }
+       std_msgs::msg::Bool output; output.data=valid; output_->publish(output);
++      output.data=local_valid;local_output_->publish(output);
+     });
+   }
+ };

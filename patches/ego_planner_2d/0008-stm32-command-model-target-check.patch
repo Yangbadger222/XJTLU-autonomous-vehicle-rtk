@@ -1,0 +1,30 @@
+diff --git a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+index 65fbea6..b186b72 100644
+--- a/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
++++ b/src/EgoPlanner-ROS2/src/trajectory_publisher.cpp
+@@ -71,8 +71,7 @@ TrajectoryAndObstaclesPublisher::TrajectoryAndObstaclesPublisher()
+   grid_timeout_s_ = declare_parameter<double>("grid_timeout_s", 0.50);
+   output_topic_ = declare_parameter<std::string>("output_topic", "/research/ego_trajectory");
+   (void)declare_parameter<std::string>("footprint_source", "PENDING");
+-  (void)declare_parameter<std::string>("measured_wheel_radius_m", "PENDING");
+-  (void)declare_parameter<std::string>("measured_track_m", "PENDING");
++  (void)declare_parameter<std::string>("firmware_command_model_source", "LOCKED_STM32_SOURCE");
+   map_version_ = declare_parameter<std::string>("initial_map_version", "UNKNOWN");
+   localization_session_id_=declare_parameter<std::string>("localization_session_id","UNKNOWN");
+   allow_analytical_grid_fixture_=declare_parameter<bool>("allow_analytical_grid_fixture",false);
+@@ -518,6 +517,15 @@ bool TrajectoryAndObstaclesPublisher::trajectory_is_feasible(const std::vector<P
+     const double yaw_rate = speed > kHeadingSpeed ?
+       (vx * point.ay - vy * point.ax) / (speed * speed) : 0.0;
+     const double curvature = speed > kHeadingSpeed ? yaw_rate / speed : 0.0;
++    // Source STM32 command conversion, not a physical wheel/slip estimate.
++    using namespace research_vehicle_lock::firmware_command;
++    const double rpm_factor=gear_ratio*radps_to_rpm/radius_m;
++    const double left_rpm=(speed-yaw_rate*track_m*.5)*rpm_factor;
++    const double right_rpm=-(speed+yaw_rate*track_m*.5)*rpm_factor;
++    if(!std::isfinite(left_rpm) || !std::isfinite(right_rpm) ||
++       std::max(std::abs(left_rpm),std::abs(right_rpm))>max_motor_rpm) {
++      return reject("firmware_motor_targets",index,std::max(std::abs(left_rpm),std::abs(right_rpm)));
++    }
+     if (std::abs(speed*yaw_rate)>max_lateral_accel_mps2_+1e-6 || std::abs(yaw_rate) > max_yaw_rate_rps_ + 1e-6 ||
+         std::abs(curvature) > max_curvature_1pm_ + 1e-6 ||
+         acceleration > max_accel_mps2_ + 1e-6 ||

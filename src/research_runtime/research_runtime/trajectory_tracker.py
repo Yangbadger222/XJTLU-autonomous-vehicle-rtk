@@ -11,6 +11,7 @@ import math
 from typing import Callable, Sequence
 
 from .trajectory import TimedPoint, TimedTrajectory, VehicleLimits, validate_trajectory
+from .firmware_command import within_firmware_command_envelope
 
 
 @dataclass(frozen=True)
@@ -125,6 +126,9 @@ class TimedTrajectoryTracker:
             return None
         if abs(requested_v*requested_w)>self.limits.max_lateral_accel_mps2+1e-9:
             self.last_rejection="feedback_original_guard_turn_product_limit"
+            return None
+        if not within_firmware_command_envelope(requested_v,requested_w):
+            self.last_rejection="feedback_firmware_motor_target_limit"
             return None
         if (self.limits.max_curvature_1pm is not None and
                 abs(requested_w)>self.limits.max_curvature_1pm*abs(requested_v)+1e-9):

@@ -1,0 +1,60 @@
+import json
+import pytest
+from research_runtime.grid_map import LocalObstacleGrid
+from research_runtime.local_road_evidence import supported_strips
+from research_runtime.active_road import EvidenceStore,GeoTransform,RoadEvidence,EvidenceState
+
+
+def grid(cells,origin=(0.,0.)):
+    return LocalObstacleGrid('odom','v1',.3,*origin,6,3,tuple(cells))
+
+
+def test_strip_records_only_centers_inside_observed_width_and_length():
+    g=grid([-1,0,0,0,0,-1]*3)
+    strips=supported_strips(g,session='s1',minimum_width_m=.61)
+    s=next(s for s in strips if s.geometry_xy[0][1] == s.geometry_xy[1][1])
+    assert s.width_m == pytest.approx(.9)
+    assert s.length_m == pytest.approx(.9)
+    assert s.geometry_xy == ((.44999999999999996,.44999999999999996),(1.3499999999999999,.44999999999999996))
+    assert len(s.frontier_xy)==2
+
+
+def test_no_strip_bridges_unknown_hole_or_blocked_cell():
+    cells=[0]*18;cells[8]=-1
+    strips=supported_strips(grid(cells),session='s1',minimum_width_m=.61)
+    assert all(not(a[0]<.75<b[0]) for a,b in (s.geometry_xy for s in strips) if a[1]==b[1])
+    cells[8]=100
+    blocked=supported_strips(grid(cells),session='s1',minimum_width_m=.61)
+    assert [(s.identity,s.geometry_xy) for s in blocked]==[(s.identity,s.geometry_xy) for s in strips]
+    assert not any(s.frontier_xy for s in blocked)
+
+
+def test_empty_and_too_narrow_support_never_produce_a_road_observation():
+    assert not supported_strips(grid([-1]*18),session='s1',minimum_width_m=.61)
+    assert not supported_strips(grid([0]*6+[-1]*12),session='s1',minimum_width_m=.61)
+
+
+def test_correlated_repeat_is_stable_but_new_session_is_independent():
+    g=grid([0]*18)
+    one=supported_strips(g,session='s1',minimum_width_m=.61)
+    assert one==supported_strips(g,session='s1',minimum_width_m=.61)
+    assert one[0].identity != supported_strips(g,session='s2',minimum_width_m=.61)[0].identity
+    assert len(supported_strips(g,session='s1',minimum_width_m=.61,maximum=1))==1
+
+
+def test_width_roundtrip_and_old_unknown_width_records_remain_loadable(tmp_path):
+    store=EvidenceStore(GeoTransform('LOCAL:odom','LOCAL_SENSOR_FRAME',0.,0.,1.,1.),'v1')
+    old=RoadEvidence('old',[(0.,0.),(1.,0.)],EvidenceState.OBSERVED_GEOMETRY,1.,'source','s1/native',.02,1.)
+    store.add(old);path=tmp_path/'old.json';store.save(path)
+    assert 'supported_width_m' not in json.loads(path.read_text())['evidence'][0]
+    assert EvidenceStore.load(path).map_version==store.map_version
+    new=RoadEvidence('new',[(0.,0.),(1.,0.)],EvidenceState.OBSERVED_GEOMETRY,2.,'source','s1/native',.02,1.,supported_width_m=.9)
+    store.add(new);store.save(path)
+    assert EvidenceStore.load(path).evidence()[1].supported_width_m==.9
+
+
+def test_width_may_not_be_nan_or_negative():
+    for bad in (float('nan'),-.1,0.):
+        with pytest.raises(ValueError):
+            EvidenceStore._validate_evidence(RoadEvidence('e',[(0.,0.),(1.,0.)],EvidenceState.OBSERVED_GEOMETRY,
+                1.,'source','submap',.1,1.,supported_width_m=bad))

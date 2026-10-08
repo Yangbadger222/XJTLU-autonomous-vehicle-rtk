@@ -79,7 +79,8 @@ def generate_launch_description():
     active_road_map = Node(package="active_road_mapping", executable="active_road_map",
                            name="active_road_map", output="screen",
 
-                           parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml"), {"use_sim_time": simulated_time}])
+                           parameters=[os.path.join(bringup_share, "config", "active_road_mapping.yaml"),
+                            {"use_sim_time": simulated_time,"localization_session_id":LaunchConfiguration("localization_session_id")}])
     active_road_evidence = Node(
         package="active_road_mapping", executable="active_road_evidence",
         name="active_road_evidence", output="screen",

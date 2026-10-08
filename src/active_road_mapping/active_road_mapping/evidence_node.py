@@ -236,7 +236,8 @@ class ActiveRoadEvidenceNode(Node if rclpy else object):
                 local_submap_id=str(msg.local_submap_id),
                 pose_uncertainty_m=float(msg.pose_uncertainty_m),
                 observed_length_m=float(msg.observed_length_m),
-                valid_depth_m=depth)
+                valid_depth_m=depth,
+                supported_width_m=float(msg.supported_width_m) if msg.supported_width_m != 0 else None)
             added = self._store.add(evidence)
             if added:
                 _atomic_save(self._store, self._path)

@@ -451,7 +451,9 @@ class ActiveObservationNode(Node):
         try:
             evidence=RoadEvidence(msg.evidence_id,[(p.x,p.y) for p in msg.geometry],EvidenceState(msg.state),
                 msg.header.stamp.sec+msg.header.stamp.nanosec*1e-9,msg.source,msg.local_submap_id,
-                msg.pose_uncertainty_m,msg.observed_length_m)
+                msg.pose_uncertainty_m,msg.observed_length_m,
+                valid_depth_m=(msg.valid_depth_min_m,msg.valid_depth_max_m) if msg.valid_depth_min_m>0 else None,
+                supported_width_m=msg.supported_width_m if msg.supported_width_m!=0 else None)
             from research_runtime.active_road import EvidenceStore
             EvidenceStore._validate_evidence(evidence)
             if evidence.state==EvidenceState.TRAVERSED:return

@@ -59,7 +59,13 @@ def _atomic_save(store: EvidenceStore, path: Path) -> None:
     try:
         os.close(fd)
         store.save(temporary)
+        sync_fd=os.open(temporary,os.O_RDONLY)
+        try:os.fsync(sync_fd)
+        finally:os.close(sync_fd)
         Path(temporary).replace(path)
+        directory_fd=os.open(path.parent,os.O_RDONLY | getattr(os,'O_DIRECTORY',0))
+        try:os.fsync(directory_fd)
+        finally:os.close(directory_fd)
     finally:
         try:
             Path(temporary).unlink()

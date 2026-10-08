@@ -33,6 +33,11 @@ from super_lio_vehicle_adapter.control_reference_lock import (
     CONTROL_ODOM_TOPIC, CONTROL_CHILD_FRAME, IMU_TO_CONTROL_TRANSLATION_M)
 from super_lio_vehicle_adapter.adapter_node import control_odometry_from_legacy
 
+# Explicit virtual sensor model, unrelated to any real camera calibration.
+# X/Y share the control axes; sensor origin is 1.2 m above nominal ground.
+SIMULATED_DEPTH_FRAME='simulation_depth_sensor'
+SIMULATED_DEPTH_HEIGHT_M=1.2
+
 
 def stamp_seconds(stamp):return stamp.sec+stamp.nanosec*1e-9
 
@@ -165,8 +170,8 @@ class TruthSensor(Node):
                     ray_t=(2.2-self.pose[0])/(wx-self.pose[0])
                     cross_y=self.pose[1]+ray_t*(wy-self.pose[1])
                     if 0<ray_t<1 and 1<=cross_y<=3:continue
-                depth.append((float(xx),float(yy),-1.2))
-        header=Header(stamp=self.get_clock().now().to_msg(),frame_id='base_footprint')
+                depth.append((float(xx),float(yy),-SIMULATED_DEPTH_HEIGHT_M))
+        header=Header(stamp=self.get_clock().now().to_msg(),frame_id=SIMULATED_DEPTH_FRAME)
         if self.sensor_fault=='depth_invalid' and time.monotonic()-self.started>=self.fault_after_s:
             depth=[(float('nan'),0.,0.),(0.,0.,float('nan'))]
         self.depth.publish(point_cloud2.create_cloud_xyz32(header,depth))
@@ -268,6 +273,7 @@ class MeasuredPerception(Node):
 
     def process_depth(self,msg):
         stamp=stamp_seconds(msg.header.stamp)
+        if msg.header.frame_id!=SIMULATED_DEPTH_FRAME or stamp<=0:return
         samples=list(self.history)
         if len(samples)<2 or stamp<samples[0][0]:return
         pair=next(((a,b) for a,b in zip(samples,samples[1:]) if a[0]<=stamp<=b[0]),None)
@@ -277,7 +283,11 @@ class MeasuredPerception(Node):
         groups={}
         for point in point_cloud2.read_points(msg,field_names=('x','y','z'),skip_nans=True):
             px,py,pz=map(float,point)
-            if abs(pz+1.2)>.03:continue # Explicit simulated support plane only.
+            # T_control_depth has identity rotation and +height Z. Apply
+            # it before the stamped control-pose projection; range remains
+            # the actual distance in the explicitly simulated sensor frame.
+            control_z=pz+SIMULATED_DEPTH_HEIGHT_M
+            if abs(control_z)>.03:continue
             wx=x+math.cos(yaw)*px-math.sin(yaw)*py;wy=y+math.sin(yaw)*px+math.cos(yaw)*py
             col,row=int(math.floor((wx+15)/.3)),int(math.floor((wy+15)/.3))
             if 0<=col<100 and 0<=row<100:groups.setdefault(row*100+col,[]).append((wx,wy,math.sqrt(px*px+py*py+pz*pz)))

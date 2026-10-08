@@ -79,9 +79,13 @@ class ConsoleNode(Node):
     def _odom(self,msg):
         q=msg.pose.pose.orientation
         norm=q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w
-        values=(msg.pose.pose.position.x,msg.pose.pose.position.y,msg.twist.twist.linear.x,msg.twist.twist.angular.z)
+        linear=msg.twist.twist.linear
+        values=(msg.pose.pose.position.x,msg.pose.pose.position.y,
+            math.hypot(linear.x,linear.y,linear.z),msg.twist.twist.angular.z)
         if (msg.header.frame_id!="odom" or msg.child_frame_id!=CONTROL_CHILD_FRAME or not 0<=self._age(msg)<=.2 or
-            not all(math.isfinite(v) for v in (*values,norm)) or abs(norm-1)>1e-5): return
+            not all(math.isfinite(v) for v in (*values,norm)) or abs(norm-1)>1e-5):
+            self.console.invalidate_input('odom')
+            return
         self.console.update("odom",dict(zip(("x","y","v","w"),values),yaw=math.atan2(
             2*(q.w*q.z+q.x*q.y),1-2*(q.y*q.y+q.z*q.z))))
 

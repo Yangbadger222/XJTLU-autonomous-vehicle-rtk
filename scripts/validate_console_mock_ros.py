@@ -73,12 +73,14 @@ def main():
             buffer+=data
         while b"\n" in buffer:
             line,buffer=buffer.split(b"\n",1);wire.append(line.decode()+"\n")
-    def tick(authority=True,heartbeat=True):
+    def tick(authority=True,heartbeat=True,lateral_speed=0.,vertical_speed=0.):
         stamp=node.get_clock().now().to_msg()
         pubs["authority"].publish(Bool(data=authority));pubs["mode"].publish(String(data="RTK_AUTHORITATIVE" if authority else "RTK_HOLD"))
         pubs["speed"].publish(Float32(data=.85));pubs["health"].publish(String(data="OK: SIMULATED HMI fixture"));pubs["version"].publish(String(data="console-simulation-m1"))
         odom=Odometry();odom.header.frame_id,odom.child_frame_id="odom","chassis_control_origin";odom.header.stamp=stamp
-        odom.pose.pose.orientation.w=1.;odom.pose.covariance[0]=odom.pose.covariance[7]=.0009;pubs["odom"].publish(odom)
+        odom.pose.pose.orientation.w=1.;odom.pose.covariance[0]=odom.pose.covariance[7]=.0009
+        odom.twist.twist.linear.y=lateral_speed;odom.twist.twist.linear.z=vertical_speed
+        pubs["odom"].publish(odom)
         for kind in ("grid","permission"):
             grid=OccupancyGrid();grid.header.stamp,grid.header.frame_id=stamp,"odom";grid.info.resolution=.3
             grid.info.width=grid.info.height=40;grid.info.origin.position.x=grid.info.origin.position.y=-6.
@@ -101,9 +103,9 @@ def main():
             try:request("heartbeat",heartbeat=True)
             except (OSError,urllib.error.URLError):pass
         drain()
-    def phase(seconds,authority=True,heartbeat=True):
+    def phase(seconds,authority=True,heartbeat=True,lateral_speed=0.,vertical_speed=0.):
         start=len(wire);deadline=time.monotonic()+seconds
-        while time.monotonic()<deadline:tick(authority,heartbeat);time.sleep(.03)
+        while time.monotonic()<deadline:tick(authority,heartbeat,lateral_speed,vertical_speed);time.sleep(.03)
         return wire[start:]
     def spawn(package,executable,extra):
         log=(args.output.parent/("console-"+executable+".log")).open("w");logs.append(log)
@@ -151,6 +153,12 @@ def main():
                     args.output.with_suffix('.samples.json').write_text(json.dumps(samples,indent=2))
             result={"status":"SERVE_COMPLETE","wire_tail":wire[-5:],"wire_nonzero_count":sum(line!="vcx=0.000,wc=0.000\n" for line in wire)}
         else:
+            for kind in ('lateral','vertical'):
+                phase(1.3,lateral_speed=.08 if kind=='lateral' else 0.,vertical_speed=.08 if kind=='vertical' else 0.)
+                current=snapshot();reset=request('reset')
+                cases.append(dict(case=kind+'_translation_cannot_confirm_stop',
+                    status='PASS' if not current['stop_confirmed_from_odom'] and not reset['accepted'] else 'FAIL',
+                    stop_confirmed=current['stop_confirmed_from_odom'],reset_response=reset))
             for action in ("pause","stop","takeover"):
                 nonzero=rearm();assert request(action)["accepted"]
                 check("http_"+action,nonzero,phase(.85),snapshot()["state"])

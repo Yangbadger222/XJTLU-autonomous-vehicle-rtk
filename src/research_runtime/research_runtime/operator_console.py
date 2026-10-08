@@ -59,6 +59,12 @@ class OperatorConsole:
         value, stamp = self.inputs.get(name, (None, -math.inf))
         return value if 0 <= self.clock()-stamp <= age else None
 
+    def invalidate_input(self,name):
+        with self.lock:
+            self.inputs.pop(name,None)
+            if name=='odom':self.still_since=None
+            self.tick()
+
     def blocked(self):
         reasons = []
         if self.mode != "live": reasons.append("当前环境不执行运动："+self.mode)

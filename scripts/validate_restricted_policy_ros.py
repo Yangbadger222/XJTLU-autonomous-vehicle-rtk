@@ -243,7 +243,7 @@ def main():
     result={'foundation_manifest_sha256':hashlib.sha256(json.dumps(foundation,sort_keys=True).encode()).hexdigest(),'foundation_file_count':len(foundation),'foundation_unchanged_each_trial':foundation_preserved,'scope':'finite synthetic sensor closed-loop comparison; actual pinned Super-LIO/EGO, original guard and serial PTY',
         'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
         'settings_origin':'CURRENT_SOURCE_YAML' if args.default_profile else 'ANALYTICAL_OVERRIDE',
-        'simulation_only_assumptions':['IMU=controlled-base extrinsic; measured simulated encoder body twist','synthetic .03m pose uncertainty bound','source health assumption; actual /lio/health remains UNKNOWN',
+        'simulation_only_assumptions':['source-derived MID360 mounting lever; measured simulated encoder centre twist','synthetic .03m pose uncertainty bound','source health assumption; actual /lio/health remains UNKNOWN',
             'synthetic restricted depth model/support plane and prior registration; no physical camera acceptance'],
         'truth_isolation':'separate truth process publishes raw sensors only; policy/map processes have no truth-pose/full-map input or path',
         'prior_bytes_preserved':preserved,'trials':trials,'protocol_status':'PASS' if preserved and foundation_preserved and all(t['protocol_status']=='PASS' for t in trials) else 'FAIL',

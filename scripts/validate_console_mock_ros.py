@@ -36,7 +36,10 @@ def main():
     parser.add_argument("--repo",type=Path,required=True)
     parser.add_argument("--output",type=Path,required=True)
     parser.add_argument("--serve-seconds",type=float,default=0.)
+    parser.add_argument("--console-port",type=int,default=8878)
     args=parser.parse_args()
+    if not 1024<=args.console_port<=65535 or args.console_port==8765:
+        parser.error('task-only HTTP port required; preserve the existing preview on8765')
     if os.environ.get("ROS_DOMAIN_ID")!="99" or os.environ.get("ROS_LOCALHOST_ONLY")!="1":
         raise SystemExit("requires domain 99 and localhost-only; mock serial only")
     args.output.parent.mkdir(parents=True,exist_ok=True)
@@ -52,7 +55,7 @@ def main():
         "trajectory":(TimedTrajectory2D,"/research/ego_trajectory"),"tf":(TFMessage,"/tf")}
     pubs={k:node.create_publisher(kind,topic,10) for k,(kind,topic) in topics.items()}
     typed_grid=node.create_publisher(LocalEvidenceGrid2D,"/research/local_evidence_grid",10)
-    base="http://127.0.0.1:8765"
+    base="http://127.0.0.1:"+str(args.console_port)
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     csrf="";window=str(uuid.uuid4());cases=[]
     def request(action,payload=None,heartbeat=False):
@@ -126,7 +129,7 @@ def main():
         ok=nonzero and len(tail)==5 and all(line=="vcx=0.000,wc=0.000\n" for line in tail)
         cases.append({"case":name,"nominal_nonzero_final_serial":nonzero,"final_serial_tail":tail,"console_state":state,"status":"PASS" if ok else "FAIL"})
     try:
-        console=spawn("research_runtime","research_operator_console",["-p","execution_mode:=live","-p","actuator_enabled:=true","-p","mission_execution_enabled:=true"])
+        console=spawn("research_runtime","research_operator_console",["-p","execution_mode:=live","-p","actuator_enabled:=true","-p","mission_execution_enabled:=true","-p","http_port:="+str(args.console_port)])
         spawn("research_runtime","research_safety_bridge",["--params-file",str(config/"research_safety_bridge.yaml"),"-p","mode:=live","-p","actuator_enabled:=true","-p","max_curvature_1pm:=1.0","-p","max_lateral_speed_mps:=0.05",
             "-p","localization_session_id:=mock-only","-p","allow_analytical_grid_fixture:=true"])
         spawn("gps_waypoint_dispatcher","corridor_cmd_vel_guard_node",["--params-file",str(config/"master_params.yaml")])
@@ -135,6 +138,7 @@ def main():
         spawn("active_road_mapping","active_observation",["--params-file",str(config/"active_observation.yaml"),"-p","execution_mode:=live","-p","mission_execution_enabled:=true",
             "-p","prior_manifest_path:="+str(fixture),"-p","task_start_node:=start","-p","task_goal_node:=goal","-p","sensor_range_m:=1.8","-p","sensor_fov_rad:="+str(2*math.pi),"-p","max_curvature_1pm:=1.0","-p","policy:=PASSIVE"])
         phase(3.,heartbeat=False)
+        assert console.poll() is None,'task-only console failed; do not contact any existing server'
         csrf=json.loads(opener.open(base+"/api/session").read())["csrf"]
         assert request("claim")["accepted"]
         if args.serve_seconds:

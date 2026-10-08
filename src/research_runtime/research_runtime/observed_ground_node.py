@@ -242,7 +242,11 @@ class ObservedGroundNode(Node):
                 # before the stamped transform, without a height/range filter.
                 xyz=point_cloud2.create_cloud_xyz32(cloud.header,
                     [tuple(float(point[index]) for index in range(3)) for point in points])
-                self._cloud_publisher.publish(do_transform_cloud(xyz,transform))
+                transformed=do_transform_cloud(xyz,transform)
+                # tf2_sensor_msgs copies the transform header. A static gauge
+                # has stamp zero; retain the actual scan time in the odom frame.
+                transformed.header=output.header
+                self._cloud_publisher.publish(transformed)
                 self._last_grid,self._invalidated = wrapped,False
                 self._last_published_stamp = key
                 self._status.publish(String(data=f"OBSERVED: {stats}; flat-ground research assumptions"))

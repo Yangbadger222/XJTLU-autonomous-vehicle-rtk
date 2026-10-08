@@ -38,7 +38,8 @@ def main():
         ('clock',Clock,'/clock'))}
     static=node.create_publisher(TFMessage,'/tf_static',QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
     ground_injection=node.create_publisher(LocalEvidenceGrid2D,'/research/observed_ground_grid',10)
-    ground=[];combined=[];roads={};questions=[]
+    ground=[];combined=[];roads={};questions=[];transformed_clouds=[]
+    node.create_subscription(PointCloud2,'/research/ground_observation_cloud',transformed_clouds.append,100)
     node.create_subscription(RoadEvidence2D,'/research/road_evidence',lambda msg:roads.setdefault(msg.evidence_id,msg),1000)
     from research_interfaces.msg import RoadEvent
     node.create_subscription(RoadEvent,'/research/measured_road_questions',questions.append,1000)
@@ -112,6 +113,10 @@ def main():
             g,c=run(patch,kind,seconds=.8)
             cases.append(dict(case=kind+'_full_XYZI_stride_transforms_without_crash',ok=bool(g and c and
                 value(g[-1])==0 and value(c[-1])==0 and children[0].poll() is None)))
+        acquisition_headers={(msg.header.stamp.sec,msg.header.stamp.nanosec) for msg in ground}
+        cases.append(dict(case='static_gauge_transform_retains_original_scan_stamp',ok=bool(transformed_clouds) and
+            all(msg.header.frame_id=='odom' and msg.header.stamp.sec>0 and
+                (msg.header.stamp.sec,msg.header.stamp.nanosec) in acquisition_headers for msg in transformed_clouds)))
         strip_patch=[(x+.3*col,y+.3*row,z) for col in range(4) for row in range(3) for x,y,z in patch]
         run(strip_patch,seconds=1.2)
         records=EvidenceStore.load(store_path).evidence()

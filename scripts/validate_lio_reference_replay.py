@@ -33,6 +33,7 @@ def main():
     for name in ('repo','install','bag','output'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--duration-s',type=float,default=0.,help='0 means full EOF; positive is explicitly a prefix')
     parser.add_argument('--ground-pipeline',action='store_true',help='actual local TF/ground/evidence without any RTK or actuator fixture')
+    parser.add_argument('--ground-diagnostics',action='store_true',help='sample actual ground-return density and locked-height residuals; grants no acceptance or permission')
     args=parser.parse_args()
     if os.environ.get('ROS_DOMAIN_ID')!='104' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':
         raise SystemExit('requires isolated domain104 and localhost-only')
@@ -46,7 +47,7 @@ def main():
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
     children=[];logs=[];player=None;child_commands=[];map_parameters=None;ground_statuses=Counter()
     local_frames=[];full_frames=[];ground_grids=[];combined_grids=[];road_evidence={};questions=[]
-    ground_acquisitions=[]
+    ground_acquisitions=[];ground_diagnostics=[]
     session='raw-ground-'+args.output.stem
     evidence_path=args.output.with_name(args.output.stem+'-evidence.json')
     def ground_grid(msg,collection,label):
@@ -54,6 +55,29 @@ def main():
         collection.append(dict(stamp_ns=stamp(msg),free=msg.grid.data.count(0),blocked=msg.grid.data.count(100),
             model=msg.support_model,version=msg.map_version,session=msg.localization_session_id,
             headers_match=msg.header==msg.grid.header))
+    def ground_cloud(msg):
+        key=stamp(msg);ground_acquisitions.append(key)
+        if not args.ground_diagnostics or len(ground_acquisitions)%10 or len(ground_diagnostics)>=100 or key not in native:
+            return
+        from sensor_msgs_py import point_cloud2
+        from research_runtime.observed_ground import expected_ground_z
+        from research_runtime.physical_parameter_lock import MID360_GROUND_REFERENCE
+        pose=native[key].pose.pose;p,q=pose.position,pose.orientation
+        floor=expected_ground_z((p.x,p.y,p.z),(q.x,q.y,q.z,q.w),
+            MID360_GROUND_REFERENCE['lidar_in_imu_m'],MID360_GROUND_REFERENCE['lidar_height_m'])
+        residuals=Counter();coverage={};ranges=Counter();total=0
+        for point in point_cloud2.read_points(msg,field_names=('x','y','z'),skip_nans=False):
+            x,y,z=map(float,point)
+            if not all(map(math.isfinite,(x,y,z))):continue
+            total+=1;dz=z-floor;residuals[math.floor(dz/.05)]+=1
+            if abs(dz)<=.05:
+                ranges[math.floor(math.hypot(x-p.x,y-p.y))]+=1
+                col,row=math.floor(x/.3),math.floor(y/.3)
+                sub=(min(3,math.floor((x/.3-col)*4)),min(3,math.floor((y/.3-row)*4)))
+                coverage.setdefault((col,row),set()).add(sub)
+        ground_diagnostics.append(dict(stamp_ns=key,expected_floor_z=floor,finite_points=total,
+            residual_5cm_bin_counts=dict(residuals),floor_range_1m_bin_counts=dict(ranges),
+            floor_cell_subtile_coverage_counts=dict(Counter(map(len,coverage.values())))))
     if args.ground_pipeline:
         from research_interfaces.msg import RoadEvent
         node.create_subscription(Bool,'/research/local_frame_integrity',lambda msg:local_frames.append(msg.data),100)
@@ -62,7 +86,7 @@ def main():
             lambda msg:ground_grid(msg,ground_grids,'ground'),100)
         node.create_subscription(LocalEvidenceGrid2D,'/research/local_evidence_grid',
             lambda msg:ground_grid(msg,combined_grids,'combined'),100)
-        node.create_subscription(PointCloud2,'/research/ground_observation_cloud',lambda msg:ground_acquisitions.append(stamp(msg)),100)
+        node.create_subscription(PointCloud2,'/research/ground_observation_cloud',ground_cloud,100)
         node.create_subscription(RoadEvidence2D,'/research/road_evidence',lambda msg:road_evidence.setdefault(msg.evidence_id,msg),1000)
         node.create_subscription(RoadEvent,'/research/measured_road_questions',lambda msg:questions.append(msg.event_id),1000)
         node.create_subscription(String,'/research/ground_status',lambda msg:ground_statuses.update([msg.data]),1000)
@@ -222,6 +246,7 @@ def main():
                 road_evidence_source_status='PASS' if records else 'FAIL',
                 evidence_store=str(evidence_path),global_TF_true_count=sum(full_frames),local_TF_true_count=sum(local_frames),
                 ground_status_counts=dict(ground_statuses),
+                diagnostics=ground_diagnostics,
                 scope='Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance')
             checks['actual_ground_pipeline']=ground_result['status']=='PASS'
         executable=args.install/'super_lio/lib/super_lio/super_lio_node'

@@ -287,7 +287,7 @@ class SuperLioVehicleAdapter(Node if rclpy else object):
         self._odom = self.create_publisher(Odometry, str(self.get_parameter("vehicle_odom_topic").value), 10)
         self.create_subscription(String, str(self.get_parameter("source_health_topic").value), self._health_callback, 10)
         self.create_subscription(Odometry, str(self.get_parameter("input_topic").value), self._callback, 10)
-        self._publish_health("UNKNOWN: Super-LIO source health/IMU-to-base equivalence is not verified")
+        self._publish_health("UNKNOWN: awaiting matched native odometry and observation certificate")
 
     def _publish_health(self, text: str):
         self._health.publish(String(data=text))

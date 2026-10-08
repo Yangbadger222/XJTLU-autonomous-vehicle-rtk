@@ -44,7 +44,7 @@ def main():
     native={};vehicle={};certificates={};health=Counter();reasons=Counter();vehicle_health=Counter()
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
-    children=[];logs=[];player=None;child_commands=[];map_parameters=None
+    children=[];logs=[];player=None;child_commands=[];map_parameters=None;ground_statuses=Counter()
     local_frames=[];full_frames=[];ground_grids=[];combined_grids=[];road_evidence={};questions=[]
     ground_acquisitions=[]
     session='raw-ground-'+args.output.stem
@@ -65,6 +65,7 @@ def main():
         node.create_subscription(PointCloud2,'/research/ground_observation_cloud',lambda msg:ground_acquisitions.append(stamp(msg)),100)
         node.create_subscription(RoadEvidence2D,'/research/road_evidence',lambda msg:road_evidence.setdefault(msg.evidence_id,msg),1000)
         node.create_subscription(RoadEvent,'/research/measured_road_questions',lambda msg:questions.append(msg.event_id),1000)
+        node.create_subscription(String,'/research/ground_status',lambda msg:ground_statuses.update([msg.data]),1000)
     def odometry(msg,label,collection):
         counts[label]+=1;collection[stamp(msg)]=msg
         cov=tuple(msg.pose.covariance)+tuple(msg.twist.covariance)
@@ -105,7 +106,10 @@ def main():
     def spawn(package,binary,ros_args):
         executable=args.install/package/'lib'/package/binary
         log=args.output.with_name(args.output.stem+'-'+binary+'.log').open('w');logs.append(log)
-        command=[str(executable),'--ros-args','-p','use_sim_time:=true',*ros_args]
+        # ROS keeps the wildcard parameter group at its first occurrence.
+        # Starting it before a named YAML group causes even later CLI values
+        # to lose to that YAML. Add all named files before wildcard overrides.
+        command=[str(executable),'--ros-args',*ros_args,'-p','use_sim_time:=true']
         child_commands.append(command)
         child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         children.append(child);return child
@@ -200,6 +204,8 @@ def main():
                 positive_support_measurements_match_acquisition=all(key in ground_acquisitions for key in support_keys),
                 wall_EOF_expiry_retracts_ground=bool(ground_grids) and ground_grids[-1]['free']==0,
                 local_store_initialized=store is not None and store.transform.crs=='LOCAL:odom',
+                actual_map_store_override=bool(map_parameters and map_parameters['expected_store_exists_before_replay'] and
+                    str(evidence_path) in map_parameters['yaml']),
                 persistence_acknowledged=all(msg.evidence_id in {record.evidence_id for record in records} for msg in road_evidence.values()),
                 persisted_geometry_stays_local=store is not None and not store.submap_anchors and
                     all(store.geometry_in_map(record.evidence_id) is None for record in records),
@@ -215,6 +221,7 @@ def main():
                 persisted_geometry_count=len(records),measured_question_count=len(set(questions)),
                 road_evidence_source_status='PASS' if records else 'FAIL',
                 evidence_store=str(evidence_path),global_TF_true_count=sum(full_frames),local_TF_true_count=sum(local_frames),
+                ground_status_counts=dict(ground_statuses),
                 scope='Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance')
             checks['actual_ground_pipeline']=ground_result['status']=='PASS'
         executable=args.install/'super_lio/lib/super_lio/super_lio_node'

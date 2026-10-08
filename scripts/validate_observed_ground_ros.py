@@ -17,7 +17,8 @@ from sensor_msgs_py import point_cloud2
 from std_msgs.msg import Header,Bool,String
 from tf2_msgs.msg import TFMessage
 from rosgraph_msgs.msg import Clock
-from research_interfaces.msg import LocalEvidenceGrid2D
+from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D
+from research_runtime.active_road import EvidenceStore,GeoTransform
 
 
 def main():
@@ -36,15 +37,18 @@ def main():
         ('clock',Clock,'/clock'))}
     static=node.create_publisher(TFMessage,'/tf_static',QoSProfile(depth=10,durability=DurabilityPolicy.TRANSIENT_LOCAL))
     ground_injection=node.create_publisher(LocalEvidenceGrid2D,'/research/observed_ground_grid',10)
-    ground=[];combined=[]
+    ground=[];combined=[];roads={};questions=[]
+    node.create_subscription(RoadEvidence2D,'/research/road_evidence',lambda msg:roads.setdefault(msg.evidence_id,msg),1000)
+    from research_interfaces.msg import RoadEvent
+    node.create_subscription(RoadEvent,'/research/measured_road_questions',questions.append,1000)
     node.create_subscription(LocalEvidenceGrid2D,'/research/observed_ground_grid',lambda msg:ground.append(msg.grid),100)
     node.create_subscription(OccupancyGrid,'/research/local_obstacle_grid',combined.append,100)
     children=[];logs=[];cases=[];measurement_ns=10_000_000_000
-    def spawn(binary,config):
+    def spawn(binary,config,package='research_runtime',extra=()):
         stream=args.output.with_name(args.output.stem+'-'+binary+'.log').open('w');logs.append(stream)
-        child=subprocess.Popen([str(args.install/'research_runtime/lib/research_runtime'/binary),
+        child=subprocess.Popen([str(args.install/package/'lib'/package/binary),
             '--ros-args','--params-file',str(args.repo/'src/bringup/config'/config),'-p','use_sim_time:=true',
-            '-p','localization_session_id:=analytical-fixture'],
+            '-p','localization_session_id:=analytical-fixture',*extra],
             stdout=stream,stderr=subprocess.STDOUT,start_new_session=True)
         children.append(child)
     def publish(points,kind='normal',advance=True):
@@ -57,7 +61,9 @@ def main():
         pubs['version'].publish(String(data=version))
         pubs['integrity'].publish(Bool(data=kind!='tf_denied'))
         pose=Odometry();pose.header=Header(stamp=stamp,frame_id='odom');pose.child_frame_id='base_footprint'
-        pose.pose.pose.orientation.w=1.;pubs['odom'].publish(pose)
+        pose.pose.pose.orientation.w=1.
+        for index in (0,7,14,21,28,35):pose.pose.covariance[index]=pose.twist.covariance[index]=.0001
+        pubs['odom'].publish(pose)
         bound=0. if kind=='health_denied' else 1000.
         cert=dict(source='super_lio/f89f48dc',certificate='fixed_extrinsic_observation_lower_bound_v1',
             twist_convention='imu_body_full_state_v1',stamp_ns=measurement_ns+(1 if kind=='unmatched' else 0),
@@ -82,10 +88,27 @@ def main():
     try:
         spawn('research_observed_ground','research_observed_ground.yaml')
         spawn('research_local_obstacle_grid','research_local_grid.yaml')
+        store_path=args.output.with_name(args.output.stem+'-local-store.json')
+        if store_path.exists():raise RuntimeError('new evidence fixture store required')
+        EvidenceStore(GeoTransform('LOCAL:odom','LOCAL_SENSOR_FRAME',0.,0.,1.,1.),'fixture-v1').save(store_path)
+        spawn('active_road_evidence','active_road_evidence.yaml','active_road_mapping',
+            ['-p','evidence_store_path:='+str(store_path)])
         edge=TransformStamped();edge.header.frame_id='odom';edge.child_frame_id='world';edge.transform.rotation.w=1.
         static.publish(TFMessage(transforms=[edge]));run([],seconds=2.)
         g,c=run(patch,seconds=1.2)
         cases.append(dict(case='dense_supported_ground_reaches_combined_grid',ok=bool(g and c and value(g[-1])==0 and value(c[-1])==0)))
+        strip_patch=[(x+.3*col,y+.3*row,z) for col in range(4) for row in range(3) for x,y,z in patch]
+        run(strip_patch,seconds=1.2)
+        records=EvidenceStore.load(store_path).evidence()
+        cases.append(dict(case='measured_strip_persists_only_local_geometric_width_and_range',ok=bool(records) and
+            all(record.state.value=='OBSERVED_GEOMETRY' and record.supported_width_m>.61 and
+                record.valid_depth_m[0]>0 and record.pose_uncertainty_m>0 and
+                record.observed_length_m<=.91 for record in records) and
+            not EvidenceStore.load(store_path).submap_anchors))
+        count=len(records);run(strip_patch,seconds=.8)
+        cases.append(dict(case='correlated_repeat_does_not_add_confirmation',ok=len(EvidenceStore.load(store_path).evidence())==count))
+        cases.append(dict(case='unknown_strip_end_proposes_only_finite_question',ok=bool(questions) and
+            all(msg.kind=='geometric_entry' and msg.state=='UNCERTAIN' and 0<msg.unknown_length_m<.31 for msg in questions)))
         # Force the filtered obstacle cloud to arrive before the matching raw
         # support observation: previous-scan support must not be refreshed.
         measurement_ns+=30_000_000
@@ -139,6 +162,8 @@ def main():
         result=dict(status='PASS' if all(c['ok'] for c in cases) and children[0].returncode==0 and children[1].poll() is None else 'FAIL',
             cases=cases,provider_owned_stop_exit=children[0].returncode,local_grid_alive=children[1].poll() is None,domain=106,
             ground_messages=len(ground),combined_messages=len(combined),
+            evidence_record_count=len(EvidenceStore.load(store_path).evidence()),
+            measured_question_count=len(questions),
             source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=args.repo,text=True).strip(),
             scope='Actual installed ROS support/local-grid nodes with analytical fixtures; no physical terrain, LIO accuracy, authority or actuator claim')
     finally:

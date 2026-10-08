@@ -242,6 +242,27 @@ def main():
                 'source_terminal_health_OK':bool(last_source_health) and last_source_health['status']=='OK',
                 'vehicle_terminal_health_OK':bool(last_vehicle_health) and last_vehicle_health.split(':',1)[0]=='OK',
                 **continuity['checks']}
+        from research_runtime.physical_parameter_lock import STOP_CONFIRMATION
+        def stationary_windows(speed_limit,yaw_limit,reject_negative=False):
+            start=None;previous=None;longest=0.;windows=0;negative=0;quiet=0
+            for key in sorted(control):
+                msg=control[key];v=msg.twist.twist.linear;w=msg.twist.twist.angular.z
+                allowed=(math.hypot(v.x,v.y,v.z)<=speed_limit and abs(w)<=yaw_limit and key in eligible_acquisitions)
+                if allowed:
+                    quiet+=1;negative+=int(v.x < -1e-6)
+                if reject_negative and v.x < -1e-6:allowed=False
+                if previous is not None and not 0<key-previous<=200_000_000:start=None
+                if allowed:
+                    if start is None:start=key
+                    duration=(key-start)*1e-9;longest=max(longest,duration)
+                    if duration>=STOP_CONFIRMATION[2]:windows+=1
+                else:start=None
+                previous=key
+            return dict(quiet_samples=quiet,negative_vx_quiet_samples=negative,
+                longest_contiguous_quiet_s=longest,samples_after_full_confirmation=windows)
+        state_diagnostics=dict(scope='actual current control odometry; measured rate gates, no independent physical stop labels',
+            original_stop_definition=stationary_windows(STOP_CONFIRMATION[0],STOP_CONFIRMATION[1]),
+            strict_research_rotation_entry=stationary_windows(.001,.001,True))
         ground_result=None
         if args.ground_pipeline:
             from research_runtime.active_road import EvidenceStore
@@ -302,7 +323,7 @@ def main():
                     args.repo/'patches/super_lio/0002-certify-source-observations-and-covariance.patch',
                     args.repo/'src/bringup/config/super_lio_vehicle.yaml',args.repo/'src/bringup/config/super_lio_reference.yaml',
                     args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')},
-                'ground_pipeline':ground_result,
+                'ground_pipeline':ground_result,'controller_state_diagnostics':state_diagnostics,
                 'ground_map_runtime_parameters':map_parameters,'child_commands':child_commands,
                 'wall_elapsed_s':time.monotonic()-started,
                 'scope':'Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim'}

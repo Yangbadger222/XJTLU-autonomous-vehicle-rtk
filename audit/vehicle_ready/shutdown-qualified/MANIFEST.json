@@ -339,6 +339,14 @@
     {
       "path": "final-process-state.json",
       "sha256": "904dab87576cc5d069bf8f965405f1b221b164c57bd8b59f69259897729068da"
+    },
+    {
+      "path": "static-published-anchor.json",
+      "sha256": "cbec3f6510b5afa856212f35de520961221514dcf7e2b8b7cc0179ea47d381bb"
+    },
+    {
+      "path": "publication.json",
+      "sha256": "ec0bc06b89aa38dac8e282305bab010e428a7a6646d7d17b1d2d29c03cb0ffbd"
     }
   ]
 }

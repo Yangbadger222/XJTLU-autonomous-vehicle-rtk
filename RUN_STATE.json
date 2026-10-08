@@ -186,25 +186,18 @@
   ],
   "publication": {
     "status": "PASS",
-    "verified_at_utc": "2026-10-08T04:37:23.867930+00:00",
-    "published_implementation_and_report_commit": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
-    "remote_research_branch_at_verification": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
-    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-    "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-    "push_mode": "normal fast-forward research branch only; no force or merge",
+    "anchor_commit": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "qualified_runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "remote_research_head": "4aa569628df6f680303dbea99873adda6aa43e78",
+    "original_branch_head": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "normal_push": true,
+    "force_push": false,
+    "production_merged": false,
     "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
-    "initial_attempts": [
-      {
-        "result": "FAIL",
-        "reason": "remote credential helper had no GitHub username"
-      },
-      {
-        "result": "FAIL",
-        "reason": "authenticated remote direct github443 connect timeout"
-      }
-    ],
-    "successful_transport": "temporary loopback-only SSH proxy forward through authorized Mac networking; local existing GitHub authentication transmitted only through SSH stdin/environment; no credential written to files or process arguments",
-    "receipt_scope": "Verifies already-published algorithm/report anchor. Subsequent publication-receipt commit has unchanged installed runtime; final branch head independently verified externally. Mac source/report sync remainsPENDINGENOSPC."
+    "draft": true,
+    "goal_status": "ACTIVE",
+    "local_mac_sync": "PENDING_ENOSPC",
+    "scope": "verified normal publication anchor; this later report-only descendant does not replace the runtime evidence identity"
   },
   "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418.",
   "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
@@ -490,5 +483,27 @@
       "receipt": "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
       "helper_boundary_review": "PASS6CLI/5request/1foreign/3DDS under optimize1; previous receipts/sources retained"
     }
+  },
+  "previous_publication": {
+    "status": "PASS",
+    "verified_at_utc": "2026-10-08T04:37:23.867930+00:00",
+    "published_implementation_and_report_commit": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
+    "remote_research_branch_at_verification": "d29fab3ac8d10e299d5d560b385fa356ab77c440",
+    "remote_baseline_branch_at_verification": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+    "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+    "push_mode": "normal fast-forward research branch only; no force or merge",
+    "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+    "initial_attempts": [
+      {
+        "result": "FAIL",
+        "reason": "remote credential helper had no GitHub username"
+      },
+      {
+        "result": "FAIL",
+        "reason": "authenticated remote direct github443 connect timeout"
+      }
+    ],
+    "successful_transport": "temporary loopback-only SSH proxy forward through authorized Mac networking; local existing GitHub authentication transmitted only through SSH stdin/environment; no credential written to files or process arguments",
+    "receipt_scope": "Verifies already-published algorithm/report anchor. Subsequent publication-receipt commit has unchanged installed runtime; final branch head independently verified externally. Mac source/report sync remainsPENDINGENOSPC."
   }
 }

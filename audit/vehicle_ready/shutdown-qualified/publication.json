@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "anchor_commit": "4aa569628df6f680303dbea99873adda6aa43e78",
+  "qualified_runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+  "remote_research_head": "4aa569628df6f680303dbea99873adda6aa43e78",
+  "original_branch_head": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "normal_push": true,
+  "force_push": false,
+  "production_merged": false,
+  "pull_request": "https://github.com/Yangbadger222/XJTLU-autonomous-vehicle-rtk/pull/22",
+  "draft": true,
+  "goal_status": "ACTIVE",
+  "local_mac_sync": "PENDING_ENOSPC",
+  "scope": "verified normal publication anchor; this later report-only descendant does not replace the runtime evidence identity"
+}

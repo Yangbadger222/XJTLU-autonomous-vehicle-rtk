@@ -249,12 +249,13 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE. Current shutdown-qualified runtime a7dc397 with staged SDK14/Python overlays,223portable,157parameters,13HMI and native/emulator16-node clean shutdown. Actual groundFAIL; policy benefit unproved; target/physicalPENDING; Maclocal sync/cachepath recoveryPENDINGENOSPC. Normal publication receipt is added separately.",
+    "scope": "GoalACTIVE. Current shutdown-qualified runtime a7dc397 with staged SDK14/Python overlays,223portable,157parameters,13HMI and native/emulator16-node clean shutdown. Actual groundFAIL; policy benefit unproved; target/physicalPENDING; Maclocal sync/cachepath recoveryPENDINGENOSPC. Normal publication receipt is added separately. Normal-published research/report anchor4aa5696; PR22draft/unmerged, baselinee54unchanged; report-only descendant preserves runtimea7.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
       "audit/vehicle_ready/control-stop-qualified/publication.json",
-      "audit/vehicle_ready/shutdown-qualified/COHORT.json"
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/publication.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",

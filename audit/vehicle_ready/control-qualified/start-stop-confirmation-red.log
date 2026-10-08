@@ -1,0 +1,60 @@
+/Users/badger/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[invalid] _
+
+fault = 'invalid'
+
+    @pytest.mark.parametrize('fault',['invalid','gap','moving'])
+    def test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample(fault):
+        clock,console=prepared()
+        if fault=='invalid':console.invalidate_input('odom')
+        elif fault=='gap':clock.now+=.3;console.tick()
+        else:console.update('odom',{'v':.08,'w':0.})
+        clock.now+=.05
+        measured(clock,console);console.command('window-a','heartbeat')
+        assert not console.snapshot('window-a')['stop_confirmed_from_odom']
+>       assert not console.command('window-a','start',request_id='one-frame-start')['accepted']
+E       assert not True
+
+src/research_runtime/test/test_operator_console.py:97: AssertionError
+_ test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[gap] _
+
+fault = 'gap'
+
+    @pytest.mark.parametrize('fault',['invalid','gap','moving'])
+    def test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample(fault):
+        clock,console=prepared()
+        if fault=='invalid':console.invalidate_input('odom')
+        elif fault=='gap':clock.now+=.3;console.tick()
+        else:console.update('odom',{'v':.08,'w':0.})
+        clock.now+=.05
+        measured(clock,console);console.command('window-a','heartbeat')
+        assert not console.snapshot('window-a')['stop_confirmed_from_odom']
+>       assert not console.command('window-a','start',request_id='one-frame-start')['accepted']
+E       assert not True
+
+src/research_runtime/test/test_operator_console.py:97: AssertionError
+_ test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[moving] _
+
+fault = 'moving'
+
+    @pytest.mark.parametrize('fault',['invalid','gap','moving'])
+    def test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample(fault):
+        clock,console=prepared()
+        if fault=='invalid':console.invalidate_input('odom')
+        elif fault=='gap':clock.now+=.3;console.tick()
+        else:console.update('odom',{'v':.08,'w':0.})
+        clock.now+=.05
+        measured(clock,console);console.command('window-a','heartbeat')
+        assert not console.snapshot('window-a')['stop_confirmed_from_odom']
+>       assert not console.command('window-a','start',request_id='one-frame-start')['accepted']
+E       assert not True
+
+src/research_runtime/test/test_operator_console.py:97: AssertionError
+=========================== short test summary info ============================
+FAILED src/research_runtime/test/test_operator_console.py::test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[invalid]
+FAILED src/research_runtime/test/test_operator_console.py::test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[gap]
+FAILED src/research_runtime/test/test_operator_console.py::test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample[moving]
+3 failed, 15 deselected in 0.10s

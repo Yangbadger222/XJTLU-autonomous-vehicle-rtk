@@ -85,6 +85,21 @@ def test_new_odom_after_gap_must_restart_full_original_stop_confirmation():
     assert not console.command("window-a", "reset", request_id="gap-reset")["accepted"]
 
 
+@pytest.mark.parametrize('fault',['invalid','gap','moving'])
+def test_ready_then_lost_stationary_confirmation_cannot_start_after_one_recovered_sample(fault):
+    clock,console=prepared()
+    if fault=='invalid':console.invalidate_input('odom')
+    elif fault=='gap':clock.now+=.3;console.tick()
+    else:console.update('odom',{'v':.08,'w':0.})
+    clock.now+=.05
+    measured(clock,console);console.command('window-a','heartbeat')
+    assert not console.snapshot('window-a')['stop_confirmed_from_odom']
+    assert not console.command('window-a','start',request_id='one-frame-start')['accepted']
+    for _ in range(24):
+        clock.now+=.05;measured(clock,console);console.command('window-a','heartbeat')
+    assert console.command('window-a','start',request_id='confirmed-start')['accepted']
+
+
 def test_task_edit_is_bounded_to_registered_ids_and_is_acknowledged_separately():
     _, console = prepared()
     assert not console.command("window-a", "task", {"start_node": "arbitrary", "goal_node": "goal"}, "bad")["accepted"]

@@ -159,6 +159,16 @@ def main():
                 cases.append(dict(case=kind+'_translation_cannot_confirm_stop',
                     status='PASS' if not current['stop_confirmed_from_odom'] and not reset['accepted'] else 'FAIL',
                     stop_confirmed=current['stop_confirmed_from_odom'],reset_response=reset))
+            for kind in ('invalid','moving'):
+                phase(1.2);assert request('reset')['accepted']
+                assert request('task',{'start_node':'start','goal_node':'goal'})['accepted']
+                phase(.7)
+                phase(.12,lateral_speed=float('nan') if kind=='invalid' else .08)
+                phase(.08)
+                current=snapshot();start=request('start')
+                cases.append(dict(case='ready_after_'+kind+'_short_recovery_cannot_start',
+                    status='PASS' if not current['stop_confirmed_from_odom'] and not start['accepted'] else 'FAIL',
+                    stop_confirmed=current['stop_confirmed_from_odom'],start_response=start))
             for action in ("pause","stop","takeover"):
                 nonzero=rearm();assert request(action)["accepted"]
                 check("http_"+action,nonzero,phase(.85),snapshot()["state"])

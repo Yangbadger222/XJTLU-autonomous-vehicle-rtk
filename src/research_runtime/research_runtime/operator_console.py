@@ -127,6 +127,7 @@ class OperatorConsole:
             elif action == "start":
                 blockers = self.blocked()
                 if self.state != "READY": blockers.insert(0, "请先停车确认并复位")
+                if not self._stopped():blockers.insert(0,"等待原停车阈值下连续静止确认")
                 if not blockers:
                     self._set("AUTONOMOUS", "操作员请求研究任务；原 RTK/手柄/安全链继续仲裁")
                     result = {"accepted": True, "reason": self.reason}

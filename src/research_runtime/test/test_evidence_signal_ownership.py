@@ -1,4 +1,4 @@
-"""Exercise actual evidence main while a message take is interrupted by a signal."""
+"""Exercise actual research main while a message take is interrupted by a signal."""
 import signal
 from types import SimpleNamespace
 import pytest
@@ -6,9 +6,9 @@ import ast
 from pathlib import Path
 from types import ModuleType
 
-def _production_entry(filename):
+def _production_entry(filename, package="active_road_mapping"):
     # Execute the actual source main AST, without importing ROS message libs.
-    source=Path(__file__).resolve().parents[2]/"active_road_mapping"/"active_road_mapping"/filename
+    source=Path(__file__).resolve().parents[2]/package/package/filename
     main=next(node for node in ast.parse(source.read_text()).body
               if isinstance(node,ast.FunctionDef) and node.name=="main")
     module=ModuleType(filename);module.rclpy=None;module.signal=signal
@@ -17,7 +17,8 @@ def _production_entry(filename):
 
 ENTRIES=[(_production_entry("evidence_node.py"),"ActiveRoadEvidenceNode"),
          (_production_entry("map_node.py"),"ActiveRoadMapNode"),
-         (_production_entry("observation_node.py"),"ActiveObservationNode")]
+         (_production_entry("observation_node.py"),"ActiveObservationNode"),
+         (_production_entry("adapter_node.py", "super_lio_vehicle_adapter"), "SuperLioVehicleAdapter")]
 
 @pytest.mark.parametrize("module,class_name", ENTRIES)
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])

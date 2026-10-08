@@ -7,7 +7,7 @@ index 4a32e22..68c3522 100644
  #include <deque>
  #include <string>
 +#include <optional>
- 
+
  #include "basic/alias.h"
  #include "basic/Manifold.h"
 @@ -130,6 +131,9 @@ struct LidarData
@@ -18,8 +18,8 @@ index 4a32e22..68c3522 100644
 +  // for the next scan; an interpolated end sample avoids extrapolated deskew.
 +  std::optional<IMUData> imu_after_scan;
  };
- 
- 
+
+
 diff --git a/src/super_lio/include/lio/ESKF.h b/src/super_lio/include/lio/ESKF.h
 index 1e07c22..599e854 100644
 --- a/src/super_lio/include/lio/ESKF.h
@@ -29,20 +29,20 @@ index 1e07c22..599e854 100644
  #include "common/ds.h"
  #include "params.h"
 +#include "observation_quality.h"
- 
- 
+
+
  namespace LI2Sup{
 @@ -70,6 +71,10 @@ public:
    Pose_t   GetPoseT() const { return Pose_t(current_time_, R_, p_); }
- 
+
    COV GetCov() const { return P_; }
 +  const ObservationQuality& GetObservationQuality() const { return observation_quality_; }
 +  void SetObservationSamples(int count) { observation_samples_ = count; }
 +  void RejectObservation(const std::string& reason) { observation_quality_ = ObservationQuality(); observation_quality_.reason = reason; }
 +  double GetGyroSampleVariance() const { return options_.gyro_var_; }
- 
+
    BASIC::SE3 GetSE3() const { return BASIC::SE3(R_, p_); }
- 
+
 @@ -90,6 +95,8 @@ private:
    void Update();
    
@@ -58,13 +58,13 @@ index 1e07c22..599e854 100644
    BASIC::V3 body_omega_  = BASIC::V3::Zero();
 +  BASIC::V3 body_gyro_measurement_ = BASIC::V3::Zero();
 +  BASIC::V3 body_acc_measurement_ = BASIC::V3::Zero();
- 
+
    STATE dx_ = STATE::Zero();
- 
+
 @@ -126,4 +135,4 @@ private:
  }
- 
- 
+
+
 -#endif
 \ No newline at end of file
 +#endif
@@ -195,18 +195,29 @@ index 15bf038..ea35012 100644
    BASIC::CloudPtr point_map_, world_pc_, ds_world_;
 @@ -86,5 +89,3 @@ protected:
  } // namespace END.
- 
+
  #endif
 -
 -
 diff --git a/src/super_lio/include/ros/ROSWrapper.h b/src/super_lio/include/ros/ROSWrapper.h
-index d0ffe51..2fdcf68 100644
+index d0ffe51..5ec06f3 100644
 --- a/src/super_lio/include/ros/ROSWrapper.h
 +++ b/src/super_lio/include/ros/ROSWrapper.h
-@@ -67,6 +67,7 @@ public:
+@@ -6,6 +6,7 @@
+ #include <tuple>
+ #include <deque>
+ #include <vector>
++#include <optional>
+ #include <execution>
+
+ #include <pcl/point_types.h>
+@@ -66,7 +67,9 @@ public:
+     last_timestamp_lidar_ = -1.0;
    }
- 
-   void pub_odom(const NavState&);
+
+-  void pub_odom(const NavState&);
++  // Returns the exact rigid rotation used for this frame; failure emits only health.
++  std::optional<Eigen::Matrix3d> pub_odom(const NavState&);
 +  void pub_observation_health();
    void pub_cloud_world(const BASIC::CloudPtr& pc, double time);
    void pub_cloud2planner(const BASIC::CloudPtr& pc, double time);
@@ -216,16 +227,16 @@ index f7a64d2..bee8611 100644
 --- a/src/super_lio/src/lio/ESKF.cpp
 +++ b/src/super_lio/src/lio/ESKF.cpp
 @@ -125,6 +125,8 @@ void ESKF::Update() {
- 
+
    g_ += dx_.template block<3, 1>(15, 0);
    g_ = g_gravity_norm * (g_.normalized());
 +  body_omega_ = body_gyro_measurement_ - bg_;
 +  global_acc_ = R_.R_ * (body_acc_measurement_ - ba_) + g_;
- 
+
    fw_R_ = R_;
    fw_p_ = p_;
 @@ -212,8 +214,10 @@ bool ESKF::Predict(const IMUData& imu) {
- 
+
    V3 acc = 0.5 * (imu.acc + last_imu_.acc);
    acc = imu_scale_ * acc;
 +  body_acc_measurement_ = acc;
@@ -234,11 +245,11 @@ index f7a64d2..bee8611 100644
 +  body_gyro_measurement_ = 0.5 * (imu.gyr + last_imu_.gyr);
 +  body_omega_ = body_gyro_measurement_ - bg_;
    M3 Jr_dt = (dt * RightJacobianSO3(body_omega_, dt)).cast<scalar>();   // J_l(-phi) = J_r(phi)
- 
+
    M3 R_m3 = R_.R_;
 @@ -258,6 +262,29 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    V3  g_pred = g_;
- 
+
    M18 P_pred = P_;
 +  const auto forward_R_pred = fw_R_;
 +  const auto forward_p_pred = fw_p_;
@@ -263,12 +274,12 @@ index f7a64d2..bee8611 100644
 +    observation_quality_.reason = "nonpositive_prior_covariance";
 +    return rollback();
 +  }
- 
+
    M6 HTVH;
    V6 HTVr;
 @@ -274,6 +301,13 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
      }
- 
+
      obs(GetKFState(), HTVH, HTVr);
 +    const auto quality = assessObservation(HTVH.cast<double>(), observation_samples_);
 +    accumulateObservationQuality(observation_quality_, quality);
@@ -277,7 +288,7 @@ index f7a64d2..bee8611 100644
 +      observation_quality_.reason = "nonfinite_observation_residual";
 +      return rollback();
 +    }
- 
+
      V18 dx_prior = V18::Zero();
      dx_prior.template block<3,1>(0,0)  = (R_pred.inverse() * R_).log_vee();
 @@ -301,6 +335,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
@@ -290,11 +301,11 @@ index f7a64d2..bee8611 100644
 +      observation_quality_.reason = "invalid_filter_information";
 +      return rollback();
 +    }
- 
+
      V18 b = V18::Zero();
      b.template head<6>() = HTVr;
 @@ -309,6 +349,12 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
- 
+
      // dx = K_h + (K_x - I) * dx_prior
      dx_ = Qk * b + (K_x - M18::Identity()) * dx_prior;
 +    if (!dx_.allFinite()) {
@@ -303,34 +314,34 @@ index f7a64d2..bee8611 100644
 +      observation_quality_.reason = "nonfinite_filter_increment";
 +      return rollback();
 +    }
- 
+
      Update();
- 
+
 @@ -328,6 +374,11 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    P_ = G_reset * P_ * G_reset.transpose();
- 
+
    P_ = 0.5 * (P_ + P_.transpose());
 +  if (!P_.allFinite()) {
 +    observation_quality_.valid = observation_quality_.eligible = false;
 +    observation_quality_.reason = "nonfinite_posterior_covariance";
 +    return rollback();
 +  }
- 
+
    dx_.setZero();
- 
+
 @@ -335,4 +386,4 @@ bool ESKF::UpdateObserve(ESKF::ObsFunc obs) {
    return true;
  }
- 
+
 -}
 \ No newline at end of file
 +}
 diff --git a/src/super_lio/src/lio/super_lio.cpp b/src/super_lio/src/lio/super_lio.cpp
-index d1a3ae7..cad3ee5 100644
+index d1a3ae7..31656dd 100644
 --- a/src/super_lio/src/lio/super_lio.cpp
 +++ b/src/super_lio/src/lio/super_lio.cpp
 @@ -193,17 +193,21 @@ bool SuperLIO::map_init(){
- 
+
  void SuperLIO::stateProcess(){
    frame_num_++;
 +  bool propagated = false;
@@ -359,8 +370,8 @@ index d1a3ae7..cad3ee5 100644
  }
 @@ -358,21 +362,100 @@ inline double get_cpu_time_seconds() {
  }
- 
- 
+
+
 -void SuperLIO::Propagation_Undistort(){
 -  propagate_states_.clear();
 -  propagate_states_.emplace_back(kf_->GetDynamicState());
@@ -455,7 +466,7 @@ index d1a3ae7..cad3ee5 100644
 +  const auto& last = propagate_states_.back();
 +  if (!last.R.allFinite() || !last.p.allFinite() || !last.v.allFinite() || !last.a.allFinite() || !last.w.allFinite())
 +    return rollback("invalid_scan_end_state");
- 
+
    static const M3 TLI_R = g_lidar_imu.R_;
    static const V3 TLI_t = g_lidar_imu.t_;
    const SE3 T_end = kf_->GetSE3();
@@ -463,7 +474,7 @@ index d1a3ae7..cad3ee5 100644
    const V3  T_end_t = T_end.t_;
 -  const double start_time = measures_.lidar.start_time;
    auto& raw_pc = measures_.lidar.pc;
- 
+
    std::size_t ptsize = raw_pc->points.size();
 @@ -386,23 +469,15 @@ void SuperLIO::Propagation_Undistort(){
        auto& pt_full = scan_undistort_full_->points[idx];
@@ -533,8 +544,8 @@ index d1a3ae7..cad3ee5 100644
 +  if (cutoff != deskew_history_.begin()) deskew_history_.erase(deskew_history_.begin(), std::prev(cutoff));
 +  return true;
  }
- 
- 
+
+
 @@ -435,12 +531,17 @@ void SuperLIO::DownSample(){
  struct ThreadACC{
    M6d HTVH = M6d::Zero();
@@ -542,8 +553,8 @@ index d1a3ae7..cad3ee5 100644
 +  int effective_points = 0;
    ThreadACC(): HTVH(M6d::Zero()), HTVr(V6d::Zero()) {}
  };
- 
- 
+
+
 -void SuperLIO::Observe(){
 +bool SuperLIO::Observe(){
    size_t ptsize = ds_undistort_->size();
@@ -557,7 +568,7 @@ index d1a3ae7..cad3ee5 100644
 @@ -458,7 +559,7 @@ void SuperLIO::Observe(){
    ivox_->reset_max_group();
    int iter_num = 0;
- 
+
 -  kf_->UpdateObserve([&, this](const ESKF::KFState &kf_state, M6 &HTVH, V6 &HTVr) {
 +  const bool observed = kf_->UpdateObserve([&, this](const ESKF::KFState &kf_state, M6 &HTVH, V6 &HTVr) {
      const SE3 pose = kf_state.pose;
@@ -571,7 +582,7 @@ index d1a3ae7..cad3ee5 100644
            }
          }
      });
- 
+
      M6d sum_HTVH = M6d::Zero();
      V6d sum_HTVr = V6d::Zero();
 +    int matched_points = 0;
@@ -583,47 +594,80 @@ index d1a3ae7..cad3ee5 100644
      HTVH = sum_HTVH.cast<scalar>();
      HTVr = sum_HTVr.cast<scalar>();
 +    kf_->SetObservationSamples(matched_points);
- 
+
      if(need_converge) return;
- 
+
 @@ -534,6 +639,7 @@ void SuperLIO::Observe(){
    });
- 
+
    frame_num_++;
 +  return observed;
  }
- 
- 
-@@ -589,4 +695,4 @@ void SuperLIO::printTimeRecord(){
+
+
+@@ -559,10 +665,11 @@ void SuperLIO::UpdateMap() {
+
+ void SuperLIO::Output(){
+   auto state = kf_->GetNavState();
+-  data_wrapper_->pub_odom(state);  
++  const auto rotation = data_wrapper_->pub_odom(state);
++  if (!rotation) return;  // No cloud can outlive this frame's invalid source pose.
+
+   Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
+-  transformation.block<3, 3>(0, 0) = state.R.R_.cast<float>();
++  transformation.block<3, 3>(0, 0) = rotation->cast<float>();
+   transformation.block<3, 1>(0, 3) = state.p.cast<float>();
+
+   CloudPtr world_pc(new PointCloudType());
+@@ -589,4 +696,4 @@ void SuperLIO::printTimeRecord(){
    time_record_.PrintAll();
  }
- 
+
 -} // namespace END.
 \ No newline at end of file
 +} // namespace END.
+diff --git a/src/super_lio/src/lio/super_lio_reloc.cpp b/src/super_lio/src/lio/super_lio_reloc.cpp
+index da95b20..3a9e46e 100644
+--- a/src/super_lio/src/lio/super_lio_reloc.cpp
++++ b/src/super_lio/src/lio/super_lio_reloc.cpp
+@@ -299,10 +299,11 @@ void SuperLIOReLoc::UpdateMap() {
+
+ void SuperLIOReLoc::Output() {
+   auto state = kf_->GetNavState();
+-  data_wrapper_->pub_odom(state);  
++  const auto rotation = data_wrapper_->pub_odom(state);
++  if (!rotation) return;  // No cloud can outlive this frame's invalid source pose.
+
+   Eigen::Matrix4f transformation = Eigen::Matrix4f::Identity();
+-  transformation.block<3, 3>(0, 0) = state.R.R_.cast<float>();
++  transformation.block<3, 3>(0, 0) = rotation->cast<float>();
+   transformation.block<3, 1>(0, 3) = state.p.cast<float>();
+
+   CloudPtr world_pc(new PointCloudType());
 diff --git a/src/super_lio/src/ros/ROSWrapper.cpp b/src/super_lio/src/ros/ROSWrapper.cpp
-index 7745912..704c48e 100644
+index 7745912..debf433 100644
 --- a/src/super_lio/src/ros/ROSWrapper.cpp
 +++ b/src/super_lio/src/ros/ROSWrapper.cpp
-@@ -1,6 +1,8 @@
- 
+@@ -1,6 +1,9 @@
+
  #include "ros/ROSWrapper.h"
++#include <limits>
  #include "geometry_msgs/msg/pose_with_covariance_stamped.hpp"
 +#include <sstream>
 +#include <iomanip>
- 
- 
+
+
  using namespace BASIC;
-@@ -420,7 +422,7 @@ void ROSWrapper::imuHandler(const sensor_msgs::msg::Imu::SharedPtr msg){
- 
- 
+@@ -420,7 +423,7 @@ void ROSWrapper::imuHandler(const sensor_msgs::msg::Imu::SharedPtr msg){
+
+
  void ROSWrapper::livoxHandler(const livox_ros_driver2::msg::CustomMsg::SharedPtr msg){
 -  if(msg->point_num < 10) return;
 +  if(msg->point_num < 10 || msg->point_num != msg->points.size() || g_filter_rate <= 0) return;
    LidarData lidar_data;
    std::size_t ptsize = msg->point_num;
    lidar_data.pc.reset(new pcl::PointCloud<LI2Sup::PointXTZIT>());
-@@ -433,11 +435,15 @@ void ROSWrapper::livoxHandler(const livox_ros_driver2::msg::CustomMsg::SharedPtr
+@@ -433,11 +436,15 @@ void ROSWrapper::livoxHandler(const livox_ros_driver2::msg::CustomMsg::SharedPtr
      if (tag == 0x10 || tag == 0x00){
        auto dis = pt.x * pt.x + pt.y * pt.y + pt.z * pt.z;
        if(dis > g_blind2 && dis < g_maxrange2){
@@ -641,8 +685,8 @@ index 7745912..704c48e 100644
    lidar_data.start_time = stampToSec(msg->header.stamp);
    lidar_data.end_time   = lidar_data.start_time + offset_time;
    lidar_buffer_.push_back(lidar_data);
-@@ -554,12 +560,14 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
- 
+@@ -554,12 +561,14 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+
    double imu_time = imu_buffer_.front().secs;
    meas.imu.clear();
 +  meas.imu_after_scan.reset();
@@ -653,13 +697,14 @@ index 7745912..704c48e 100644
      imu_buffer_.pop_front();
    }
 +  if (!imu_buffer_.empty()) meas.imu_after_scan = imu_buffer_.front();
- 
+
    last_timestamp_lidar_ = meas.lidar.end_time;
    lidar_buffer_.pop_front();
-@@ -568,6 +576,26 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
+@@ -568,7 +577,42 @@ bool ROSWrapper::sync_measure(MeasureGroup& meas){
  }
- 
- 
+
+
+-void ROSWrapper::pub_odom(const NavState& state){
 +void ROSWrapper::pub_observation_health(){
 +  if (!pub_health_ || !eskf_) return;
 +  const auto& quality = eskf_->GetObservationQuality();
@@ -680,29 +725,67 @@ index 7745912..704c48e 100644
 +  pub_health_->publish(health);
 +}
 +
- void ROSWrapper::pub_odom(const NavState& state){
++// ROS rigid transforms require SO(3), independent of estimator float storage.
++// This is a numerical representation check derived from float precision, not
++// a vehicle calibration, motion limit or configurable terrain permission.
++static bool sourceRotation(const Eigen::Matrix3d& raw, Eigen::Quaterniond& output) {
++  if (!raw.array().isFinite().all()) return false;
++  const double tolerance = std::sqrt(std::numeric_limits<float>::epsilon());
++  if (std::abs(raw.determinant()-1.) > tolerance ||
++      (raw.transpose()*raw-Eigen::Matrix3d::Identity()).norm() > tolerance) return false;
++  output = Eigen::Quaterniond(raw);
++  if (!output.coeffs().array().isFinite().all() ||
++      !(output.norm() > std::numeric_limits<double>::min())) return false;
++  output.normalize();
++  return output.coeffs().array().isFinite().all();
++}
++
++std::optional<Eigen::Matrix3d> ROSWrapper::pub_odom(const NavState& state){
    nav_msgs::msg::Odometry odom;
    odom.header.frame_id = "world";
-@@ -584,9 +612,12 @@ void ROSWrapper::pub_odom(const NavState& state){
+   odom.child_frame_id = "imu";
+@@ -578,15 +622,33 @@ void ROSWrapper::pub_odom(const NavState& state){
+   odom.pose.pose.position.y = state.p[1];
+   odom.pose.pose.position.z = state.p[2];
+
+-  V4 temp_q = state.R.coeffs();
++  Eigen::Quaterniond orientation;
++  if (!sourceRotation(state.R.R_.cast<double>(), orientation)) {
++    std_msgs::msg::String failure;
++    std::ostringstream json;
++    json << "{\"source\":\"super_lio/f89f48dc\",\"certificate\":\"fixed_extrinsic_observation_lower_bound_v1\","
++         << "\"twist_convention\":\"imu_body_full_state_v1\","
++         << "\"stamp_ns\":" << (static_cast<int64_t>(odom.header.stamp.sec)*1000000000LL+odom.header.stamp.nanosec)
++         << ",\"status\":\"FAIL\",\"legacy_min_eig_lower_bound\":0,"
++         << "\"minimum_observation_information\":0,\"effective_points\":0,\"iterations\":0,"
++         << "\"reason\":\"source_rotation_not_valid\"}";
++    failure.data = json.str();
++    pub_health_->publish(failure);
++    return std::nullopt;  // Withdraw all geometric outputs for this frame.
++  }
++  const Eigen::Matrix3d published_rotation = orientation.toRotationMatrix();
++  const Eigen::Vector4d temp_q = orientation.coeffs();
+   odom.pose.pose.orientation.x = temp_q[0];
+   odom.pose.pose.orientation.y = temp_q[1];
    odom.pose.pose.orientation.z = temp_q[2];
    odom.pose.pose.orientation.w = temp_q[3];
- 
+
 -  odom.twist.twist.linear.x = state.v[0];
 -  odom.twist.twist.linear.y = state.v[1];
 -  odom.twist.twist.linear.z = state.v[2];
 +  // ROS Odometry twist belongs to child_frame_id (imu), unlike the raw
 +  // upstream mixed world-linear/body-angular output.
-+  const V3 body_velocity = state.R.R_.transpose()*state.v;
++  const Eigen::Vector3d body_velocity = published_rotation.transpose()*state.v.cast<double>();
 +  odom.twist.twist.linear.x = body_velocity[0];
 +  odom.twist.twist.linear.y = body_velocity[1];
 +  odom.twist.twist.linear.z = body_velocity[2];
- 
+
    if (eskf_ != nullptr) {
      const auto dynamic = eskf_->GetDynamicState();
-@@ -594,26 +625,23 @@ void ROSWrapper::pub_odom(const NavState& state){
+@@ -594,37 +656,35 @@ void ROSWrapper::pub_odom(const NavState& state){
      odom.twist.twist.angular.y = dynamic.w[1];
      odom.twist.twist.angular.z = dynamic.w[2];
- 
+
 -    const auto covariance = eskf_->GetCov();
 +    const auto covariance = eskf_->GetCov().cast<double>().eval();
      if (covariance.array().isFinite().all()) {
@@ -711,8 +794,8 @@ index 7745912..704c48e 100644
 -          odom.pose.covariance[row * 6 + col] = covariance(row + 3, col + 3);
 -          odom.pose.covariance[(row + 3) * 6 + col + 3] = covariance(row, col);
 -          odom.twist.covariance[row * 6 + col] = covariance(row + 6, col + 6);
-+      const auto pose_covariance = poseCovariance(covariance, state.R.R_.cast<double>());
-+      const auto twist_covariance = twistCovariance(covariance, state.R.R_.cast<double>(),
++      const auto pose_covariance = poseCovariance(covariance, published_rotation);
++      const auto twist_covariance = twistCovariance(covariance, published_rotation,
 +          state.v.cast<double>(), eskf_->GetGyroSampleVariance());
 +      for (int row = 0; row < 6; ++row) {
 +        for (int col = 0; col < 6; ++col) {
@@ -722,16 +805,56 @@ index 7745912..704c48e 100644
        }
      }
    }
- 
+
 +  pub_observation_health();
    pub_odom_->publish(odom);    // imu frame -> lidar frequency
- 
+
 -  if (pub_health_) {
 -    std_msgs::msg::String health;
 -    health.data = "UNKNOWN: Super-LIO has no equivalent FAST-LIO2 degeneracy metric";
 -    pub_health_->publish(health);
 -  }
 -
-   V3 robo_position = state.R.R_ * ( - g_odom_robo.R_ * g_odom_robo.t_) + state.p;
- 
+-  V3 robo_position = state.R.R_ * ( - g_odom_robo.R_ * g_odom_robo.t_) + state.p;
++  const Eigen::Vector3d robo_position = published_rotation *
++      (-g_odom_robo.R_.cast<double>() * g_odom_robo.t_.cast<double>()) + state.p.cast<double>();
+
    if(g_2_robot){
+     static auto pub_msg2uav_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+         "/mavros/vision_pose/pose", 10);
+-    M3 robo_rotation = state.R.R_ * g_odom_robo.R_;
++    const Eigen::Matrix3d robo_rotation = published_rotation * g_odom_robo.R_.cast<double>();
+     msg2uav_.header.stamp = odom.header.stamp;
+     msg2uav_.pose.position.x = robo_position[0];
+     msg2uav_.pose.position.y = robo_position[1];
+     msg2uav_.pose.position.z = robo_position[2];
+-    Quat robo_quat(robo_rotation);
++    const Eigen::Quaterniond robo_quat = Eigen::Quaterniond(robo_rotation).normalized();
+     msg2uav_.pose.orientation.w = robo_quat.w();
+     msg2uav_.pose.orientation.x = robo_quat.x();
+     msg2uav_.pose.orientation.y = robo_quat.y();
+@@ -632,14 +692,14 @@ void ROSWrapper::pub_odom(const NavState& state){
+     pub_msg2uav_->publish(msg2uav_);
+   }
+
+-  if((last_path_point_ - robo_position).norm() > 0.1)
++  if((last_path_point_.cast<double>() - robo_position).norm() > 0.1)
+   {
+     path_.header.stamp = odom.header.stamp;
+     geometry_msgs::msg::PoseStamped point;
+     point.pose = odom.pose.pose;
+     path_.poses.push_back(point);
+     pub_path_->publish(path_);
+-    last_path_point_ = robo_position;
++    last_path_point_ = robo_position.cast<BASIC::scalar>();
+   }
+
+   geometry_msgs::msg::TransformStamped tf_msg;
+@@ -666,6 +726,7 @@ void ROSWrapper::pub_odom(const NavState& state){
+   // tf_msg.transform.rotation.w = 1.0;
+   // tf_broadcaster_->sendTransform(tf_msg);
+
++  return published_rotation;
+ }
+
+

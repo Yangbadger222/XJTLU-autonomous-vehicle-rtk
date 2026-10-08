@@ -1,0 +1,216 @@
+{
+  "schema": 1,
+  "branch": "codex/superlio-ego-active-road",
+  "tip": "919b9437090b6626b7b1b6ffa06c9d35f961f312",
+  "base": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
+  "checks": [
+    {
+      "name": "branch_and_base",
+      "status": "PASS",
+      "evidence": [
+        "git merge-base --is-ancestor",
+        "audit/vehicle_baseline/SOURCE_IDENTITY.json"
+      ],
+      "detail": "branch=codex/superlio-ego-active-road, tip=919b9437090b6626b7b1b6ffa06c9d35f961f312, base=e54c6afbcb5a58db22d7c468085a87d658b0b932, ancestry=True, identity_matches=True"
+    },
+    {
+      "name": "external_pins",
+      "status": "PASS",
+      "evidence": [
+        "dependencies.research.repos"
+      ],
+      "detail": "{\"ego_planner_2d_ros2\": \"7f5be6d4cee34871e85aa1f15285cfaf17b23877\", \"super_lio\": \"f89f48dc7aea6cfa262f18e4d03b319e04e0dbd2\"}"
+    },
+    {
+      "name": "super_lio_current_patch_source_proof",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_ready/heading-qualified/final-source-proof.json",
+        "audit/UPSTREAM_PATCH_VERIFICATION.json",
+        "patches/super_lio/0001-publish-source-aware-odom-health.patch",
+        "patches/super_lio/0002-certify-source-observations-and-covariance.patch"
+      ],
+      "detail": "fresh exact-pin sequential 2 patches; actual checkout all-file byte equality; historical receipts remain historical"
+    },
+    {
+      "name": "ego_planner_2d_ros2_current_patch_source_proof",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_ready/heading-qualified/final-source-proof.json",
+        "audit/UPSTREAM_PATCH_VERIFICATION.json",
+        "patches/ego_planner_2d/0001-vehicle-state-and-feasibility.patch",
+        "patches/ego_planner_2d/0002-vehicle-ros-timed-trajectory.patch",
+        "patches/ego_planner_2d/0003-clear-stale-plan-on-failure.patch",
+        "patches/ego_planner_2d/0004-strict-feasibility-and-grid-state-contract.patch",
+        "patches/ego_planner_2d/0005-protect-owned-local-world-gauge.patch",
+        "patches/ego_planner_2d/0006-atomic-local-evidence-grid-contract.patch",
+        "patches/ego_planner_2d/0007-local-perception-frame-integrity.patch",
+        "patches/ego_planner_2d/0008-stm32-command-model-target-check.patch",
+        "patches/ego_planner_2d/0009-explicit-stationary-heading-recovery.patch"
+      ],
+      "detail": "fresh exact-pin sequential 9 patches; actual checkout all-file byte equality; historical receipts remain historical"
+    },
+    {
+      "name": "current_clean_humble_build",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_ready/heading-qualified/fresh-build-3c6.json",
+        "audit/vehicle_ready/heading-qualified/fresh-build-3c6.log"
+      ],
+      "detail": "fresh isolated SDK/14-package build; runtime changes since build: []"
+    },
+    {
+      "name": "historical_ego_three_patch_build_recipe",
+      "status": "PASS",
+      "evidence": [
+        "audit/container/ego-current-three-patch-build.Dockerfile"
+      ],
+      "detail": "recipe applies all three pinned EGO patches before the research_interfaces/ego_planner build"
+    },
+    {
+      "name": "historical_ego_orbstack_three_patch_build",
+      "status": "PASS",
+      "evidence": [
+        "audit/container/ego-orbstack-ros-base-three-patch.Dockerfile",
+        "audit/container/ego-orbstack-ros-base-three-patch-result.json",
+        "audit/container/ego-orbstack-ros-base-three-patch-build.log",
+        "audit/container/ego-orbstack-ros-base-three-patch-build-summary.log",
+        "audit/container/ego-orbstack-ros-base-three-patch-run.log"
+      ],
+      "detail": "public ros:humble ARM64 alternate-base build and bounded startup smoke; ros2-go2 and Jetson gates remain separate"
+    },
+    {
+      "name": "source_byte_protection:PROTECTED_FILES.sha256",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_baseline/PROTECTED_FILES.sha256"
+      ],
+      "detail": "7 original files"
+    },
+    {
+      "name": "source_byte_protection:PROTECTED_ADDITIONAL_FILES.sha256",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256"
+      ],
+      "detail": "1004 original files"
+    },
+    {
+      "name": "protected_vehicle_files",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_baseline/PROTECTED_FILES.sha256"
+      ],
+      "detail": "src/bringup/config/master_params.yaml: OK\nsrc/bringup/launch/system_gps_corridor.launch.py: OK\nsrc/bringup/launch/system_nav_gps.launch.py: OK\nsrc/perception/fastlio2/src/lio_node.cpp: OK\nsrc/sensor_drivers/serial_twistctl/src/serial_twistctl_node.cpp: OK\nsrc/sensor_drivers/serial_twistctl/include/serial_twistctl/twist_command.hpp: OK\nsrc/firmware/rm_c_board/README.md: OK\n"
+    },
+    {
+      "name": "research_launch_allowlist",
+      "status": "PASS",
+      "evidence": [
+        "src/bringup/launch/system_active_road_research.launch.py",
+        "LEGACY_REMOVAL_MANIFEST.md"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "serial_gate",
+      "status": "PASS",
+      "evidence": [
+        "src/bringup/launch/system_active_road_research.launch.py"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "research_config_install_path",
+      "status": "PASS",
+      "evidence": [
+        "src/bringup/config/ego_vehicle_adapter.yaml",
+        "src/bringup/CMakeLists.txt",
+        "src/bringup/launch/system_active_road_research.launch.py"
+      ],
+      "detail": "vehicle EGO parameters are installed with bringup rather than left in a repository-only config directory"
+    },
+    {
+      "name": "bringup_launch_dependencies",
+      "status": "PASS",
+      "evidence": [
+        "src/bringup/package.xml",
+        "src/bringup/launch/system_active_road_research.launch.py"
+      ],
+      "detail": "launch imports have explicit clean-install package dependencies"
+    },
+    {
+      "name": "research_entry_assets",
+      "status": "PASS",
+      "evidence": [
+        "src/bringup/config/master_params.yaml",
+        "src/bringup/config/super_lio_vehicle.yaml",
+        "src/bringup/config/super_lio_cloud_frame.yaml",
+        "src/bringup/config/research_safety_bridge.yaml",
+        "src/bringup/config/research_local_grid.yaml",
+        "src/bringup/config/research_observed_ground.yaml",
+        "src/bringup/config/active_road_mapping.yaml",
+        "src/bringup/config/active_road_evidence.yaml",
+        "src/bringup/config/ego_vehicle_adapter.yaml",
+        "src/sensor_drivers/livox_ros_driver2/launch_ROS2/msg_MID360_launch.py",
+        "src/sensor_drivers/gnss/um982_rtk_driver/launch/um982_rtk.launch.py"
+      ],
+      "detail": "research launch config and sensor launch assets exist in the source/install inputs"
+    },
+    {
+      "name": "cloud_tf_boundary",
+      "status": "PASS",
+      "evidence": [
+        "audit/vehicle_baseline/RUNTIME_CONTRACT.json",
+        "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "typed_research_boundaries",
+      "status": "PASS",
+      "evidence": [
+        "src/research_interfaces/msg/TimedTrajectory2D.msg",
+        "src/research_interfaces/msg/RoadEvidence2D.msg",
+        "src/active_road_mapping/active_road_mapping/evidence_node.py",
+        "src/research_runtime/research_runtime/safety_bridge.py",
+        "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "required_deliverables",
+      "status": "PASS",
+      "evidence": [
+        "AUDIT_REPORT.md",
+        "METHOD_SPEC.md",
+        "MIGRATION_REPORT.md",
+        "RUN_STATE.json",
+        "REPRODUCE.md",
+        "LIVE_ACCEPTANCE_CHECKLIST.md",
+        "ROLLBACK.md",
+        "RESULTS.json"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "result_status_matrix",
+      "status": "PASS",
+      "evidence": [
+        "RESULTS.json"
+      ],
+      "detail": ""
+    },
+    {
+      "name": "report_copy",
+      "status": "PASS",
+      "evidence": [
+        "outputs/RESEARCH_DELIVERY_REPORT.md",
+        "/Users/badger/Documents/Codex/2026-10-07/codex-goal-superlio-ego-research-md/outputs/RESEARCH_DELIVERY_REPORT.md"
+      ],
+      "detail": ""
+    }
+  ],
+  "overall_static_status": "PASS",
+  "runtime_gates": "Executed runtime evidence is reported in RESULTS.json; this verifier only checks provenance/invariants"
+}

@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "source_commit": "3c6ec9fc1e8ddfb9c0f4add87ea5fc2b292fb477",
+  "workspace": "/dev/shm/codex-heading-final-3c6-ws",
+  "fresh_before_build": true,
+  "packages": 14,
+  "system_overlay_only": "/opt/ros/humble",
+  "parallel_workers": 1,
+  "log": "fresh-build-3c6.log",
+  "scope": "actual fresh SDK and all14 packages; target Jetson/physical motion separate",
+  "build_exit": 0,
+  "package_count": 14
+}

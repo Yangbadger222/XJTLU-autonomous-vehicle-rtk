@@ -1,0 +1,43 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "analytical-fixture:mid360-strip:ca402359f1d4bc5c91f1488c2ef4c148c60e82e342a8bf53de439f99faa04786",
+      "geometry_xy": [
+        [
+          0.75,
+          0.14999999999999858
+        ],
+        [
+          0.75,
+          0.75
+        ]
+      ],
+      "local_submap_id": "analytical-fixture/native-odom",
+      "observed_length_m": 0.6000000000000014,
+      "pose_uncertainty_m": 0.01790977468981673,
+      "source": "mid360_single_scan_flat_geometry_v1",
+      "stamp": 12.91,
+      "state": "OBSERVED_GEOMETRY",
+      "supported_width_m": 0.8999999999999999,
+      "valid_depth_m": [
+        0.6047261279841061,
+        1.4554374622716861
+      ]
+    }
+  ],
+  "graph_updates": {},
+  "map_version": "3059e4fee380e3300b7e15ef3bd432c02e53d0330c0fdac5e7c1c4a64643faf1",
+  "prior_version": "fixture-v1",
+  "rolled_back_graph_updates": {},
+  "schema": 1,
+  "submap_anchors": {},
+  "transform": {
+    "axis_order": "x_east_y_north",
+    "crs": "LOCAL:odom",
+    "datum": "LOCAL_SENSOR_FRAME",
+    "origin_x_m": 0.0,
+    "origin_y_m": 0.0,
+    "pixel_size_x_m": 1.0,
+    "pixel_size_y_m": 1.0
+  }
+}

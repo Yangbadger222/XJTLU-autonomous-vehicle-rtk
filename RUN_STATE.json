@@ -215,5 +215,43 @@
     "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained"
   ],
   "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
-  "finite_tests": "all current checkpoint child groups ended; only preserved ce46418 preview intentionally running"
+  "finite_tests": "all current checkpoint child groups ended; only preserved ce46418 preview intentionally running",
+  "current_qualification_checkpoint": {
+    "source_commit": "3c6ec9fc1e8ddfb9c0f4add87ea5fc2b292fb477",
+    "goal_status": "ACTIVE",
+    "executor": "authorized non-Jetson Humble host",
+    "fresh_workspace": "/dev/shm/codex-heading-final-3c6-ws",
+    "fresh_build_status": "PASS",
+    "patch_source_status": "PASS",
+    "dependencies": {
+      "super_lio_patches": 2,
+      "ego_patches": 9
+    },
+    "finite_child_tests_closed": true,
+    "runtime_domains": [
+      91,
+      93,
+      94,
+      104,
+      106,
+      107
+    ],
+    "ROS_LOCALHOST_ONLY": true,
+    "actual_raw_ground_status": "FAIL",
+    "policy_tasks_reached": {
+      "PASSIVE": "0/2",
+      "PERIODIC_LOOK": "0/2",
+      "TASK_AWARE_LOOK": "1/2"
+    },
+    "physical_actuator_runs": 0,
+    "firmware_flashes": 0,
+    "preserved_preview": {
+      "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+      "launch_pid": 1356150,
+      "port": 8765,
+      "unchanged": true
+    },
+    "evidence_root": "audit/vehicle_ready/heading-qualified",
+    "remaining": "actual MID360 dense-support adaptation, target shadow and physical acceptance; existing mounting/STM data already used"
+  }
 }

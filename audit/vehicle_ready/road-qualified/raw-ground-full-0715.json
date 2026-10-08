@@ -1,0 +1,224 @@
+{
+  "status": "FAIL",
+  "checks": {
+    "all_children_alive": false,
+    "EOF_or_requested_prefix": false,
+    "actual_raw_inputs": true,
+    "source_observations": false,
+    "native_certificate_decode": true,
+    "healthy_observations_exist": true,
+    "native_vehicle_exact_stamp_pairs": false,
+    "sustained_vehicle_odom_coverage": true,
+    "terminal_vehicle_measurement_present": true,
+    "no_reference_fault_latched": true,
+    "identity_reference_mean_covariance": true,
+    "finite_PSD_covariances": true,
+    "frames": true,
+    "owned_identity_world": true,
+    "acquisition_transformed_cloud": false,
+    "vehicle_healthy_received": true,
+    "source_terminal_health_OK": false,
+    "vehicle_terminal_health_OK": false,
+    "native_input_terminal_covered": true,
+    "native_input_span_covered": false,
+    "native_no_prolonged_output_gap": true,
+    "vehicle_input_terminal_covered": true,
+    "vehicle_input_span_covered": false,
+    "vehicle_no_prolonged_output_gap": true,
+    "actual_ground_pipeline": false
+  },
+  "counts": {
+    "imu": 119,
+    "lidar": 22,
+    "native_odom": 4,
+    "vehicle_odom": 4,
+    "ground": 1,
+    "combined": 5,
+    "cloud_odom": 4
+  },
+  "source_health_counts": {
+    "OK": 4,
+    "FAIL": 4
+  },
+  "source_reasons": {
+    "observation_lower_bound_pass": 4,
+    "point_before_retained_state_interval": 4
+  },
+  "vehicle_health_counts": {
+    "UNKNOWN": 5,
+    "OK": 4
+  },
+  "vehicle_health_reasons": {
+    "UNKNOWN: Super-LIO source health/IMU-to-base equivalence is not verified": 1,
+    "OK: measurement-matched observation bound and audited navigation reference applied": 4,
+    "UNKNOWN: source observation certificate not eligible": 4
+  },
+  "reference_fault_capture": [],
+  "measurement_continuity": {
+    "checks": {
+      "native_input_terminal_covered": true,
+      "native_input_span_covered": false,
+      "native_no_prolonged_output_gap": true,
+      "vehicle_input_terminal_covered": true,
+      "vehicle_input_span_covered": false,
+      "vehicle_no_prolonged_output_gap": true
+    },
+    "streams": {
+      "raw_lidar": {
+        "count": 22,
+        "first_ns": 1784111475568625108,
+        "last_ns": 1784111476140383708,
+        "span_s": 0.5717586,
+        "max_gap_s": 0.033259037000000005
+      },
+      "raw_imu": {
+        "count": 119,
+        "first_ns": 1784111475580979012,
+        "last_ns": 1784111476170957609,
+        "span_s": 0.589978597,
+        "max_gap_s": 0.007450302000000001
+      },
+      "native": {
+        "count": 4,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111476107030391,
+        "span_s": 0.13535475700000002,
+        "max_gap_s": 0.08208942400000001,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": 0.033353317,
+        "ahead_of_last_imu_s": -0.06392721800000001,
+        "post_start_span_ratio": 0.8023015958323371
+      },
+      "vehicle": {
+        "count": 4,
+        "first_ns": 1784111475971675634,
+        "last_ns": 1784111476107030391,
+        "span_s": 0.13535475700000002,
+        "max_gap_s": 0.08208942400000001,
+        "start_lag_s": 0.403050526,
+        "raw_tail_lag_s": 0.033353317,
+        "ahead_of_last_imu_s": -0.06392721800000001,
+        "post_start_span_ratio": 0.8023015958323371
+      }
+    },
+    "tolerances": {
+      "terminal_and_internal_gap_s": 0.5,
+      "initialization_allowance_s": 5.0,
+      "minimum_post_start_span_ratio": 0.95
+    },
+    "scope": "actual received input/output stamps; tolerances grant no motion or authority"
+  },
+  "terminal_source_health": {
+    "source": "super_lio/f89f48dc",
+    "certificate": "fixed_extrinsic_observation_lower_bound_v1",
+    "twist_convention": "imu_body_full_state_v1",
+    "stamp_ns": 1784111476107030391,
+    "status": "FAIL",
+    "legacy_min_eig_lower_bound": 0,
+    "minimum_observation_information": 0,
+    "effective_points": 0,
+    "iterations": 0,
+    "reason": "point_before_retained_state_interval"
+  },
+  "terminal_vehicle_health": "UNKNOWN: source observation certificate not eligible",
+  "information_bound_summary": {
+    "min": 99999.99999999999,
+    "median": 99999.99999999999,
+    "max": 99999.99999999999
+  },
+  "paired_odom_count": 4,
+  "covariance_failures": [],
+  "reference_mismatches": [],
+  "playback_exit_before_cleanup": null,
+  "child_exits_before_cleanup": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    1,
+    null
+  ],
+  "duration_s": 0.0,
+  "requested_prefix_completed_before_cleanup": false,
+  "replay_scope": "FULL_EOF",
+  "rate": 1.0,
+  "domain": 104,
+  "bag": "/home/badger/fgo-gil-analysis/rosbags/2026-07-15-18-31-12/fgo_gil",
+  "topics": [
+    "/livox/lidar",
+    "/livox/imu"
+  ],
+  "replay_contract": {
+    "duration_s": 287.369579396,
+    "expected_raw_counts": {
+      "/livox/lidar": 2867,
+      "/livox/imu": 57008
+    },
+    "wall_budget_s": 318.1065373356,
+    "rule": "2 s startup + full recorded duration at 1x + max(20 s, 10%) EOF margin"
+  },
+  "resources": [
+    {
+      "elapsed_s": 0.0103761269710958,
+      "cpu_s": 0.12,
+      "rss_kb": 58928
+    },
+    {
+      "elapsed_s": 1.0037869589868933,
+      "cpu_s": 0.17,
+      "rss_kb": 59224
+    },
+    {
+      "elapsed_s": 2.003868160012644,
+      "cpu_s": 0.21,
+      "rss_kb": 59224
+    },
+    {
+      "elapsed_s": 3.0297674739849754,
+      "cpu_s": 0.31,
+      "rss_kb": 65200
+    }
+  ],
+  "runtime_source_commit": "5c729391c65473285449e8af88d6aa7b139faf7e",
+  "source_binary_sha256": "b8e106ed860a28cf534120315cbb48b999971878e6a408afdb0fb42b40575d8e",
+  "input_hashes": {
+    "patches/super_lio/0002-certify-source-observations-and-covariance.patch": "3dc13a16aac06262652ea24fe8908f13ee50c52de02c32076f580995713081bf",
+    "src/bringup/config/super_lio_vehicle.yaml": "0aa0d5162bd56ac1c8e48e01a11172ecddf41916f816c10dc32e5aa27f948649",
+    "src/bringup/config/super_lio_reference.yaml": "adb0853466ecbd2b28012cda90c6c25ff1e6fcee288ae21c1877dce2ce40b5d7",
+    "src/bringup/config/super_lio_cloud_frame.yaml": "7c4dc53deca656cc4f19d001d59247f4adc0cf7f790cbcffc0bed84800f29668"
+  },
+  "ground_pipeline": {
+    "status": "FAIL",
+    "checks": {
+      "local_perception_health_exists": true,
+      "global_motion_TF_never_granted": true,
+      "actual_ground_acquisitions": false,
+      "atomic_grid_identity": true,
+      "ground_measurements_match_source_certificate": true,
+      "positive_support_measurements_match_acquisition": true,
+      "wall_EOF_expiry_retracts_ground": true,
+      "local_store_initialized": false,
+      "persistence_acknowledged": true,
+      "persisted_geometry_stays_local": false,
+      "bounded_geometric_evidence": true,
+      "positive_geometric_persistence_loop_executed": false
+    },
+    "actual_ground_acquisitions": 0,
+    "ground_messages": 1,
+    "combined_messages": 5,
+    "acquisitions_with_positive_support": 0,
+    "maximum_supported_cells": 0,
+    "positive_support_raw_status": "FAIL",
+    "persisted_geometry_count": 0,
+    "measured_question_count": 0,
+    "road_evidence_source_status": "FAIL",
+    "evidence_store": "/home/badger/codex-research/superlio-ego-20261007/logs/road-qualified/raw-ground-full-0715-evidence.json",
+    "global_TF_true_count": 0,
+    "local_TF_true_count": 7,
+    "scope": "Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance"
+  },
+  "wall_elapsed_s": 7.2132245899992995,
+  "scope": "Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim"
+}

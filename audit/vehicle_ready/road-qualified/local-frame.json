@@ -1,0 +1,135 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "local_perception_without_global_TF",
+      "ok": true,
+      "local_tail": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "both_chains_valid",
+      "ok": true,
+      "local_tail": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "full_tail": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "case": "global_TF_expiry_preserves_only_local_perception",
+      "ok": true,
+      "local_tail": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "local_pose_expiry_denies_both",
+      "ok": true,
+      "local_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "duplicate_local_owner_denies_both",
+      "ok": true,
+      "local_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "second_world_owner_latches_both",
+      "ok": true,
+      "local_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "case": "world_conflict_does_not_self_recover",
+      "ok": true,
+      "local_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "full_tail": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "domain": 107,
+  "child_exit_before_cleanup": null,
+  "source_commit": "5c729391c65473285449e8af88d6aa7b139faf7e",
+  "scope": "Actual compiled C++ guard; local Bool never grants actuator/RTK authority"
+}

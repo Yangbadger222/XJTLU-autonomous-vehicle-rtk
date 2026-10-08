@@ -1,0 +1,18 @@
+{
+  "evidence": [],
+  "graph_updates": {},
+  "map_version": "local-fbc6090488ca7ac25c56f285bb73a8d8b063f84371594560d862006166079500",
+  "prior_version": "local-fbc6090488ca7ac25c56f285bb73a8d8b063f84371594560d862006166079500",
+  "rolled_back_graph_updates": {},
+  "schema": 1,
+  "submap_anchors": {},
+  "transform": {
+    "axis_order": "x_east_y_north",
+    "crs": "LOCAL:odom",
+    "datum": "LOCAL_SENSOR_FRAME",
+    "origin_x_m": 0.0,
+    "origin_y_m": 0.0,
+    "pixel_size_x_m": 1.0,
+    "pixel_size_y_m": 1.0
+  }
+}

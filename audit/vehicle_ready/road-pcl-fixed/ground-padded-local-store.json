@@ -1,0 +1,67 @@
+{
+  "evidence": [
+    {
+      "evidence_id": "analytical-fixture:mid360-strip:574cbfab012c6a90dfda588cd3a15e8e8397b95b8c28a58ed2e919e9b9b8e681",
+      "geometry_xy": [
+        [
+          0.14999999999999858,
+          0.4499999999999993
+        ],
+        [
+          1.0500000000000007,
+          0.4499999999999993
+        ]
+      ],
+      "local_submap_id": "analytical-fixture/native-odom",
+      "observed_length_m": 0.9000000000000021,
+      "pose_uncertainty_m": 0.01765672759715118,
+      "source": "mid360_single_scan_flat_geometry_v1",
+      "stamp": 14.41,
+      "state": "OBSERVED_GEOMETRY",
+      "supported_width_m": 0.8999999999999999,
+      "valid_depth_m": [
+        0.49285564407174437,
+        1.4254772198950265
+      ]
+    },
+    {
+      "evidence_id": "analytical-fixture:mid360-strip:1a1074a45b9bbbf512a0ef0c72f3082e3ca5e5b2578fc998bbf8dbe4f7a7229e",
+      "geometry_xy": [
+        [
+          0.4499999999999993,
+          0.14999999999999858
+        ],
+        [
+          0.4499999999999993,
+          0.75
+        ]
+      ],
+      "local_submap_id": "analytical-fixture/native-odom",
+      "observed_length_m": 0.6000000000000014,
+      "pose_uncertainty_m": 0.01605490670916527,
+      "source": "mid360_single_scan_flat_geometry_v1",
+      "stamp": 14.41,
+      "state": "OBSERVED_GEOMETRY",
+      "supported_width_m": 0.8999999999999999,
+      "valid_depth_m": [
+        0.4965820031543098,
+        1.2264575701804235
+      ]
+    }
+  ],
+  "graph_updates": {},
+  "map_version": "627bab84a43b37c28bdec057190ff13d020b89941f1b5089efe0554a65e8028f",
+  "prior_version": "fixture-v1",
+  "rolled_back_graph_updates": {},
+  "schema": 1,
+  "submap_anchors": {},
+  "transform": {
+    "axis_order": "x_east_y_north",
+    "crs": "LOCAL:odom",
+    "datum": "LOCAL_SENSOR_FRAME",
+    "origin_x_m": 0.0,
+    "origin_y_m": 0.0,
+    "pixel_size_x_m": 1.0,
+    "pixel_size_y_m": 1.0
+  }
+}

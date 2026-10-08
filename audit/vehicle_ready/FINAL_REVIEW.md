@@ -2,8 +2,10 @@
 
 ## Standards
 
-Independent12 checks: no new P1/P2 or mandatory style/standards issue.1011 originals unchanged; source matchesDA build, all2 Super/6 EGO hashes and dependencies checked. Typed acquisition/map/session and wall expiry preserved; actual ground16 ROS/build/proof read. Entry repeat now passes16 children/143 three-layer checks/seven override probes; the earlier count failure and transient RPC timeout remain recorded. Complete real pipeline/physical work remains separate.
+Independent increment review found no new actionable P1/P2 in explicit stationary rotation relative to9a0ec9b.1011 originals unchanged; generated stop confirmation duration retains the source YAML. Mode boundaries, fixed pivot, zero translation, full footprint, yaw/acceleration/source-RPM and original permission chain remain enforced. The persistence P2 is closed after2a61329: failed directory sync, reload, duplicate retry and recovered durable ack are covered without changing file bytes. Runtime qualification remains separate from this static conclusion.
 
 ## Spec
 
-Three earlier P2 findings closed: unversioned old support rebinding, older evidence timestamp refresh and adjacent9.8cm step accepted as free. Independent counterexample now produces(100,100);16 actual groundROS/10 EGO/39 final-wire cases and SDK14/source proof read. No new P1/P2 found. Real ground bag, road evidence production, nonzero default vehicle execution and physical acceptance remain unfinished; whole goal is not complete.
+No new actionable P1/P2 in the explicit rotation increment. Query cannot call a rotation-only preparatory step a complete reachable route; cache retains generated_at and rechecks the current map. Independent rotation/footprint8-test run passes. Earlier full6D covariance propagation and empty-ground vacuous PASS findings are closed; actual raw-positive failure is retained. Standards and Spec are separate judgments, without merged ranking.
+
+Executed after review: fresh SDK/14 Humble packages and2/9 all-source proof pass;10 fresh EGO ROS cases,22 ground ROS fixtures,47 rotation/41 fresh linear final-wire faults,5 fresh original-RTK-classifier rotation fault cases, three default arcs and90-degree EGO recovery pass. Three-layer checks149 pass with the final audit helper. Six current default-policy tasks complete with unchanged foundation/prior; task-aware reaches1/2 and other modes0/2. Actual raw support remains FAIL, target/physical acceptance PENDING, and the whole goal remains active.

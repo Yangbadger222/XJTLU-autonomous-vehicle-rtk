@@ -1,0 +1,554 @@
+{
+  "domain": 91,
+  "sink": "allocated PTY; no physical device",
+  "serial_profile": "original master YAML, only port remapped",
+  "simulation_only_settings": {
+    "max_curvature_1pm": 0.34602076124567477,
+    "max_lateral_speed_mps": 0.05,
+    "max_jerk_mps3": 1.7
+  },
+  "settings_origin": "CURRENT_SOURCE_YAML",
+  "source_commit": "5c729391c65473285449e8af88d6aa7b139faf7e",
+  "scope": "actual original serial binary; physical KEY/joystick/firmware emergency stop remains pending",
+  "rtk_classifier": false,
+  "world_gauge_fault": null,
+  "authority_mode_counts": {
+    "LIO_BRIDGE": 28,
+    "RTK_AUTHORITATIVE": 1674
+  },
+  "runtime_parameters": {
+    "research_safety_bridge": {
+      "exit": 0,
+      "yaml": "/research_safety_bridge:\n  ros__parameters:\n    actuator_enabled: true\n    allow_analytical_grid_fixture: true\n    authority_timeout_s: 0.5\n    footprint_xy:\n    - 0.33\n    - 0.305\n    - 0.33\n    - -0.305\n    - -0.33\n    - -0.305\n    - -0.33\n    - 0.305\n    grid_timeout_s: 0.5\n    health_timeout_s: 0.5\n    health_topic: /lio/vehicle_health\n    localization_session_id: mock-only\n    map_timeout_s: 0.5\n    map_version_topic: /research/map_version\n    max_accel_mps2: 0.85\n    max_curvature_1pm: 0.34602076124567477\n    max_decel_mps2: 1.2\n    max_lateral_accel_mps2: 0.25\n    max_lateral_speed_mps: 0.05\n    max_speed_mps: 0.85\n    max_yaw_accel_rps2: 1.4\n    max_yaw_decel_rps2: 1.8\n    max_yaw_rate_rps: 0.7\n    min_speed_mps: 0.0\n    mode: live\n    normal_slew_fraction: 0.5\n    obstacle_grid_topic: /research/local_evidence_grid\n    odom_topic: /lio/odom_vehicle\n    permission_grid_topic: /research/permission_grid\n    state_timeout_s: 0.2\n    tracker_heading_gain: 1.0\n    tracker_lateral_gain: 1.5\n    tracker_longitudinal_gain: 0.8\n    tracker_preview_s: 0.1\n    use_sim_time: false\n\n"
+    },
+    "corridor_cmd_vel_guard": {
+      "exit": 0,
+      "yaml": "/corridor_cmd_vel_guard:\n  ros__parameters:\n    command_timeout_s: 0.25\n    heartbeat_timeout_s: 0.5\n    input_topic: /cmd_vel\n    min_turn_rate_radps: 0.05\n    motion_allowed_topic: /localization_authority/motion_allowed\n    motion_speed_limit_topic: /localization_authority/max_linear_speed_mps\n    output_topic: /cmd_vel_guarded\n    require_speed_limit: true\n    road_rejoin_active_topic: /gps_nav/road_rejoin_active\n    road_rejoin_max_mps: 0.35\n    stop_override_topic: /gps_corridor/stop_override\n    straight_max_mps: 0.85\n    turn_product_limit: 0.25\n    use_sim_time: false\n\n"
+    },
+    "serial_twistctl_node": {
+      "exit": 0,
+      "yaml": "/serial_twistctl_node:\n  ros__parameters:\n    angular_z_scale: 1.0\n    baudrate: 115200\n    delay_between_attempts_ms: 0\n    port: /dev/pts/0\n    qos_overrides:\n      /parameter_events:\n        publisher:\n          depth: 1000\n          durability: volatile\n          history: keep_last\n          reliability: reliable\n    send_attempts: 1\n    use_sim_time: false\n\n"
+    }
+  },
+  "cases": [
+    {
+      "fault": "authority_false",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "authority_stale",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "rtk_authority_loss",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "lio_bridge_motion_denied",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "authority_mode_stale",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "lio_health_unknown",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "planning_failed",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "planner_stream_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "expired_trajectory",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "infeasible_speed",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "map_version_changed",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "grid_stream_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "odom_stream_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "unknown_ground",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "footprint_interior_obstacle",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "stop_override",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "stop_heartbeat_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "speed_permission_zero",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "wrong_odom_frame",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "old_odom_stamp",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "zero_quaternion",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "pose_jump",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "tf_stream_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "tf_double_publisher",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "permission_stream_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "keepout",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_stop",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_heartbeat_lost",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_heartbeat_lost:restored_without_reset",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_duplicate",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_duplicate:restored_without_reset",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_wrong_map",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_competing_publisher",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "operator_competing_publisher:restored_without_reset",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "grid_old_payload_version",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "grid_wrong_payload_session",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "grid_wrong_support_model",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "grid_mismatched_acquisition",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    },
+    {
+      "fault": "controller_process_exit",
+      "nominal_nonzero_reached_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "tracker_reason_counts": {
+    "rtk_authority_false;trajectory_invalid;operator_consent_missing_stale_or_denied": 49,
+    "rtk_authority_false;map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied:tf_integrity_or_age": 5,
+    "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied;rtk_mode_or_age_denied:RTK_AUTHORITATIVE:map_stale,grid_stale,tf_integrity_or_age,permission_missing_or_age": 41,
+    "allowed": 1091,
+    "trajectory_invalid;operator_consent_missing_stale_or_denied": 132,
+    "authority_stale": 8,
+    "rtk_authority_false": 17,
+    "rtk_authority_false;rtk_mode_or_age_denied:LIO_BRIDGE": 17,
+    "rtk_authority_false;trajectory_invalid;operator_consent_missing_stale_or_denied;rtk_mode_or_age_denied:LIO_BRIDGE": 1,
+    "rtk_authority_false;rtk_mode_or_age_denied:RTK_AUTHORITATIVE": 8,
+    "lio_health_not_ok;trajectory_invalid": 17,
+    "trajectory_invalid": 76,
+    "trajectory_invalid:tracker:trajectory_expired;invalid_validity_interval": 17,
+    "trajectory_invalid;operator_consent_missing_stale_or_denied:tracker:trajectory_expired;invalid_validity_interval": 1,
+    "trajectory_invalid:tracker:speed_limit:2;path_speed_mismatch": 17,
+    "trajectory_invalid;operator_consent_missing_stale_or_denied:tracker:speed_limit:2;path_speed_mismatch": 1,
+    "map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied:grid_stale,trajectory_version": 17,
+    "map_invalid;trajectory_invalid:grid_stale": 49,
+    "trajectory_invalid:tracker:footprint_collision_or_unknown": 50,
+    "trajectory_invalid;operator_consent_missing_stale_or_denied:tracker:footprint_collision_or_unknown": 2,
+    "map_invalid;trajectory_invalid:grid_stale,permission_missing_or_age": 1,
+    "map_invalid;trajectory_invalid:grid_stale,tf_integrity_or_age,permission_missing_or_age": 17,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18169,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18201,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18232,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18262,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.1829,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.1832,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18347,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.17965,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18023,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18078,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18111,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18143,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18171,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18196,w=0": 1,
+    "trajectory_invalid:tracker:feedback_limit:v=-2.18223,w=0": 1,
+    "map_invalid;trajectory_invalid:tf_integrity_or_age": 30,
+    "map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied:tf_integrity_or_age": 2,
+    "map_invalid;trajectory_invalid:permission_missing_or_age": 7,
+    "map_invalid;trajectory_invalid;operator_consent_missing_stale_or_denied:grid_stale": 2
+  },
+  "child_exit_before_cleanup": [
+    0,
+    null,
+    null,
+    null
+  ],
+  "status": "PASS"
+}

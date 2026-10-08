@@ -1,8 +1,8 @@
 {
   "schema": 2,
-  "current_source_proof": "audit/vehicle_ready/heading-qualified/final-source-proof.json",
-  "current_clean_build": "audit/vehicle_ready/heading-qualified/fresh-build-3c6.json",
-  "current_build_log": "audit/vehicle_ready/heading-qualified/fresh-build-3c6.log",
+  "current_source_proof": "audit/vehicle_ready/da361f2/patch-source-proof.json",
+  "current_clean_build": "audit/vehicle_ready/da361f2/clean-build.json",
+  "current_build_log": "audit/vehicle_ready/da361f2/build.log",
   "historical_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_pre_ground.json",
   "dependencies": {
     "super_lio": {
@@ -54,26 +54,10 @@
           "path": "patches/ego_planner_2d/0006-atomic-local-evidence-grid-contract.patch",
           "sha256": "deeb721df0a5872cfef13b4f2e7798df89e393c0e461f0d7d5802dfaed404cf8",
           "check_apply": "PASS"
-        },
-        {
-          "path": "patches/ego_planner_2d/0007-local-perception-frame-integrity.patch",
-          "sha256": "d3a8f2a0c9a90b5b98ad601766ef4680b280f7a723acf3f9ab8bce8cf2235810",
-          "check_apply": "PASS"
-        },
-        {
-          "path": "patches/ego_planner_2d/0008-stm32-command-model-target-check.patch",
-          "sha256": "4506699529cab7b38c16e147befef18503658487c4a178aeee5b57b382d66d72",
-          "check_apply": "PASS"
-        },
-        {
-          "path": "patches/ego_planner_2d/0009-explicit-stationary-heading-recovery.patch",
-          "sha256": "603d5b37b4934fbc054d22b175738e0cb90e9b72fd395620d8ca5839fff46487",
-          "check_apply": "PASS"
         }
       ],
       "sequential_apply": "PASS",
       "matches_built_source": true
     }
-  },
-  "previous_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_da361f2.json"
+  }
 }

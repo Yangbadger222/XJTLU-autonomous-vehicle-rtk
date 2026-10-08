@@ -1,8 +1,9 @@
 {
   "VEHICLE_PARAMETER_PRESERVATION": {
     "status": "PASS",
-    "scope": "1011 protected originals unchanged; current original/source/parsed/Humble runtime 143 checks and seven deliberate override probes. Recorded mounting and firmware geometry exist. Target effective overlays/flashed identity remain PENDING.",
+    "scope": "1011 protected originals unchanged; original/source/parsed/Humble runtime149 checks pass, including current generated execution defaults; seven earlier actual deliberate override probes reject changed originals. Recorded MID360/STM data are used; target effective overlays and flashed identity remain on-site.",
     "evidence": [
+      "audit/vehicle_ready/heading-qualified/three-layer-parameters.json",
       "audit/vehicle_baseline/PROTECTED_FILES.sha256",
       "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256",
       "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json",
@@ -24,7 +25,7 @@
   },
   "LIO_INTERFACE_EQUIVALENCE": {
     "status": "PASS",
-    "scope": "Software contract qualification: audited original IMU-origin navigation convention, full-state body covariance/lever-arm equations, exact measurement-stamp eligibility, explicit expiry and stricter sufficient information bound. FAST acceleration x10 differs from Super initial norm scaling; numerical estimator identity is not claimed. Physical chassis-center equivalence/accuracy/target clock remain PENDING.",
+    "scope": "Software contract qualification: audited original IMU-origin navigation convention, full-state body covariance/lever-arm equations, exact measurement-stamp eligibility, explicit expiry and stricter sufficient information bound. FAST acceleration x10 differs from Super initial norm scaling; numerical estimator identity is not claimed. The original navigation reference is deliberately retained; no new chassis-center calibration is required to reproduce it. Absolute accuracy/target clock and optional change of physical reference remain separate field questions.",
     "evidence": [
       "audit/vehicle_baseline/LIO_FIELD_MAPPING.json",
       "audit/vehicle_ready/SOURCE_HEALTH_CONTRACT.md",
@@ -34,17 +35,19 @@
   },
   "EGO2D_UPSTREAM_BUILD_AND_PROVENANCE": {
     "status": "PASS",
-    "scope": "Untouched pinned two-dimensional upstream reproduced previously; current six sequential vehicle patches and two Super patches exactly reproduce actual runtime checkout; fresh current14 build. RViz GUI historical NOT_RUN_HEADLESS, no repeated ROS1/3D port.",
+    "scope": "Untouched exact 2D upstream was reproduced. Current2 Super/9 EGO sequential patches match all actual runtime source bytes. New fresh14-package Humble build3c6 succeeds; no ROS1/3D re-port. Target/GUI/physical qualification is separate.",
     "evidence": [
-      "audit/remote_humble/ego-raw-simulation.json",
-      "audit/vehicle_ready/da361f2/patch-source-proof.json",
-      "audit/vehicle_ready/da361f2/clean-build.json"
+      "audit/vehicle_ready/heading-qualified/final-source-proof.json",
+      "audit/vehicle_ready/heading-qualified/fresh-build-3c6.json",
+      "audit/remote_humble/ego-raw-simulation.json"
     ]
   },
   "EGO2D_VEHICLE_INTERFACE_ADAPTATION": {
     "status": "PASS",
-    "scope": "Ten current installed EGO ROS measured-state/grid/reference/query cases; atomic grid map/session/acquisition contract reaches planner and final bridge. This uses explicit analytical test curvature/jerk/slip settings. Complete nonzero default execution profile and real ground-to-road evidence producer remain unfinished.",
+    "scope": "Current typed odom/obstacle/reference/timed trajectory/query adaptation and source-default control profile run; ordinary curves retain moving curvature limits, explicit stationary rotation is separately validated. Actual raw ground-to-road effectiveness remains FAIL, not missing calibration data.",
     "evidence": [
+      "audit/vehicle_ready/heading-qualified/fresh-ego-interface.json",
+      "audit/vehicle_ready/heading-qualified/heading-recovery-loop.json",
       "audit/vehicle_ready/da361f2/ego-interface.json",
       "patches/ego_planner_2d/0006-atomic-local-evidence-grid-contract.patch"
     ]
@@ -64,8 +67,11 @@
   },
   "COMMAND_AUTHORITY_AND_STOP": {
     "status": "PASS",
-    "scope": "39 current final original serial PTY faults, including four foreign/mismatched grid payload cases. Original RTK loss stops despite eligible LIO; operator latch/manual/guard semantics unchanged. Existing world-owner fault receipts retained; physical KEY/brake/estop are PENDING.",
+    "scope": "Current source defaults:47 pure-yaw and41 fresh-build linear final original-serial PTY fault cases pass. Five actual original RTK-classifier GNSS fault cases also stop pure yaw at the final wire; classifier sensor/legacy-metric fixtures are explicit. All yaw-only translation remains zero, original yaw/turn/RPM limits preserved. RTK loss or LIO bridge cannot grant motion. Physical KEY/braking/emergency stop remains on-site.",
     "evidence": [
+      "audit/vehicle_ready/heading-qualified/fresh-linear-final-wire.json",
+      "audit/vehicle_ready/heading-qualified/fresh-rtk-rotation-wire.json",
+      "audit/vehicle_ready/heading-qualified/rotation-final-wire.json",
       "audit/vehicle_ready/da361f2/serial-faults.json",
       "audit/vehicle_ready/69b9b75/world-second-static-owner.json",
       "audit/vehicle_ready/69b9b75/world-dynamic-world.json",
@@ -95,19 +101,18 @@
   },
   "POLICY_COMPARISON_EXECUTION": {
     "status": "PASS",
-    "detail": "Six actual 60 s tasks on full ed4b7f6 build, same foundation/perception/prior byte hashes across strategies. Explicit operator fixture READY then AUTO. Historical accidental 45 s cohort is retained remotely and is not compared as 60 s.",
+    "scope": "Executed six60s tasks on the same current3c6 foundation and source-default profile. All protocol checks pass, binaries/config/perception/prior bytes remain identical across strategies; two tasks per strategy exercise saved state. Sensor/ground/pose/registration assumptions remain explicitly synthetic.",
     "evidence": [
-      "audit/optimization_v2/policy-comparison.json"
-    ],
-    "receipt_scope": "Historical executed component/simulation receipts; current typed-ground foundation is a new phase. No new strategy/physical benefit is inferred."
+      "audit/vehicle_ready/heading-qualified/policy-comparison.json"
+    ]
   },
   "POLICY_EFFECT_SIMULATION": {
-    "status": "FAIL",
-    "detail": "No benefit established: 0/6 goals; protocol PASS is distinct. Single finite scene, synthetic sensors/health/extrinsics/support/prior; no statistical, novelty or real-world claim.",
+    "status": "PENDING",
+    "scope": "Current finite cohort: PASSIVE0/2, PERIODIC_LOOK0/2, TASK_AWARE_LOOK1/2 goals. One synthetic scene and two sequential tasks per strategy do not establish statistical, paper or real-world benefit. Earlier0/6 negative cohort preserved with its original settings.",
     "evidence": [
+      "audit/vehicle_ready/heading-qualified/policy-comparison.json",
       "audit/optimization_v2/policy-comparison.json"
-    ],
-    "receipt_scope": "Historical executed component/simulation receipts; current typed-ground foundation is a new phase. No new strategy/physical benefit is inferred."
+    ]
   },
   "VEHICLE_BAG_REPLAY": {
     "status": "PASS",
@@ -127,7 +132,7 @@
   },
   "LIVE_MOTION_ACCEPTANCE": {
     "status": "PENDING",
-    "scope": "Recorded MID360 installation/internal IMU and STM equations/bag response used; not missing wholesale. New software default/real ground integration and target shadow not complete. Physical estop/KEY/coasting/braking, actual flashed firmware and terrain/slip acceptance require on-site tests; no autonomous physical motion or firmware flash performed.",
+    "scope": "Recorded MID360 internal IMU/mounting/factory transform and original STM/bags are available and used. Default control adaptation now runs. Real dense ground support remains unqualified; target shadow/current flashed identity and physical estop/KEY/braking/terrain/slip require on-site observation. No real driving or firmware flash.",
     "evidence": [
       "LIVE_ACCEPTANCE_CHECKLIST.md",
       "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json"
@@ -150,7 +155,7 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "Goal remains active. Current work is a concrete compiled/tested checkpoint; research-only publication pending current report/review. Preserved preview stays atce46418 while qualification workspace isDA. No production merge/forcepush/asset deletion.",
+    "scope": "Goal remains active; executed3c6 software checkpoint with independent fresh14 build and2/9 source proof. Research publication is updated after final receipt checks. Preserved preview remainsce46418. Real ground evidence remains FAIL; no production merge, forcepush or asset deletion.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md"
@@ -181,28 +186,31 @@
   },
   "POSITIVE_GROUND_PROVIDER": {
     "status": "PASS",
-    "scope": "Limited software model: actual installed16 ROS fixtures and10 portable geometric tests, dense subcell coverage, local/neighbor planes, low obstacles/drop/unknown, exact acquisition, atomic map/session, reverse order and wall expiry. Thresholds NEW_ALGORITHM_SETTING; no source scan accumulation. Real raw ground evidence and default perception during absent global TF remain to qualify.",
+    "scope": "Limited software model only:22 actual installed ROS fixtures including padded32-byte little/big-endian PCL, acquisition-preserving static TF, real typed local geometry/durable idempotent persistence, neighbor steps/drop/unknown and expiry. No scan accumulation or physical terrain acceptance. Actual raw-support result is separately FAIL.",
     "evidence": [
-      "audit/vehicle_ready/da361f2/ground.json",
-      "audit/vehicle_ready/ground-source/adjacent-step-red.log",
+      "audit/vehicle_ready/heading-qualified/ground-stamp-fixture.json",
       "src/bringup/config/research_observed_ground.yaml"
     ]
   },
   "DEFAULT_VEHICLE_EXECUTION_PROFILE": {
-    "status": "PENDING",
-    "scope": "Source constants exist; zero curvature/lateral/jerk placeholders in new default still deny motion. Must configure conservative source-derived/NEW_ALGORITHM_SETTING profile, validate source motor targets and separate in-place rotation handling without changing original caps. This is unfinished implementation, not missing user data.",
+    "status": "PASS",
+    "scope": "Generated moving curvature cap.34602076124567477 from original v/w/turn-product caps; new lateral.05 and jerk1.7 are explicit algorithm settings. Source STM four motor targets and explicit stationary rotation implemented. Three default arc35s loops and90-degree actual EGO heading recovery reach goals; old arc FAIL retained. No physical tuning or slip certification.",
     "evidence": [
       "src/bringup/config/ego_vehicle_adapter.yaml",
       "src/bringup/config/research_safety_bridge.yaml",
-      "audit/vehicle_baseline/HARDWARE_SOURCE_CONTRACT.json"
+      "audit/vehicle_ready/heading-qualified/arc-default.json",
+      "audit/vehicle_ready/heading-qualified/arc-default-repeat-1.json",
+      "audit/vehicle_ready/heading-qualified/arc-default-repeat-2.json",
+      "audit/vehicle_ready/heading-qualified/heading-recovery-loop.json",
+      "audit/vehicle_ready/road-qualified/arc-default.json"
     ]
   },
   "REAL_GROUND_TO_ROAD_UPDATE": {
-    "status": "PENDING",
-    "scope": "Actual unfiltered-cloud support provider exists and analytic ROS chain runs. Current real ground replay, typed RoadEvidence production, locally safe/uncertain updates and persistence need integrated execution; previous synthetic evidence writer receipts remain separate.",
+    "status": "FAIL",
+    "scope": "Actual July15 complete1x EOF:2850 valid native/vehicle/ground acquisitions, zero positive support/road strips. Current30s PREFIX confirms all transport/frame/acquisition/persistence identity checks but no positive geometry loop;27 sampled frames have22–76 floor-band returns, at most4/16 subtiles/cell. PCL and static-TF stamp bugs fixed; no unknown-to-free conversion or invented road evidence.",
     "evidence": [
-      "src/research_runtime/research_runtime/observed_ground_node.py",
-      "src/active_road_mapping/active_road_mapping/evidence_node.py"
+      "audit/vehicle_ready/road-pcl-fixed/raw-ground-full-fixed-0715.json",
+      "audit/vehicle_ready/heading-qualified/ground-density-certificate-history.json"
     ]
   }
 }

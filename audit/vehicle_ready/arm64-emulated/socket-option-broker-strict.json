@@ -1,0 +1,121 @@
+{
+  "state": "COMPLETED",
+  "attempt_id": "fc3d66a6-a6c1-4470-8746-2371fad5e3ec",
+  "scope": "finite emulator-only native socket option broker; not vehicle code",
+  "container_id": "eb92b079d63d9b6d796ee255430f1019bcda3f09874cce43a612adc88783d8cf",
+  "duration_s": 100.11071340501076,
+  "configured_requests": 5,
+  "failed_requests": 6,
+  "python_optimize": "1",
+  "records": [
+    {
+      "peer_pid": 1715392,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "424144437f000001",
+      "status": "FAIL",
+      "error": 22,
+      "exception": "OSError(22, 'invalid fixed loopback request')"
+    },
+    {
+      "peer_pid": 1715392,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000002",
+      "status": "FAIL",
+      "error": 22,
+      "exception": "OSError(22, 'invalid fixed loopback request')"
+    },
+    {
+      "peer_pid": 1715392,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 0,
+      "request_hex": "434142497f000001",
+      "status": "FAIL",
+      "error": 22,
+      "exception": "OSError(22, 'invalid fixed loopback request')"
+    },
+    {
+      "peer_pid": 1715392,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 2,
+      "request_hex": "434142497f000001",
+      "status": "FAIL",
+      "error": 22,
+      "exception": "OSError(22, 'invalid fixed loopback request')"
+    },
+    {
+      "peer_pid": 1715392,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "FAIL",
+      "error": 22,
+      "exception": "OSError(22, 'requires actual IPv4 UDP descriptor')"
+    },
+    {
+      "peer_pid": 1715398,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1715398,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1715398,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1715434,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1715431,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1715560,
+      "peer_uid": 1000,
+      "container_match": false,
+      "status": "FAIL",
+      "error": 13,
+      "exception": "PermissionError(13, 'not the task container')"
+    }
+  ],
+  "failure": null
+}

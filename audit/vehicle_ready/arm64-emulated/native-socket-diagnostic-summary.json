@@ -1,0 +1,83 @@
+{
+  "status": "PASS",
+  "scope": "Limited emulator environment diagnosis and startup gates; no target, motion or clean shutdown pass",
+  "source_core_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+  "emulator": "QEMU6.2.0 Ubuntu6.30",
+  "original_unmodified_emulation_default_entry": "FAIL retained",
+  "cause": "IP_MULTICAST_IF is unimplemented in this QEMU linux-user syscall emulation; observed errno92 for 4/8/12 byte options, ordinary UDP unicast works",
+  "primary_sources": [
+    "https://raw.githubusercontent.com/qemu/qemu/v6.2.0/linux-user/syscall.c",
+    "https://fast-dds.docs.eprosima.com/en/2.6.x/fastdds/xml_configuration/transports.html"
+  ],
+  "counterfactual": "Native same-container-fd broker sets and verifies actual loopback socket option; no fabricated return success. 3minimal DDS casesPASS,433cross-process messages unchanged.",
+  "native_broker_requests": {
+    "minimal": 5,
+    "default_and_fixture": 41,
+    "failed": 0
+  },
+  "default_startup": {
+    "status": "PASS",
+    "owned_alive": 16,
+    "parameter_queries_passed": 12,
+    "cmd_vel_owner": "research_safety_bridge",
+    "actuator": false,
+    "mission": false,
+    "drivers": false,
+    "cleanup_launch_exit": 0
+  },
+  "auxiliary_arm64_build": "PASS ELF machine183",
+  "arm64_sensor_ingress_fixture": {
+    "status": "PASS",
+    "checks": 17
+  },
+  "clean_shutdown": {
+    "status": "FAIL",
+    "all_owned_processes_exited": true,
+    "sigint_log_line": 44,
+    "unexpected_research_node_errors": [
+      {
+        "line": 100,
+        "node": "research_operator_console-16",
+        "message": "RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)"
+      },
+      {
+        "line": 118,
+        "node": "super_lio_cloud_frame_adapter-5",
+        "message": "RuntimeError: Unable to convert call argument to Python object (compile in debug mode for details)"
+      }
+    ],
+    "original_guard_keyboard_interrupt": "preserved baseline; separate from two research-node errors"
+  },
+  "container_final_exit": 0,
+  "container_oom": false,
+  "no_source_or_parameter_change": true,
+  "host_binfmt_not_changed": true,
+  "shim_location": "audit diagnostic only; never default launch/config/vehicle package",
+  "trace_sha256": "eeda378eae40b403da25ce7aa660a2b79950be415eed88df4f4b4ae9d241717a",
+  "trace_excerpt": [
+    "84 setsockopt(23,0,32,365103362504,4,365103362467) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103363224,4,365103363187) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103362392,4,365103362355) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103362440,4,365103362403) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103362440,4,365103362403) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103362392,4,365103362355) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103363016,4,365103362979) = -1 errno=92 (Protocol not available)",
+    "84 setsockopt(23,0,32,365103363080,4,365103363043) = -1 errno=92 (Protocol not available)"
+  ],
+  "target_readonly_connectivity": {
+    "address": "100.79.128.21",
+    "port": 22,
+    "from": "authorized non-Jetson executor",
+    "timeout_s": 5,
+    "result": "TimeoutError; no deployment, auth or offline-state claim"
+  },
+  "created_at_utc": "2026-10-08T08:00:17.567454+00:00",
+  "helper_boundary_review": {
+    "status": "PASS",
+    "source": "socket-option-broker.py",
+    "prior_source": "socket-option-broker-v1.py",
+    "qualification": "strict-broker-qualification.json",
+    "known_clean_shutdown_fail_unchanged": true
+  }
+}

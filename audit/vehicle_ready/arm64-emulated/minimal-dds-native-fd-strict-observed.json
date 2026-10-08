@@ -1,0 +1,79 @@
+{
+  "architecture": "aarch64",
+  "rmw": "rmw_fastrtps_cpp",
+  "domain": 158,
+  "localhost_only": true,
+  "environment": {
+    "RMW_IMPLEMENTATION": null,
+    "FASTRTPS_DEFAULT_PROFILES_FILE": null,
+    "FASTDDS_DEFAULT_PROFILES_FILE": null,
+    "ROS_DISCOVERY_SERVER": null,
+    "RMW_FASTRTPS_USE_QOS_FROM_XML": null
+  },
+  "scope": "finite minimal std_msgs probe only; no vehicle acceptance",
+  "cases": [
+    {
+      "separate_contexts": false,
+      "sent": 5,
+      "received": 5,
+      "all_payloads_equal": true,
+      "subscriber_graph": [
+        "minimal_pub",
+        "minimal_sub"
+      ],
+      "writer_count": 1,
+      "status": "PASS"
+    },
+    {
+      "separate_contexts": true,
+      "sent": 5,
+      "received": 5,
+      "all_payloads_equal": true,
+      "subscriber_graph": [
+        "minimal_pub",
+        "minimal_sub"
+      ],
+      "writer_count": 1,
+      "status": "PASS"
+    },
+    {
+      "cross_process": true,
+      "status": "PASS"
+    }
+  ],
+  "subscriber": {
+    "role": "subscriber",
+    "pid": 112,
+    "sent": 0,
+    "received": 431,
+    "all_payloads_equal": true,
+    "graph": [
+      "minimal_publisher",
+      "minimal_subscriber"
+    ],
+    "publisher_count": 1,
+    "graph_seen_during_run": [
+      "minimal_publisher",
+      "minimal_subscriber"
+    ],
+    "peak_publisher_count": 1
+  },
+  "publisher": {
+    "role": "publisher",
+    "pid": 115,
+    "sent": 432,
+    "received": 0,
+    "all_payloads_equal": true,
+    "graph": [
+      "minimal_publisher",
+      "minimal_subscriber"
+    ],
+    "publisher_count": 1,
+    "graph_seen_during_run": [
+      "minimal_publisher",
+      "minimal_subscriber"
+    ],
+    "peak_publisher_count": 1
+  },
+  "status": "PASS"
+}

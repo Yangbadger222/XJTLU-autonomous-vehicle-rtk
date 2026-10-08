@@ -1,0 +1,8 @@
+{
+  "peer_pid": 1715560,
+  "case": "outside_task_container_under_optimized_broker",
+  "native_fd_before": "00000000",
+  "reply_error": 13,
+  "native_fd_after": "00000000",
+  "status": "PASS"
+}

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "scope": "emulator diagnostic helper boundaries under PYTHONOPTIMIZE=1; no vehicle code/parameters changed",
+  "closed_review": "Explicit identity/request/actual-readback checks, full64hex container ID/exact cgroup component, finite1..600s, O_EXCL new receipt; no assert boundaries",
+  "checks": {
+    "invalid_cli_and_old_receipt": 6,
+    "invalid_native_fd_requests": 5,
+    "foreign_container_identity": 1,
+    "minimal_arm_dds_cases": 3
+  },
+  "foreign_fd_unchanged": true,
+  "broker_source_sha256": "3104c13e691f6eac2adf994e17ed5e9a4a1d7bfc37b8a27a7a05e0f5dd5df457",
+  "probe_source_sha256": "75453cb34026629165d83f098172f64eb4f75d5772122cb30e4ab4ab99191996",
+  "retained_prior_graph_snapshot_false_negative": "432received samepayload but publisher vanished from final graph. FAIL receipt retained; refined probe records actually observed graph and writer count during reception.",
+  "final_received": 431,
+  "final_sent": 432,
+  "delivery_claim": "startup discovery loss not hidden; this probe is not a100percent-delivery qualification",
+  "original_startup_and_aux_cohorts": "earlier original16/12/17 and5/41broker requests remain historical, executed with v1 source retained",
+  "all_jobs_closed": true
+}

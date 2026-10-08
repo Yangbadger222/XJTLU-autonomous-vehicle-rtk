@@ -1,0 +1,31 @@
+{
+  "scope": "native broker request denial fixture only; no ROS/control",
+  "cases": [
+    {
+      "case": "wrong_magic",
+      "reply": 22,
+      "status": "PASS"
+    },
+    {
+      "case": "wrong_interface",
+      "reply": 22,
+      "status": "PASS"
+    },
+    {
+      "case": "missing_fd",
+      "reply": 22,
+      "status": "PASS"
+    },
+    {
+      "case": "extra_fd",
+      "reply": 22,
+      "status": "PASS"
+    },
+    {
+      "case": "non_ipv4_udp_fd",
+      "reply": 22,
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

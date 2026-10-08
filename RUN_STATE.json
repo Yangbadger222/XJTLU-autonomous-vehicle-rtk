@@ -422,5 +422,20 @@
     "no_target_or_physical_acceptance": true,
     "frozen_build_source_checkout": "/home/badger/codex-research/superlio-ego-20261007/vehicle-lio-ready",
     "isolated_delivery_checkout": "/dev/shm/codex-shadow-delivery"
+  },
+  "arm64_emulator_diagnostic": {
+    "core_source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+    "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+    "minimal_bus": "PASS native actual socket option intervention",
+    "default_startup": "PASS16owned/12queries",
+    "aux_compile": "PASSaarch64",
+    "ingress_fixture": "PASS17",
+    "clean_shutdown": "FAIL2research node errors after SIGINT",
+    "target": "PENDING TCP22timeout from non-Jetson",
+    "no_vehicle_parameter_change": true,
+    "no_host_binfmt_change": true,
+    "goal_status": "active",
+    "receipt": "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
+    "helper_boundary_review": "PASS6CLI/5request/1foreign/3DDS under optimize1; previous receipts/sources retained"
   }
 }

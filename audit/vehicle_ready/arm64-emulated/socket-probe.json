@@ -1,0 +1,29 @@
+{
+  "architecture": "aarch64",
+  "scope": "lab loopback datagrams only",
+  "cases": [
+    {
+      "mode": "unicast",
+      "ready": {
+        "ready_port": 53548
+      },
+      "child_exit": 0,
+      "received_result": {
+        "received": "7805d454-60ec-4098-ae8e-bd7542b75f8b",
+        "equal": true,
+        "sender": [
+          "127.0.0.1",
+          53794
+        ]
+      },
+      "stderr": "",
+      "status": "PASS"
+    },
+    {
+      "mode": "multicast",
+      "status": "FAIL",
+      "exception": "OSError(92, 'Protocol not available')"
+    }
+  ],
+  "status": "FAIL"
+}

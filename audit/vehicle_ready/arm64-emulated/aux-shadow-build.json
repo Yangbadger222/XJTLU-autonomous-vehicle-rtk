@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "scope": "aarch64 auxiliary shadow CMake compile only; runtime not yet qualified",
+  "source_delivery_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+  "container_exit": 0,
+  "binary_sha256": "ec1c573274e657e241297c9af35fd6567b188d1edad5e64bcaee56cbfa72f950",
+  "elf_machine": 183,
+  "source_sha256": {
+    "sensor_ingress.cpp": "dbe410614368f26e109e36e24124a0b940f2fa5a66bd4048971b58c999d2daf6",
+    "CMakeLists.txt": "dbe51511f261dd0f27fcb0015d576de708a434ab13c4f9ac2642b5da2297d683",
+    "run_shadow_sensor_ingress.py": "1e6b6bb70c867e2c127e85bbffd5c355e1ea8ef14e9cd8487d2b3953501b5f36",
+    "validate_shadow_sensor_ingress_ros.py": "9e21d46a981016946c37d2494829180f05c139198f6a4ecd5aae693f1d2f3e25"
+  }
+}

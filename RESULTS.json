@@ -358,10 +358,28 @@
   },
   "ARM64_EMULATED_DEFAULT_ENTRY": {
     "status": "FAIL",
-    "scope": "16 owned processes alive; native Super/EGO initialized. Zero discovered nodes and unavailable parameter services. Owned cleanup0; QEMU runtime/transport cause under investigation. No target/physical acceptance.",
+    "scope": "Historical unmodified QEMU6.2 entry FAIL:16alive but zero DDS discovery. Native-socket diagnostic later restores startup/queries without changing source/parameters; this old failure remains retained. Target runtime remains unqualified.",
     "evidence": [
       "audit/vehicle_ready/arm64-emulated/default-entry.json",
       "audit/vehicle_ready/arm64-emulated/runtime-summary.json"
+    ]
+  },
+  "ARM64_EMULATED_NATIVE_SOCKET_DIAGNOSTIC": {
+    "status": "PASS",
+    "scope": "Environment/startup only, with explicit emulator-only native-fd socket broker.3minimal DDS cases,16default owned nodes/12parameter queries/single bridge writer and17aarch64 ingress checks pass. No target/performance/physical or clean shutdown claim. Source corea66, auxb55. Host binfmt and core parameters untouched.",
+    "evidence": [
+      "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
+      "audit/vehicle_ready/arm64-emulated/default-entry-native-fd.json",
+      "audit/vehicle_ready/arm64-emulated/shadow-native-fd-qualification.json",
+      "audit/vehicle_ready/arm64-emulated/aux-shadow-build.json"
+    ]
+  },
+  "ARM64_EMULATED_RESEARCH_NODE_SHUTDOWN": {
+    "status": "FAIL",
+    "scope": "After controlledSIGINT, console and cloud-frame nodes report RuntimeError in rclpy take_message. All owned processes exit; no pre-SIGINT error. Retained as unresolved clean-shutdown behavior, not suppressed or called PASS.",
+    "evidence": [
+      "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
+      "audit/vehicle_ready/arm64-emulated/default-entry-native-fd.log"
     ]
   }
 }

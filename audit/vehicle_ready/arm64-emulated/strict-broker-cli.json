@@ -1,0 +1,41 @@
+{
+  "scope": "broker CLI boundaries under PYTHONOPTIMIZE=1, no ROS",
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "empty_id",
+      "exit": 2,
+      "output_absent": true,
+      "status": "PASS"
+    },
+    {
+      "case": "short_id",
+      "exit": 2,
+      "output_absent": true,
+      "status": "PASS"
+    },
+    {
+      "case": "infinite_duration",
+      "exit": 2,
+      "output_absent": true,
+      "status": "PASS"
+    },
+    {
+      "case": "nan_duration",
+      "exit": 2,
+      "output_absent": true,
+      "status": "PASS"
+    },
+    {
+      "case": "negative_duration",
+      "exit": 2,
+      "output_absent": true,
+      "status": "PASS"
+    },
+    {
+      "case": "existing_receipt_preserved",
+      "exit": 1,
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "architecture": "aarch64",
+  "scope": "loopback socket option ABI diagnosis only",
+  "cases": [
+    {
+      "length": 4,
+      "status": "FAIL",
+      "errno": 92,
+      "error": "[Errno 92] Protocol not available"
+    },
+    {
+      "length": 8,
+      "status": "FAIL",
+      "errno": 92,
+      "error": "[Errno 92] Protocol not available"
+    },
+    {
+      "length": 12,
+      "status": "FAIL",
+      "errno": 92,
+      "error": "[Errno 92] Protocol not available"
+    }
+  ]
+}

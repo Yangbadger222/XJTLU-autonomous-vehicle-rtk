@@ -1,0 +1,9 @@
+{
+  "standards": "No remaining new P1/P2; assert/partial-identity/nonfinite-duration P2 closed with explicit optimized-mode checks and actual fd-denial receipts.",
+  "spec": "No new P1/P2 or Spec mismatch; limited emulator-only startup and aux gates; original failure, post-SIGINT clean shutdown FAIL, zero real road strips and target/physical/benefit pending preserved.",
+  "core_source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+  "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+  "reviewed_manifest_entries": 41,
+  "core_src_and_patches_changes": 0,
+  "closed_at_utc": "2026-10-08T08:19:39.759816+00:00"
+}

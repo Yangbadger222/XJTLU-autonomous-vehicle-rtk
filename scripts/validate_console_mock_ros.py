@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 import rclpy
-from research_interfaces.msg import LocalEvidenceGrid2D
+from research_interfaces.msg import LocalEvidenceGrid2D, OperatorPermit
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry, OccupancyGrid
 from std_msgs.msg import Bool, Float32, String
@@ -57,7 +57,9 @@ def main():
     typed_grid=node.create_publisher(LocalEvidenceGrid2D,"/research/local_evidence_grid",10)
     base="http://127.0.0.1:"+str(args.console_port)
     opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-    csrf="";window=str(uuid.uuid4());cases=[]
+    csrf="";window=str(uuid.uuid4());cases=[];permit_observations=[]
+    node.create_subscription(OperatorPermit,"/research/operator_permit",
+        lambda msg:permit_observations.append((time.monotonic(),msg.session_id,msg.state,msg.motion_requested)),100)
     def request(action,payload=None,heartbeat=False):
         body=json.dumps({"action":action,"payload":payload or {},"request_id":str(uuid.uuid4())}).encode()
         req=urllib.request.Request(base+"/api/command",data=body,headers={"Content-Type":"application/json",
@@ -183,6 +185,27 @@ def main():
             check("rtk_loss_with_healthy_lio",nonzero,lines,snapshot()["state"])
             lines=phase(.8)
             check("rtk_return_does_not_auto_resume",nonzero,lines,snapshot()["state"])
+            for termination in (signal.SIGINT, signal.SIGTERM):
+                nonzero=rearm()
+                active_session=snapshot()["session_id"]
+                sent_at=time.monotonic()
+                os.killpg(console.pid,termination)
+                lines=phase(.9,heartbeat=False)
+                console.wait(timeout=3)
+                delivered_stop=any(receipt>=sent_at and session==active_session and
+                    state=="STOP_LATCHED" and not motion
+                    for receipt,session,state,motion in permit_observations)
+                check("console_"+termination.name+"_final_wire",nonzero,lines)
+                cases[-1].update(console_exit=console.returncode,
+                    fresh_stop_permit_before_context_cleanup=delivered_stop)
+                if console.returncode!=0 or not delivered_stop:cases[-1]["status"]="FAIL"
+                console=spawn("research_runtime","research_operator_console",[
+                    "-p","execution_mode:=live","-p","actuator_enabled:=true",
+                    "-p","mission_execution_enabled:=true","-p","http_port:="+str(args.console_port)])
+                phase(1.,heartbeat=False)
+                if console.poll() is not None:raise RuntimeError("new task-only console failed")
+                csrf=json.loads(opener.open(base+"/api/session").read())["csrf"]
+                if not request("claim")["accepted"]:raise RuntimeError("new fixture window claim failed")
             nonzero=rearm();os.killpg(console.pid,signal.SIGKILL);console.wait(timeout=2)
             check("console_backend_crash",nonzero,phase(.9,heartbeat=False))
             result={"status":"PASS" if all(c["status"]=="PASS" for c in cases) else "FAIL","cases":cases,

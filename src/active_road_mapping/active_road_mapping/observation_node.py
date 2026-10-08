@@ -247,7 +247,8 @@ class ActiveObservationNode(Node):
         x,y,z,w = q.x/norm,q.y/norm,q.z/norm,q.w/norm
         yaw = math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z))
         values = (msg.pose.pose.position.x, msg.pose.pose.position.y, yaw,
-                  msg.twist.twist.linear.x, msg.twist.twist.angular.z)
+                  math.hypot(msg.twist.twist.linear.x,msg.twist.twist.linear.y,msg.twist.twist.linear.z),
+                  msg.twist.twist.angular.z)
         self.pose = values if all(math.isfinite(v) for v in values) else None
         covariance = msg.pose.covariance
         xx,xy,yx,yy = (covariance[i] for i in (0,1,6,7))

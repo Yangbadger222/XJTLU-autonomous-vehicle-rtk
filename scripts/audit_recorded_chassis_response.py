@@ -117,7 +117,7 @@ def recorded_zero_responses(commands, states):
     return events
 
 
-def analyze_bag(path):
+def analyze_bag(path,control_reference=False):
     from rclpy.serialization import deserialize_message
     from rosidl_runtime_py.utilities import get_message
     metadata = path/'metadata.yaml'
@@ -143,10 +143,18 @@ def analyze_bag(path):
                     commands.append((t, m.linear.x, m.angular.z))
                 else:
                     p = m.pose.pose.position
-                    poses.append((t, m.header.stamp.sec+m.header.stamp.nanosec/1e9, p.x, p.y, yaw(m.pose.pose.orientation)))
+                    px,py=p.x,p.y
+                    if control_reference:
+                        from super_lio_vehicle_adapter.control_reference_lock import IMU_TO_CONTROL_TRANSLATION_M
+                        from super_lio_vehicle_adapter.adapter_node import _qrotate,_normalize_quaternion
+                        q=m.pose.pose.orientation;normalized=_normalize_quaternion((q.x,q.y,q.z,q.w))
+                        offset=_qrotate(normalized,IMU_TO_CONTROL_TRANSLATION_M) if normalized else (math.nan,)*3
+                        px+=offset[0];py+=offset[1]
+                    poses.append((t, m.header.stamp.sec+m.header.stamp.nanosec/1e9, px, py,
+                                  yaw(m.pose.pose.orientation),p.x,p.y))
     # Keep database/message order for equal stamps; tuple-value sorting changes the final command.
     commands = np.asarray(sorted(commands, key=lambda row: row[0]), dtype=float).reshape((-1, 3))
-    poses = np.asarray(sorted(poses, key=lambda row: row[0]), dtype=float).reshape((-1, 5))
+    poses = np.asarray(sorted(poses, key=lambda row: row[0]), dtype=float).reshape((-1, 7))
     states, rejected = [], {'nonfinite': 0, 'measurement_interval': 0, 'pose_step': 0}
     for interval_index, (previous, current) in enumerate(zip(poses[:-1], poses[1:])):
         if not np.isfinite([*previous, *current]).all():
@@ -158,7 +166,9 @@ def analyze_bag(path):
         if not .02 <= dt <= .3:
             rejected['measurement_interval'] += 1
             continue
-        if math.hypot(dx, dy) > .5 or abs(angle) > math.radians(15):
+        # Source pose-step rejection remains at the original IMU point. The
+        # converted point is used only for the measured response calculation.
+        if math.hypot(current[5]-previous[5],current[6]-previous[6]) > .5 or abs(angle) > math.radians(15):
             rejected['pose_step'] += 1
             continue
         heading = previous[4]+angle/2
@@ -176,7 +186,9 @@ def analyze_bag(path):
               'equal_record_stamp_command_pairs': int((np.diff(commands[:, 0]) == 0).sum()),
               'command_abs_v': stats(np.abs(commands[:, 1])), 'command_abs_w': stats(np.abs(commands[:, 2])),
               'measured_abs_v': stats(np.abs(states[:, 1])), 'measured_abs_w': stats(np.abs(states[:, 2])),
-              'legacy_imu_reference_abs_lateral_mps': stats(np.abs(states[:, 3])),
+              ('source_derived_control_abs_lateral_mps' if control_reference else
+               'legacy_imu_reference_abs_lateral_mps'): stats(np.abs(states[:, 3])),
+              'motion_reference':'source-derived nominal chassis ground origin' if control_reference else 'legacy FAST IMU origin',
               'observed_abs_curvature_for_v_gt_0_05': stats(np.abs(states[moving, 2]/states[moving, 1])),
               'linear_fit': fit_recorded_response(commands, states, 1),
               'yaw_fit': fit_recorded_response(commands, states, 2), 'zero_command_responses': stop_events,
@@ -241,6 +253,7 @@ def main():
     parser.add_argument('--catalog', type=Path, required=True)
     parser.add_argument('--serial-log-root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--control-reference',action='store_true',help='estimate at the source-derived nominal control origin; preserve original source pose gates')
     args = parser.parse_args()
     catalog = json.loads(args.catalog.read_text())
     selected = [Path(row['bag_path']) for row in catalog['bags'] if
@@ -249,7 +262,7 @@ def main():
     results = []
     for path in selected:
         try:
-            results.append(analyze_bag(path))
+            results.append(analyze_bag(path,args.control_reference))
             print('AUDITED', path, flush=True)
         except (OSError, ValueError, sqlite3.Error) as exc:
             results.append({'bag_path': str(path), 'error': str(exc)})
@@ -269,6 +282,11 @@ def main():
                             'recording-clock fit includes unmeasured transport latency and manual ownership; not physical actuator delay',
                             'observed extrema do not authorize new safety limits, curvature/jerk caps or minimum guaranteed braking'],
             'bag_count': len(results), 'bags': results, 'serial_logs': serial}
+    if args.control_reference:
+        from super_lio_vehicle_adapter.control_reference_lock import CONTROL_REFERENCE_CONTRACT,CONTROL_REFERENCE_PROVENANCE
+        data['source_derived_control_reference']={'contract':CONTROL_REFERENCE_CONTRACT,
+            'provenance':CONTROL_REFERENCE_PROVENANCE,
+            'qualification':'historical FAST pose shifted by the recorded current nominal mount model; historical mount identity not independently proven; estimates never change runtime limits'}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(data, indent=2, allow_nan=False)+'\n')
     return 0 if data['status'] == 'PASS' else 1

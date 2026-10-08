@@ -91,6 +91,15 @@ def main():
         qualified_new=history.parent/(hashlib.sha256(b'new').hexdigest()+'.json')
         checks.append({'case':'current_session_loss_cannot_resurrect_its_own_verified_export',
             'status':'PASS' if current_export_withheld and qualified_new.exists() and len(EvidenceStore.load(qualified_new).graph_updates_in_map())>0 else 'FAIL'})
+        for axis in ('y','z'):
+            pose=Odometry();pose.header.frame_id='odom';pose.child_frame_id='chassis_control_origin'
+            pose.header.stamp=observer.get_clock().now().to_msg();pose.pose.pose.orientation.w=1.
+            setattr(pose.twist.twist.linear,axis,.08);observer._odom(pose)
+            checks.append(dict(case='observation_settle_rejects_'+axis+'_translation',
+                status='PASS' if observer.pose and observer.pose[3]>.07 else 'FAIL'))
+        pose.twist.twist.linear.y=float('nan');observer._odom(pose)
+        checks.append(dict(case='nonfinite_control_translation_invalidates_observation',
+            status='PASS' if observer.pose is None else 'FAIL'))
         passed=all(c['status']=='PASS' for c in checks)
         result={'status':'PASS' if passed else 'FAIL','historical_snapshot_loaded':any(e.evidence_id=='old-uuid' for e in observer.recorded_evidence),
             'current_session_received':observer.localization_session_id if hasattr(observer,'localization_session_id') else None,

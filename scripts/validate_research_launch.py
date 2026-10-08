@@ -21,6 +21,8 @@ def main():
     parser.add_argument("--serial-evidence",type=Path)
     parser.add_argument("--console-port",type=int,default=8876,help="task-only HTTP port; preserves an existing user preview")
     args = parser.parse_args()
+    if args.override_probes and (args.repo is None or args.serial_evidence is None):
+        parser.error('--override-probes requires --repo and --serial-evidence before starting any launch')
     if os.environ.get("ROS_DOMAIN_ID") != "93" or os.environ.get("ROS_LOCALHOST_ONLY") != "1":
         raise SystemExit("requires isolated domain 93")
     args.output.parent.mkdir(parents=True, exist_ok=True)

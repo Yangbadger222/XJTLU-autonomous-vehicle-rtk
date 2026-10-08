@@ -1,0 +1,14 @@
+WARNING: Logging before InitGoogleLogging() is written to STDERR
+I1008 20:54:20.585686 1792319 ROSWrapper.cpp:18] [32m ---> [Param] map/save_map: false[0m
+I1008 20:54:20.587770 1792319 ROSWrapper.cpp:196] [32m ---> [Params]: Load from ROS2 parameter server.[0m
+I1008 20:54:20.587781 1792319 ROSWrapper.cpp:280] [32m ---> Using Lidar type: LIVOX[0m
+ ---> OctVoxMap init. Resolution: 0.5 Capacity: 2000000
+I1008 20:54:20.598198 1792319 super_lio.cpp:86] [32m ---> [SuperLIO]: initialized.[0m
+I1008 20:54:21.274335 1792319 super_lio.cpp:94] [32m ---> [SuperLIO]: KF init done[0m
+I1008 20:54:21.674415 1792319 super_lio.cpp:103] [32m ---> [SuperLIO]: Map init done[0m
+[INFO] [1791464127.992250024] [rclcpp]: signal_handler(SIGINT/SIGTERM)
+I1008 20:55:27.992421 1792319 timer.h:40] >>> ===== Printing run time =====
+I1008 20:55:27.992435 1792319 timer.h:46] > [ [DownSample] ] average time usage: 0.0119103 ms , called times: 646
+I1008 20:55:27.992444 1792319 timer.h:46] > [ [Observe] ] average time usage: 0.323078 ms , called times: 646
+I1008 20:55:27.992446 1792319 timer.h:46] > [ [Undistort] ] average time usage: 0.0969994 ms , called times: 646
+I1008 20:55:27.992448 1792319 timer.h:46] > [ [UpdateMap] ] average time usage: 0.0163716 ms , called times: 646

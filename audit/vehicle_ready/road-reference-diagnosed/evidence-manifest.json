@@ -1,0 +1,446 @@
+{
+  "schema": 1,
+  "scope": "Lightweight diagnosis packet; all listed files sealed excluding this self-referential manifest. Original raw files separately hashed/indexed and retained.",
+  "files": [
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/COHORT.json",
+      "sha256": "46daa89cc74c5ff31a342c7e227572d8814628bc3007c2f0fdc17837db55238d",
+      "bytes": 1124
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/DIAGNOSIS.md",
+      "sha256": "e22f0cb696977136a66b3ac5e6f3c33b06dc06d26a3fa4c8fbf5582d37a99ce0",
+      "bytes": 5118
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/FINAL_REVIEW.json",
+      "sha256": "857e7be27fefa032143f4e392adc0fbe697e9f6adfce2ca432d4c47a77b3af81",
+      "bytes": 1120
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/actual-parser-command-check.json",
+      "sha256": "4b9e89ab19512a365fa44014224307ae9d7d718cf266b829685a0da862f61317",
+      "bytes": 958
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/capture-contract-green.log",
+      "sha256": "67816b3a95df2270c1427bfecb32832b5147574e3d7f942dda94fd98d430238f",
+      "bytes": 96
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/capture-contract-red.log",
+      "sha256": "859f5f407ab2da0426221337a0eb27518722e530bcd3f0f5aba712d77d4c11c3",
+      "bytes": 312
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/capture-contract-reproducer.py",
+      "sha256": "17a915f6912b20b1bc95d877e6015e4f1a6478a7277a26573ca8c3ed6cdfece8",
+      "bytes": 1393
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/command-metadata-correction.json",
+      "sha256": "382c1035cab9406b8bf7ff0fa11981085f2df8aa43698f49c63b30ec89322382",
+      "bytes": 2412
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/denied-contexts-lossless.json",
+      "sha256": "96104eb9a6935bea33151e8194e960361bf9a4aeea255a50c5a9178f1e3d858e",
+      "bytes": 60489
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/observer.log",
+      "sha256": "c98ff3a277ff3d77e07716d7922fcd150c737365fa7a2ed3ac9791b8c3a9ab31",
+      "bytes": 316
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/perception-scalar-receipt.json",
+      "sha256": "0c554e6b43a605a30dab43d009b940505ef44dc908b2358dff6fe4e832e7517e",
+      "bytes": 648
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/result.json",
+      "sha256": "df7a8af356007cd565d4502803e025102938146712b62ffd443419ee4626f72c",
+      "bytes": 5348
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/super-lio.log",
+      "sha256": "2712d935948c67c4c918f42018067579d6dd1cebdfa5a5524800e5ec448f5008",
+      "bytes": 1272
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/PASSIVE/task-1/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "c36885927128c45b6b6b5fbc1339ddae6c5e9e19e1f11cb9d09a532fecda8659",
+      "bytes": 971
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/foundation.json",
+      "sha256": "409692e4adbc1a1ab9c1373669bf2053170f39c8cd58db878607eb76f6182420",
+      "bytes": 123067
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/read-only-prior/registration.json",
+      "sha256": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "bytes": 565
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive/result.json",
+      "sha256": "f674a6e6dc6a50312a85c860f3f5029ed3d09f680f4a1691e4d47f4a91c83044",
+      "bytes": 6887
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-passive.log",
+      "sha256": "ce7ec5014e5b530092dd7924569efe1bd18db8bb3983348c6dc8c7073a0c82b5",
+      "bytes": 4968
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/denied-contexts-lossless.json",
+      "sha256": "629121413a278015846700403e7d419149800b3c0b6b2579edd1ce6cb283bea4",
+      "bytes": 74731
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/observer.log",
+      "sha256": "cad66f07edfe52b5aa994681221d1d37cc5f42b37d47d64cea4eb7eec411e7a2",
+      "bytes": 320
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/perception-scalar-receipt.json",
+      "sha256": "e2204781a56422c6fe6071d7d40d1b52b38092f8ac47a469d56b140f5d604a03",
+      "bytes": 644
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/result.json",
+      "sha256": "819a6d2b02a09f77afa33c8a277490af8c98945a388016c5145aeb9a2811672f",
+      "bytes": 7233
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/super-lio.log",
+      "sha256": "315405752ae5f791219bf49d9a2d07162c9f5f2a0ea13e8eab15fc58ae0b38bf",
+      "bytes": 1273
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-1/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "b6bf4812d1e0c9877f2395c939c3c7de0b78063c6cb51a9924972334563d1e1f",
+      "bytes": 968
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/denied-contexts-lossless.json",
+      "sha256": "59fc1590e41625acbcbcdd5cab693bcafe92d726ced53ebe2173d95a8878f47e",
+      "bytes": 57761
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/observer.log",
+      "sha256": "ef5526f879af3e795ae3625fc232dba9c908b730bf3f4605b61d1d63c875d8f6",
+      "bytes": 1890
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/perception-scalar-receipt.json",
+      "sha256": "bfea7e09653b94c3da4aa078abe43154100a03a6fd5968254ca1d694f0561750",
+      "bytes": 643
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/result.json",
+      "sha256": "5d82474bd437134e6df3a69194cb3674c4bb116a5b721146b396308b8b1d5881",
+      "bytes": 7742
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/super-lio.log",
+      "sha256": "5d119cb1193feacfc96d39f955e0925184bdf7c50daab19559f2ed205194742c",
+      "bytes": 1271
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PASSIVE/task-2/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "13e25b8cdbc3c9c8bef8c6d712ee987e6dfe828692d7c2bf1a0457409fde4e74",
+      "bytes": 969
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/denied-contexts-lossless.json",
+      "sha256": "d7b6b1c1121c124dfed9991d88bd11c3ae52349c0052f8f3b3de387f99c165c6",
+      "bytes": 84684
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/observer.log",
+      "sha256": "cb7cab0b279983fdbb7301965f4c86c2e5439e194fa0b88eefd50d321f25cae6",
+      "bytes": 6106
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/perception-scalar-receipt.json",
+      "sha256": "db421edbae67fa93a96aca14429f6b0a8e9e2871c46982e42fe0f7d17bee2c6f",
+      "bytes": 649
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/result.json",
+      "sha256": "8afdde354cfa165c432294613ec5412e6ec7fe8b2a912ec662ef5bcbc34b4f67",
+      "bytes": 6174
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/super-lio.log",
+      "sha256": "7ab662ac7d366758f69fb9709460a8d6d0cccf86cb7c5df49d70a199efc41378",
+      "bytes": 1272
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-1/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "89cd716eb50a26b9656a0773c80249d959f221a4ed4b09adbfacd6bea85bb990",
+      "bytes": 975
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/denied-contexts-lossless.json",
+      "sha256": "4f689a9213b52bae13b6a67075749d044d6848fcd0fc8f54937570cbab600b3c",
+      "bytes": 83044
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/observer.log",
+      "sha256": "209765b1ccb23bb4843195a3ec34e6ab404b36388a1b4322bf4b8633e1e4808e",
+      "bytes": 5737
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/perception-scalar-receipt.json",
+      "sha256": "966bbdbe1d588b9195bc4fac76b104e4999457b64a7f158350e692656e2e4d1b",
+      "bytes": 650
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/result.json",
+      "sha256": "317d1f6553adacfea0b79c384f7e7c4b7d6e49e65ed98e78b631804780523d10",
+      "bytes": 5302
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/super-lio.log",
+      "sha256": "d8b9f88df7358a8c6fb220f1340541192d9cc50d5636d5dd9575d4b94e711ac8",
+      "bytes": 1272
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/PERIODIC_LOOK/task-2/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "22f480e38cb580e5700e959f0757a3182ad7e4afd3faffab3af2350ea0e8db55",
+      "bytes": 973
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/denied-contexts-lossless.json",
+      "sha256": "0973655562f246af7ea3b866e6c61c3fcfed4f35eb06f9c9b945417e1fc75849",
+      "bytes": 33580
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/observer.log",
+      "sha256": "04f46fdd05f71c5ccbf04bb2c3f4f1ac1c4efa5ee64ca81ddd210480b9a48125",
+      "bytes": 2325
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/perception-scalar-receipt.json",
+      "sha256": "59e0ec376818d3c564a5870f14d3741dbc4636af8cedd13765f8eb3db5fb7501",
+      "bytes": 652
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/result.json",
+      "sha256": "f5b34073354da9907340b953a03335995d72b14195a647f32a8b5571f4a9da73",
+      "bytes": 5302
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/super-lio.log",
+      "sha256": "1a9272dad172f9ce607e32281b1239d44e979e9b5d99b66d3501fa94c08448d8",
+      "bytes": 1272
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-1/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "ad765e274ac671510dd54b760d1416a71930c6eddf681c2413150a66bc1c1623",
+      "bytes": 977
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/denied-contexts-lossless.json",
+      "sha256": "6dcfe2626b80db5f184ab03c2cff175de02eed43572d2d993a6775ba4558aa4a",
+      "bytes": 70486
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/observer.log",
+      "sha256": "859f82fa417952c04edb468289b5f36afdc75489de0d15dae54391666030385d",
+      "bytes": 320
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/perception-scalar-receipt.json",
+      "sha256": "4d026d1318d81da5339d2aba4dd4fbe703642baa3a4d552f838eb225bc095c99",
+      "bytes": 650
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/result.json",
+      "sha256": "5a95acbba75c54c1cd1b8e051360bb737f0f60a2c194cc35921a55e2ca5b1660",
+      "bytes": 8244
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/super-lio.log",
+      "sha256": "bd80bb3aea04caea48eb1468ddc52e3dc89bb556ec2531409b9e2ae052813edd",
+      "bytes": 1271
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/TASK_AWARE_LOOK/task-2/truth-evaluation-only-scalar-receipt.json",
+      "sha256": "0b4fbcd5511b926c6350e71157e87346acb10cda6e44fe55954f0f125bd88357",
+      "bytes": 975
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/foundation.json",
+      "sha256": "409692e4adbc1a1ab9c1373669bf2053170f39c8cd58db878607eb76f6182420",
+      "bytes": 123067
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/read-only-prior/registration.json",
+      "sha256": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "bytes": 565
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six/result.json",
+      "sha256": "b8715cd189b92923e762b7ee7308bba11657159847620a2a6b18dac2d905fa66",
+      "bytes": 44513
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/current-six.log",
+      "sha256": "410002a88c9b07c4708b82c12210831b4ac421be19ae097863a423a7b5ebc0ad",
+      "bytes": 36835
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/delivery-static.log",
+      "sha256": "8b9f3fd6b78c30e87c4fbceda7575707ec46a10cded157988753a63bb6ebb366",
+      "bytes": 8585
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/denial-callback-contract.log",
+      "sha256": "67816b3a95df2270c1427bfecb32832b5147574e3d7f942dda94fd98d430238f",
+      "bytes": 96
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/fresh-reproduction-root-contract.json",
+      "sha256": "bcd17616a5a7c4b18b85cbf860093e7055a64dca65928591d47de67b62d2abb4",
+      "bytes": 733
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/metadata-before-correction/unexecuted-existing-output-recipe.txt",
+      "sha256": "afcc38686c23aaa4a608055e4d5de83e1a885504e6ca2af4cf296fbf5296157a",
+      "bytes": 1482
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/metadata-before-correction/unexecuted-malformed-recipe.txt",
+      "sha256": "32ec93c9c4cc8f88278b4b83cef23735788d3a03783bcb4e82d475da05d85c1f",
+      "bytes": 1365
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/parameter-lock.log",
+      "sha256": "27fa5de6d4a1a5860724caec0acfe3ad26201411d6f37b781087116f13f17d26",
+      "bytes": 61
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/AUDIT_REPORT.md",
+      "sha256": "5b98f8c9aa069465d7e2f92382c0b2b808dc67986fef6f64ee8995be3700d7cb",
+      "bytes": 5001
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/LEGACY_REMOVAL_MANIFEST.md",
+      "sha256": "5f6c3a27f6ea58b59872905daac64c3e59314d459cf287cd6765446637115455",
+      "bytes": 2875
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/LIVE_ACCEPTANCE_CHECKLIST.md",
+      "sha256": "d227e90eba255c207113cb68f9633eebe07584d2fb8a5cd317d33988c9db2191",
+      "bytes": 2601
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/METHOD_SPEC.md",
+      "sha256": "51ff5e3310ea798021faa5a40d2339cf9bf17793b5c6a7f47fb7579d0c4e5d7b",
+      "bytes": 10071
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/MIGRATION_REPORT.md",
+      "sha256": "8cf177efe7ba95d2cf2edaf285368e8baa3e9048991de2be01e979350489d37a",
+      "bytes": 2489
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/REPRODUCE.md",
+      "sha256": "e54009a56b70ccce3c7672e3056453197ac4382ab6fe94d9e77dd168e7b05bb7",
+      "bytes": 5065
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/RESULTS.json",
+      "sha256": "60323f4115ac9a306bc22b0a82786840346832644d24fd2b78f9d959ff3027a9",
+      "bytes": 27902
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/ROLLBACK.md",
+      "sha256": "2d5fd3c9366699af6548804d8da1d142a9127dc4a60c5e0253e8ff74fb61d59f",
+      "bytes": 1629
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/RUN_STATE.json",
+      "sha256": "6fc247ffd4031eb566611ee9ab155e60c599547cc92045a31d1cc4a587b363d1",
+      "bytes": 34581
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-reports/outputs/RESEARCH_DELIVERY_REPORT.md",
+      "sha256": "f34d7cfb18bc2af632c0f828a730485c2385b7c53eb24844422fb5c3f55ed06c",
+      "bytes": 4012
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/prior-seal-check.json",
+      "sha256": "8f807db01c7ff0f760914bfa8a849a0c4b8ed2c6bc0829c435dc022bc9b357f3",
+      "bytes": 122
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/reproduce-six.sh",
+      "sha256": "30a427b03818497a12e0dcefcf9b63ad781d5b9d7bb0538b063f27d504b03bf8",
+      "bytes": 2285
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/retained-raw-index.json",
+      "sha256": "45ba6834c448d1c5853ca9d73da1ac1c64f7493aa8fe88ed3d7df61cdce08796",
+      "bytes": 39454
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/static-delivery.json",
+      "sha256": "8b9f3fd6b78c30e87c4fbceda7575707ec46a10cded157988753a63bb6ebb366",
+      "bytes": 8585
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/target-read-only-tcp.json",
+      "sha256": "28fef6250706b8639c67bd87af79bb854966b88b2e2eb84930357fd1d8c816f5",
+      "bytes": 366
+    },
+    {
+      "path": "audit/vehicle_ready/road-reference-diagnosed/terminal-process-receipt.json",
+      "sha256": "e28b3a404d99443ffdff6629581a933bc6a59e17bfd9f67bfb0192ff97d6dbbd",
+      "bytes": 1175
+    }
+  ]
+}

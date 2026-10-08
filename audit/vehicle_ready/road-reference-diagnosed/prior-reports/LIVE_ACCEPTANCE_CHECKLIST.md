@@ -13,5 +13,3 @@ On site verify the current flashed STM image, physical serial path and original 
 RTK authority loss must stop despite healthy LIO; recovery or transport return must not auto resume. Console exit/crash and late authenticated reset/start must leave consent revoked. Current final original mock serial tails are zero; physical estop remains PENDING.
 
 The user's olderce46418 preview remains actuator-disabled. A prior read-only targetTCP22timeout is not proof the Jetson is offline. Mac synchronization remains pending disk space. No physical drive, flash, production merge or force push occurred.
-
-The current diagnosis cohort has6/6simulation protocols PASS and2/6mission arrivals, with zero final original-wire tails and no owned children left.134asynchronous rejection snapshots are retained. This neither certifies a physical camera/ground model nor improves target connectivity: fresh recorded-address TCP22 still times out. Positive real support, target install/effective overrides and actuator-disabled shadow, then labelled physical stop/braking/slip remain separate gates. Nominal MID360/STM inputs are already accounted for.

@@ -1,0 +1,1 @@
+PASS: actual plan callback preserves incomplete reference denial and immutable measured context

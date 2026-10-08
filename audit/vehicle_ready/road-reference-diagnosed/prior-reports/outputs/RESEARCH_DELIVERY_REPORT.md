@@ -16,11 +16,9 @@ MID360 自带 IMU。已有安装记录、工厂 t_IL 和原 URDF 姿态已推导
 研究结果独立报告：
 
 - 49b44ee的真实July21AM30秒前缀实际完成281组地面采集，仍0正支持格、0车辆宽度道路片段、0持久化几何。不能把定位输出通过等同于地面可通行证据。
-- 历史49b44ee六次对照的5个protocol PASS、1个无执行FAIL和0/6到达原样保留。新增评价脚本1b915c5只补诊断；实际安装仍77d5c5a、CPP仍49b44ee。当前相同778文件底座、源默认YAML六个60秒任务均protocol PASS，最终原始mock串口归零；到达率PASSIVE1/2、PERIODIC_LOOK0/2、TASK_AWARE_LOOK1/2。主动策略尚未优于被动策略，不能跨批挑选赢家。
-- 已执行另一次45秒PASSIVE闭环，到达3.10米；随后完整六次对照仅2/6到达，不能据单次成功宣称稳定。补上缺参考/输入不齐及跟踪拒绝时的评价器记录，七次运行共134份异步快照；保留各输入采集/接收时间，不能冒称同一次规划请求的原子输入。32份总量/每类3份/间隔5秒，深拷贝与RED/GREEN已检查。两路只读审查无新增P1/P2。
-- 最新从Humble主机对笔记车端100.79.128.21做只读TCP22探测，4秒超时；无认证、无车端修改，也不能据此断言车端离线。
+- 相同778文件底座和源默认YAML执行六个60秒策略任务：5个protocol PASS；第一次PASSIVE因道路未确认、全程无执行而protocol FAIL，不能把零运动改成通过。全部0/6任务到达，无主动观察收益结论。其他源码批次结果保留，不能跨批挑选赢家。
 - 仓库记录了D455f。可访问封存目录122项中121个有效metadata未出现Image/CameraInfo/CompressedImage话题；这只说明这些bag不能验真实深度管线，不能据此宣称仓库没有相机模型/标定记录。
 
 主要上车门槛是实际道路支持、目标车端源码/安装及生效覆盖/禁执行器shadow、实体停止与制动验收。资料已经用于实现和测试，剩余现场事实不以假参数或模拟结果代替。保持旧生产工作区、原分支、已测参数及旧资产；未自动开车、刷固件、合并生产或force push。
 
-既有编译/退出资格见audit/vehicle_ready/rigid-geometry-qualified/；新增七次有限运行、全六次结果、无损压缩为JSON的地面格快照、原始证据保留索引和新探测见audit/vehicle_ready/road-reference-diagnosed/。正常研究提交与轻量报告发布到既有draft PR22；Mac磁盘满导致本地同步仍PENDING，不冒称Mac已更新。用户旧ce46418预览保持执行器禁用，不能误认为当前版本。详细状态见AUDIT_REPORT.md、RESULTS.json及LIVE_ACCEPTANCE_CHECKLIST.md。
+所有有限运行的退出、失败分类和文件封存见audit/vehicle_ready/rigid-geometry-qualified/。正常研究提交与轻量报告发布到既有draft PR22；Mac磁盘满导致本地同步仍PENDING，不冒称Mac已更新。用户旧ce46418预览保持执行器禁用，不能误认为当前版本。详细状态见AUDIT_REPORT.md、RESULTS.json及LIVE_ACCEPTANCE_CHECKLIST.md。

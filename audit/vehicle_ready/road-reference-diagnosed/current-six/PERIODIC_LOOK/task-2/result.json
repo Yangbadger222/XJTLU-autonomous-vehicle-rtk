@@ -1,0 +1,134 @@
+{
+  "strategy": "PERIODIC_LOOK",
+  "task": 2,
+  "wall_s": 67.5052487650537,
+  "task_reached": false,
+  "final_truth_pose": [
+    0.6207379556075483,
+    0.00904492013373013,
+    0.02119504754622931
+  ],
+  "actual_superlio_odometry_count": 646,
+  "processed_limited_depth_frames": 645,
+  "known_ground_cells": 129,
+  "distance_m": 0.6208393542936318,
+  "observation_attempts": [
+    "gap:goal:left:cell(1,0):yaw(0)",
+    "gap:goal:left:cell(3,0):yaw(0)",
+    "gap:goal:left:cell(4,-1):yaw(0)",
+    "gap:goal:left:cell(5,-1):yaw(0)"
+  ],
+  "resolved_geometry_events": [],
+  "tracking_reason_counts": {
+    "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied;rtk_mode_or_age_denied:UNKNOWN:grid_stale,tf_integrity_or_age,permission_missing_or_age": 1,
+    "rtk_authority_false;authority_stale;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied;rtk_mode_or_age_denied:UNKNOWN:grid_stale,tf_integrity_or_age": 1,
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale,tf_integrity_or_age": 17,
+    "rtk_authority_false;lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale": 22,
+    "lio_health_not_ok;map_invalid;trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied:grid_stale": 7,
+    "trajectory_invalid;stop_override;operator_consent_missing_stale_or_denied;original_guard_preflight_denied": 4,
+    "trajectory_invalid;stop_override;original_guard_preflight_denied": 55,
+    "trajectory_invalid": 54,
+    "allowed": 355,
+    "trajectory_invalid:tracker:footprint_collision_or_unknown": 607,
+    "map_invalid;trajectory_invalid;stop_override;original_guard_preflight_denied:grid_version:tracker:footprint_collision_or_unknown": 1,
+    "trajectory_invalid;stop_override;original_guard_preflight_denied:tracker:footprint_collision_or_unknown": 11,
+    "trajectory_invalid:tracker:feedback_curvature_limit": 9,
+    "trajectory_invalid:tracker:rotation_stop_confirmation_missing": 143,
+    "map_invalid;trajectory_invalid;stop_override;original_guard_preflight_denied:trajectory_version": 2,
+    "map_invalid;trajectory_invalid:trajectory_version": 3
+  },
+  "planning_result_counts": {
+    "measured_odom_state_unavailable": 20,
+    "road_reference_unavailable_or_unconfirmed": 32,
+    "local_obstacle_grid_unavailable_or_unknown": 12,
+    "OK": 446,
+    "ego_planner_vehicle_feasibility_rejected": 40,
+    "original_stop_rate_tolerance_confirmed_heading_recovery": 95
+  },
+  "selected_views": [
+    {
+      "id": "gap:goal:left:cell(1,0):yaw(0)",
+      "event": "gap:goal:left",
+      "pose": [
+        0.36823102811763386,
+        -0.13265280916344419,
+        -0.0006432462157128205
+      ],
+      "cost": 4.9,
+      "score": 0.0,
+      "reason": "known_approach:terminal_cell_uncertain;actual_timed_planner_validated;bounded_connectivity_difference;fresh_commit_query"
+    },
+    {
+      "id": "gap:goal:left:cell(3,0):yaw(0)",
+      "event": "gap:goal:left",
+      "pose": [
+        0.8080046790193594,
+        -0.12719656124972045,
+        0.004823524355508253
+      ],
+      "cost": 4.9,
+      "score": 0.0,
+      "reason": "known_approach:terminal_cell_uncertain;actual_timed_planner_validated;bounded_connectivity_difference;fresh_commit_query"
+    }
+  ],
+  "observed_evidence_count": 267,
+  "persisted_graph_increment_count": 1,
+  "anchored_graph_increment_count": 0,
+  "previous_graph_increment_count": 1,
+  "previous_verified_graph_count": 1,
+  "previous_evidence_uuid_count": 138,
+  "previous_evidence_uuids_preserved": true,
+  "localization_session_id": "PERIODIC_LOOK-task-2",
+  "saved_verified_graph_count": 0,
+  "saved_map_version_before_shutdown_fault": null,
+  "planned_observation_cost_s": 9.8,
+  "resolved_event_correctness": {
+    "correct": 0,
+    "incorrect": 0,
+    "unscored": 0,
+    "scope": "evaluator-only synthetic prior gaps have support; other events are not assigned invented truth"
+  },
+  "sensor_fault": "none",
+  "fault_phase_final_serial_tail": [],
+  "nonzero_before_fault": 355,
+  "map_version": "3036686f93274f2ff800fff52b8be408bd99c226e6bee7818684a03b9bc48033",
+  "final_serial_tail": [
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n",
+    "vcx=0.000,wc=0.000\n"
+  ],
+  "nonzero_serial_count": 355,
+  "actuation_exercised": true,
+  "child_exit_before_cleanup": {
+    "super-lio": null,
+    "map": null,
+    "evidence": null,
+    "perception": null,
+    "local-grid": null,
+    "ego": null,
+    "tf-guard": null,
+    "safety": null,
+    "guard": null,
+    "serial": null,
+    "observer": null,
+    "truth": null
+  },
+  "child_cleanup_exits": {
+    "super-lio": 0,
+    "map": 0,
+    "evidence": 0,
+    "perception": 0,
+    "local-grid": 0,
+    "ego": 0,
+    "tf-guard": 0,
+    "safety": 0,
+    "guard": -2,
+    "serial": 0,
+    "observer": 0,
+    "truth": 0
+  },
+  "outcome": "BUDGET_OR_NO_CONFIRMED_ROUTE",
+  "protocol_status": "PASS"
+}

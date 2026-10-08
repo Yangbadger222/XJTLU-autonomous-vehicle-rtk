@@ -224,15 +224,6 @@
       "status": "FAIL",
       "runtime_source": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
       "evidence": "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
-    },
-    {
-      "name": "bounded denial snapshots plus same-foundation six-policy closed loop",
-      "status": "PASS",
-      "validator_source": "1b915c5ea3dd6552f389d37e559658dcef8c831b",
-      "installed_runtime_source": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
-      "command": "domain94; scripts/validate_restricted_policy_ros.py --repo /dev/shm/codex-shadow-delivery --install /dev/shm/codex-ground-signal-native-fixture-install --budget-s 60 --default-profile --output <fresh>/result.json",
-      "evidence": "audit/vehicle_ready/road-reference-diagnosed/current-six/result.json",
-      "effectiveness": "2/6goals; no policy benefit"
     }
   ],
   "publication": {
@@ -248,8 +239,7 @@
     "draft": true,
     "goal_status": "ACTIVE",
     "local_mac_sync": "PENDING_ENOSPC",
-    "scope": "actual normal push and remote ref verification of the source/report anchor; later publication-metadata-only descendant retains runtime77d5 and is checked separately",
-    "latest_diagnostic_checkpoint": "LOCAL_COMMITTED_VALIDATOR1b915; new evidence publication pending verification, prior anchor remains historical"
+    "scope": "actual normal push and remote ref verification of the source/report anchor; later publication-metadata-only descendant retains runtime77d5 and is checked separately"
   },
   "lineage": "Current77d5c5a runtime, solee54 vehicle baseline; nativeSDK14foundation8c937ed and ARMSDK14foundationa66cc7e; basic/SuperCPP rebuilt49b44ee, mapping85eb28c, adapter6b15c7d, research_runtime77d5c5a. Each stage source identity retained; actual61CPPfreeze and34Pythonhashes perarchitecture bind unchanged source to current runtime. Not a freshall14 build at77d5.",
   "final_process_evidence": "audit/vehicle_ready/control-stop-qualified/preserved-preview-processes.json",
@@ -272,15 +262,15 @@
     "old_original_guard_expected_interrupt": true
   },
   "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
-  "finite_tests": "All new single45s and six60s trials terminal, exit0, owned child return codes verified and no matching domain94 leftovers. Preserved older preview remains alive and actuator-disabled.",
+  "finite_tests": "All current finite qualifier sessions completed and owned groups cleaned; preserved preview alone intentionally runs.",
   "current_qualification_checkpoint": {
     "runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
     "software_runtime": "PASS",
     "build": "audit/vehicle_ready/rigid-geometry-qualified/current-build.json",
     "cohort": "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
     "road_support": "FAIL",
-    "policy_protocol": "PASS:6/6 atvalidator1b915; installed77d5c5a",
-    "policy_goals": "2/6; PASSIVE1/2,PERIODIC_LOOK0/2,TASK_AWARE_LOOK1/2; benefit unproved",
+    "policy_protocol": "FAIL:5PASS1FAIL",
+    "policy_goals": "0/6",
     "target_physical": "PENDING"
   },
   "previous_checkpoint_state": "audit/vehicle_ready/history_pre_control_stop_qualification/RUN_STATE.json",
@@ -312,9 +302,10 @@
   },
   "latest_jetson_probe": {
     "status": "PENDING",
-    "evidence": "audit/vehicle_ready/road-reference-diagnosed/target-read-only-tcp.json",
-    "result": "read-only TCP22 timeout4s from authorized Humble host; no authentication; not proof target offline",
-    "target_modified": false
+    "exit": 255,
+    "result": "SSH connect timeout",
+    "evidence": "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
+    "source_modified": false
   },
   "sensor_ingress_checkpoint": {
     "base_core_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
@@ -697,35 +688,5 @@
       "native_jetson_claim": false
     },
     "lineage": "Current8c937ed freshSDK/14 foundation plus63fc00c research_runtime rebuild; installed currentPython/source exact. Receipt identities are unchanged. Earlier cohorts are historical; preserved preview remainsce46418."
-  },
-  "road_reference_diagnostic_checkpoint": {
-    "status": "MIXED",
-    "validator_source_commit": "1b915c5ea3dd6552f389d37e559658dcef8c831b",
-    "qualified_installed_runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
-    "cpp_source_commit": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
-    "runtime_build_input_diff_since_77": [],
-    "foundation_files": 778,
-    "foundation_sha256": "633a68d5973614f2d825def17e78747c2d877ecc3ce9fc7ab661cb91f74e3f60",
-    "foundation_unchanged_each_trial": true,
-    "prior_bytes_preserved": true,
-    "single_passive_45s_goal": true,
-    "six60s_protocol_pass": 6,
-    "six60s_protocol_fail": 0,
-    "six60s_goals": 2,
-    "goals_per_strategy": {
-      "PASSIVE": 1,
-      "PERIODIC_LOOK": 0,
-      "TASK_AWARE_LOOK": 1
-    },
-    "final_original_serial_zero_trials": 7,
-    "context_count": 134,
-    "all_contexts_lossless_round_trip": true,
-    "benefit": "NOT_ESTABLISHED",
-    "physical_acceptance": "PENDING",
-    "actual_ground": "FAIL; unchanged real ground cohort at49b44ee, not rerun or relabelled",
-    "older_six_at49": "preserved5PASS/1noactuationFAIL;0/6goals",
-    "target_probe": "NOT_CONNECTED",
-    "local_mac_sync": "PENDING_ENOSPC",
-    "goal": "ACTIVE"
   }
 }

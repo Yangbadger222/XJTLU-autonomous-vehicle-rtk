@@ -1,0 +1,20 @@
+# Reconstructed reproduction recipe; not an OS command capture. Actual results and exec exit receipts are separate.
+#!/usr/bin/env bash
+set -e
+unset AMENT_PREFIX_PATH COLCON_PREFIX_PATH CMAKE_PREFIX_PATH ROS_PACKAGE_PATH PYTHONPATH LD_LIBRARY_PATH
+source /opt/ros/humble/setup.bash
+source /dev/shm/codex-stop-fresh-ws/install/setup.bash
+source /dev/shm/codex-shutdown-native-ws/install/setup.bash
+source /home/badger/codex-research/superlio-ego-20261007/research-venv/bin/activate
+export ROS_LOCALHOST_ONLY=1 PYTHONDONTWRITEBYTECODE=1 TMPDIR=/dev/shm
+source /dev/shm/codex-terminal-native-ws/install/setup.bash
+source /dev/shm/codex-super-unit-q-ws/install/setup.bash
+source /dev/shm/codex-super-rigid-group-ws/install/setup.bash
+source /dev/shm/codex-mapping-signal-native-ws/install/setup.bash
+source /dev/shm/codex-adapter-signal-native-ws/install/setup.bash
+source /dev/shm/codex-ground-signal-native-ws/install/setup.bash
+export ROS_LOG_DIR=/home/badger/codex-research/superlio-ego-20261007/logs/tf-ground-diagnosis/ros
+export ROS_DOMAIN_ID=94
+export FYP_RUNTIME_ROOT=/dev/shm/codex-road-ref-comparison-runtime
+cd /dev/shm/codex-shadow-delivery
+timeout --signal=INT --kill-after=25s 540s python3 scripts/validate_restricted_policy_ros.py --repo /dev/shm/codex-shadow-delivery --install /dev/shm/codex-ground-signal-native-fixture-install --budget-s 60 --default-profile --output /home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/result.json

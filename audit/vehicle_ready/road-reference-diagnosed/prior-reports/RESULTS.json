@@ -178,31 +178,27 @@
     ]
   },
   "POLICY_COMPARISON_EXECUTION": {
-    "status": "PASS",
-    "scope": "Validator1b915c5 executed the unchanged qualified77d5c5a installed runtime and49b44ee CPP. All six60s protocols PASS, all final original serial tails zero, goals PASSIVE1/2, PERIODIC_LOOK0/2, TASK_AWARE_LOOK1/2. No active-policy benefit established; previous49b44ee5PASS/1noactuationFAIL and0/6goals retained. Protocol means inputs, actuation, original wire stop and cleanup; it does not mean every mission reached.",
+    "status": "FAIL",
+    "scope": "All sixsame-foundation60stasks ran at49b44ee. Foundation778files/priorbytes unchanged pertrial. Strictprotocol5PASS/1FAIL:PASSIVE1no confirmedroad,noactuation. NoGTinpolicy/map; syntheticdepth/registration/health/uncertainty explicit. Not relabelled as77d5run.",
     "evidence": [
-      "audit/vehicle_ready/road-reference-diagnosed/current-six/result.json",
-      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/policy-comparison.json",
-      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
-      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
+      "audit/vehicle_ready/control-stop-qualified/policy-comparison.json"
     ]
   },
   "POLICY_EFFECT_SIMULATION": {
     "status": "PENDING",
-    "scope": "Validator1b915c5 executed the unchanged qualified77d5c5a installed runtime and49b44ee CPP. All six60s protocols PASS, all final original serial tails zero, goals PASSIVE1/2, PERIODIC_LOOK0/2, TASK_AWARE_LOOK1/2. No active-policy benefit established; previous49b44ee5PASS/1noactuationFAIL and0/6goals retained. One fixed scene/two sequential tasks per strategy is not statistical benefit or physical acceptance.",
+    "scope": "At49b44eePASSIVE0/2,PERIODIC_LOOK0/2,TASK_AWARE_LOOK0/2. No benefit established; earlierdifferent-sourcecohortsretainrecords, nocross-cohortwinner.",
     "evidence": [
-      "audit/vehicle_ready/road-reference-diagnosed/current-six/result.json",
-      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/policy-comparison.json",
       "audit/optimization_v2/policy-comparison.json",
       "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
-      "audit/vehicle_ready/control-reference-qualified/policy-comparison.json",
-      "audit/vehicle_ready/rigid-geometry-qualified/rigid-group-default-comparison/result.json"
+      "audit/vehicle_ready/control-reference-qualified/policy-comparison.json"
     ]
   },
   "VEHICLE_BAG_REPLAY": {
@@ -225,14 +221,12 @@
   },
   "JETSON_SHADOW_VALIDATION": {
     "status": "PENDING",
-    "scope": "Fresh read-only TCP22 at recorded100.79.128.21 timed out4s from authorized Humble host. No target authentication or source edit; not proof offline. Target current overlays/install identity/actuator-disabled shadow still PENDING.",
+    "scope": "Authorized non-Jetson Humble/bag host used. Latest read-only SSH probe of recorded Jetson100.79.128.21 timed out(exit255). No target source edit; actual target effective overlays and actuator-disabled shadow remain required.",
     "evidence": [
-      "audit/vehicle_ready/road-reference-diagnosed/target-read-only-tcp.json",
+      "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
       "LIVE_ACCEPTANCE_CHECKLIST.md"
     ],
     "historical_evidence": [
-      "LIVE_ACCEPTANCE_CHECKLIST.md",
-      "audit/vehicle_ready/control-stop-qualified/jetson-read-only-probe.log",
       "LIVE_ACCEPTANCE_CHECKLIST.md"
     ]
   },
@@ -270,13 +264,12 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE; installed77d5native/diagnosticARM qualification remains source-bound. New validator1b915 diagnostics and six60s protocolsPASS,2/6goals, no benefit. ActualgroundFAIL,target/physical/MacENOSPCPENDING. Prior publication anchor retained; new checkpoint normal publication recorded separately.",
+    "scope": "GoalACTIVE. Software77d5native/diagnosticARMdefault+244portable+157parameters+13finalserialPTYPASS. ActualgroundFAIL, strategystrict1FAIL/all0of6goals, benefitunproved;target/physical/ MacENOSPCPENDING. Normalpublicationreported separately; no productionmerge/forcepush. Verified normal publication anchorbc1473c; metadata-onlydescendantpreservesruntime77d5; PR22draft/unmerged andremoteoriginale54.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
       "audit/vehicle_ready/rigid-geometry-qualified/COHORT.json",
-      "audit/vehicle_ready/rigid-geometry-qualified/publication.json",
-      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json"
+      "audit/vehicle_ready/rigid-geometry-qualified/publication.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",
@@ -464,15 +457,5 @@
       "audit/vehicle_ready/rigid-geometry-qualified/ground-signal-arm-default.json"
     ],
     "historical_evidence": []
-  },
-  "DENIED_PLANNING_CONTEXT_CAPTURE": {
-    "status": "PASS",
-    "scope": "Actual old callback RED omitted missing-reference denials; current actual callback GREEN plus seven executed trials.134bounded asynchronous subscription snapshots retained with acquisition/frame/receipt metadata. Lossless RLE report restores every grid exactly. Snapshots are not atomic authoritative planner request inputs and never published/replayed. No runtime policy/parameters/permission changes. Standards/Spec read-only reviews found no new P1/P2.",
-    "evidence": [
-      "audit/vehicle_ready/road-reference-diagnosed/capture-contract-red.log",
-      "audit/vehicle_ready/road-reference-diagnosed/capture-contract-green.log",
-      "audit/vehicle_ready/road-reference-diagnosed/COHORT.json",
-      "audit/vehicle_ready/road-reference-diagnosed/FINAL_REVIEW.json"
-    ]
   }
 }

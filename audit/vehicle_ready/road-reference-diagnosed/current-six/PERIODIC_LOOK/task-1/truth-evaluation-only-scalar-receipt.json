@@ -1,0 +1,27 @@
+{
+  "raw_path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/truth-evaluation-only.json",
+  "raw_sha256": "1ae2a4af783633f8305bb82eb872c79b02f82f19c138019f2faf29395d455963",
+  "excluded_field": "trace",
+  "receipt": {
+    "model": "synthetic room; source-derived MID360 mounting lever; unit-g IMU with rigid lever acceleration; scan-per-point acquisition; restricted simulated depth",
+    "final_pose": [
+      0.8953075360338852,
+      -0.0009313082782643622,
+      0.00343484475200234
+    ],
+    "distance_m": 0.895331455072803,
+    "wire_tail": [
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n",
+      "vcx=0.000,wc=0.000\n"
+    ],
+    "sensor_fault": "none",
+    "fault_after_s": 12.0,
+    "fault_phase_wire_tail_before_authority_cleanup": [],
+    "nonzero_before_fault": 271,
+    "wire_count": 1310,
+    "nonzero_wire_count": 271
+  }
+}

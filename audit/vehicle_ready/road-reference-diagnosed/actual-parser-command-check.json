@@ -1,0 +1,31 @@
+{
+  "status": "PASS",
+  "scope": "actual source main AST argument parser only; no rclpy init, file output or ROS process started",
+  "cases": [
+    {
+      "arguments": [
+        "--budget-s60"
+      ],
+      "actual_parse_exit": 2,
+      "expected": 2,
+      "stderr": "usage: validator [-h] --repo REPO --install INSTALL --output OUTPUT\n                 [--budget-s BUDGET_S]\n                 [--strategies STRATEGIES [STRATEGIES ...]] [--tasks TASKS]\n                 [--sensor-fault {none,imu_lost,lidar_lost,depth_invalid}]\n                 [--fault-after-s FAULT_AFTER_S] [--default-profile]\nvalidator: error: unrecognized arguments: --budget-s60\n"
+    },
+    {
+      "arguments": [
+        "--budget-s",
+        "60"
+      ],
+      "actual_parse_exit": 0,
+      "expected": 0,
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "--budget-s=60"
+      ],
+      "actual_parse_exit": 0,
+      "expected": 0,
+      "stderr": ""
+    }
+  ]
+}

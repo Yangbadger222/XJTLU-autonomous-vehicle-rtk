@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "map_registration_verified": true,
+  "scope": "SIMULATION_ONLY synthetic metric registration; no vehicle RTK origin changed",
+  "road_geojson": "synthetic-prior.geojson",
+  "road_geojson_sha256": "41585ba17a5081c1641a1fa066922a2c00f3648eca608ad7e09882cb3d163f27",
+  "geotiff": "synthetic-georeferenced-raster.tif",
+  "geotiff_sha256": "d627a2b7fc872a450c91fff33786ceec19f22e7640d60921a9e41c9e979c3e80",
+  "crs": "EPSG:32651",
+  "model_version": "synthetic-prior-fixture-v1",
+  "map_from_crs_xyyaw": [
+    -385000.0,
+    -3430000.0,
+    0.0
+  ]
+}

@@ -1,0 +1,770 @@
+{
+  "scope": "All raw finite-trial files retained on authorized Humble host; no bag/PCD/binary copied. New lightweight contexts below are lossless JSON/RLE derived reports, not production inputs.",
+  "files": [
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/capture-contract-green.log",
+      "sha256": "67816b3a95df2270c1427bfecb32832b5147574e3d7f942dda94fd98d430238f",
+      "bytes": 96
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/capture-contract-red.log",
+      "sha256": "859f5f407ab2da0426221337a0eb27518722e530bcd3f0f5aba712d77d4c11c3",
+      "bytes": 312
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/evidence.json",
+      "sha256": "9bc5da630687cd7ae3935c4881c5bea40eddc5a80086d36b3206b6dc069f0963",
+      "bytes": 153561
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/policy.json",
+      "sha256": "44587a9e8a9567f2a07588c102c7d821e38155532e41e9c51602e584723049e9",
+      "bytes": 143651
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/denied-planning-contexts.json",
+      "sha256": "0e2fcc50cff396edbbb5c50761c58b5327217cb43de2c4bab80ca6571802f920",
+      "bytes": 1993990
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/ego.log",
+      "sha256": "0c85f169d9d9288c0326eb0fc5e7192ddd588d69fef42840c97884c7dbf02be1",
+      "bytes": 336585
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/evidence.log",
+      "sha256": "7c04a5a344c3ce900efbe7ed4f4de706ef48d6c15620b0cd87e8506afeb8ab09",
+      "bytes": 336
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/failed-measured-inputs.json",
+      "sha256": "23e83755e3ff6ce6268b75d170210eac2a89616715776063c259f506bb660b77",
+      "bytes": 406412
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/last-authoritative-evidence.json",
+      "sha256": "2340dbae97054c59f830dc9dbb8ea2c9bcb9eb60970b40f0cb4e6c4d65f5fe47",
+      "bytes": 153564
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/observer.log",
+      "sha256": "c98ff3a277ff3d77e07716d7922fcd150c737365fa7a2ed3ac9791b8c3a9ab31",
+      "bytes": 316
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/perception.json",
+      "sha256": "57a51ee03e5b8d9631586ec8e2d40eedcd4a0d51fb86af55e19225f9ca61ef2d",
+      "bytes": 80155
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/result.json",
+      "sha256": "df7a8af356007cd565d4502803e025102938146712b62ffd443419ee4626f72c",
+      "bytes": 5348
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/serial.log",
+      "sha256": "eeebabec06c6d1250213fab1d9d237d7e32985983d6a93c0142a6c3a31d4f773",
+      "bytes": 290804
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/super-lio.log",
+      "sha256": "2712d935948c67c4c918f42018067579d6dd1cebdfa5a5524800e5ec448f5008",
+      "bytes": 1272
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/tf-guard.log",
+      "sha256": "77449d7e7f49eec57efee688286c08dffc281fa08156653a4f8fc5680dae2cd0",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/truth-evaluation-only.json",
+      "sha256": "b87cf91f8d9fc7b6c698971a4957dc57521207267d24d1dea4f2b91e31964b03",
+      "bytes": 98906
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/task-1/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/PASSIVE/verified_history/6395f8778a9ece61ea3c96e088c73b25a98981382b3fb023ce8ab3366c5029c6.json",
+      "sha256": "2340dbae97054c59f830dc9dbb8ea2c9bcb9eb60970b40f0cb4e6c4d65f5fe47",
+      "bytes": 153564
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/foundation.json",
+      "sha256": "409692e4adbc1a1ab9c1373669bf2053170f39c8cd58db878607eb76f6182420",
+      "bytes": 123067
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/read-only-prior/registration.json",
+      "sha256": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "bytes": 565
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/read-only-prior/synthetic-georeferenced-raster.tif",
+      "sha256": "d627a2b7fc872a450c91fff33786ceec19f22e7640d60921a9e41c9e979c3e80",
+      "bytes": 16568
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/read-only-prior/synthetic-prior.geojson",
+      "sha256": "41585ba17a5081c1641a1fa066922a2c00f3648eca608ad7e09882cb3d163f27",
+      "bytes": 462
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive/result.json",
+      "sha256": "f674a6e6dc6a50312a85c860f3f5029ed3d09f680f4a1691e4d47f4a91c83044",
+      "bytes": 6887
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-passive.log",
+      "sha256": "ce7ec5014e5b530092dd7924569efe1bd18db8bb3983348c6dc8c7073a0c82b5",
+      "bytes": 4968
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/evidence.json",
+      "sha256": "9ca8739420b97461708e8889ef8cb05ad59377e76e77e6a99e60ebb3da9fc1f9",
+      "bytes": 262862
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/policy.json",
+      "sha256": "6adad92dd32cfcc126f445b64ee34906fd0402f7c10857928e8ba034db1da82e",
+      "bytes": 258459
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/denied-planning-contexts.json",
+      "sha256": "d309fb45a08f89812967669d286cfa6e77b048e734ff075f8311cec3e77c0775",
+      "bytes": 2707992
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/ego.log",
+      "sha256": "1129893b577bbc5c1d4941283d1571f5978edd0d8ea5a59b218919f5ae4a0f87",
+      "bytes": 424145
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/evidence.log",
+      "sha256": "6fabb2cb4abbdb8b5bc93508f828b4e8fc3903dee1d8f8f7b71ccad234d4589d",
+      "bytes": 168
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/failed-measured-inputs.json",
+      "sha256": "7ffc1819aaf7dbe93ebbe12b8ff4c7508a5135d4e5ae54426e07f7045c44489f",
+      "bytes": 406499
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/last-authoritative-evidence.json",
+      "sha256": "cae1d23d797833212d841ccba2fe9bc422c1a520b7d74af039b8d2f97ad58186",
+      "bytes": 116452
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/observer.log",
+      "sha256": "cad66f07edfe52b5aa994681221d1d37cc5f42b37d47d64cea4eb7eec411e7a2",
+      "bytes": 320
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/perception.json",
+      "sha256": "2b71a6a8964d5d2b36d2ed9a3c19ce6b4eb2ee45e0f94f96e8637fb141834a1b",
+      "bytes": 80199
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/result.json",
+      "sha256": "819a6d2b02a09f77afa33c8a277490af8c98945a388016c5145aeb9a2811672f",
+      "bytes": 7233
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/serial.log",
+      "sha256": "506d20d66ac59df3796b33d8b19b1217cf069362fecf9224201dd93b0b14fb8c",
+      "bytes": 403988
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/super-lio.log",
+      "sha256": "315405752ae5f791219bf49d9a2d07162c9f5f2a0ea13e8eab15fc58ae0b38bf",
+      "bytes": 1273
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/tf-guard.log",
+      "sha256": "ff742518da455c66e10abd0a25273574810ac6253c66a6eda09b56b6b4a76563",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/truth-evaluation-only.json",
+      "sha256": "6fc9f04a0d0c46dcf0f3dfa967eaeab9a9e2a4978c1c598c23c65b9a9a65e4d6",
+      "bytes": 137528
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-1/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/denied-planning-contexts.json",
+      "sha256": "75c0418d60f719491268eeda8b29f9a061ef30d4edc2a29c6b7d76c0d7f981cb",
+      "bytes": 2277111
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/ego.log",
+      "sha256": "b9b458457c8352e44360e3d8f8f8c0f5181736540dcaaa843a7fd60a67896e8e",
+      "bytes": 415525
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/evidence.log",
+      "sha256": "ed6b093b434ede6a578a8652070668722fbbbc161bf26ef35a3f1e2dfa2af3fb",
+      "bytes": 336
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/failed-measured-inputs.json",
+      "sha256": "1996ee693b9b74298f0cdb4502429fa0118bed73e93f5b10edc062ffe01022cf",
+      "bytes": 407169
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/last-authoritative-evidence.json",
+      "sha256": "87199d0a903fb8ed3fa91fa72a3a550b98d76138959cd43a67ed4c9af9aee188",
+      "bytes": 262865
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/observer.log",
+      "sha256": "ef5526f879af3e795ae3625fc232dba9c908b730bf3f4605b61d1d63c875d8f6",
+      "bytes": 1890
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/perception.json",
+      "sha256": "be154d91398eff3fdb604608945049f4c44f7115c56a149c9bbbf02079ea16bc",
+      "bytes": 80154
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/result.json",
+      "sha256": "5d82474bd437134e6df3a69194cb3674c4bb116a5b721146b396308b8b1d5881",
+      "bytes": 7742
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/serial.log",
+      "sha256": "6b66e41f48d45353136445c01df9f824d37460ce03004ad90b833f5d458a1014",
+      "bytes": 404474
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/super-lio.log",
+      "sha256": "5d119cb1193feacfc96d39f955e0925184bdf7c50daab19559f2ed205194742c",
+      "bytes": 1271
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/tf-guard.log",
+      "sha256": "ecc1751a546354f1483c8bd33ae9d1f2eb6170cce1aef3c3b24c1ca6e01787e6",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/truth-evaluation-only.json",
+      "sha256": "7669afcab1e332938668e2a6c5183ff75d9cf352895a6bfd0b8cb6caf116f575",
+      "bytes": 137607
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/verified_history/6395f8778a9ece61ea3c96e088c73b25a98981382b3fb023ce8ab3366c5029c6.json",
+      "sha256": "cae1d23d797833212d841ccba2fe9bc422c1a520b7d74af039b8d2f97ad58186",
+      "bytes": 116452
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/verified_history/fdd7c2b3aa5daf159b4579e6f556cf914b965ca095780d2e3723108ac8accf85.json",
+      "sha256": "87199d0a903fb8ed3fa91fa72a3a550b98d76138959cd43a67ed4c9af9aee188",
+      "bytes": 262865
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/evidence.json",
+      "sha256": "fc9ee3a9c0fd8a635dc65d6bcf10d609e1d0b498773e625793d0cd4a30e59097",
+      "bytes": 176993
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/policy.json",
+      "sha256": "f5343a416d8a6964223c8f25b96ae2f940081ed98bfbbd9accc3c100e4467dcc",
+      "bytes": 177856
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/denied-planning-contexts.json",
+      "sha256": "8c5d26a3e773aec8fe7271af2f9978501330582123e47a0a563012273f8cdfd0",
+      "bytes": 3270364
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/ego.log",
+      "sha256": "bd04fc0f2c9d4e14c0638b8d69b02bf50a91e47fa818f2d87ac7aca9d0a49b16",
+      "bytes": 633445
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/evidence.log",
+      "sha256": "7be3106393c2ed1c5dcea4fcc6d1fa16c08754b208eafcf232ae410375a289d4",
+      "bytes": 345
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/failed-measured-inputs.json",
+      "sha256": "396ba5df8640c0be6eec2291dd24932e20a28a46f52228ff53c296c3f32185f6",
+      "bytes": 406398
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/last-authoritative-evidence.json",
+      "sha256": "3dc2d0ddeeddf8381994c13898227787eea16184fcbec08b692ecff9e4890219",
+      "bytes": 95277
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/observer.log",
+      "sha256": "cb7cab0b279983fdbb7301965f4c86c2e5439e194fa0b88eefd50d321f25cae6",
+      "bytes": 6106
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/perception.json",
+      "sha256": "c218c68839039b795b08c333574c59012e6ef084710efe2d4f6444215a886f33",
+      "bytes": 80236
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/result.json",
+      "sha256": "8afdde354cfa165c432294613ec5412e6ec7fe8b2a912ec662ef5bcbc34b4f67",
+      "bytes": 6174
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/serial.log",
+      "sha256": "6f5ef636b29597b1c223ea0ed703b7c74667fa0722cd4432d428380ed0cf8023",
+      "bytes": 403619
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/super-lio.log",
+      "sha256": "7ab662ac7d366758f69fb9709460a8d6d0cccf86cb7c5df49d70a199efc41378",
+      "bytes": 1272
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/tf-guard.log",
+      "sha256": "b4602cf233d4cf5559dec85fc62b9f30b5021738db6630f79ff54e028ea9b777",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/truth-evaluation-only.json",
+      "sha256": "1ae2a4af783633f8305bb82eb872c79b02f82f19c138019f2faf29395d455963",
+      "bytes": 136673
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-1/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/denied-planning-contexts.json",
+      "sha256": "562a6a316adb8d37fc7195e322511d696fbab32b2a27b8e79e5f7881fa1b4239",
+      "bytes": 2985010
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/ego.log",
+      "sha256": "c5f1c4206b53c654942fa1888dc645d3a5c6a78b9f887e7b4f2984ee354ed676",
+      "bytes": 566369
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/evidence.log",
+      "sha256": "a0ec493979af880901720afcaaeb467abe63afa9bf192e1acc270d6cd85adee3",
+      "bytes": 168
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/failed-measured-inputs.json",
+      "sha256": "f59387b61b778a932c1b3058f2336e1dd6beac804d188696951e5010cee2e437",
+      "bytes": 406405
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/observer.log",
+      "sha256": "209765b1ccb23bb4843195a3ec34e6ab404b36388a1b4322bf4b8633e1e4808e",
+      "bytes": 5737
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/perception.json",
+      "sha256": "d705bd425e8310ab14f138369a968e00e435e3f348c48cb574ca56935d78d20c",
+      "bytes": 80246
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/result.json",
+      "sha256": "317d1f6553adacfea0b79c384f7e7c4b7d6e49e65ed98e78b631804780523d10",
+      "bytes": 5302
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/serial.log",
+      "sha256": "6d04e59c1c7b1a056bb3f94d568fef2f8fa63dc52439dffa2a235f795355eb41",
+      "bytes": 402722
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/super-lio.log",
+      "sha256": "d8b9f88df7358a8c6fb220f1340541192d9cc50d5636d5dd9575d4b94e711ac8",
+      "bytes": 1272
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/tf-guard.log",
+      "sha256": "feb9758a2098bd6fde91db058580f684a225ab82748715f4cf1941d03c5483c8",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/truth-evaluation-only.json",
+      "sha256": "f6f5255f598d78e6158d3fb1107090fe3acd76cced5489da8972cd8bf323913b",
+      "bytes": 136440
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/task-2/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PERIODIC_LOOK/verified_history/13b75b8e799e4efae58afdbbc13f0890e5cdc1e546dba33a4eafcd2a8bdec910.json",
+      "sha256": "3dc2d0ddeeddf8381994c13898227787eea16184fcbec08b692ecff9e4890219",
+      "bytes": 95277
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/evidence.json",
+      "sha256": "ebbcb9dde3a467c81bd055a1020cb0e7746aa9fad33303b07a05a196fbf55a88",
+      "bytes": 234331
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/policy.json",
+      "sha256": "10a6c1952788315e72a2c672e289adcfe3de479d7c6f73e024914551db8576f6",
+      "bytes": 225659
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/denied-planning-contexts.json",
+      "sha256": "4b64f27538bafdcb314db51b99a321818180e67d9e34ed8c26b18b297a2c828b",
+      "bytes": 1279842
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/ego.log",
+      "sha256": "661149531a29d6ac5264ca4fd5b045d790d01a0767c2f1f3391c4de1c2c428e5",
+      "bytes": 879305
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/evidence.log",
+      "sha256": "3a0a2b181e52398dcd272fbbcb251717bfedd7557eb0bee43feb1073bdd3af53",
+      "bytes": 168
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/failed-measured-inputs.json",
+      "sha256": "0ceaa9337e106d9453c4fc6b40e25fc52487e6fe6b9b8088e87b6bbd3adb927f",
+      "bytes": 407234
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/last-authoritative-evidence.json",
+      "sha256": "812ad61add8accae6cd3fd0cca2d63896251a3ed4c87feaab2e3a41d1ecad067",
+      "bytes": 82834
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/observer.log",
+      "sha256": "04f46fdd05f71c5ccbf04bb2c3f4f1ac1c4efa5ee64ca81ddd210480b9a48125",
+      "bytes": 2325
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/perception.json",
+      "sha256": "e5387e87f0c9ae26c5de5beb81dd315364aab69a528f4f6683abfdd01ef00aab",
+      "bytes": 80258
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/result.json",
+      "sha256": "f5b34073354da9907340b953a03335995d72b14195a647f32a8b5571f4a9da73",
+      "bytes": 5302
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/serial.log",
+      "sha256": "f809e5ec9e2cf28d14dc1015212c14e5285483003609f541ff53b77c99ea3841",
+      "bytes": 402728
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/super-lio.log",
+      "sha256": "1a9272dad172f9ce607e32281b1239d44e979e9b5d99b66d3501fa94c08448d8",
+      "bytes": 1272
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/tf-guard.log",
+      "sha256": "9ddc30de0e0f02f528296f94cde25c3795c87bba1ea33a69010a940f242d3349",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/truth-evaluation-only.json",
+      "sha256": "bfa9e930bb6b7efa3629cdb05406bde253e5ab54e0226dce8177d1387f268a1f",
+      "bytes": 136661
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-1/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/denied-planning-contexts.json",
+      "sha256": "fd90ad6e1b71dd63d91c27074abe9607460154b7807f08b40663db5c2da72c26",
+      "bytes": 2557588
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/ego.log",
+      "sha256": "8aae4e7532a7f89b2db06e1a0548fc27389bf984c24bc5fcbcc87ef0cf595e1f",
+      "bytes": 457640
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/evidence.log",
+      "sha256": "31fb7f77851e12d472bb956e635212c305c0c3c82cb4db3d1939942110ec87a5",
+      "bytes": 522
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/failed-measured-inputs.json",
+      "sha256": "ff2fe0ec4b84a8d28de65ef9016e7234c97f8287ce7224d090a7902f4d4133b9",
+      "bytes": 405915
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/guard.log",
+      "sha256": "dd65c87347971f7b30641855b6814a7d0901a1073672d3ad1b501382d3f38afd",
+      "bytes": 1282
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/last-authoritative-evidence.json",
+      "sha256": "75d443ee334de2ee4f05e849dc9899215d99d17988edc8772659e564a6d96282",
+      "bytes": 234334
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/local-grid.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/map.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/observer.log",
+      "sha256": "859f82fa417952c04edb468289b5f36afdc75489de0d15dae54391666030385d",
+      "bytes": 320
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/perception.json",
+      "sha256": "ab70f8948923382424a003bb089566b411b9f671b015aacd70849cfd5bfb00c3",
+      "bytes": 80153
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/perception.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/result.json",
+      "sha256": "5a95acbba75c54c1cd1b8e051360bb737f0f60a2c194cc35921a55e2ca5b1660",
+      "bytes": 8244
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/safety.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/serial.log",
+      "sha256": "cd54b7d64bdaf27194181fbe5d4d91b8ac98fedb50e2922d1ca5e814b54adaf1",
+      "bytes": 404561
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/super-lio.log",
+      "sha256": "bd80bb3aea04caea48eb1468ddc52e3dc89bb556ec2531409b9e2ae052813edd",
+      "bytes": 1271
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/tf-guard.log",
+      "sha256": "8d3a7e4a50442b9e37cbb6a745c6ac4801ae6dfb4fcf6c3228c8cbef9ec606c1",
+      "bytes": 71
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/truth-evaluation-only.json",
+      "sha256": "28b040e7984b4635d224e657b4191de282d343232d5532c985b53f3269a89464",
+      "bytes": 137345
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/task-2/truth.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/verified_history/85b3f797190c1f55c57b3cc39656da2d05b756fd2b94c3e207e94ab1492bfed0.json",
+      "sha256": "75d443ee334de2ee4f05e849dc9899215d99d17988edc8772659e564a6d96282",
+      "bytes": 234334
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/TASK_AWARE_LOOK/verified_history/8c16dca5d6eafa852a0ba9c673f66eaa920f09faea2ab785ebdb7d4ec28028e9.json",
+      "sha256": "812ad61add8accae6cd3fd0cca2d63896251a3ed4c87feaab2e3a41d1ecad067",
+      "bytes": 82834
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/foundation.json",
+      "sha256": "409692e4adbc1a1ab9c1373669bf2053170f39c8cd58db878607eb76f6182420",
+      "bytes": 123067
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/read-only-prior/registration.json",
+      "sha256": "5eadf31c1b18a6f049912b68ded184c6ab612c32180251874563db5b9caaa897",
+      "bytes": 565
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/read-only-prior/synthetic-georeferenced-raster.tif",
+      "sha256": "d627a2b7fc872a450c91fff33786ceec19f22e7640d60921a9e41c9e979c3e80",
+      "bytes": 16568
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/read-only-prior/synthetic-prior.geojson",
+      "sha256": "41585ba17a5081c1641a1fa066922a2c00f3648eca608ad7e09882cb3d163f27",
+      "bytes": 462
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/result.json",
+      "sha256": "b8715cd189b92923e762b7ee7308bba11657159847620a2a6b18dac2d905fa66",
+      "bytes": 44513
+    },
+    {
+      "path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six.log",
+      "sha256": "410002a88c9b07c4708b82c12210831b4ac421be19ae097863a423a7b5ebc0ad",
+      "bytes": 36835
+    }
+  ]
+}

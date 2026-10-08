@@ -1,0 +1,73 @@
+{
+  "evaluator_exit": 0,
+  "scope": "exec session58013 actually returned exit0; all seven trial child return codes checked above; read-only postrun matching process census",
+  "domain": 94,
+  "matching_lingering_processes": [],
+  "preview_processes": [
+    {
+      "pid": 1356150,
+      "alive": true
+    },
+    {
+      "pid": 1356152,
+      "alive": true
+    },
+    {
+      "pid": 1356154,
+      "alive": true
+    },
+    {
+      "pid": 1356156,
+      "alive": true
+    },
+    {
+      "pid": 1356158,
+      "alive": true
+    },
+    {
+      "pid": 1356160,
+      "alive": true
+    },
+    {
+      "pid": 1356162,
+      "alive": true
+    },
+    {
+      "pid": 1356164,
+      "alive": true
+    },
+    {
+      "pid": 1356166,
+      "alive": true
+    },
+    {
+      "pid": 1356168,
+      "alive": true
+    },
+    {
+      "pid": 1356170,
+      "alive": true
+    },
+    {
+      "pid": 1356172,
+      "alive": true
+    },
+    {
+      "pid": 1356174,
+      "alive": true
+    },
+    {
+      "pid": 1356176,
+      "alive": true
+    },
+    {
+      "pid": 1356178,
+      "alive": true
+    },
+    {
+      "pid": 1356180,
+      "alive": true
+    }
+  ],
+  "preview_actuator_enabled": false
+}

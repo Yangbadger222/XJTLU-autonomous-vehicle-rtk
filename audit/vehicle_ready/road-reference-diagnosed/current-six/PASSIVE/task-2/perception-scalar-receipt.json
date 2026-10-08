@@ -1,0 +1,17 @@
+{
+  "raw_path": "/home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/PASSIVE/task-2/perception.json",
+  "raw_sha256": "be154d91398eff3fdb604608945049f4c44f7115c56a149c9bbbf02079ea16bc",
+  "excluded_field": "ledger_cells",
+  "receipt": {
+    "scope": "actual Super-LIO pose; simulation-only base extrinsic/uncertainty/health assumptions; restricted current depth",
+    "lio_odometry_count": 647,
+    "processed_depth_count": 646,
+    "last_source_pose": [
+      1791464194.165671,
+      3.159845021149746,
+      -0.12941677663269038,
+      -0.014300425572910431
+    ],
+    "known_ground_cell_count": 220
+  }
+}

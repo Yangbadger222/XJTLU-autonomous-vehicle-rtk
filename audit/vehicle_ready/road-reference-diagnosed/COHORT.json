@@ -1,0 +1,30 @@
+{
+  "status": "MIXED",
+  "validator_source_commit": "1b915c5ea3dd6552f389d37e559658dcef8c831b",
+  "qualified_installed_runtime_commit": "77d5c5a5ce26b52b22d5631d67ba88a71ad410b3",
+  "cpp_source_commit": "49b44ee17812f8bc8dd124799d06cc0e2283eb56",
+  "runtime_build_input_diff_since_77": [],
+  "foundation_files": 778,
+  "foundation_sha256": "633a68d5973614f2d825def17e78747c2d877ecc3ce9fc7ab661cb91f74e3f60",
+  "foundation_unchanged_each_trial": true,
+  "prior_bytes_preserved": true,
+  "single_passive_45s_goal": true,
+  "six60s_protocol_pass": 6,
+  "six60s_protocol_fail": 0,
+  "six60s_goals": 2,
+  "goals_per_strategy": {
+    "PASSIVE": 1,
+    "PERIODIC_LOOK": 0,
+    "TASK_AWARE_LOOK": 1
+  },
+  "final_original_serial_zero_trials": 7,
+  "context_count": 134,
+  "all_contexts_lossless_round_trip": true,
+  "benefit": "NOT_ESTABLISHED",
+  "physical_acceptance": "PENDING",
+  "actual_ground": "FAIL; unchanged real ground cohort at49b44ee, not rerun or relabelled",
+  "older_six_at49": "preserved5PASS/1noactuationFAIL;0/6goals",
+  "target_probe": "NOT_CONNECTED",
+  "local_mac_sync": "PENDING_ENOSPC",
+  "goal": "ACTIVE"
+}

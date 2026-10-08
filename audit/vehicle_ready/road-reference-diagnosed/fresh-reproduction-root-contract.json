@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "retained_result_bytes_unchanged": true,
+  "cases": [
+    {
+      "case": "syntax",
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "case": "missing-args",
+      "exit": 2,
+      "stdout": "",
+      "stderr": "Usage: bash reproduce-six.sh /absolute/fresh-output-dir /absolute/fresh-runtime-dir\n"
+    },
+    {
+      "case": "retained-output-refused",
+      "exit": 1,
+      "stdout": "",
+      "stderr": "refusing existing output/runtime root; retained evidence must not be overwritten or reused\n"
+    },
+    {
+      "case": "actual-reservation-only-fresh-roots",
+      "exit": 0,
+      "stdout": "reserved fresh output and runtime roots\n",
+      "ROS_started": false
+    }
+  ]
+}

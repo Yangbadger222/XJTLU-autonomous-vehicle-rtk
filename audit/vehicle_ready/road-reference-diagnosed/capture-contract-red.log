@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/dev/shm/road-ref-capture-contract.py", line 12, in <module>
+    assert len(contexts)==1,'Missing denial context for actual road_reference_unavailable_or_unconfirmed path'
+AssertionError: Missing denial context for actual road_reference_unavailable_or_unconfirmed path

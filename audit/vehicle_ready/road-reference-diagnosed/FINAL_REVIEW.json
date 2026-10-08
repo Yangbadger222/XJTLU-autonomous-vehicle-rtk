@@ -1,0 +1,10 @@
+{
+  "source": "1b915c5ea3dd6552f389d37e559658dcef8c831b",
+  "base": "4899cd97d89d1ef1f94741469fc58fe87ca7817a",
+  "read_only": true,
+  "Standards": "No actionable P1/P2; callback order,32 total/3 per category/5s and deep-copy receipts checked.1011 protected files unchanged.",
+  "Spec": "No new P1/P2; evaluator-only, no truth or input publication/permission/reference change; validator/runtime identities separate.",
+  "limit": "Code review on validator1b915; final report review independently verifies six completed trial counts,134lossless contexts/raw hashes and source/physical scope. Exact original shell syscall text is not claimed by the reconstructed recipe.",
+  "Standards_report_review": "Two P2 reconstructed-command defects found and closed by readback: valid budget argument and guarded fresh output/runtime roots. Both prior unexecuted metadata recipes retained; actual parser3 and startup/reservation4 checksPASS, no ROS rerun; final closure found no new P1/P2.",
+  "Spec_report_review": "No P1/P2;134RLE roundtrips and raw hashes independently match; current counts/source/physical scope consistent."
+}

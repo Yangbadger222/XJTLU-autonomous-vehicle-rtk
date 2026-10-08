@@ -1,0 +1,11 @@
+{
+  "address": "100.79.128.21",
+  "port": 22,
+  "from": "authorized Humble host100.88.131.52",
+  "utc": "2026-10-08T13:06:05.794987+00:00",
+  "scope": "read-only TCP22; no authentication, no target mutation; timeout is not proof target offline",
+  "tcp22": "NOT_CONNECTED",
+  "exception_type": "TimeoutError",
+  "detail": "timed out",
+  "wall_s": 4.00495025498094
+}

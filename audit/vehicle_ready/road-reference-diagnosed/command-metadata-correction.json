@@ -1,0 +1,20 @@
+{
+  "classification": "WRONG_RECONSTRUCTED_COMMAND_METADATA",
+  "finding": "P2: --budget-s60 is invalid; actual parser requires --budget-s 60 or --budget-s=60.",
+  "before": {
+    "REPRODUCE.md": [
+      "Current diagnosis: use the same staged native setup above, domain94, a fresh FYP_RUNTIME_ROOT, and scripts/validate_restricted_policy_ros.py --repo /dev/shm/codex-shadow-delivery --install /dev/shm/codex-ground-signal-native-fixture-install --budget-s60 --default-profile --output <fresh>/result.json. Actual validator source1b915c5, installed runtime77d5c5a, CPP49b44ee; runtime build inputs are unchanged. One separate45s PASSIVE trial and the full six60s cohort were executed. All778foundation hashes and prior bytes stayed fixed each trial. See audit/vehicle_ready/road-reference-diagnosed/DIAGNOSIS.md for lossless context report decoding and actual raw retention paths. Do not reuse an old trial output directory."
+    ],
+    "RUN_STATE.json": [
+      "      \"command\": \"domain94; scripts/validate_restricted_policy_ros.py --repo /dev/shm/codex-shadow-delivery --install /dev/shm/codex-ground-signal-native-fixture-install --budget-s60 --default-profile --output <fresh>/result.json\","
+    ],
+    "audit/vehicle_ready/road-reference-diagnosed/executed-six-command.sh": [
+      "timeout --signal=INT --kill-after=25s 540s python3 scripts/validate_restricted_policy_ros.py --repo /dev/shm/codex-shadow-delivery --install /dev/shm/codex-ground-signal-native-fixture-install --budget-s60 --default-profile --output /home/badger/codex-research/superlio-ego-20261007/logs/road-ref-diagnosis/current-six/result.json"
+    ]
+  },
+  "corrected": "--budget-s 60",
+  "source_evidence": "Actual validator1b915c5 has parser declaration --budget-s; corrected recipe is checked against its actual AST parser. Six measured trial results and actual exec58013 exit0 remain separate. Malformed reconstructed recipe was not executed.",
+  "original_shell_capture": "Exact original shell text was not retained in the available local rollout files; corrected shell is labelled reproduction recipe, not reconstructed proof of a literal exec syscall.",
+  "production_control_changed": false,
+  "second_P2": "Reconstructed recipe pointed to retained existing output; fixed by required separate absolute fresh output/runtime roots and refusing existing paths before any ROS setup. Prior unsafe unexecuted recipe retained."
+}

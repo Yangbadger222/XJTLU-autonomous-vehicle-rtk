@@ -119,7 +119,13 @@ def main():
         child=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);children.append(child);return child
     def rearm():
         phase(1.2)
-        assert request("reset")["accepted"],snapshot()["reason"]
+        # A restarted node must discover odom and independently measure the
+        # existing continuous-stop interval before the fixture requests reset.
+        deadline=time.monotonic()+3.
+        while not snapshot()["stop_confirmed_from_odom"] and time.monotonic()<deadline:
+            phase(.1)
+        reset=request("reset")
+        assert reset["accepted"],reset["reason"]
         assert request("task",{"start_node":"start","goal_node":"goal"})["accepted"]
         phase(.7)
         result=request("start")

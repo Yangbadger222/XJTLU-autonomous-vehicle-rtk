@@ -36,18 +36,18 @@ def main():
         for label, command in {
             "nodes": ["ros2", "node", "list", "--no-daemon"],
             "topics": ["ros2", "topic", "list", "--no-daemon", "-t"],
-            "safety_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_safety_bridge"],
-            "console_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_operator_console"],
-            "ego_parameters": ["ros2", "param", "dump", "--no-daemon", "/ego_vehicle_adapter"],
-            "authority_parameters": ["ros2", "param", "dump", "--no-daemon", "/rtk_map_odom_corrector"],
-            "guard_parameters": ["ros2", "param", "dump", "--no-daemon", "/corridor_cmd_vel_guard"],
-            "adapter_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_vehicle_adapter"],
-            "tf_guard_parameters": ["ros2", "param", "dump", "--no-daemon", "/research_tf_integrity_guard"],
-            "cloud_frame_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_cloud_frame_adapter"],
-            "ground_parameters": ["ros2","param","dump","/research_observed_ground"],
-            "local_grid_parameters": ["ros2","param","dump","/research_local_obstacle_grid"],
-            "superlio_parameters": ["ros2", "param", "dump", "--no-daemon", "/super_lio_node"],
-            "robot_description_parameters": ["ros2","param","dump","/robot_state_publisher"],
+            "safety_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_safety_bridge"],
+            "console_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_operator_console"],
+            "ego_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/ego_vehicle_adapter"],
+            "authority_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/rtk_map_odom_corrector"],
+            "guard_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/corridor_cmd_vel_guard"],
+            "adapter_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_vehicle_adapter"],
+            "tf_guard_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/research_tf_integrity_guard"],
+            "cloud_frame_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_cloud_frame_adapter"],
+            "ground_parameters": ["ros2","param","dump","--no-daemon","--spin-time","3","/research_observed_ground"],
+            "local_grid_parameters": ["ros2","param","dump","--no-daemon","--spin-time","3","/research_local_obstacle_grid"],
+            "superlio_parameters": ["ros2", "param", "dump", "--no-daemon", "--spin-time", "3", "/super_lio_node"],
+            "robot_description_parameters": ["ros2","param","dump","--no-daemon","--spin-time","3","/robot_state_publisher"],
         }.items():
             for attempt in range(3):
                 try:
@@ -152,7 +152,8 @@ def main():
     baseline_interrupt = {
         pid for pid,name in owned.items()
         if name.startswith("corridor_cmd_vel_guard_node-") and failures.get(pid)==-2
-        and "KeyboardInterrupt" in tail
+        and f"[{name}] KeyboardInterrupt" in tail
+        and re.search(r"process has died \[pid "+str(pid)+r", exit code -2",tail)
     }
     result["owned_child_shutdown"] = [
         {"pid":pid,"launch_name":name,

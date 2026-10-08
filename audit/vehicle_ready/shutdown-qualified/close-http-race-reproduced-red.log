@@ -1,0 +1,38 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_closing_console_cannot_be_rearmed_before_final_permit __________
+
+    def test_closing_console_cannot_be_rearmed_before_final_permit():
+        _, console = prepared()
+        assert console.command("window-a", "start", request_id="before-close")["accepted"]
+        assert console.permit().motion_requested
+        attempts, emitted = [], []
+    
+        def final_tick():
+            # The real close method has released its model lock and HTTP can
+            # still be processing an authenticated in-flight request here.
+            for action, identity in (("claim", ""), ("reset", "race-reset"),
+                                     ("start", "race-start"), ("start", "before-close")):
+                attempts.append(console.command("window-a", action, request_id=identity))
+            emitted.append(console.permit())
+    
+        target = SimpleNamespace(console=console, replay_generation=0, _tick=final_tick,
+            http=SimpleNamespace(close=lambda: None), _stop_player=lambda: None)
+        path = Path("/dev/shm/codex-shadow-delivery/src/research_runtime/research_runtime/console_node.py")
+        tree = ast.parse(path.read_text())
+        methods = [method for cls in tree.body if isinstance(cls, ast.ClassDef) and cls.name == "ConsoleNode"
+                   for method in cls.body if isinstance(method, ast.FunctionDef) and method.name == "close"]
+        assert len(methods) == 1
+        # Execute the production close function without importing ROS. Only its
+        # context liveness and owned I/O are replaced; the model is the real one.
+        scope = {"rclpy": SimpleNamespace(ok=lambda: True)}
+        exec(compile(ast.Module(body=methods, type_ignores=[]), str(path), "exec"), scope)
+        scope["close"](target)
+>       assert attempts and all(not item["accepted"] for item in attempts)
+E       AssertionError: assert ([{'accepted': True, 'reason': '已接管操作席；尚未请求运动'}, {'accepted': True, 'reason': '测量里程计已连续确认静止；仍须显式启动'}, {'accepted': True, 'reason': '操作员请求研究任务；原 RTK/手柄/安全链继续仲裁'}, {'accepted': True, 'reason': '操作员请求研究任务；原 RTK/手柄/安全链继续仲裁'}] and False)
+E        +  where False = all(<generator object test_closing_console_cannot_be_rearmed_before_final_permit.<locals>.<genexpr> at 0x7ab234046f80>)
+
+/dev/shm/shutdown-race-red-test.py:33: AssertionError
+=========================== short test summary info ============================
+FAILED ../../dev/shm/shutdown-race-red-test.py::test_closing_console_cannot_be_rearmed_before_final_permit
+1 failed in 0.04s

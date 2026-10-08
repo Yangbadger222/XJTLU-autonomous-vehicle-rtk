@@ -1,7 +1,7 @@
 {
   "branch": "codex/superlio-ego-active-road",
   "base_commit": "e54c6afbcb5a58db22d7c468085a87d658b0b932",
-  "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
   "host": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
   "remote_root": "/home/badger/codex-research/superlio-ego-20261007",
   "physical_motion": "not_performed",
@@ -214,170 +214,44 @@
   },
   "goal_status": "ACTIVE",
   "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-  "qualification_workspace": "/dev/shm/codex-stop-fresh-ws",
-  "completed_qualification": [
-    "69b9b75 full3 raw replays EOF0",
-    "DA fresh SDK/14 package build",
-    "DA exact2Super/6EGO patch proof",
-    "DA16 actualgroundROS fixtures",
-    "DA10 EGO interface cases",
-    "DA39 final serial PTY faults",
-    "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained",
-    "63fc control-reference/stop qualification:222portable,2/11exactsource,stagedSDK14,44linear50yaw5RTK11HMI10receipt-edge,10EGO2query,heading/arcgoal,7observer,16entry157parameter7override; realgroundFAIL; policyall0/2"
-  ],
+  "qualification_workspace": "/dev/shm/codex-terminal-native-ws over prior qualified SDK14/shutdown overlays",
+  "completed_qualification": {
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "portable": 223,
+    "console_unit": 19,
+    "hmi": 13,
+    "parameters": 157,
+    "loaded_python_hashes_per_architecture": 30,
+    "native_default_children": 16,
+    "emulated_default_children": 16,
+    "old_original_guard_expected_interrupt": true
+  },
   "source_data_missing_claim_correction": "Recorded internal MID360 IMU/mount and source command geometry exist and were used. Physical acceptance and new software configuration are separate.",
   "finite_tests": "All current finite qualifier sessions completed and owned groups cleaned; preserved preview alone intentionally runs.",
   "current_qualification_checkpoint": {
-    "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-    "goal_status": "ACTIVE",
-    "executor": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
-    "fresh_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
-    "fresh_workspace": "/dev/shm/codex-stop-fresh-ws",
-    "fresh_build_status": "PASS",
-    "current_runtime_rebuild_status": "PASS",
-    "current_receipt_fresh_before_build": false,
-    "patch_source_status": "PASS",
-    "dependencies": {
-      "super_lio_patches": 2,
-      "ego_patches": 11
-    },
-    "finite_child_tests_closed": true,
-    "runtime_domains": [
-      91,
-      93,
-      94,
-      98,
-      99,
-      104,
-      109
-    ],
-    "ROS_LOCALHOST_ONLY": true,
-    "actual_raw_ground_status": "FAIL",
-    "policy_tasks_reached": {
-      "PASSIVE": "0/2",
-      "PERIODIC_LOOK": "0/2",
-      "TASK_AWARE_LOOK": "0/2"
-    },
-    "physical_actuator_runs": 0,
-    "firmware_flashes": 0,
-    "Jetson_source_edits": 0,
-    "evidence_root": "audit/vehicle_ready/control-stop-qualified/",
-    "preserved_preview": {
-      "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
-      "launch_pid": 1356150,
-      "port": 8765,
-      "unchanged": true
-    },
-    "remaining": "Actual positive MID360ground adaptation/qualification; target effectiveoverlay/shadow and physical acceptance. Existing nominal mounting/STM data alreadyused."
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "current_compile": "staged native/ARM Python overlays on previously qualified SDK14",
+    "native_default": "PASS",
+    "emulated_default_with_fd_helper": "PASS",
+    "physical_acceptance": "PENDING",
+    "actual_ground": "FAIL",
+    "policy_benefit": "not established"
   },
   "previous_checkpoint_state": "audit/vehicle_ready/history_pre_control_stop_qualification/RUN_STATE.json",
-  "current_finite_qualifiers": [
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-heading-loop.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-arc-loop.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-ego-interface.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-observer-session.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
-      "status": "PASS",
-      "runtime_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
-      "status": "FAIL",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
-      "status": "FAIL",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    },
-    {
-      "receipt": "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
-      "status": "PASS",
-      "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
-      "session": "COMPLETED",
-      "actuator_sink": "ownedPTY or none; no physicaldevice"
-    }
-  ],
+  "current_finite_qualifiers": {
+    "status": "TERMINAL",
+    "native_default_domain": 93,
+    "hmi_domain": 99,
+    "native_http_ports": [
+      8887,
+      8888
+    ],
+    "emulator_http_port": 8886,
+    "emulator_container": "codex-arm64-a66cc7e",
+    "emulator_current_state": "exited",
+    "native_fd_broker": "terminated and socket removed"
+  },
   "local_workspace_recovery": {
     "status": "PENDING",
     "cause": "Mac filesystemENOSPC; all new implementation/receipts committedremotely",
@@ -424,18 +298,197 @@
     "isolated_delivery_checkout": "/dev/shm/codex-shadow-delivery"
   },
   "arm64_emulator_diagnostic": {
-    "core_source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
-    "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
-    "minimal_bus": "PASS native actual socket option intervention",
-    "default_startup": "PASS16owned/12queries",
-    "aux_compile": "PASSaarch64",
-    "ingress_fixture": "PASS17",
-    "clean_shutdown": "FAIL2research node errors after SIGINT",
-    "target": "PENDING TCP22timeout from non-Jetson",
-    "no_vehicle_parameter_change": true,
-    "no_host_binfmt_change": true,
-    "goal_status": "active",
-    "receipt": "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
-    "helper_boundary_review": "PASS6CLI/5request/1foreign/3DDS under optimize1; previous receipts/sources retained"
+    "historical": "previous_shutdown_checkpoint_fields.arm64_emulator_diagnostic",
+    "current_cohort": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "explicit_environment_helper": true,
+    "native_jetson_claim": false
+  },
+  "previous_runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+  "ordered_shutdown_checkpoint": {
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "evidence": "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+    "native_and_arm_default": "PASS",
+    "all_finite_jobs": "TERMINAL",
+    "native_fd_socket": "removed after owned broker exit",
+    "preview_source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+    "protected_preview_untouched": true,
+    "mac_sync": "PENDING_ENOSPC"
+  },
+  "previous_shutdown_checkpoint_fields": {
+    "current_qualification_checkpoint": {
+      "source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+      "goal_status": "ACTIVE",
+      "executor": "authorized non-Jetson Ubuntu22.04.5 x86_64 / Humble",
+      "fresh_foundation_source": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+      "fresh_workspace": "/dev/shm/codex-stop-fresh-ws",
+      "fresh_build_status": "PASS",
+      "current_runtime_rebuild_status": "PASS",
+      "current_receipt_fresh_before_build": false,
+      "patch_source_status": "PASS",
+      "dependencies": {
+        "super_lio_patches": 2,
+        "ego_patches": 11
+      },
+      "finite_child_tests_closed": true,
+      "runtime_domains": [
+        91,
+        93,
+        94,
+        98,
+        99,
+        104,
+        109
+      ],
+      "ROS_LOCALHOST_ONLY": true,
+      "actual_raw_ground_status": "FAIL",
+      "policy_tasks_reached": {
+        "PASSIVE": "0/2",
+        "PERIODIC_LOOK": "0/2",
+        "TASK_AWARE_LOOK": "0/2"
+      },
+      "physical_actuator_runs": 0,
+      "firmware_flashes": 0,
+      "Jetson_source_edits": 0,
+      "evidence_root": "audit/vehicle_ready/control-stop-qualified/",
+      "preserved_preview": {
+        "source_commit": "ce4641836c265432c74086669fca8dbd6362b7d7",
+        "launch_pid": 1356150,
+        "port": 8765,
+        "unchanged": true
+      },
+      "remaining": "Actual positive MID360ground adaptation/qualification; target effectiveoverlay/shadow and physical acceptance. Existing nominal mounting/STM data alreadyused."
+    },
+    "current_finite_qualifiers": [
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-linear-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-rotation-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-rtk-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-heading-loop.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-arc-loop.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-ego-interface.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-observer-session.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-control-ego-stop.json",
+        "status": "PASS",
+        "runtime_source_commit": "8c937ed5c242fc3e8a08cedcd35c736b957ac43b",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-am-prefix.json",
+        "status": "FAIL",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/raw-ground-0721-pm-prefix.json",
+        "status": "FAIL",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      },
+      {
+        "receipt": "audit/vehicle_ready/control-stop-qualified/policy-comparison.json",
+        "status": "PASS",
+        "runtime_source_commit": "63fc00c3c92c23b873b00ece8586f676921a87e1",
+        "session": "COMPLETED",
+        "actuator_sink": "ownedPTY or none; no physicaldevice"
+      }
+    ],
+    "completed_qualification": [
+      "69b9b75 full3 raw replays EOF0",
+      "DA fresh SDK/14 package build",
+      "DA exact2Super/6EGO patch proof",
+      "DA16 actualgroundROS fixtures",
+      "DA10 EGO interface cases",
+      "DA39 final serial PTY faults",
+      "DA default entry16 children/143 three-layer/7 override probes pass; earlier count failure and transient RPC timeout retained",
+      "63fc control-reference/stop qualification:222portable,2/11exactsource,stagedSDK14,44linear50yaw5RTK11HMI10receipt-edge,10EGO2query,heading/arcgoal,7observer,16entry157parameter7override; realgroundFAIL; policyall0/2"
+    ],
+    "arm64_emulator_diagnostic": {
+      "core_source_commit": "a66cc7e41c80f7999ddb3a1e4aec179cfa0e3c6f",
+      "aux_source_commit": "b55f389062edf212165478a74de8873e8f7ada79",
+      "minimal_bus": "PASS native actual socket option intervention",
+      "default_startup": "PASS16owned/12queries",
+      "aux_compile": "PASSaarch64",
+      "ingress_fixture": "PASS17",
+      "clean_shutdown": "FAIL2research node errors after SIGINT",
+      "target": "PENDING TCP22timeout from non-Jetson",
+      "no_vehicle_parameter_change": true,
+      "no_host_binfmt_change": true,
+      "goal_status": "active",
+      "receipt": "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
+      "helper_boundary_review": "PASS6CLI/5request/1foreign/3DDS under optimize1; previous receipts/sources retained"
+    }
   }
 }

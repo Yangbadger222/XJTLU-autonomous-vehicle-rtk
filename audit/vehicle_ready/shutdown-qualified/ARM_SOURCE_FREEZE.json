@@ -1,0 +1,10 @@
+{
+  "runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+  "original_readonly_core_commit": "0848422f6bd21ff72933883e77a4502854aed07e",
+  "validator_sha256": "619a3dc20edf1dae3d4562f8d9f565057492cac9c2820e085cecf2e1745538b9",
+  "changed_runtime_files": {
+    "src/research_runtime/research_runtime/console_node.py": "1f520cc984a5a539472be6e1a46efa22d0f80ceff72e36e167a5711c7add0985",
+    "src/research_runtime/research_runtime/operator_console.py": "a8d6a2787d07e7798e2863281f242cb7bdd062845f4fbc0fa3f54a7d32c17e04",
+    "src/super_lio_vehicle_adapter/super_lio_vehicle_adapter/cloud_frame_node.py": "b726d4bc60bd585c732918b0c6cfe087133f08f7adf5c3b78a46e783c21005ae"
+  }
+}

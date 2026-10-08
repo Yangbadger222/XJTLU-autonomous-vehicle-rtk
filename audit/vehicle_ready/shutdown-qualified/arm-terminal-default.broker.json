@@ -1,0 +1,453 @@
+{
+  "state": "COMPLETED",
+  "attempt_id": "5143e65e-083e-4322-b5e6-2784e155f146",
+  "scope": "finite emulator-only native socket option broker; not vehicle code",
+  "container_id": "eb92b079d63d9b6d796ee255430f1019bcda3f09874cce43a612adc88783d8cf",
+  "duration_s": 203.44401752296835,
+  "configured_requests": 44,
+  "failed_requests": 0,
+  "python_optimize": "1",
+  "records": [
+    {
+      "peer_pid": 1737689,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737733,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737729,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737697,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737740,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737725,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737713,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737745,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737693,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737749,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737721,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737761,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737737,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737709,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737705,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737717,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737701,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737924,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738049,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738066,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738066,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738136,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738136,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738207,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738207,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738240,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738240,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738346,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738346,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738376,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738376,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738410,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738410,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738479,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738479,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738509,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738509,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738545,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738545,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738576,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738576,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738647,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1738647,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    },
+    {
+      "peer_pid": 1737679,
+      "peer_uid": 0,
+      "container_match": true,
+      "received_fd_count": 1,
+      "request_hex": "434142497f000001",
+      "status": "PASS",
+      "actual_interface": "127.0.0.1",
+      "native_setsockopt": true
+    }
+  ],
+  "failure": null
+}

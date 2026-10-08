@@ -6,7 +6,10 @@
       "audit/vehicle_ready/control-stop-qualified/current-three-layer-parameters.json",
       "audit/vehicle_ready/control-stop-qualified/current-default-entry.json",
       "audit/vehicle_baseline/PROTECTED_FILES.sha256",
-      "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256"
+      "audit/vehicle_baseline/PROTECTED_ADDITIONAL_FILES.sha256",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-three-layer-parameters.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/three-layer-parameters.json",
@@ -27,7 +30,8 @@
       "audit/vehicle_ready/control-stop-qualified/current-build.json",
       "audit/vehicle_ready/control-reference-qualified/raw-control-full-0715.json",
       "audit/vehicle_ready/69b9b75/raw-2026-07-21-07-06-18.json",
-      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json"
+      "audit/vehicle_ready/69b9b75/raw-2026-07-21-14-34-13.json",
+      "audit/vehicle_ready/shutdown-qualified/current-build.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/69b9b75/clean-build.json",
@@ -61,7 +65,8 @@
       "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
       "audit/vehicle_ready/control-stop-qualified/fresh-build.json",
       "audit/vehicle_ready/control-stop-qualified/current-build.json",
-      "audit/remote_humble/ego-raw-simulation.json"
+      "audit/remote_humble/ego-raw-simulation.json",
+      "audit/vehicle_ready/shutdown-qualified/current-build.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/final-source-proof.json",
@@ -114,7 +119,9 @@
       "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
       "audit/vehicle_ready/control-stop-qualified/receipt-denial-final-wire.json",
       "audit/vehicle_ready/control-stop-qualified/receipt-denial-red.log",
-      "audit/vehicle_ready/control-stop-qualified/portable-current.log"
+      "audit/vehicle_ready/control-stop-qualified/portable-current.log",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
     ],
     "historical_evidence": [
       "audit/vehicle_ready/heading-qualified/fresh-linear-final-wire.json",
@@ -242,11 +249,12 @@
   },
   "DELIVERY_STATE": {
     "status": "PENDING",
-    "scope": "GoalACTIVE. Runtime63fc qualifies current stagedSDK14/2Super11EGO/software checks; algorithm and lightweightreport anchord29fab3 normallypublished to researchbranch, originalbaselinee54unchanged. CurrentrealgroundFAIL, physicalacceptancePENDING, Maclocal sync/cachepathrepairPENDINGENOSPC. Publicationreceipt is a later report-onlydescendant.",
+    "scope": "GoalACTIVE. Current shutdown-qualified runtime a7dc397 with staged SDK14/Python overlays,223portable,157parameters,13HMI and native/emulator16-node clean shutdown. Actual groundFAIL; policy benefit unproved; target/physicalPENDING; Maclocal sync/cachepath recoveryPENDINGENOSPC. Normal publication receipt is added separately.",
     "evidence": [
       "RUN_STATE.json",
       "outputs/RESEARCH_DELIVERY_REPORT.md",
-      "audit/vehicle_ready/control-stop-qualified/publication.json"
+      "audit/vehicle_ready/control-stop-qualified/publication.json",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json"
     ],
     "historical_evidence": [
       "RUN_STATE.json",
@@ -259,7 +267,9 @@
     "evidence": [
       "audit/vehicle_ready/control-stop-qualified/current-hmi-wire.json",
       "docs-CN/research_operator_console.md",
-      "audit/optimization_v2/browser-acceptance.json"
+      "audit/optimization_v2/browser-acceptance.json",
+      "audit/vehicle_ready/shutdown-qualified/COHORT.json",
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json"
     ],
     "historical_evidence": [
       "audit/optimization_v2/current-console-http.json",
@@ -376,10 +386,29 @@
   },
   "ARM64_EMULATED_RESEARCH_NODE_SHUTDOWN": {
     "status": "FAIL",
-    "scope": "After controlledSIGINT, console and cloud-frame nodes report RuntimeError in rclpy take_message. All owned processes exit; no pre-SIGINT error. Retained as unresolved clean-shutdown behavior, not suppressed or called PASS.",
+    "scope": "Historical pre-fix FAIL at original qualification source retained. Current ordered shutdown is separately PASS at a7dc397; see ARM64_EMULATED_CURRENT_ORDERED_SHUTDOWN.",
     "evidence": [
       "audit/vehicle_ready/arm64-emulated/native-socket-diagnostic-summary.json",
       "audit/vehicle_ready/arm64-emulated/default-entry-native-fd.log"
+    ]
+  },
+  "ARM64_EMULATED_CURRENT_ORDERED_SHUTDOWN": {
+    "status": "PASS",
+    "scope": "Current a7 Python overlays on qualified SDK14 ARM64 foundation. With explicit emulator-only native-fd diagnostic helper:16owned children,all12parameter queries,single bridge cmd owner,all15research/infrastructure children exit0; protected originalguard remains expected-2.30loader-source hashes match. Not unmodifiedQEMU/network/nativeJetson/performance/physical acceptance.",
+    "evidence": [
+      "audit/vehicle_ready/shutdown-qualified/arm-terminal-default-qualified.json",
+      "audit/vehicle_ready/shutdown-qualified/arm-terminal-current-build.json",
+      "audit/vehicle_ready/shutdown-qualified/arm-terminal-default.broker.json"
+    ]
+  },
+  "CONSOLE_TERMINAL_SHUTDOWN": {
+    "status": "PASS",
+    "runtime_source_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+    "scope": "Ordered signal exit plus atomic terminal revocation; actual13HMI/originalguard/originalserialPTYcases,19unitconsolechecks and final-publication omission mutation rejection. No physical estop/brake claim.",
+    "evidence": [
+      "audit/vehicle_ready/shutdown-qualified/terminal-hmi-qualified/result.json",
+      "audit/vehicle_ready/shutdown-qualified/close-http-race-green.log",
+      "audit/vehicle_ready/shutdown-qualified/hmi-no-final-stop-counterexample/result.json"
     ]
   }
 }

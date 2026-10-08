@@ -1,0 +1,71 @@
+{
+  "protected_preview_owned": [
+    {
+      "pid": 1356150,
+      "alive": true
+    },
+    {
+      "pid": 1356152,
+      "alive": true
+    },
+    {
+      "pid": 1356154,
+      "alive": true
+    },
+    {
+      "pid": 1356156,
+      "alive": true
+    },
+    {
+      "pid": 1356158,
+      "alive": true
+    },
+    {
+      "pid": 1356160,
+      "alive": true
+    },
+    {
+      "pid": 1356162,
+      "alive": true
+    },
+    {
+      "pid": 1356164,
+      "alive": true
+    },
+    {
+      "pid": 1356166,
+      "alive": true
+    },
+    {
+      "pid": 1356168,
+      "alive": true
+    },
+    {
+      "pid": 1356170,
+      "alive": true
+    },
+    {
+      "pid": 1356172,
+      "alive": true
+    },
+    {
+      "pid": 1356174,
+      "alive": true
+    },
+    {
+      "pid": 1356176,
+      "alive": true
+    },
+    {
+      "pid": 1356178,
+      "alive": true
+    },
+    {
+      "pid": 1356180,
+      "alive": true
+    }
+  ],
+  "emulator_container": "exited 0",
+  "broker_socket_absent": true,
+  "scope": "read-only final process inventory; existing preview preserved"
+}

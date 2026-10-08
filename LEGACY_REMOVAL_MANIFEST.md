@@ -1,5 +1,7 @@
 # Active-road entry legacy manifest
 
+Current qualified runtime is a7dc39774c4421b40a6a0abb7d1709a81bdc72b0. Ordered native/diagnostic ARM shutdown and terminal console revocation are PASS; actual ground-to-road support remains FAIL, research benefit unproved and target/physical acceptance PENDING. Complete current results and source-bound evidence are in AUDIT_REPORT.md and audit/vehicle_ready/shutdown-qualified/COHORT.json. Prior measurements below keep their original source identities. Previous report bytes are archived in shutdown-qualified/prior-reports/.
+
 The legacy source remains in the baseline checkout and is not deleted. The
 new entry point `system_active_road_research.launch.py` has an allowlist of
 research components and does not include `system_explore.launch.py`, Nav2,

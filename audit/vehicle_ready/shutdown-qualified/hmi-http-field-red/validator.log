@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/dev/shm/codex-shadow-delivery/scripts/validate_console_mock_ros.py", line 222, in <module>
+    if __name__=="__main__":raise SystemExit(main())
+  File "/dev/shm/codex-shadow-delivery/scripts/validate_console_mock_ros.py", line 190, in main
+    active_session=snapshot()["session_id"]
+KeyError: 'session_id'

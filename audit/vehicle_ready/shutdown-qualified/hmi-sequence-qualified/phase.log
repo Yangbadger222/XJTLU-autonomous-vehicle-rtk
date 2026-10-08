@@ -1,0 +1,171 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case": "lateral_translation_cannot_confirm_stop",
+      "status": "PASS",
+      "stop_confirmed": false,
+      "reset_response": {
+        "accepted": false,
+        "reason": "\u7b49\u5f85\u539f\u505c\u8f66\u9608\u503c\u4e0b\u8fde\u7eed\u9759\u6b62\u786e\u8ba4\uff1b\u8fd9\u4e0d\u4ee3\u8868\u7269\u7406\u5236\u52a8\u9a8c\u6536"
+      }
+    },
+    {
+      "case": "vertical_translation_cannot_confirm_stop",
+      "status": "PASS",
+      "stop_confirmed": false,
+      "reset_response": {
+        "accepted": false,
+        "reason": "\u7b49\u5f85\u539f\u505c\u8f66\u9608\u503c\u4e0b\u8fde\u7eed\u9759\u6b62\u786e\u8ba4\uff1b\u8fd9\u4e0d\u4ee3\u8868\u7269\u7406\u5236\u52a8\u9a8c\u6536"
+      }
+    },
+    {
+      "case": "ready_after_invalid_short_recovery_cannot_start",
+      "status": "PASS",
+      "stop_confirmed": false,
+      "start_response": {
+        "accepted": false,
+        "reason": "\u7b49\u5f85\u539f\u505c\u8f66\u9608\u503c\u4e0b\u8fde\u7eed\u9759\u6b62\u786e\u8ba4"
+      }
+    },
+    {
+      "case": "ready_after_moving_short_recovery_cannot_start",
+      "status": "PASS",
+      "stop_confirmed": false,
+      "start_response": {
+        "accepted": false,
+        "reason": "\u7b49\u5f85\u539f\u505c\u8f66\u9608\u503c\u4e0b\u8fde\u7eed\u9759\u6b62\u786e\u8ba4"
+      }
+    },
+    {
+      "case": "http_pause",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "PAUSED",
+      "status": "PASS"
+    },
+    {
+      "case": "http_stop",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "http_takeover",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "TAKEOVER_WAIT",
+      "status": "PASS"
+    },
+    {
+      "case": "browser_heartbeat_lost",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "rtk_loss_with_healthy_lio",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "rtk_return_does_not_auto_resume",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": "STOP_LATCHED",
+      "status": "PASS"
+    },
+    {
+      "case": "console_SIGINT_final_wire",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": null,
+      "status": "PASS",
+      "console_exit": 0,
+      "autonomous_at_signal": true,
+      "final_wire_before_signal": "vcx=0.218,wc=0.000\n",
+      "fresh_stop_permit_observed_before_console_exit": true,
+      "stop_freshness_basis": "same session; sequence > last AUTO; generated stamp and receipt after signal marker; console alive at receipt"
+    },
+    {
+      "case": "console_SIGTERM_final_wire",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": null,
+      "status": "PASS",
+      "console_exit": 0,
+      "autonomous_at_signal": true,
+      "final_wire_before_signal": "vcx=0.220,wc=0.000\n",
+      "fresh_stop_permit_observed_before_console_exit": true,
+      "stop_freshness_basis": "same session; sequence > last AUTO; generated stamp and receipt after signal marker; console alive at receipt"
+    },
+    {
+      "case": "console_backend_crash",
+      "nominal_nonzero_final_serial": true,
+      "final_serial_tail": [
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n",
+        "vcx=0.000,wc=0.000\n"
+      ],
+      "console_state": null,
+      "status": "PASS"
+    }
+  ],
+  "scope": "Actual HTTP/typed consent/observer/task service/tracker/original guard/original serial PTY; synthetic odom, floor, RTK, health and trajectory only. Physical stop/KEY/joystick not validated.",
+  "domain": 99,
+  "source_commit": "f40cd73f2681dfb3f1eaa3aee1d5686ac43b547e"
+}

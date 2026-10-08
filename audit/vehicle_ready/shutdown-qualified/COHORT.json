@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "runtime_commit": "a7dc39774c4421b40a6a0abb7d1709a81bdc72b0",
+  "native_default": "PASS",
+  "arm_emulator_default": "PASS",
+  "strict_hmi_cases": 13,
+  "portable_cases": 223,
+  "console_related_unit_cases": 19,
+  "source_parsed_runtime_checks": 157,
+  "loaded_python_files_per_architecture": 30,
+  "original_files_unchanged": 1011,
+  "arm_environment": "Explicit QEMU6.2 native-fd loopback broker;44 successful actual socket option requests,0failures; not native Jetson",
+  "baseline_guard_shutdown": "Original protected guard SIGINT KeyboardInterrupt/exit-2 remains expected; all other15 exit0",
+  "mutation_without_final_stop": {
+    "status": "FAIL_EXPECTED",
+    "signal_cases_failed": 2,
+    "other_cases_passed": 11,
+    "final_wire_zero_alone_cannot_pass": true
+  },
+  "close_interleaving_regression": {
+    "old_actual_close": "RED: authenticated claim/reset/start/cached start all accepted; final permit could reactivate",
+    "current": "GREEN: terminal model close refuses all; finalSTOP/motionFalse/leaseFalse"
+  },
+  "historical_failures": {
+    "close-http-race-red.log": "pytest plugin setup failure; not behavioral RED",
+    "close-http-race-actual-red.log": "missing source import path setup failure; not behavioral RED",
+    "close-http-race-reproduced-red.log": "actual pre-fix close interleaving assertion failure",
+    "arm-overlay-build-current.log": "unsupported colcon CLI option; compile did not run",
+    "arm-stale-recipe-source-check-red.log": "source freeze check rejected old recipe; no ROS ran",
+    "hmi-strict-qualified/result.json": "signal cases pass but final restarted task readiness assertion fails; overallFAIL retained",
+    "native-default-entry-fixed.json": "all16 clean up but console param direct discovery fails; overallFAIL retained"
+  },
+  "research_road_support": "FAIL:0qualified vehicle-width strips in actual replay",
+  "policy_outcome": "Each strategy0of2; benefit not established; not rerun or relabelled by this shutdown cohort",
+  "target_shadow": "PENDING",
+  "physical_acceptance": "PENDING",
+  "goal_status": "ACTIVE"
+}

@@ -1,8 +1,8 @@
 {
   "schema": 3,
   "current_source_proof": "audit/vehicle_ready/control-stop-qualified/current-source-proof.json",
-  "current_clean_build": "audit/vehicle_ready/control-stop-qualified/current-build.json",
-  "current_build_log": "audit/vehicle_ready/control-stop-qualified/build-summary.log",
+  "current_clean_build": "audit/vehicle_ready/shutdown-qualified/current-build.json",
+  "current_build_log": "audit/vehicle_ready/shutdown-qualified/terminal-native-build.log",
   "historical_registry": "audit/vehicle_ready/HISTORICAL_UPSTREAM_PATCH_VERIFICATION_pre_ground.json",
   "dependencies": {
     "super_lio": {

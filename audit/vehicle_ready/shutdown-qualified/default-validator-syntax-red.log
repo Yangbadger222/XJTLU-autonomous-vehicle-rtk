@@ -1,0 +1,4 @@
+  File "/dev/shm/codex-shadow-delivery/scripts/validate_research_launch.py", line 145
+    entries = list(re.finditer(r"\[([^\]
+                               ^
+SyntaxError: unterminated string literal (detected at line 145)

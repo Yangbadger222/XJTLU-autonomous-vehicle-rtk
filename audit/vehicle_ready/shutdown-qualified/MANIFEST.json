@@ -1,0 +1,344 @@
+{
+  "files": [
+    {
+      "path": "ARM_SOURCE_FREEZE.json",
+      "sha256": "29a7d63f892984d8774016e13c09dd53d7d80d72067f2d0bc51df84b3570afba"
+    },
+    {
+      "path": "COHORT.json",
+      "sha256": "298d1ace4769980f0fa5662c00aa333b19952879a0d2b2ff15ac38a37a49566e"
+    },
+    {
+      "path": "arm-overlay-build-current.log",
+      "sha256": "1c15322615a9087f46bbd9a94d446abc247e55873f2107a9f7187af0ca548276"
+    },
+    {
+      "path": "arm-overlay-colcon-option-red.sh",
+      "sha256": "ea453e09cc2be45d44155d54b7dee79ac2ef20dfaf21d02133af978e0e319e2d"
+    },
+    {
+      "path": "arm-stale-recipe-source-check-red.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "arm-terminal-current-build.json",
+      "sha256": "e2ba582b90f6812100397b6800ab61d6cc18b508dfe301a42c99577af91a16f1"
+    },
+    {
+      "path": "arm-terminal-default-qualified.json",
+      "sha256": "8ce1e8599e3b1b79787e0af11ae9fb92f01d3910654638e2de3eb19d1ee3140c"
+    },
+    {
+      "path": "arm-terminal-default-qualified.log",
+      "sha256": "e3553daf3ecec3804331ad96321e38dd0e4f79c7e8ab418bb24edcfe9cb2c93b"
+    },
+    {
+      "path": "arm-terminal-default.broker.json",
+      "sha256": "015e9fd7014f458bcb02712c683d9b99e0d4e1a13980e6edd2a6284066dba891"
+    },
+    {
+      "path": "arm-terminal-default.broker.log",
+      "sha256": "760dee58940ad9915d6778aae08d42359b73e045e01331fb5f9d6f2c6cc19c5e"
+    },
+    {
+      "path": "arm-terminal-default.phase.log",
+      "sha256": "7688368e2378dfe2dcb61533529981e826177c2592b67317d6e156dd55c298bd"
+    },
+    {
+      "path": "arm-terminal-default.recipe.sh",
+      "sha256": "c0efca22662081502cc8d72aae80bb338d8e070a2e835f3e306e82be4836515e"
+    },
+    {
+      "path": "arm-terminal-overlay.recipe.sh",
+      "sha256": "4403918183502cc3fbe73698d196879f60dba1691260096b0daf43ccb22a28d4"
+    },
+    {
+      "path": "close-http-race-actual-red.log",
+      "sha256": "d91eaee4378f9528bc910687cb43669a06c8635c64435ae24805a5ec24a64318"
+    },
+    {
+      "path": "close-http-race-green.log",
+      "sha256": "8de325c387c85685181d40f9e05885edcf52a0765935f5edd6b12740c6f5d8a9"
+    },
+    {
+      "path": "close-http-race-red.log",
+      "sha256": "61822e76383671663cee87a69f3f5dec415ff871048df02d98886de181f9358f"
+    },
+    {
+      "path": "close-http-race-reproduced-red.log",
+      "sha256": "454ad07d60e0f22119b53ce728713f314d2e13f56c47111bf302560f81502bf2"
+    },
+    {
+      "path": "current-build.json",
+      "sha256": "5e91d476b7eb06072893d386de024be9d76d3d933f9cb2b6f349916154425d89"
+    },
+    {
+      "path": "current-signal-hmi-wire-fixed.json",
+      "sha256": "5765581946b4565e431809eb8c32ed9feac97ca90f2ae9f9fa05a77902ce0223"
+    },
+    {
+      "path": "default-validator-syntax-red.log",
+      "sha256": "b1220e520b7a3e401b68f7ccbf4c54466d3c1d20de67080466d12d6977753c68"
+    },
+    {
+      "path": "hmi-http-field-red/console-active_observation.log",
+      "sha256": "70259e5ca8f43b2b828bc809b18b4685fc5d9b1f1d69d510c1632449aa55f70c"
+    },
+    {
+      "path": "hmi-http-field-red/console-corridor_cmd_vel_guard_node.log",
+      "sha256": "8446fff4e7260163733f244246cd50dd0088092739e08789169fd39754b6e907"
+    },
+    {
+      "path": "hmi-http-field-red/console-research_operator_console.log",
+      "sha256": "8bf135fca9a52b321166157bd5ba1f78c89b20f008b3e3edd1deac64a8169b54"
+    },
+    {
+      "path": "hmi-http-field-red/console-research_safety_bridge.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hmi-http-field-red/console-research_tf_guard.log",
+      "sha256": "35bd2099e6d3018a58f5337c57064d4c8918c9cc871f44f5c792e837d767594c"
+    },
+    {
+      "path": "hmi-http-field-red/console-serial_twistctl_node.log",
+      "sha256": "b77a22013765b1ab85eaec3163e5ba3b9209579e22096341d7e87f3e268e4d65"
+    },
+    {
+      "path": "hmi-http-field-red/validator.log",
+      "sha256": "b253834f2e8f2b66cb923b36456d5e333f8520040e936ae6bf922dfb4aa492b8"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-active_observation-5.log",
+      "sha256": "6e543cdf0e3b3153f6a8ab6725f53dac361ad6a20e02378449eab7f7782f0dc8"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-corridor_cmd_vel_guard_node-2.log",
+      "sha256": "a1b2361651ecfd4d22c62152eb833cfa14e6ce9e18f16d1cc330f2dc989dcbd0"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-research_operator_console-0.log",
+      "sha256": "79a7434af4a1e72e7b1a35ce28c789a551a60aa925f14c2919c915880f11cf5d"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-research_operator_console-6.log",
+      "sha256": "80c919cf941a8f7242ad38b4b3621e0e3a3b87b392ed7b579bbc6957c42cd13f"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-research_operator_console-7.log",
+      "sha256": "5a6e32d5db4a1aa92994520601891f7d3ef9af28b2dddac27b4bd8718c396212"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-research_safety_bridge-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-research_tf_guard-4.log",
+      "sha256": "e988981a7434ad53a0f0c9cecc01161307dd5f29c21632cb23f1a88809449ac0"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/console-serial_twistctl_node-3.log",
+      "sha256": "aa723b1e97f55a7f5400cfa0011114fb2deb2f1a0d63aaeb4de54d2e35cf607b"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/phase.log",
+      "sha256": "1df6849254fc956dece973dfe774608a4884a756ed118993131e9e479a0058e9"
+    },
+    {
+      "path": "hmi-no-final-stop-counterexample/result.json",
+      "sha256": "1df6849254fc956dece973dfe774608a4884a756ed118993131e9e479a0058e9"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-active_observation-5.log",
+      "sha256": "c4926bcffb6ee3d198d08f4037ef0e1128a82fed0c46b44a3ced77c4af348831"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-corridor_cmd_vel_guard_node-2.log",
+      "sha256": "8446fff4e7260163733f244246cd50dd0088092739e08789169fd39754b6e907"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-research_operator_console-0.log",
+      "sha256": "34499a010fbb1f0c912e0058586c871d7176766ff787e3da2af9ab0f94cb8023"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-research_operator_console-6.log",
+      "sha256": "2db35098a88f2ff572a7a6bfac522dd26a57662ebd10e2304b2110833fdcd96b"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-research_operator_console-7.log",
+      "sha256": "18870bd52281e0fd24989ed37d420e1b1630aacdbfae1ff3ce4e6076b8540012"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-research_safety_bridge-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-research_tf_guard-4.log",
+      "sha256": "15aee909fd23176ccdc1f551a0923d12f38d3ef109d53d244973511a8a7742bd"
+    },
+    {
+      "path": "hmi-sequence-qualified/console-serial_twistctl_node-3.log",
+      "sha256": "588633be65f2cde684ca821b3a5ff3838a5dad11696983a0cdf5a6590c06f9ce"
+    },
+    {
+      "path": "hmi-sequence-qualified/phase.log",
+      "sha256": "70dd8a7c0e9ce13f63815920db275fb2ff2518354692a63bbcb90ca67683c890"
+    },
+    {
+      "path": "hmi-sequence-qualified/result.json",
+      "sha256": "70dd8a7c0e9ce13f63815920db275fb2ff2518354692a63bbcb90ca67683c890"
+    },
+    {
+      "path": "hmi-strict-qualified/console-active_observation-5.log",
+      "sha256": "e89c5d8b471eebcc5f0df6b39504e5a445424aad21b3cca5730873c92c2b0e8f"
+    },
+    {
+      "path": "hmi-strict-qualified/console-corridor_cmd_vel_guard_node-2.log",
+      "sha256": "8446fff4e7260163733f244246cd50dd0088092739e08789169fd39754b6e907"
+    },
+    {
+      "path": "hmi-strict-qualified/console-research_operator_console-0.log",
+      "sha256": "0603110d0ce23bca5ebda288e585b46e34bb57d419f02274f4159683ffab6e4c"
+    },
+    {
+      "path": "hmi-strict-qualified/console-research_operator_console-6.log",
+      "sha256": "e67608bde85eaf47944e51d102f4e0d1828250cc9e6d2af9f4170f88f3b106fd"
+    },
+    {
+      "path": "hmi-strict-qualified/console-research_operator_console-7.log",
+      "sha256": "6529c3a517b4082ac1d9fcdc40ae8c59346da94f2cf951f2521d03f459534b6c"
+    },
+    {
+      "path": "hmi-strict-qualified/console-research_safety_bridge-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "hmi-strict-qualified/console-research_tf_guard-4.log",
+      "sha256": "85518832f8e572946d3f5d9f64899b4b067a170286386d47cfb50f90b04eaddd"
+    },
+    {
+      "path": "hmi-strict-qualified/console-serial_twistctl_node-3.log",
+      "sha256": "303f57fc21465152e6220d15471ebbfb859e763b4c4f10e82d4422757a49088d"
+    },
+    {
+      "path": "hmi-strict-qualified/phase.log",
+      "sha256": "ef759d0794bf3a7669746486078fab9d75f0ba9d70985f070419c6a8cffccbdc"
+    },
+    {
+      "path": "hmi-strict-qualified/result.json",
+      "sha256": "ef759d0794bf3a7669746486078fab9d75f0ba9d70985f070419c6a8cffccbdc"
+    },
+    {
+      "path": "installed_source_receipt.py",
+      "sha256": "b4364243dc3315359afadbe985d5b5af837578c06eb1094bd51f415adbddb3b6"
+    },
+    {
+      "path": "native-default-entry-fixed.json",
+      "sha256": "d96f68328be083c7f1e4eeb155adce88db17b8976f60798a1f4d80cf3aa6bf1d"
+    },
+    {
+      "path": "prior-reports/AUDIT_REPORT.md",
+      "sha256": "e89ff83b902dd13b8d6b02393d07a5c4f0a8a2791c6750c766ca93f85899c423"
+    },
+    {
+      "path": "prior-reports/LEGACY_REMOVAL_MANIFEST.md",
+      "sha256": "6b278920b51aef7f9b57ddd52688f641cda94ee0953a349e0aed7ee3116524ad"
+    },
+    {
+      "path": "prior-reports/LIVE_ACCEPTANCE_CHECKLIST.md",
+      "sha256": "4ff100b2c52f67c9b4066cb910a9688b220e5f3f96afa03601b60df55f799590"
+    },
+    {
+      "path": "prior-reports/METHOD_SPEC.md",
+      "sha256": "89468e9ca236f63b14e36a3643c05fbe2c6276920d9636f1c0afb4777c2fa714"
+    },
+    {
+      "path": "prior-reports/MIGRATION_REPORT.md",
+      "sha256": "a3a092637feed51b17caacec84368dfd59a9f804c67c7cf76f8abe5f0ccdd010"
+    },
+    {
+      "path": "prior-reports/REPRODUCE.md",
+      "sha256": "97c2a2d2cd56b0fa278ac8e1d8504fd50dcc9e9ecb2b55a958d91763934f537a"
+    },
+    {
+      "path": "prior-reports/ROLLBACK.md",
+      "sha256": "b1725ee698b1191e3827cb5a91eb6d78eb2c14f6222e4b29fc1a19fce832795d"
+    },
+    {
+      "path": "prior-reports/outputs__RESEARCH_DELIVERY_REPORT.md",
+      "sha256": "d7a325ee637623af719111dafc99dd56f916904b05b0298d4cdd9b11318e5cce"
+    },
+    {
+      "path": "terminal-arm-build.log",
+      "sha256": "bb7d8115d2d034907cdc051f35998ec60674e8b3d3d8e4b3df62d3566b89e006"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-active_observation-5.log",
+      "sha256": "8785658388717dcb80e1b7c167a13dade5a3cb056f79910efbab4d56833ad69b"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-corridor_cmd_vel_guard_node-2.log",
+      "sha256": "545cfd08b5b9ae5ecc8f1043585e17b40c867861d163e6f8127cb765d07e12d1"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-research_operator_console-0.log",
+      "sha256": "48b6bd483315d06ad8bcf62f511a5adb06897159fe16300ed0dae4452270c77c"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-research_operator_console-6.log",
+      "sha256": "153db53ac172eadca76885d0c77be92e630bad85dacdf34dea3518538c985943"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-research_operator_console-7.log",
+      "sha256": "4aabf14cf3caddcb9241ccd75dda8b81493dc31f43552f24c5d23693c6ffa706"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-research_safety_bridge-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-research_tf_guard-4.log",
+      "sha256": "33299eccfeebdb6f8c3d60588dd9aeadc1e7b071bd23f3787b0ce8c56459677a"
+    },
+    {
+      "path": "terminal-hmi-qualified/console-serial_twistctl_node-3.log",
+      "sha256": "4625c0dfd93d3ebb2514d95af847becafe20d21f6d3427ceee5ec900c57d59e5"
+    },
+    {
+      "path": "terminal-hmi-qualified/phase.log",
+      "sha256": "d6390d702c784f86051a2057ae03207bfd2435ee9710e219a5e5a4b81ae99d50"
+    },
+    {
+      "path": "terminal-hmi-qualified/result.json",
+      "sha256": "d6390d702c784f86051a2057ae03207bfd2435ee9710e219a5e5a4b81ae99d50"
+    },
+    {
+      "path": "terminal-native-build.log",
+      "sha256": "32214491c70c592c691a67dd332aef91c5ddbe60be2c3ebfabfc0c4537c2cf44"
+    },
+    {
+      "path": "terminal-native-current-build.json",
+      "sha256": "e4f9d3d105d80daae6f17cc360dd19f8e171f97cf65a50312f04031afc091a4c"
+    },
+    {
+      "path": "terminal-native-default.json",
+      "sha256": "f2cbab9fb9bc0a689407bcb7cc88cdf8e71a6ce92e7a07776bb4e50997c84c48"
+    },
+    {
+      "path": "terminal-native-default.log",
+      "sha256": "c867580af8c8c4ce3d64847a760d1d1e4cd7a38adbf49272a7ee3024ea7277e9"
+    },
+    {
+      "path": "terminal-portable.log",
+      "sha256": "9a1be0f193b78c102de29bde921dc3bb2143cdaf361036083d490d8aa2b4b11a"
+    },
+    {
+      "path": "terminal-three-layer-parameters.json",
+      "sha256": "41ce0433568f67358fb10b88fff22d0e9b4f57e26b1a14c1f82d935873a969cb"
+    },
+    {
+      "path": "final-process-state.json",
+      "sha256": "904dab87576cc5d069bf8f965405f1b221b164c57bd8b59f69259897729068da"
+    }
+  ]
+}

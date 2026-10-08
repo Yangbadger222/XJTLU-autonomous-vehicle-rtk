@@ -49,7 +49,8 @@ def test_rolling_window_preserves_global_strip_identity_for_same_support():
     shifted=LocalObstacleGrid('odom','v2',.3,0.,.3,6,6,tuple([0]*36))
     a=supported_strips(original,session='s1',minimum_width_m=.61)
     b=supported_strips(shifted,session='s1',minimum_width_m=.61)
-    common={s.identity for s in a if s.geometry_xy[0][1]==1.35}
+    common={s.identity for s in a if abs(s.geometry_xy[0][1]-1.35)<1e-9 and
+            abs(s.geometry_xy[1][1]-1.35)<1e-9}
     assert common and common<={s.identity for s in b}
 
 

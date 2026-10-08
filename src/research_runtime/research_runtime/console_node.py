@@ -14,6 +14,7 @@ from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.clock import Clock, ClockType
 from rclpy.node import Node
+from rclpy.signals import SignalHandlerOptions
 from nav_msgs.msg import OccupancyGrid, Odometry
 from std_msgs.msg import Bool, String
 from research_interfaces.msg import OperatorPermit, ResearchStatus, TimedTrajectory2D, RoadGraphUpdate2D, RoadEvent
@@ -243,10 +244,37 @@ class ConsoleNode(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node=ConsoleNode()
-    try:rclpy.spin(node)
-    except KeyboardInterrupt:pass
+    # Keep the ROS context alive until STOP and owned-resource cleanup finish.
+    # Humble's default signal thread otherwise shuts it down during a take().
+    stopping = False
+    previous = {kind: signal.getsignal(kind) for kind in (signal.SIGINT, signal.SIGTERM)}
+
+    def request_stop(_kind, _frame):
+        nonlocal stopping
+        stopping = True
+
+    node = None
+    for kind in previous:
+        signal.signal(kind, request_stop)
+    try:
+        rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
+        if not stopping:
+            node = ConsoleNode()
+        while node is not None and rclpy.ok() and not stopping:
+            rclpy.spin_once(node, timeout_sec=0.05)
+    except KeyboardInterrupt:
+        pass
     finally:
-        node.close();node.destroy_node()
-        if rclpy.ok():rclpy.shutdown()
+        try:
+            if node is not None:
+                try:
+                    node.close()
+                finally:
+                    node.destroy_node()
+        finally:
+            try:
+                if rclpy.ok():
+                    rclpy.shutdown()
+            finally:
+                for kind, handler in previous.items():
+                    signal.signal(kind, handler)

@@ -19,7 +19,8 @@ from rclpy.serialization import serialize_message
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu, PointCloud2
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
+from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D
 from tf2_msgs.msg import TFMessage
 from livox_ros_driver2.msg import CustomMsg
 from raw_replay_contract import replay_contract
@@ -31,6 +32,7 @@ def main():
     parser=argparse.ArgumentParser()
     for name in ('repo','install','bag','output'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--duration-s',type=float,default=0.,help='0 means full EOF; positive is explicitly a prefix')
+    parser.add_argument('--ground-pipeline',action='store_true',help='actual local TF/ground/evidence without any RTK or actuator fixture')
     args=parser.parse_args()
     if os.environ.get('ROS_DOMAIN_ID')!='104' or os.environ.get('ROS_LOCALHOST_ONLY')!='1':
         raise SystemExit('requires isolated domain104 and localhost-only')
@@ -43,6 +45,26 @@ def main():
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
     children=[];logs=[];player=None
+    local_frames=[];full_frames=[];ground_grids=[];combined_grids=[];road_evidence={};questions=[]
+    ground_acquisitions=[]
+    session='raw-ground-'+args.output.stem
+    evidence_path=args.output.with_name(args.output.stem+'-evidence.json')
+    def ground_grid(msg,collection,label):
+        counts[label]+=1
+        collection.append(dict(stamp_ns=stamp(msg),free=msg.grid.data.count(0),blocked=msg.grid.data.count(100),
+            model=msg.support_model,version=msg.map_version,session=msg.localization_session_id,
+            headers_match=msg.header==msg.grid.header))
+    if args.ground_pipeline:
+        from research_interfaces.msg import RoadEvent
+        node.create_subscription(Bool,'/research/local_frame_integrity',lambda msg:local_frames.append(msg.data),100)
+        node.create_subscription(Bool,'/research/tf_integrity',lambda msg:full_frames.append(msg.data),100)
+        node.create_subscription(LocalEvidenceGrid2D,'/research/observed_ground_grid',
+            lambda msg:ground_grid(msg,ground_grids,'ground'),100)
+        node.create_subscription(LocalEvidenceGrid2D,'/research/local_evidence_grid',
+            lambda msg:ground_grid(msg,combined_grids,'combined'),100)
+        node.create_subscription(PointCloud2,'/research/ground_observation_cloud',lambda msg:ground_acquisitions.append(stamp(msg)),100)
+        node.create_subscription(RoadEvidence2D,'/research/road_evidence',lambda msg:road_evidence.setdefault(msg.evidence_id,msg),1000)
+        node.create_subscription(RoadEvent,'/research/measured_road_questions',lambda msg:questions.append(msg.event_id),1000)
     def odometry(msg,label,collection):
         counts[label]+=1;collection[stamp(msg)]=msg
         cov=tuple(msg.pose.covariance)+tuple(msg.twist.covariance)
@@ -93,6 +115,16 @@ def main():
         source=spawn('super_lio','super_lio_node',['--params-file',str(args.repo/'src/bringup/config/super_lio_vehicle.yaml')])
         spawn('super_lio_vehicle_adapter','super_lio_vehicle_adapter',['--params-file',str(args.repo/'src/bringup/config/super_lio_reference.yaml')])
         spawn('super_lio_vehicle_adapter','super_lio_cloud_frame_adapter',['--params-file',str(args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')])
+        if args.ground_pipeline:
+            spawn('ego_planner','research_tf_guard',['-p','protect_world_gauge:=true'])
+            for package,binary,config in (
+                ('active_road_mapping','active_road_map','active_road_mapping.yaml'),
+                ('active_road_mapping','active_road_evidence','active_road_evidence.yaml'),
+                ('research_runtime','research_observed_ground','research_observed_ground.yaml'),
+                ('research_runtime','research_local_obstacle_grid','research_local_grid.yaml')):
+                extra=['-p','evidence_store_path:='+str(evidence_path)] if package=='active_road_mapping' else []
+                spawn(package,binary,['--params-file',str(args.repo/'src/bringup/config'/config),
+                    '-p','localization_session_id:='+session,*extra])
         spin(2.)
         log=args.output.with_suffix('.play.log').open('w');logs.append(log)
         player=subprocess.Popen(['ros2','bag','play',str(args.bag),'--rate','1.0','--clock','100',
@@ -146,6 +178,37 @@ def main():
                 'source_terminal_health_OK':bool(last_source_health) and last_source_health['status']=='OK',
                 'vehicle_terminal_health_OK':bool(last_vehicle_health) and last_vehicle_health.split(':',1)[0]=='OK',
                 **continuity['checks']}
+        ground_result=None
+        if args.ground_pipeline:
+            from research_runtime.active_road import EvidenceStore
+            store=EvidenceStore.load(evidence_path) if evidence_path.exists() else None
+            records=store.evidence() if store else []
+            support_keys={item['stamp_ns'] for item in ground_grids if item['free']>0}
+            ground_checks=dict(local_perception_health_exists=any(local_frames),
+                global_motion_TF_never_granted=bool(full_frames) and not any(full_frames),
+                actual_ground_acquisitions=len(ground_acquisitions)>50,
+                atomic_grid_identity=bool(ground_grids and combined_grids) and all(
+                    item['headers_match'] and item['session']==session and item['version']!='UNKNOWN'
+                    for item in [*ground_grids,*combined_grids]),
+                ground_measurements_match_source_certificate=all(key in certificates and certificates[key]['eligible'] for key in ground_acquisitions),
+                positive_support_measurements_match_acquisition=all(key in ground_acquisitions for key in support_keys),
+                wall_EOF_expiry_retracts_ground=bool(ground_grids) and ground_grids[-1]['free']==0,
+                local_store_initialized=store is not None and store.transform.crs=='LOCAL:odom',
+                persistence_acknowledged=all(msg.evidence_id in {record.evidence_id for record in records} for msg in road_evidence.values()),
+                persisted_geometry_stays_local=store is not None and not store.submap_anchors and
+                    all(store.geometry_in_map(record.evidence_id) is None for record in records),
+                bounded_geometric_evidence=all(record.state.value=='OBSERVED_GEOMETRY' and
+                    record.local_submap_id.startswith(session+'/') and record.supported_width_m>0 and
+                    record.valid_depth_m and record.observed_length_m>0 for record in records))
+            ground_result=dict(status='PASS' if all(ground_checks.values()) else 'FAIL',checks=ground_checks,
+                actual_ground_acquisitions=len(ground_acquisitions),ground_messages=len(ground_grids),combined_messages=len(combined_grids),
+                acquisitions_with_positive_support=len(support_keys),maximum_supported_cells=max((item['free'] for item in ground_grids),default=0),
+                positive_support_raw_status='PASS' if support_keys else 'FAIL',
+                persisted_geometry_count=len(records),measured_question_count=len(set(questions)),
+                road_evidence_source_status='PASS' if records else 'NOT_RUN',
+                evidence_store=str(evidence_path),global_TF_true_count=sum(full_frames),local_TF_true_count=sum(local_frames),
+                scope='Actual raw sensors and compiled local geometry/persistence, no injected odom/ground/RTK; geometry is not a semantic road or terrain/motion acceptance')
+            checks['actual_ground_pipeline']=ground_result['status']=='PASS'
         executable=args.install/'super_lio/lib/super_lio/super_lio_node'
         result={'status':'PASS' if all(checks.values()) else 'FAIL','checks':checks,'counts':dict(counts),
                 'source_health_counts':dict(health),'source_reasons':dict(reasons),'vehicle_health_counts':dict(health_labels),
@@ -163,6 +226,7 @@ def main():
                     args.repo/'patches/super_lio/0002-certify-source-observations-and-covariance.patch',
                     args.repo/'src/bringup/config/super_lio_vehicle.yaml',args.repo/'src/bringup/config/super_lio_reference.yaml',
                     args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')},
+                'ground_pipeline':ground_result,
                 'wall_elapsed_s':time.monotonic()-started,
                 'scope':'Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim'}
     finally:

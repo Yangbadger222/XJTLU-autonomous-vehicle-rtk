@@ -44,7 +44,7 @@ def main():
     native={};vehicle={};certificates={};health=Counter();reasons=Counter();vehicle_health=Counter()
     counts=Counter();covariance_failures=[];world_edges=[];bounds=[];resources=[];fault_capture=[]
     raw_lidar_stamps=[];raw_imu_stamps=[];last_source_health=None;last_vehicle_health=None
-    children=[];logs=[];player=None
+    children=[];logs=[];player=None;child_commands=[];map_parameters=None
     local_frames=[];full_frames=[];ground_grids=[];combined_grids=[];road_evidence={};questions=[]
     ground_acquisitions=[]
     session='raw-ground-'+args.output.stem
@@ -105,7 +105,9 @@ def main():
     def spawn(package,binary,ros_args):
         executable=args.install/package/'lib'/package/binary
         log=args.output.with_name(args.output.stem+'-'+binary+'.log').open('w');logs.append(log)
-        child=subprocess.Popen([str(executable),'--ros-args','-p','use_sim_time:=true',*ros_args],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+        command=[str(executable),'--ros-args','-p','use_sim_time:=true',*ros_args]
+        child_commands.append(command)
+        child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         children.append(child);return child
     def spin(seconds):
         end=time.monotonic()+seconds
@@ -126,6 +128,10 @@ def main():
                 spawn(package,binary,['--params-file',str(args.repo/'src/bringup/config'/config),
                     '-p','localization_session_id:='+session,*extra])
         spin(2.)
+        if args.ground_pipeline:
+            dumped=subprocess.run(['ros2','param','dump','/active_road_map'],capture_output=True,text=True,timeout=12)
+            map_parameters=dict(exit_code=dumped.returncode,yaml=dumped.stdout,stderr=dumped.stderr,
+                                expected_store_exists_before_replay=evidence_path.exists())
         log=args.output.with_suffix('.play.log').open('w');logs.append(log)
         player=subprocess.Popen(['ros2','bag','play',str(args.bag),'--rate','1.0','--clock','100',
                                  '--topics','/livox/lidar','/livox/imu'],stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
@@ -229,6 +235,7 @@ def main():
                     args.repo/'src/bringup/config/super_lio_vehicle.yaml',args.repo/'src/bringup/config/super_lio_reference.yaml',
                     args.repo/'src/bringup/config/super_lio_cloud_frame.yaml')},
                 'ground_pipeline':ground_result,
+                'ground_map_runtime_parameters':map_parameters,'child_commands':child_commands,
                 'wall_elapsed_s':time.monotonic()-started,
                 'scope':'Actual current Super/native health/body covariance/reference/cloud on raw sensors; no actuator, FAST ground truth, physical calibration or policy benefit claim'}
     finally:

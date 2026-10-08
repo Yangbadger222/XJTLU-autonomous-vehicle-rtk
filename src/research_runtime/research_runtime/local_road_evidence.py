@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import math
+import numpy as np
 
 from .grid_map import LocalObstacleGrid
 
@@ -19,6 +20,32 @@ class SupportedStrip:
     width_m: float
     length_m: float
     frontier_xy: tuple[tuple[float,float], ...]
+
+
+def pose_points_xy_uncertainty(covariance, origin, points) -> float:
+    """Full pose propagation in the audited world small-angle convention.
+
+    For r=p_world-p_origin, J_xy=[I_xy, -skew(r)_xy]. This retains all
+    translation/roll/pitch/yaw covariance and cross terms. The result is a
+    conditional one-sigma upper bound over the supplied points, not a claim
+    of external LIO accuracy or sensor surface precision.
+    """
+    matrix=np.asarray(covariance,dtype=float)
+    points=np.asarray(points,dtype=float)
+    origin=np.asarray(origin,dtype=float)
+    if matrix.size!=36 or points.ndim!=2 or points.shape[1]!=3 or not len(points) or origin.shape!=(3,):
+        raise ValueError('full pose covariance and finite XYZ points required')
+    matrix=matrix.reshape((6,6))
+    if (not np.isfinite(matrix).all() or not np.isfinite(points).all() or not np.isfinite(origin).all() or
+        not np.allclose(matrix,matrix.T,rtol=0,atol=1e-10) or np.linalg.eigvalsh(matrix)[0]<-1e-10):
+        raise ValueError('pose covariance must be symmetric finite PSD')
+    r=points-origin
+    jacobian=np.zeros((len(points),2,6))
+    jacobian[:,0,0]=jacobian[:,1,1]=1.
+    jacobian[:,0,4],jacobian[:,0,5]=r[:,2],-r[:,1]
+    jacobian[:,1,3],jacobian[:,1,5]=-r[:,2],r[:,0]
+    propagated=jacobian@matrix@jacobian.transpose((0,2,1))
+    return math.sqrt(max(0.,float(np.linalg.eigvalsh(propagated)[:,-1].max())))
 
 
 def supported_strips(grid: LocalObstacleGrid, *, session: str, minimum_width_m: float,

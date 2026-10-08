@@ -209,6 +209,11 @@ class ActiveObservationNode(Node):
             msg.kind not in ('geometric_entry','clearance_question','step_question','obstacle_question') or
             not all(math.isfinite(v) for v in (msg.x,msg.y,msg.observed_length_m,msg.unknown_length_m)) or
             msg.observed_length_m<0 or msg.unknown_length_m<0):return
+        if msg.source=='mid360_single_scan_flat_geometry_v1':
+            identity=msg.event_id.rsplit(':frontier:',1)[0]
+            supporting=next((e for e in self.recorded_evidence if e.evidence_id==identity),None)
+            if (supporting is None or supporting.pose_uncertainty_m>self.pose_uncertainty_limit or
+                not supporting.local_submap_id.startswith(self.localization_session_id+'/')):return
         event=ObservationEvent(msg.event_id,msg.kind,((msg.x,msg.y),),state='UNCERTAIN',
             observed_length_m=msg.observed_length_m,question='sensor-reported geometry/clearance question: '+msg.source)
         self.measured_questions[msg.event_id]=(event,time.monotonic())

@@ -1,7 +1,7 @@
 import json
 import pytest
 from research_runtime.grid_map import LocalObstacleGrid
-from research_runtime.local_road_evidence import supported_strips
+from research_runtime.local_road_evidence import supported_strips,pose_points_xy_uncertainty
 from research_runtime.active_road import EvidenceStore,GeoTransform,RoadEvidence,EvidenceState
 
 
@@ -58,3 +58,22 @@ def test_width_may_not_be_nan_or_negative():
         with pytest.raises(ValueError):
             EvidenceStore._validate_evidence(RoadEvidence('e',[(0.,0.),(1.,0.)],EvidenceState.OBSERVED_GEOMETRY,
                 1.,'source','submap',.1,1.,supported_width_m=bad))
+
+
+def test_roll_pitch_and_position_orientation_cross_terms_cross_trust_threshold():
+    import numpy as np
+    matrix=np.eye(6)*1e-8
+    matrix[0,0]=.0081;matrix[4,4]=.005
+    matrix[0,4]=matrix[4,0]=-.9*(.0081*.005)**.5
+    uncertainty=pose_points_xy_uncertainty(matrix.ravel(),(0.,0.,0.),[(.1,0.,-.40288)])
+    expected=(.0081+.40288**2*.005+2*(-.40288)*matrix[0,4])**.5
+    assert uncertainty == pytest.approx(expected,abs=1e-8)
+    assert uncertainty>.10
+    assert .09+.101**.5*1e-4<.10  # The former XY+sigma-yaw shortcut falsely passed.
+
+
+def test_point_uncertainty_rejects_non_PSD_or_empty_contract():
+    import numpy as np
+    bad=np.eye(6);bad[0,1]=2.;bad[1,0]=2.
+    with pytest.raises(ValueError):pose_points_xy_uncertainty(bad.ravel(),(0.,0.,0.),[(1.,0.,0.)])
+    with pytest.raises(ValueError):pose_points_xy_uncertainty(np.eye(6).ravel(),(0.,0.,0.),[])

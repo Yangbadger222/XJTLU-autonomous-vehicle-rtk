@@ -1,7 +1,6 @@
 """Stamped MID360 support evidence from the unfiltered deskewed source cloud."""
 import math
 import time
-import numpy as np
 from collections import OrderedDict
 
 import rclpy
@@ -19,7 +18,7 @@ from research_interfaces.msg import LocalEvidenceGrid2D, RoadEvidence2D, RoadEve
 from super_lio_vehicle_adapter.adapter_node import _source_certificate, _covariance_is_known, _qrotate
 from .physical_parameter_lock import MID360_GROUND_REFERENCE, LOCKED_FOOTPRINT
 from .observed_ground import GroundPolicy, expected_ground_z, project_observed_ground
-from .local_road_evidence import supported_strips
+from .local_road_evidence import supported_strips,pose_points_xy_uncertainty
 
 
 def _stamp(msg):
@@ -79,21 +78,29 @@ class ObservedGroundNode(Node):
         # acknowledgement suppresses retry, never counts it as new evidence.
         for msg in self._road_pending.values():self._road_pub.publish(msg)
 
-    def _record_roads(self,grid,pose,points,header):
+    def _record_roads(self,grid,pose,points,header,floor):
         covariance=tuple(pose.pose.covariance)+tuple(pose.twist.covariance)
         if not _covariance_is_known(covariance):return
         p,q=pose.pose.pose.position,pose.pose.pose.orientation
         translation=_qrotate((q.x,q.y,q.z,q.w),MID360_GROUND_REFERENCE['lidar_in_imu_m'])
         sensor=(p.x+translation[0],p.y+translation[1],p.z+translation[2])
-        ranges=[math.dist((float(point[0]),float(point[1]),float(point[2])),sensor) for point in points
-            if all(math.isfinite(float(value)) for value in (point[0],point[1],point[2]))]
-        ranges=[value for value in ranges if value>0]
-        if not ranges:return
-        # Conditional estimator uncertainty, not an external accuracy claim.
-        matrix=np.asarray(pose.pose.covariance).reshape((6,6))
-        uncertainty=math.sqrt(max(0.,float(np.linalg.eigvalsh(matrix[:2,:2])[-1])))+max(ranges)*math.sqrt(max(0.,float(matrix[5,5])))
         width=max(y for _x,y in LOCKED_FOOTPRINT)-min(y for _x,y in LOCKED_FOOTPRINT)
         for strip in supported_strips(grid,session=self._session,minimum_width_m=width):
+            a,b=strip.geometry_xy
+            vertical=abs(a[0]-b[0])<1e-9
+            corners=[(x+(sign*strip.width_m/2 if vertical else 0.),
+                      y+(0. if vertical else sign*strip.width_m/2),z)
+                for x,y in (a,b) for sign in (-1.,1.)
+                for z in (floor-self._policy.floor_band_m,floor+self._policy.floor_band_m)]
+            uncertainty=pose_points_xy_uncertainty(pose.pose.covariance,(p.x,p.y,p.z),corners)
+            low_x,high_x=min(c[0] for c in corners),max(c[0] for c in corners)
+            low_y,high_y=min(c[1] for c in corners),max(c[1] for c in corners)
+            ranges=[math.dist((float(point[0]),float(point[1]),float(point[2])),sensor) for point in points
+                if all(math.isfinite(float(value)) for value in (point[0],point[1],point[2])) and
+                low_x<=point[0]<=high_x and low_y<=point[1]<=high_y and
+                abs(point[2]-floor)<=self._policy.floor_band_m]
+            ranges=[value for value in ranges if value>0]
+            if not ranges:continue
             identity=self._session+':mid360-strip:'+strip.identity
             if identity not in self._road_seen and len(self._road_seen)<1024 and len(self._road_pending)<128:
                 msg=RoadEvidence2D(header=header,evidence_id=identity,
@@ -108,6 +115,7 @@ class ObservedGroundNode(Node):
             # already persisted. Unknown length is one tested cell, not a
             # fabricated remote edge or an assertion of semantic road identity.
             for index,(x,y) in enumerate(strip.frontier_xy):
+                if uncertainty>.10:continue  # Same explicit research trust ceiling as the observer.
                 self._question_pub.publish(RoadEvent(header=header,event_id=identity+':frontier:'+str(index),
                     kind='geometric_entry',x=x,y=y,observed_length_m=strip.length_m,
                     unknown_length_m=grid.resolution_m,state='UNCERTAIN',impact=0.,
@@ -223,7 +231,7 @@ class ObservedGroundNode(Node):
                 wrapped = LocalEvidenceGrid2D(header=output.header,map_version=self._version,
                     localization_session_id=self._session,support_model="single_scan_flat_dense_v1",grid=output)
                 self._publisher.publish(wrapped)
-                self._record_roads(grid,pose,points,output.header)
+                self._record_roads(grid,pose,points,output.header,floor)
                 # This is an actual TF operation even for the owned identity;
                 # the original safety/display filtered clouds remain separate.
                 from tf2_sensor_msgs.tf2_sensor_msgs import do_transform_cloud

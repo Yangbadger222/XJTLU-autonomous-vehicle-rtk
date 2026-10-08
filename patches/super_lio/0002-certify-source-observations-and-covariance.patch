@@ -1,3 +1,59 @@
+diff --git a/src/basic/src/Manifold.cpp b/src/basic/src/Manifold.cpp
+index cf830a1..235b675 100644
+--- a/src/basic/src/Manifold.cpp
++++ b/src/basic/src/Manifold.cpp
+@@ -1,5 +1,6 @@
+
+ #include "basic/Manifold.h"
++#include <limits>
+
+
+ namespace BASIC {
+@@ -247,9 +248,27 @@ SO3& SO3::operator=(const SO3& rhs){
+   return *this;
+ }
+
++// Retract round-off after each group composition. Float matrix products can
++// leave SO(3) after thousands of ideal IMU steps; later boundary normalization
++// cannot repair the already-used non-rigid estimator state. Invalid operands
++// remain invalid, including two reflections whose raw product is identity.
++static bool unitOperand(const M3& input, Eigen::Quaterniond& output) noexcept {
++  const Eigen::Matrix3d matrix=input.cast<double>();
++  const double tolerance=std::sqrt(std::numeric_limits<float>::epsilon());
++  if (!matrix.allFinite() || std::abs(matrix.determinant()-1.)>tolerance ||
++      (matrix.transpose()*matrix-Eigen::Matrix3d::Identity()).norm()>tolerance) return false;
++  output=Eigen::Quaterniond(matrix);
++  if (!output.coeffs().allFinite() || !(output.norm()>std::numeric_limits<double>::min())) return false;
++  output.normalize();
++  return true;
++}
++
+ SO3 SO3::operator*(const SO3& rhs) const noexcept{
+-  M3 res = R_ * rhs.R();
+-  return SO3(res);
++  Eigen::Quaterniond left,right;
++  if (!unitOperand(R_,left) || !unitOperand(rhs.R_,right))
++    return SO3(M3::Constant(std::numeric_limits<scalar>::quiet_NaN()));
++  const Eigen::Quaterniond product=(left*right).normalized();
++  return SO3(product.toRotationMatrix().cast<scalar>());
+ }
+
+ SO3 SO3::operator*(scalar s) const noexcept{
+@@ -263,12 +282,12 @@ V3 SO3::operator*(const V3& rhs) const noexcept{
+
+ void SO3::update(const V3 &dw){
+   SO3 dR(dw);
+-  R_ = dR.R() * R_;
++  R_ = (dR * *this).R_;
+ }
+
+ void SO3::updateRhs(const V3 &dw){
+   SO3 dR(dw);
+-  R_ = R_ * dR.R();
++  R_ = (*this * dR).R_;
+ }
+
+ void SO3::exp(const M3 &w_hat){
 diff --git a/src/super_lio/include/common/ds.h b/src/super_lio/include/common/ds.h
 index 4a32e22..68c3522 100644
 --- a/src/super_lio/include/common/ds.h

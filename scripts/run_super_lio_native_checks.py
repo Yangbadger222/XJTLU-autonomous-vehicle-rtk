@@ -14,9 +14,9 @@ def main():
     parser.add_argument('--repo',type=Path,required=True)
     parser.add_argument('--workspace',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--only',choices=('information','failed_update','deskew','packet','orientation'))
+    parser.add_argument('--only',choices=('information','failed_update','deskew','packet','orientation','rotation_integration'))
     args=parser.parse_args()
-    if (not args.only or args.only in ('packet','orientation')) and (os.environ.get('ROS_DOMAIN_ID')!='105' or os.environ.get('ROS_LOCALHOST_ONLY')!='1'):
+    if (not args.only or args.only in ('packet','orientation','rotation_integration')) and (os.environ.get('ROS_DOMAIN_ID')!='105' or os.environ.get('ROS_LOCALHOST_ONLY')!='1'):
         raise SystemExit('packet probe requires isolated domain105 and localhost-only before any native execution')
     args.output.mkdir(parents=True,exist_ok=True)
     build=args.workspace/'build/super_lio'
@@ -26,7 +26,7 @@ def main():
     object_index=next(i for i,part in enumerate(link) if part.endswith('src/apps/super_lio_node.cpp.o'))
     output_index=link.index('-o')+1
     checks=[]
-    for name in ((args.only,) if args.only else ('information','failed_update','deskew','packet','orientation')):
+    for name in ((args.only,) if args.only else ('information','failed_update','deskew','packet','orientation','rotation_integration')):
         source=args.repo/f'scripts/validate_super_lio_{name}.cpp'
         object_file=args.output/f'{name}.o';binary=args.output/name
         compile_cmd=[link[0],*flags['CXX_DEFINES'],*flags['CXX_INCLUDES'],

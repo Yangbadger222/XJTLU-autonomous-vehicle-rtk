@@ -79,25 +79,52 @@ def trial(args,mode,index,manifest):
     config=args.repo/'src/bringup/config'
     rclpy.init();probe=rclpy.create_node("restricted_trial_evaluator")
     observations=[];reasons={};planning={}; inputs={}; failures=[]
+    contexts=[];context_times={};input_receipts={}
     operator_pub=probe.create_publisher(OperatorPermit,"/research/operator_permit",10)
     current_version=["UNKNOWN"]
     probe.create_subscription(String,"/research/map_version",lambda msg:current_version.__setitem__(0,msg.data),10)
     operator_sequence=0
+    def input_receipt(label,msg):
+        input_receipts[label]={'frame_id':msg.header.frame_id,
+            'stamp_ns':msg.header.stamp.sec*1_000_000_000+msg.header.stamp.nanosec,
+            'receive_wall_s':time.monotonic()-start}
+    def capture_context(kind,reason):
+        # Bounded evaluator-only diagnostics. Never publish a captured input
+        # or change a permission/reference to make the experiment succeed.
+        category=reason.split('tracker:',1)[-1].split(':',1)[0]
+        key=kind+':'+category;now=time.monotonic()
+        count,last=context_times.get(key,(0,float('-inf')))
+        if len(contexts)>=32 or count>=3 or now-last<5.:return
+        context_times[key]=(count+1,now)
+        contexts.append({'kind':kind,'reason':reason,'wall_s':now-start,
+            'map_version':current_version[0],'localization_session_id':session_id,
+            'inputs':json.loads(json.dumps(inputs)),
+            'input_receipts':json.loads(json.dumps(input_receipts))})
     def odom_cb(msg):
+        input_receipt('state',msg)
         q=msg.pose.pose.orientation
         inputs['state']=[msg.pose.pose.position.x,msg.pose.pose.position.y,2*math.atan2(q.z,q.w),
                          msg.twist.twist.linear.x,msg.twist.twist.angular.z]
     probe.create_subscription(Odometry,'/research/odom_control',odom_cb,100)
-    probe.create_subscription(AccelStamped,'/research/vehicle_acceleration',lambda msg:inputs.update(
-        acceleration=[msg.accel.linear.x,msg.accel.linear.y]),100)
-    probe.create_subscription(RosPath,'/research/road_reference',lambda msg:inputs.update(
-        reference=[[p.pose.position.x,p.pose.position.y] for p in msg.poses]),10)
-    probe.create_subscription(OccupancyGrid,'/research/local_obstacle_grid',lambda msg:inputs.update(
-        grid={'resolution':msg.info.resolution,'origin':[msg.info.origin.position.x,msg.info.origin.position.y],
-              'width':msg.info.width,'height':msg.info.height,'cells':list(msg.data)}),10)
-    def status_cb(msg):reasons[msg.reason]=reasons.get(msg.reason,0)+1
+    def acceleration_cb(msg):
+        input_receipt('acceleration',msg)
+        inputs['acceleration']=[msg.accel.linear.x,msg.accel.linear.y]
+    probe.create_subscription(AccelStamped,'/research/vehicle_acceleration',acceleration_cb,100)
+    def reference_cb(msg):
+        input_receipt('reference',msg)
+        inputs['reference']=[[p.pose.position.x,p.pose.position.y] for p in msg.poses]
+    probe.create_subscription(RosPath,'/research/road_reference',reference_cb,10)
+    def grid_cb(msg):
+        input_receipt('grid',msg)
+        inputs['grid']={'resolution':msg.info.resolution,'origin':[msg.info.origin.position.x,msg.info.origin.position.y],
+            'width':msg.info.width,'height':msg.info.height,'cells':list(msg.data)}
+    probe.create_subscription(OccupancyGrid,'/research/local_obstacle_grid',grid_cb,10)
+    def status_cb(msg):
+        reasons[msg.reason]=reasons.get(msg.reason,0)+1
+        if 'tracker:' in msg.reason:capture_context('tracking',msg.reason)
     def plan_cb(msg):
         planning[msg.failure_reason or "OK"]=planning.get(msg.failure_reason or "OK",0)+1
+        if msg.failure_reason:capture_context('planning',msg.failure_reason)
         if msg.failure_reason=='ego_planner_vehicle_feasibility_rejected' and len(failures)<10 and len(inputs)==4:
             failures.append(json.loads(json.dumps(inputs)))
     probe.create_subscription(ResearchStatus,"/research/status",status_cb,100)
@@ -201,6 +228,7 @@ def trial(args,mode,index,manifest):
         for log in logs:log.close()
         os.close(master);os.close(slave)
         probe.destroy_node();rclpy.shutdown()
+    (root/'denied-planning-contexts.json').write_text(json.dumps(contexts,indent=2)+'\n')
     (root/'failed-measured-inputs.json').write_text(json.dumps(failures)+'\n')
     (root/'result.json').write_text(json.dumps(result,indent=2)+'\n');return result
 

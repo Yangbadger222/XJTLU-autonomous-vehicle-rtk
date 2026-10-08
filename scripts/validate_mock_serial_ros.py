@@ -47,7 +47,9 @@ def main():
     parser.add_argument("--paused-clock-probe",action="store_true")
     parser.add_argument("--default-profile",action="store_true",help="use all current source-YAML execution settings; analytical sensors/PTY only")
     parser.add_argument("--rotation-fixture",action="store_true",help="exercise explicit pure-yaw trajectory through all original final-serial stop gates")
+    parser.add_argument("--heading-recovery-loop",action="store_true",help="actual EGO execution from a stationary 90-degree heading mismatch; must exercise the explicit recovery")
     args = parser.parse_args()
+    if args.heading_recovery_loop:args.ego_loop=True
     if args.rotation_fixture and (args.ego_loop or args.arc_loop):
         parser.error("rotation fault fixture and EGO closed loop are separate runs")
     lock=json.loads((args.repo/'audit/vehicle_baseline/VEHICLE_PARAMETER_LOCK.json').read_text())
@@ -63,7 +65,7 @@ def main():
     node = rclpy.create_node("mock_serial_acceptance_probe")
     children, logs, wire, cases = [], [], [], []
     buffer = b""
-    simulated_pose = [0.0, 0.0, 0.0]
+    simulated_pose = [0.0, 0.0, math.pi/2 if args.heading_recovery_loop else 0.0]
     wire_command = [0.0, 0.0]
     simulated_velocity = [0.0, 0.0]
     last_physics_time = node.get_clock().now().nanoseconds
@@ -391,6 +393,7 @@ def main():
                       "authority_false_final_serial_tail": tail, "runtime_parameters": runtime_parameters,
                       "trajectory_counts": trajectory_counts, "wire_message_count": len(normal),
                       "loop_budget_s": args.loop_budget_s,
+                      "heading_recovery_loop":args.heading_recovery_loop,
                       "tracker_reason_counts": tracker_reasons,
                       "status": "PASS" if reached and stopped and trajectory_counts["ok"] > 10 else "FAIL"}
             result["wire_limits_preserved"]=(result["final_wire_max_turn_product"]<=locked['corridor.guard.turn_product_limit']+1e-9 and
@@ -398,6 +401,10 @@ def main():
                 result["final_wire_max_speed"]<=locked['corridor.smoother.max_velocity'][0]+1e-9 and
                 result["final_wire_max_yaw_rate"]<=locked['corridor.smoother.max_velocity'][2]+1e-9)
             if not result["wire_limits_preserved"]:result["status"]="FAIL"
+            if args.heading_recovery_loop:
+                result['explicit_heading_recovery_executed']=(trajectory_counts['explicit_rotation']>0 and
+                    any(line.startswith('vcx=0.000,') and abs(float(line.split(',')[1][3:]))>.001 for line in normal))
+                if not result['explicit_heading_recovery_executed']:result['status']='FAIL'
             args.output.write_text(json.dumps(result, indent=2) + "\n")
             print(json.dumps({k:v for k,v in result.items() if k != "runtime_parameters"}, indent=2))
             return 0 if result["status"] == "PASS" else 1
